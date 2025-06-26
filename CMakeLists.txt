@@ -20,15 +20,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable GUI support
 option(JUCE_HEADLESS_PLUGIN_CLIENT "Build in headless mode" OFF)
 
-# Set plugin formats based on platform
-set(PLUGIN_FORMATS Standalone VST3)
+# Option for standalone only build
+option(STANDALONE_ONLY "Build only standalone version for faster development" OFF)
 
-if(APPLE)
-    list(APPEND PLUGIN_FORMATS AU)
-endif()
-
-if(NOT WIN32 OR UNIX)
-    list(APPEND PLUGIN_FORMATS LV2)
+# Set plugin formats based on platform and build type
+if(STANDALONE_ONLY)
+    set(PLUGIN_FORMATS Standalone)
+    message(STATUS "STANDALONE_ONLY: Building standalone version only")
+else()
+    set(PLUGIN_FORMATS Standalone VST3)
+    
+    if(APPLE)
+        list(APPEND PLUGIN_FORMATS AU)
+    endif()
+    
+    if(NOT WIN32 OR UNIX)
+        list(APPEND PLUGIN_FORMATS LV2)
+    endif()
 endif()
 
 # JUCE plugin settings
