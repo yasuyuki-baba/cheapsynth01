@@ -30,10 +30,6 @@ CheapSynth01 is a software emulation of an early 80s compact monophonic synthesi
 ### Build Steps
 
 ```bash
-# Clone the repository
-git clone https://github.com/yasuyukibaba/cheapsynth01.git
-cd cheapsynth01
-
 # Create and configure build directory
 cmake -B build
 
@@ -48,7 +44,3 @@ Load the plugin in your DAW or launch the standalone application.
 ## License
 
 This project is released under the MIT License. See the LICENSE file for details.
-
-## Developer
-
-- Yasuyuki Baba
