@@ -46,6 +46,24 @@ jobs:
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+            
+      - name: Package for Release
+        if: github.ref_type == 'tag'
+        run: |
+          mkdir -p release-packages
+          cd ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-standalone.zip Standalone/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-vst3.zip VST3/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-clap.zip CLAP/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-lv2.zip LV2/
+          
+      - name: Upload Release Packages
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-linux-packages
+          path: ${{github.workspace}}/release-packages/*.zip
+          retention-days: 5
 
   build-macos:
     runs-on: macos-latest
@@ -81,6 +99,25 @@ jobs:
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+            
+      - name: Package for Release
+        if: github.ref_type == 'tag'
+        run: |
+          mkdir -p release-packages
+          cd ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-standalone.zip Standalone/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-vst3.zip VST3/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-au.zip AU/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-clap.zip CLAP/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-lv2.zip LV2/
+          
+      - name: Upload Release Packages
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-macos-packages
+          path: ${{github.workspace}}/release-packages/*.zip
+          retention-days: 5
 
   build-windows:
     runs-on: windows-latest
@@ -127,3 +164,59 @@ jobs:
             ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\Standalone\*
             ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\VST3\*
             ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\CLAP\*
+            
+      - name: Package for Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          New-Item -Path "release-packages" -ItemType Directory -Force
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}"
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE "release-packages"
+          
+          Compress-Archive -Path "$buildDir\Standalone\*" -DestinationPath "$releaseDir\cheapsynth01-windows-standalone.zip" -Force
+          Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
+          Compress-Archive -Path "$buildDir\CLAP\*" -DestinationPath "$releaseDir\cheapsynth01-windows-clap.zip" -Force
+      
+      - name: Upload Release Packages
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-windows-packages
+          path: ${{github.workspace}}\release-packages\*.zip
+          retention-days: 5
+
+  create-release:
+    needs: [build-linux, build-macos, build-windows]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: cheapsynth01-linux-packages
+          path: release-packages
+          
+      - name: Download macOS Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: cheapsynth01-macos-packages
+          path: release-packages
+          
+      - name: Download Windows Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: cheapsynth01-windows-packages
+          path: release-packages
+          
+      - name: List Packages
+        run: ls -la release-packages
+        
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-packages/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
