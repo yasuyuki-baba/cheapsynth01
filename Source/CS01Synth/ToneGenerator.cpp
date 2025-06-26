@@ -62,16 +62,15 @@ void ToneGenerator::setNote(int midiNoteNumber, bool isLegato)
 void ToneGenerator::calculateSlideParameters(int targetNote)
 {
     targetPitch = static_cast<float>(targetNote);
-    auto glissandoParam = apvts.getRawParameterValue(ParameterIds::glissando)->load();
+    auto timePerSemitone = apvts.getRawParameterValue(ParameterIds::glissando)->load();
     
-    if (glissandoParam < 0.01f) // No slide
+    if (timePerSemitone < 0.001f) // No slide
     {
         isSliding = false;
         currentPitch = targetPitch;
         return;
     }
 
-    float totalSlideTimeSeconds = juce::jmap(glissandoParam, 0.0f, 1.0f, 0.0f, 2.0f);
     float pitchDifference = std::abs(targetPitch - currentPitch);
     if (pitchDifference == 0)
     {
@@ -79,7 +78,7 @@ void ToneGenerator::calculateSlideParameters(int targetNote)
         return;
     }
 
-    float timePerSemitone = totalSlideTimeSeconds / pitchDifference;
+    // 1半音あたりの時間を直接使用
     samplesPerStep = static_cast<int>(timePerSemitone * sampleRate);
     if (samplesPerStep < 1) samplesPerStep = 1;
 

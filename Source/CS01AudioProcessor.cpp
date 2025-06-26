@@ -316,7 +316,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
         std::make_unique<juce::AudioParameterChoice>(ParameterIds::feet, "Feet", juce::StringArray{"32'", "16'", "8'", "4'", "WN"}, 2),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::pwmSpeed, "PWM Speed", juce::NormalisableRange<float>(0.6f, 12.0f, 0.01f, 0.5f), 2.0f),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::pitch, "Pitch", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), 0.0f),
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::glissando, "Glissando", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f)
+        std::make_unique<juce::AudioParameterFloat>(ParameterIds::glissando, "Glissando", juce::NormalisableRange<float>(0.0f, Constants::maxGlissandoPerSemitoneSeconds, 0.001f, 0.5f), 0.0f)
     );
     layout.add(std::move(vcoGroup));
 
