@@ -44,7 +44,6 @@ jobs:
           path: |
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
-            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
             
       - name: Package for Release
@@ -54,7 +53,6 @@ jobs:
           cd ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-standalone.zip Standalone/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-vst3.zip VST3/
-          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-clap.zip CLAP/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-lv2.zip LV2/
           
       - name: Upload Release Packages
@@ -97,7 +95,6 @@ jobs:
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
-            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
             
       - name: Package for Release
@@ -108,7 +105,6 @@ jobs:
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-standalone.zip Standalone/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-vst3.zip VST3/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-au.zip AU/
-          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-clap.zip CLAP/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-lv2.zip LV2/
           
       - name: Upload Release Packages
@@ -163,7 +159,6 @@ jobs:
           path: |
             ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\Standalone\*
             ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\VST3\*
-            ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\CLAP\*
             
       - name: Package for Release
         if: github.ref_type == 'tag'
@@ -175,7 +170,6 @@ jobs:
           
           Compress-Archive -Path "$buildDir\Standalone\*" -DestinationPath "$releaseDir\cheapsynth01-windows-standalone.zip" -Force
           Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
-          Compress-Archive -Path "$buildDir\CLAP\*" -DestinationPath "$releaseDir\cheapsynth01-windows-clap.zip" -Force
       
       - name: Upload Release Packages
         if: github.ref_type == 'tag'
