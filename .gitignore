@@ -1,0 +1,14 @@
+# CMake build files
+build/
+
+# macOS specific
+.DS_Store
+
+# Backup files
+*.bak
+
+# Documentation
+docs/
+
+# Clinerules
+.clinerules/

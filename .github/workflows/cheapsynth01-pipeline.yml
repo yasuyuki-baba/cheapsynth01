@@ -1,0 +1,129 @@
+name: cheapsynth01-pipeline
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxinerama-dev libxext-dev libfreetype6-dev libgtk-3-dev lv2-dev
+          
+      - name: Set build type
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" == "tag" ]; then
+            echo "BUILD_TYPE=Release" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE=Debug" >> $GITHUB_ENV
+          fi
+          
+      - name: Build
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
+          
+      - name: Show
+        run: ls -lR ${{github.workspace}}/build
+        
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-linux
+          path: |
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          
+      - name: Set build type
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" == "tag" ]; then
+            echo "BUILD_TYPE=Release" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE=Debug" >> $GITHUB_ENV
+          fi
+          
+      - name: Build
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
+          
+      - name: Show
+        run: ls -lR ${{github.workspace}}/build
+        
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-macos
+          path: |
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          
+      - name: Set build type
+        shell: pwsh
+        run: |
+          if ("$env:GITHUB_REF_TYPE" -eq "tag") {
+            echo "BUILD_TYPE=Release" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            echo "BUILD_TYPE=Debug" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+          
+      - name: Verify build directory
+        shell: pwsh
+        run: |
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
+          if (-not (Test-Path $buildDir)) {
+            New-Item -Path $buildDir -ItemType Directory -Force
+          }
+          
+      - name: Build
+        shell: pwsh
+        run: |
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
+          cmake -B $buildDir -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build $buildDir --config ${{ env.BUILD_TYPE }}
+          
+      - name: Show
+        shell: pwsh
+        run: |
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
+          Get-ChildItem -Path $buildDir -Recurse
+          
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheapsynth01-windows
+          path: |
+            ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\Standalone\*
+            ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\VST3\*
+            ${{github.workspace}}\build\CheapSynth01_artefacts\${{ env.BUILD_TYPE }}\CLAP\*
