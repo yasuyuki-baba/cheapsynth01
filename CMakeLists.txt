@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(JUCE_HEADLESS_PLUGIN_CLIENT "Build in headless mode" OFF)
 
 # Set plugin formats based on platform
-set(PLUGIN_FORMATS Standalone VST3 CLAP)
+set(PLUGIN_FORMATS Standalone VST3)
 
 if(APPLE)
     list(APPEND PLUGIN_FORMATS AU)
