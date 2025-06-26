@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
+#include "IG02610LPF.h" // Include the IG02610LPF filter
 
 //==============================================================================
 class CS01VCFProcessor  : public juce::AudioProcessor
@@ -45,7 +46,7 @@ public:
 private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
-    juce::dsp::StateVariableTPTFilter<float> filter; // Single filter for mono processing
+    IG02610LPF filter; // Using IG02610LPF instead of StateVariableTPTFilter
     
     // Cutoff frequency mapping function
     float mapCutoffFrequency(float cutoffParam)
@@ -66,8 +67,8 @@ private:
         // Simple resonance value based on switch state
         if (isHighResonance)
         {
-            // High resonance setting
-            return 0.8f;
+            // High resonance setting - IG02610LPF has max resonance of 0.8f
+            return 0.7f;
         }
         else
         {
