@@ -17,7 +17,6 @@ CheapSynth01 is a software emulation of an early 80s compact monophonic synthesi
 - Standalone application
 - VST3
 - AU (macOS only)
-- CLAP
 - LV2 (macOS and Linux only)
 
 ## Build Instructions
