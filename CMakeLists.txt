@@ -114,26 +114,26 @@ target_sources(CheapSynth01
     PUBLIC
         Source/CS01AudioProcessor.cpp
         Source/CS01AudioProcessorEditor.cpp
-        Source/UI/CS01ModulationComponent.cpp
-        Source/UI/CS01VCOComponent.cpp
-        Source/UI/CS01LFOComponent.cpp
-        Source/UI/CS01VCFComponent.cpp
+        Source/UI/ModulationComponent.cpp
+        Source/UI/VCOComponent.cpp
+        Source/UI/LFOComponent.cpp
+        Source/UI/VCFComponent.cpp
         Source/UI/PresetPanel.cpp
-        Source/UI/CS01VCAComponent.cpp
-        Source/UI/CS01EGComponent.cpp
-        Source/UI/CS01BreathControlComponent.cpp
-        Source/UI/CS01VolumeComponent.cpp
-        Source/UI/CS01OscilloscopeComponent.cpp
-        Source/CS01Synth/CS01ToneGenerator.cpp
-        Source/CS01Synth/CS01NoiseGenerator.cpp
-        Source/CS01Synth/CS01SynthVoice.cpp
+        Source/UI/VCAComponent.cpp
+        Source/UI/EGComponent.cpp
+        Source/UI/BreathControlComponent.cpp
+        Source/UI/VolumeComponent.cpp
+        Source/UI/OscilloscopeComponent.cpp
+        Source/CS01Synth/ToneGenerator.cpp
+        Source/CS01Synth/NoiseGenerator.cpp
+        Source/CS01Synth/SynthVoice.cpp
         Source/CS01Synth/CS01VCFProcessor.cpp
-        Source/CS01Synth/CS01VCAProcessor.cpp
-        Source/CS01Synth/CS01SynthProcessor.cpp
-        Source/CS01Synth/CS01MidiProcessor.cpp
+        Source/CS01Synth/VCAProcessor.cpp
+        Source/CS01Synth/VCOProcessor.cpp
+        Source/CS01Synth/MidiProcessor.cpp
         Source/UI/CS01LookAndFeel.cpp
-        Source/CS01Synth/CS01EGProcessor.cpp
-        Source/CS01Synth/CS01LFOProcessor.cpp
+        Source/CS01Synth/EGProcessor.cpp
+        Source/CS01Synth/LFOProcessor.cpp
         Source/CS01Synth/IG02610LPF.cpp
         Source/CS01Synth/ModernVCFProcessor.cpp
         Source/UI/FilterTypeComponent.cpp
