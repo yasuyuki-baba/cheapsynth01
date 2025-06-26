@@ -4,7 +4,7 @@ namespace Constants
 {
     constexpr float pitchBendSemitones = 12.0f;
     constexpr float pitchBendMaxValue = 8192.0f;
-    constexpr float maxGlissandoTimeSeconds = 2.0f;
+    constexpr float maxGlissandoPerSemitoneSeconds = 0.208f;
 }
 
 enum class Feet
