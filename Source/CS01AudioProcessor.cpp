@@ -1,8 +1,8 @@
 #include "CS01AudioProcessor.h"
 #include "CS01AudioProcessorEditor.h"
 #include "Parameters.h"
-#include "CS01Synth/CS01SynthProcessor.h"
-#include "CS01Synth/CS01MidiProcessor.h"
+#include "CS01Synth/VCOProcessor.h"
+#include "CS01Synth/MidiProcessor.h"
 #include "BinaryData.h"
 
 //==============================================================================
@@ -45,11 +45,11 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         juce::AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode));
     audioOutputNode = audioGraph.addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
         juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
-    midiProcessorNode = audioGraph.addNode(std::make_unique<CS01MidiProcessor>(apvts));
-    synthNode = audioGraph.addNode(std::make_unique<CS01SynthProcessor>(apvts));
-    egNode = audioGraph.addNode(std::make_unique<CS01EGProcessor>(apvts));
-    lfoNode = audioGraph.addNode(std::make_unique<CS01LFOProcessor>(apvts));
-    vcaNode = audioGraph.addNode(std::make_unique<CS01VCAProcessor>(apvts));
+    midiProcessorNode = audioGraph.addNode(std::make_unique<MidiProcessor>(apvts));
+    synthNode = audioGraph.addNode(std::make_unique<VCOProcessor>(apvts));
+    egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
+    lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
+    vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
     vcfNode = audioGraph.addNode(std::make_unique<CS01VCFProcessor>(apvts));
     modernVcfNode = audioGraph.addNode(std::make_unique<ModernVCFProcessor>(apvts));
 
@@ -67,7 +67,7 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Configure connections based on filter type
     auto filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
     
-    // Audio Path: synth -> vcf -> vca -> gain -> output
+    // Audio Path: vco -> vcf -> vca -> output
     // Connect only the mono channel (ch = 0)
     if (filterType == 0) // CS01
     {
@@ -98,9 +98,9 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
                               {midiProcessorNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex}});
                               
     // Set references to SynthVoice and EGProcessor in MidiProcessor
-    auto* midiProcessor = static_cast<CS01MidiProcessor*>(midiProcessorNode->getProcessor());
-    auto* synthProcessor = static_cast<CS01SynthProcessor*>(synthNode->getProcessor());
-    auto* egProcessor = static_cast<CS01EGProcessor*>(egNode->getProcessor());
+    auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
+    auto* synthProcessor = static_cast<VCOProcessor*>(synthNode->getProcessor());
+    auto* egProcessor = static_cast<EGProcessor*>(egNode->getProcessor());
     
     if (midiProcessor != nullptr && synthProcessor != nullptr && egProcessor != nullptr)
     {

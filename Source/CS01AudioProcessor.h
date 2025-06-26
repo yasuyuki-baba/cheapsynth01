@@ -2,11 +2,11 @@
 
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
-#include "CS01Synth/CS01SynthProcessor.h"
-#include "CS01Synth/CS01MidiProcessor.h"
-#include "CS01Synth/CS01EGProcessor.h"
-#include "CS01Synth/CS01LFOProcessor.h"
-#include "CS01Synth/CS01VCAProcessor.h"
+#include "CS01Synth/VCOProcessor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/EGProcessor.h"
+#include "CS01Synth/LFOProcessor.h"
+#include "CS01Synth/VCAProcessor.h"
 #include "CS01Synth/CS01VCFProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
 
