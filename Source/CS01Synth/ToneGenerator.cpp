@@ -87,11 +87,6 @@ void ToneGenerator::calculateSlideParameters(int targetNote)
 }
 
 
-bool ToneGenerator::isNoiseMode() const
-{
-    return currentFeet == Feet::WhiteNoise;
-}
-
 float ToneGenerator::getNextSample()
 {
     if (isSliding)

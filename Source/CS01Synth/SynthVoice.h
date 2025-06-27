@@ -3,7 +3,6 @@
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
 #include "ToneGenerator.h"
-#include "NoiseGenerator.h"
 
 class SynthVoice
 {
@@ -40,8 +39,6 @@ private:
     
     // Members integrated from VCOProcessor
     std::unique_ptr<ToneGenerator> toneGenerator;
-    NoiseGenerator noiseGenerator;
     
     // Helper methods
-    bool isNoiseMode() const;
 };

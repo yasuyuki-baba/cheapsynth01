@@ -16,7 +16,6 @@ public:
     void setNote(int midiNoteNumber, bool isLegato);
     void setPitchBend(float bendInSemitones);
     
-    bool isNoiseMode() const;
     float getNextSample();
     void setLfoValue(float lfoValue);
 
