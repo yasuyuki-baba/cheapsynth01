@@ -125,7 +125,6 @@ target_sources(CheapSynth01
         Source/UI/VolumeComponent.cpp
         Source/UI/OscilloscopeComponent.cpp
         Source/CS01Synth/ToneGenerator.cpp
-        Source/CS01Synth/NoiseGenerator.cpp
         Source/CS01Synth/SynthVoice.cpp
         Source/CS01Synth/CS01VCFProcessor.cpp
         Source/CS01Synth/VCAProcessor.cpp
@@ -136,6 +135,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/LFOProcessor.cpp
         Source/CS01Synth/IG02610LPF.cpp
         Source/CS01Synth/ModernVCFProcessor.cpp
+        Source/CS01Synth/NoiseProcessor.cpp
         Source/UI/FilterTypeComponent.cpp
 )
 

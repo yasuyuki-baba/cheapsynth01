@@ -11,7 +11,6 @@ SynthVoice::SynthVoice(juce::AudioProcessorValueTreeState& apvts)
 void SynthVoice::prepare(const juce::dsp::ProcessSpec& spec)
 {
     toneGenerator->prepare(spec);
-    noiseGenerator.prepare(spec);
     sampleRate = spec.sampleRate;
 }
 
@@ -120,15 +119,9 @@ void SynthVoice::process(const juce::dsp::ProcessContextReplacing<float>& contex
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float currentSample = 0.0f;
-        if (isNoiseMode())
-        {
-            currentSample = noiseGenerator.getNextSample();
-        }
-        else
-        {
-            currentSample = toneGenerator->getNextSample();
-        }
+        // In noise mode, the audio graph will use NoiseProcessor instead
+        // So we only need to handle the tone generator here
+        float currentSample = toneGenerator->getNextSample();
 
         for (int channel = 0; channel < numChannels; ++channel)
         {
@@ -147,9 +140,4 @@ void SynthVoice::setNote(int midiNoteNumber, bool isLegato)
 {
     if (toneGenerator)
         toneGenerator->setNote(midiNoteNumber, isLegato);
-}
-
-bool SynthVoice::isNoiseMode() const
-{
-    return toneGenerator && toneGenerator->isNoiseMode();
 }
