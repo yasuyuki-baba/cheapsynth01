@@ -157,6 +157,9 @@ add_executable(CheapSynth01Tests
     Source/Tests/MidiProcessorTest.cpp
     Source/Tests/ToneGeneratorTest.cpp
     Source/Tests/LFOProcessorTest.cpp
+    Source/CS01Synth/MidiProcessor.cpp
+    Source/CS01Synth/ToneGenerator.cpp
+    Source/CS01Synth/LFOProcessor.cpp
 )
 
 target_include_directories(CheapSynth01Tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
@@ -169,4 +172,11 @@ target_link_libraries(CheapSynth01Tests PRIVATE
     juce::juce_events
     juce::juce_core
     CheapSynth01Resources)
+
+target_compile_definitions(CheapSynth01Tests PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+    JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
+    JUCE_DISABLE_WEBKIT=1)
 
