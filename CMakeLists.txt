@@ -149,3 +149,24 @@ target_link_juce_modules(CheapSynth01)
 target_link_libraries(CheapSynth01 PUBLIC CheapSynth01Resources)
 
 message(STATUS "CheapSynth01 configuration complete!")
+
+# Unit test executable
+add_executable(CheapSynth01Tests
+    Source/Tests/main.cpp
+    Source/Tests/TestHelpers.h
+    Source/Tests/MidiProcessorTest.cpp
+    Source/Tests/ToneGeneratorTest.cpp
+    Source/Tests/LFOProcessorTest.cpp
+)
+
+target_include_directories(CheapSynth01Tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+
+target_link_libraries(CheapSynth01Tests PRIVATE
+    juce::juce_audio_basics
+    juce::juce_audio_formats
+    juce::juce_audio_processors
+    juce::juce_dsp
+    juce::juce_events
+    juce::juce_core
+    CheapSynth01Resources)
+
