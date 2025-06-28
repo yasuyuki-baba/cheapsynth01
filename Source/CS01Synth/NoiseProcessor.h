@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
+#include "INoteHandler.h"
 
 /**
  * NoiseProcessor - Processor responsible for noise generation
@@ -9,7 +10,7 @@
  * This class generates white noise and processes it through a filter.
  * It is designed to be used as a node in the AudioProcessorGraph.
  */
-class NoiseProcessor : public juce::AudioProcessor
+class NoiseProcessor : public juce::AudioProcessor, public INoteHandler
 {
 public:
     NoiseProcessor(juce::AudioProcessorValueTreeState& vts);
@@ -37,8 +38,25 @@ public:
     void getStateInformation(juce::MemoryBlock&) override {}
     void setStateInformation(const void*, int) override {}
 
+    // INoteHandler implementation
+    void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
+    void stopNote(bool allowTailOff) override;
+    void changeNote(int midiNoteNumber) override;
+    void pitchWheelMoved(int newPitchWheelValue) override;
+    bool isActive() const override;
+    int getCurrentlyPlayingNote() const override;
+
 private:
     juce::AudioProcessorValueTreeState& apvts;
     juce::Random random;
     juce::dsp::IIR::Filter<float> noiseFilter;
+    
+    // Note state
+    bool noteOn = false;
+    bool tailOff = false;
+    int tailOffCounter = 0;
+    int tailOffDuration = 0;
+    int currentlyPlayingNote = 0;
+    double sampleRate = 44100.0;
+    int pitchWheelValue = 8192; // Center value
 };

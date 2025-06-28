@@ -1,6 +1,5 @@
 #include "MidiProcessor.h"
 #include "../Parameters.h"
-#include "SynthVoice.h"
 
 MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor(BusesProperties()), // No audio buses
@@ -60,11 +59,11 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage)
     int highestNote = activeNotes.getLast();
     float velocity = midiMessage.getVelocity() / 127.0f;
 
-    if (synthVoice != nullptr)
+    if (noteHandler != nullptr)
     {
         if (wasEmpty)
         {
-            synthVoice->startNote(highestNote, velocity, lastPitchWheelValue);
+            noteHandler->startNote(highestNote, velocity, lastPitchWheelValue);
             
             // Call EG note-on only for the first note
             if (egProcessor != nullptr)
@@ -74,7 +73,7 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage)
         }
         else
         {
-            synthVoice->changeNote(highestNote);
+            noteHandler->changeNote(highestNote);
         }
     }
 }
@@ -83,12 +82,12 @@ void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage)
 {
     activeNotes.removeFirstMatchingValue(midiMessage.getNoteNumber());
     
-    if (synthVoice != nullptr)
+    if (noteHandler != nullptr)
     {
         if (activeNotes.isEmpty())
         {
             // Always set allowTailOff = true to make sound fade gradually
-            synthVoice->stopNote(true);
+            noteHandler->stopNote(true);
             
             // Start EG release only when all notes are off
             if (egProcessor != nullptr)
@@ -100,7 +99,7 @@ void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage)
         {
             activeNotes.sort();
             int highestNote = activeNotes.getLast();
-            synthVoice->changeNote(highestNote);
+            noteHandler->changeNote(highestNote);
         }
     }
 }
@@ -109,10 +108,10 @@ void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage)
 {
     lastPitchWheelValue = midiMessage.getPitchWheelValue();
     
-    // Set pitch wheel value to synth voice
-    if (synthVoice != nullptr)
+    // Set pitch wheel value to note handler
+    if (noteHandler != nullptr)
     {
-        synthVoice->pitchWheelMoved(lastPitchWheelValue);
+        noteHandler->pitchWheelMoved(lastPitchWheelValue);
     }
     
     // Also set pitch bend value to parameter

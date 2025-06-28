@@ -36,15 +36,85 @@ void NoiseProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
     // Clear buffer first
     buffer.clear();
     
-    // Generate white noise
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    // Only generate noise if note is on
+    if (isActive())
     {
-        float whiteNoise = random.nextFloat() * 2.0f - 1.0f;
-        float filteredNoise = noiseFilter.processSample(whiteNoise);
-        
-        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        // Process tail off if needed
+        if (tailOff)
         {
-            buffer.setSample(channel, sample, filteredNoise);
+            tailOffCounter += buffer.getNumSamples();
+            
+            // Check if tail off is complete
+            if (tailOffCounter >= tailOffDuration)
+            {
+                tailOff = false;
+                noteOn = false;
+            }
+        }
+        
+        // Generate white noise
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            float whiteNoise = random.nextFloat() * 2.0f - 1.0f;
+            float filteredNoise = noiseFilter.processSample(whiteNoise);
+            
+            for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+            {
+                buffer.setSample(channel, sample, filteredNoise);
+            }
         }
     }
+}
+
+// INoteHandler implementation
+void NoiseProcessor::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition)
+{
+    currentlyPlayingNote = midiNoteNumber;
+    pitchWheelValue = currentPitchWheelPosition;
+    noteOn = true;
+    tailOff = false;
+}
+
+void NoiseProcessor::stopNote(bool allowTailOff)
+{
+    if (allowTailOff)
+    {
+        // Start tail off
+        tailOff = true;
+        
+        // Get release time from parameter (convert to samples)
+        float releaseSecs = apvts.getRawParameterValue(ParameterIds::release)->load();
+        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
+        tailOffCounter = 0;
+    }
+    else
+    {
+        // Stop immediately
+        noteOn = false;
+        tailOff = false;
+    }
+    
+    currentlyPlayingNote = 0;
+}
+
+void NoiseProcessor::changeNote(int midiNoteNumber)
+{
+    currentlyPlayingNote = midiNoteNumber;
+    // For noise, we don't need to change anything else when the note changes
+}
+
+void NoiseProcessor::pitchWheelMoved(int newPitchWheelValue)
+{
+    pitchWheelValue = newPitchWheelValue;
+    // For noise, pitch wheel doesn't affect the sound
+}
+
+bool NoiseProcessor::isActive() const
+{
+    return noteOn || (tailOff && tailOffCounter < tailOffDuration);
+}
+
+int NoiseProcessor::getCurrentlyPlayingNote() const
+{
+    return currentlyPlayingNote;
 }
