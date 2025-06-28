@@ -1,13 +1,13 @@
 #pragma once
 #include <JuceHeader.h>
-#include "SynthVoice.h"
+#include "ToneGenerator.h"
 #include "INoteHandler.h"
 #include "../Parameters.h"
 
 /**
  * VCOProcessor - Processor responsible for sound generation and LFO processing
  * 
- * This class holds SynthVoice and processes LFO input to generate sound.
+ * This class holds ToneGenerator and processes LFO input to generate sound.
  * MIDI processing is delegated to the MidiProcessor class.
  */
 class VCOProcessor : public juce::AudioProcessor
@@ -38,13 +38,10 @@ public:
     void getStateInformation(juce::MemoryBlock&) override {}
     void setStateInformation(const void*, int) override {}
 
-    // Accessor for sound generation
-    SynthVoice* getSynthVoice() { return &voice; }
-    
     // Accessor for INoteHandler interface
-    INoteHandler* getNoteHandler() { return &voice; }
+    INoteHandler* getNoteHandler() { return &toneGenerator; }
 
 private:
     juce::AudioProcessorValueTreeState& apvts;
-    SynthVoice voice;
+    ToneGenerator toneGenerator;
 };
