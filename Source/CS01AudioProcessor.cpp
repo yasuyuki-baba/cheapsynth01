@@ -115,7 +115,7 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // LFO Path is connected dynamically via parameterChanged listener
 
     // MIDI Path - Simplified: only midiInput -> midiProcessor
-    // No other MIDI connections needed as MidiProcessor directly controls SynthVoice and EGProcessor
+    // No other MIDI connections needed as MidiProcessor directly controls ToneGenerator and EGProcessor
     audioGraph.addConnection({{midiInputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex},
                               {midiProcessorNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex}});
                               

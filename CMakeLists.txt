@@ -125,7 +125,6 @@ target_sources(CheapSynth01
         Source/UI/VolumeComponent.cpp
         Source/UI/OscilloscopeComponent.cpp
         Source/CS01Synth/ToneGenerator.cpp
-        Source/CS01Synth/SynthVoice.cpp
         Source/CS01Synth/CS01VCFProcessor.cpp
         Source/CS01Synth/VCAProcessor.cpp
         Source/CS01Synth/VCOProcessor.cpp

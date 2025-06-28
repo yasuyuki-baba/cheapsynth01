@@ -20,6 +20,114 @@ void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec)
     reset();
 }
 
+// INoteHandler interface implementation
+void ToneGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition)
+{
+    currentlyPlayingNote = midiNoteNumber;
+    setNote(midiNoteNumber, false); // isLegato = false
+    pitchWheelMoved(currentPitchWheelPosition);
+    noteOn = true;
+}
+
+void ToneGenerator::stopNote(bool allowTailOff)
+{
+    noteOn = false;
+    currentlyPlayingNote = 0;
+    
+    if (allowTailOff)
+    {
+        tailOff = true;
+        // Get release time from parameter (convert to samples)
+        float releaseSecs = apvts.getRawParameterValue(ParameterIds::release)->load();
+        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
+        tailOffCounter = 0;
+    }
+    else
+    {
+        tailOff = false;
+    }
+}
+
+void ToneGenerator::changeNote(int midiNoteNumber)
+{
+    currentlyPlayingNote = midiNoteNumber;
+    setNote(midiNoteNumber, true); // isLegato = true
+}
+
+void ToneGenerator::pitchWheelMoved(int newPitchWheelValue)
+{
+    auto upRange = apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load();
+    auto downRange = apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load();
+
+    auto bendValue = juce::jmap(static_cast<float>(newPitchWheelValue), 0.0f, 16383.0f, -1.0f, 1.0f);
+    
+    float pitchOffset = 0.0f;
+    if (bendValue > 0)
+        pitchOffset = bendValue * upRange;
+    else
+        pitchOffset = bendValue * downRange;
+
+    midiPitchBendValue = pitchOffset;
+}
+
+bool ToneGenerator::isActive() const
+{
+    return noteOn || (tailOff && tailOffCounter < tailOffDuration);
+}
+
+int ToneGenerator::getCurrentlyPlayingNote() const
+{
+    return currentlyPlayingNote;
+}
+
+// Audio processing methods
+void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+{
+    if (!isActive())
+        return;
+
+    updateBlockRateParameters();
+    
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        float currentSample = getNextSample();
+        
+        for (int channel = 0; channel < outputBuffer.getNumChannels(); ++channel)
+        {
+            outputBuffer.addSample(channel, startSample + sample, currentSample);
+        }
+    }
+    
+    // Advance counter if in tail-off
+    if (tailOff)
+    {
+        tailOffCounter += numSamples;
+        
+        if (tailOffCounter >= tailOffDuration)
+        {
+            tailOff = false;
+        }
+    }
+}
+
+void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& context)
+{
+    auto& outputBlock = context.getOutputBlock();
+    auto numSamples = outputBlock.getNumSamples();
+    auto numChannels = outputBlock.getNumChannels();
+
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        float currentSample = getNextSample();
+
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            outputBlock.setSample(channel, sample, currentSample);
+        }
+    }
+}
+
+// Existing methods from ToneGenerator
 void ToneGenerator::updateBlockRateParameters()
 {
     currentFeet = static_cast<Feet>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::feet)));
@@ -40,6 +148,13 @@ void ToneGenerator::reset()
     phase = 0.0f;
     leakyIntegratorState = 0.0f;
     dcBlockerState = 0.0f;
+    
+    // Reset note state
+    noteOn = false;
+    tailOff = false;
+    tailOffCounter = 0;
+    tailOffDuration = 0;
+    currentlyPlayingNote = 0;
 }
 
 void ToneGenerator::setNote(int midiNoteNumber, bool isLegato)
@@ -85,7 +200,6 @@ void ToneGenerator::calculateSlideParameters(int targetNote)
     stepCounter = 0;
     isSliding = true;
 }
-
 
 float ToneGenerator::getNextSample()
 {

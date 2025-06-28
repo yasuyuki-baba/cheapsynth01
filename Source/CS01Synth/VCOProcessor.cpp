@@ -5,14 +5,14 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts)
                         .withInput("LFOInput", juce::AudioChannelSet::mono(), false)
                         .withOutput("Output", juce::AudioChannelSet::mono(), true)),
       apvts(vts),
-      voice(vts)
+      toneGenerator(vts)
 {
 }
 
 void VCOProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     juce::dsp::ProcessSpec spec{ sampleRate, (juce::uint32)samplesPerBlock, (juce::uint32)getTotalNumOutputChannels() };
-    voice.prepare(spec);
+    toneGenerator.prepare(spec);
 }
 
 bool VCOProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -40,10 +40,10 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     buffer.clear();
 
     // Sound generation
-    if (voice.isActive())
+    if (toneGenerator.isActive())
     {
-        voice.setLfoValue(finalLfoValue);
-        voice.renderNextBlock(buffer, 0, buffer.getNumSamples());
+        toneGenerator.setLfoValue(finalLfoValue);
+        toneGenerator.renderNextBlock(buffer, 0, buffer.getNumSamples());
     }
 
     // Pass MIDI buffer through (processing is done in MidiProcessor)
