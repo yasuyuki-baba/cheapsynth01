@@ -3,10 +3,23 @@
 # Settings for downloading JUCE modules
 include(FetchContent)
 
-# Avoid building helper tools like juceaide when fetching JUCE
-set(JUCE_MODULES_ONLY ON CACHE BOOL "" FORCE)
+# Build JUCE with the bundled helper tools so that juceaide is available
+set(JUCE_MODULES_ONLY OFF CACHE BOOL "" FORCE)
 set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
 set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# Disable unused X11 and web components to minimise dependencies
+add_compile_definitions(
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+    JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
+    JUCE_DISABLE_WEBKIT=1
+    JUCE_USE_XRANDR=0
+    JUCE_USE_XINERAMA=0
+    JUCE_USE_XSHM=0
+    JUCE_USE_XCURSOR=0
+)
 
 # Fetch content from JUCE Git repository
 FetchContent_Declare(
@@ -17,6 +30,8 @@ FetchContent_Declare(
 
 # Make JUCE available
 FetchContent_MakeAvailable(JUCE)
+
+
 
 # Ensure JUCE's CMake helpers are discoverable
 list(APPEND CMAKE_MODULE_PATH "${juce_SOURCE_DIR}/extras/Build/CMake")
