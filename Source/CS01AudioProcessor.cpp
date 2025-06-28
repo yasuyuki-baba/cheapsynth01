@@ -371,7 +371,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
 
     auto lfoGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "lfo", "LFO", "|",
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::lfoSpeed, "LFO Speed", juce::NormalisableRange<float>(0.8f, 21.0f, 0.01f, 3.0f), 5.0f),
+        std::make_unique<juce::AudioParameterFloat>(ParameterIds::lfoSpeed, "LFO Speed", juce::NormalisableRange<float>(0.0f, 21.0f, 0.01f, 0.3f), 5.0f),
         std::make_unique<juce::AudioParameterChoice>(ParameterIds::lfoTarget, "LFO Target", juce::StringArray{"VCO", "VCF"}, 0),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::modDepth, "Mod Depth", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f, juce::AudioParameterFloatAttributes().withAutomatable(false))
     );

@@ -90,7 +90,7 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
         // Calculate modulation effects
         const float egModRangeSemitones = 36.0f; // 3 octaves
-        const float lfoModRangeSemitones = 18.0f; // 1.5 octaves
+        const float lfoModRangeSemitones = 24.0f; // 2 octaves
         const float breathModRangeSemitones = 24.0f; // 2 octaves
 
         // Base cutoff frequency

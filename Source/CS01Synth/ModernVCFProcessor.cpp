@@ -107,10 +107,13 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
             float egValue = egData[sample];
             // Use LFO data only if available
             float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
+            
+            // Limit LFO value to range [-1.0, 1.0]
+            lfoValue = juce::jlimit(-1.0f, 1.0f, lfoValue);
 
             // Calculate modulation effects
             const float egModRangeSemitones = 36.0f; // 3 octaves
-            const float lfoModRangeSemitones = 18.0f; // 1.5 octaves
+            const float lfoModRangeSemitones = 24.0f; // 2 octaves
             const float breathModRangeSemitones = 24.0f; // 2 octaves
 
             // Base cutoff frequency
@@ -120,15 +123,15 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
             float egMod = egValue * egDepth * egModRangeSemitones;
             float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
             
-            // LFO modulation
+            // LFO modulation - using multiplicative method (same as CS01VCFProcessor)
             float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
             float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
             
-            // Breath modulation
+            // Breath modulation - using multiplicative method
             float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
             float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
             
-            // Apply all modulations
+            // Apply all modulations - unified multiplicative method
             float modulatedCutoffHz = baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
             
             // Check for NaN or Infinity

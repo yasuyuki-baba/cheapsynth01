@@ -5,14 +5,14 @@ LFOProcessor::LFOProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor (BusesProperties()
                           .withOutput ("Output", juce::AudioChannelSet::mono(), true)),
       apvts(apvts),
-      // Modified to standard triangle wave function (corrected to exact -1.0 to 1.0 range)
-      lfo([](float x) { 
-          // Normalize to 0-1 range
-          float phase = std::fmod(x, 1.0f);
-          // Generate triangle wave in -1 to 1 range
-          return 2.0f * (phase < 0.5f ? phase : 1.0f - phase) - 1.0f;
-      })
+      lfo()
 {
+    // Initialize triangle wave (standard implementation based on JUCE tutorial)
+    lfo.initialise([](float x) -> float {
+        // x is in [0, 1), normalized by the Oscillator class
+        // Standard triangle wave implementation
+        return 1.0f - 4.0f * std::abs(std::round(x - 0.25f) - (x - 0.25f));
+    }, 128);
 }
 
 LFOProcessor::~LFOProcessor()
@@ -47,6 +47,8 @@ void LFOProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     juce::ScopedNoDenormals noDenormals;
     updateParameters();
 
+    buffer.clear();
+    
     juce::dsp::AudioBlock<float> block(buffer);
     juce::dsp::ProcessContextReplacing<float> context(block);
     lfo.process(context);
@@ -56,9 +58,4 @@ void LFOProcessor::updateParameters()
 {
     auto lfoSpeed = apvts.getRawParameterValue(ParameterIds::lfoSpeed)->load();
     lfo.setFrequency(lfoSpeed);
-    
-    // Since juce::dsp::Oscillator<float> doesn't have a setAmplitude method,
-    // we need to adjust the amplitude in the waveform function itself
-    
-    // We can add waveform selection later.
 }
