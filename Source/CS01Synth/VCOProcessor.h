@@ -1,6 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "SynthVoice.h"
+#include "INoteHandler.h"
 #include "../Parameters.h"
 
 /**
@@ -39,6 +40,9 @@ public:
 
     // Accessor for sound generation
     SynthVoice* getSynthVoice() { return &voice; }
+    
+    // Accessor for INoteHandler interface
+    INoteHandler* getNoteHandler() { return &voice; }
 
 private:
     juce::AudioProcessorValueTreeState& apvts;

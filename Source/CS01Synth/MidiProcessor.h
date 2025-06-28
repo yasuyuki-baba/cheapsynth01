@@ -3,9 +3,7 @@
 #include <JuceHeader.h>
 #include <functional>
 #include "EGProcessor.h"
-
-// Forward declaration
-class SynthVoice;
+#include "INoteHandler.h"
 
 class MidiProcessor : public juce::AudioProcessor
 {
@@ -32,14 +30,17 @@ public:
     void getStateInformation(juce::MemoryBlock&) override {}
     void setStateInformation(const void*, int) override {}
 
-    // Set synth voice
-    void setSynthVoice(SynthVoice* voice) { synthVoice = voice; }
+    // Set note handler
+    void setNoteHandler(INoteHandler* handler) { noteHandler = handler; }
     
     // Set EG processor
     void setEGProcessor(EGProcessor* processor) { egProcessor = processor; }
 
     // Get currently playing note
     int getCurrentlyPlayingNote() const { return activeNotes.isEmpty() ? 0 : activeNotes.getLast(); }
+    
+    // Get note handler
+    INoteHandler* getNoteHandler() const { return noteHandler; }
     
     // Get array of active notes
     const juce::Array<int>& getActiveNotes() const { return activeNotes; }
@@ -53,7 +54,7 @@ private:
     void handleControllerMessage(const juce::MidiMessage& midiMessage);
 
     juce::AudioProcessorValueTreeState& apvts;
-    SynthVoice* synthVoice = nullptr;
+    INoteHandler* noteHandler = nullptr;
     EGProcessor* egProcessor = nullptr;
     
     // For monophonic sound management

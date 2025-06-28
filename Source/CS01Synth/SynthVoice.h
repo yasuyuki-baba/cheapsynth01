@@ -3,8 +3,9 @@
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
 #include "ToneGenerator.h"
+#include "INoteHandler.h"
 
-class SynthVoice
+class SynthVoice : public INoteHandler
 {
 public:
     SynthVoice(juce::AudioProcessorValueTreeState& apvts);

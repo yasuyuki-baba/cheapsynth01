@@ -119,14 +119,27 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     audioGraph.addConnection({{midiInputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex},
                               {midiProcessorNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex}});
                               
-    // Set references to SynthVoice and EGProcessor in MidiProcessor
+    // Set references to NoteHandler and EGProcessor in MidiProcessor
     auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
     auto* synthProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
+    auto* noiseProcessor = static_cast<NoiseProcessor*>(noiseNode->getProcessor());
     auto* egProcessor = static_cast<EGProcessor*>(egNode->getProcessor());
     
-    if (midiProcessor != nullptr && synthProcessor != nullptr && egProcessor != nullptr)
+    if (midiProcessor != nullptr && synthProcessor != nullptr && noiseProcessor != nullptr && egProcessor != nullptr)
     {
-        midiProcessor->setSynthVoice(synthProcessor->getSynthVoice());
+        // Set the appropriate note handler based on the feet parameter
+        auto feetValue = static_cast<int>(apvts.getRawParameterValue(ParameterIds::feet)->load());
+        bool isNoiseMode = (feetValue == static_cast<int>(Feet::WhiteNoise));
+        
+        if (isNoiseMode)
+        {
+            midiProcessor->setNoteHandler(noiseProcessor);
+        }
+        else
+        {
+            midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
+        }
+        
         midiProcessor->setEGProcessor(egProcessor);
     }
     // 4. Set graph's main bus layout and prepare
@@ -450,7 +463,7 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
     if (parameterID == ParameterIds::feet)
     {
         // Check if audio graph nodes are initialized
-        if (vcoNode == nullptr || noiseNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr)
+        if (vcoNode == nullptr || noiseNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr || midiProcessorNode == nullptr)
         {
             // Do nothing if nodes are not initialized yet
             return;
@@ -488,6 +501,23 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
             else
             {
                 audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
+            }
+        }
+        
+        // Update the note handler in MidiProcessor based on the feet parameter
+        auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
+        auto* synthProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
+        auto* noiseProcessor = static_cast<NoiseProcessor*>(noiseNode->getProcessor());
+        
+        if (midiProcessor != nullptr && synthProcessor != nullptr && noiseProcessor != nullptr)
+        {
+            if (isNoiseMode)
+            {
+                midiProcessor->setNoteHandler(noiseProcessor);
+            }
+            else
+            {
+                midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
             }
         }
     }
