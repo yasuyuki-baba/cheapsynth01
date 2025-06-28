@@ -37,6 +37,17 @@ cmake -B build
 cmake --build build
 ```
 
+### Running Tests
+
+Configure the build with the plugin disabled and JUCE's headless mode enabled:
+
+```bash
+cmake -B build -DBUILD_PLUGIN=OFF -DBUILD_TESTS=ON -DJUCE_HEADLESS_PLUGIN_CLIENT=ON
+cmake --build build --target CheapSynth01Tests
+./build/CheapSynth01Tests
+```
+
+
 ## Usage
 
 Load the plugin in your DAW or launch the standalone application.
