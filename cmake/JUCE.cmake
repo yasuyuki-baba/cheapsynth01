@@ -18,6 +18,10 @@ FetchContent_Declare(
 # Make JUCE available
 FetchContent_MakeAvailable(JUCE)
 
+# Ensure JUCE's CMake helpers are discoverable
+list(APPEND CMAKE_MODULE_PATH "${juce_SOURCE_DIR}/extras/Build/CMake")
+include("${juce_SOURCE_DIR}/extras/Build/CMake/JUCEUtils.cmake")
+
 # JUCE related helper functions
 function(target_link_juce_modules target)
     target_link_libraries(${target} 
