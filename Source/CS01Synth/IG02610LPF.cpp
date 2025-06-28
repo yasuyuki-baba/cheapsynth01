@@ -57,19 +57,16 @@ float IG02610LPF::processInputStage(float sample)
 // Output stage processing
 float IG02610LPF::processOutputStage(float sample)
 {
-    // Model output capacitor (1/50) effects
-    // DC blocking and slight high frequency roll-off
-    const float RC = 0.03f; // Time constant
-    const float alpha = 1.0f / (RC * outputStage.sampleRate + 1.0f);
+    // Simple DC blocker (1st order high-pass filter)
+    // Modeling the 1/50 capacitor and 82kΩ resistor combination
+    const float cutoffFreq = 5.0f; // Low cutoff frequency around 5Hz
+    const float alpha = 1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffFreq / outputStage.sampleRate);
     
-    // Capacitor charge simulation
-    outputStage.capacitorCharge = outputStage.capacitorCharge * (1.0f - alpha) + sample * alpha;
+    // DC blocking
+    outputStage.prevOutput = alpha * (outputStage.prevOutput + sample - outputStage.prevInput);
+    outputStage.prevInput = sample;
     
-    // Remove DC component
-    sample = sample - outputStage.capacitorCharge;
-    
-    // Slight attenuation from output resistor (47KΩ)
-    return sample * 0.98f;
+    return outputStage.prevOutput;
 }
 
 void IG02610LPF::setCutoffFrequency(float newCutoff)

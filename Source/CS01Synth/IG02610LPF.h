@@ -56,7 +56,8 @@ private:
     
     // Output stage model
     struct OutputStage {
-        float capacitorCharge = 0.0f;
+        float prevInput = 0.0f;
+        float prevOutput = 0.0f;
         double sampleRate = 44100.0;
         
         void prepare(double newSampleRate) {
@@ -64,7 +65,8 @@ private:
         }
         
         void reset() {
-            capacitorCharge = 0.0f;
+            prevInput = 0.0f;
+            prevOutput = 0.0f;
         }
     };
     
