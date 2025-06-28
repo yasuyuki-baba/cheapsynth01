@@ -3,6 +3,11 @@
 # Settings for downloading JUCE modules
 include(FetchContent)
 
+# Avoid building helper tools like juceaide when fetching JUCE
+set(JUCE_MODULES_ONLY ON CACHE BOOL "" FORCE)
+set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 # Fetch content from JUCE Git repository
 FetchContent_Declare(
     JUCE

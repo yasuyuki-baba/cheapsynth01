@@ -2,6 +2,7 @@
 
 int main()
 {
+    juce::ScopedJuceInitialiser_GUI libraryInitialiser;
     juce::UnitTestRunner runner;
     runner.runAllTests();
 

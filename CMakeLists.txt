@@ -5,6 +5,9 @@ project(CheapSynth01 VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BUILD_PLUGIN "Build plugin target" ON)
+option(BUILD_TESTS "Build unit test executable" ON)
+
 # Set default build type to Debug
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
@@ -40,6 +43,7 @@ else()
 endif()
 
 # JUCE plugin settings
+if(BUILD_PLUGIN)
 juce_add_plugin(CheapSynth01
     VERSION 1.0.0
     COMPANY_NAME "Yasuyuki Baba"
@@ -87,6 +91,10 @@ target_compile_definitions(CheapSynth01
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
     JUCE_DISABLE_WEBKIT=1
+    JUCE_USE_XRANDR=0
+    JUCE_USE_XINERAMA=0
+    JUCE_USE_XSHM=0
+    JUCE_USE_XCURSOR=0
 )
 
 # Compiler warning settings
@@ -148,9 +156,12 @@ target_include_directories(CheapSynth01
 target_link_juce_modules(CheapSynth01)
 target_link_libraries(CheapSynth01 PUBLIC CheapSynth01Resources)
 
+endif() # BUILD_PLUGIN
+
 message(STATUS "CheapSynth01 configuration complete!")
 
 # Unit test executable
+if(BUILD_TESTS)
 add_executable(CheapSynth01Tests
     Source/Tests/main.cpp
     Source/Tests/TestHelpers.h
@@ -171,12 +182,18 @@ target_link_libraries(CheapSynth01Tests PRIVATE
     juce::juce_dsp
     juce::juce_events
     juce::juce_core
-    CheapSynth01Resources)
+)
 
 target_compile_definitions(CheapSynth01Tests PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
-    JUCE_DISABLE_WEBKIT=1)
+    JUCE_DISABLE_WEBKIT=1
+    JUCE_USE_XRANDR=0
+    JUCE_USE_XINERAMA=0
+    JUCE_USE_XSHM=0
+    JUCE_USE_XCURSOR=0)
+
+endif() # BUILD_TESTS
 

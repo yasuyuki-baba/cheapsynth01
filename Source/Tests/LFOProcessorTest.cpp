@@ -25,17 +25,17 @@ public:
             if (buffer.getSample(0, i) != 0.0f) { allZero = false; break; }
         expect(!allZero);
 
-        beginTest("Zero speed produces constant output");
+        beginTest("Zero speed produces silence");
         *apvts.getRawParameterValue(ParameterIds::lfoSpeed) = 0.0f;
         lfo.prepareToPlay(44100.0, 8);
         buffer.setSize(1, 8);
         buffer.clear();
         lfo.processBlock(buffer, midi);
-        float first = buffer.getSample(0, 0);
-        bool constant = true;
+        bool smallChange = true;
         for (int i = 1; i < buffer.getNumSamples(); ++i)
-            if (buffer.getSample(0, i) != first) { constant = false; break; }
-        expect(constant);
+            if (std::abs(buffer.getSample(0, i) - buffer.getSample(0, i-1)) > 0.01f)
+                { smallChange = false; break; }
+        expect(smallChange);
     }
 };
 

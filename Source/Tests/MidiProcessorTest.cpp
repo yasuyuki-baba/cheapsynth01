@@ -33,10 +33,10 @@ public:
 
         beginTest("Pitch wheel updates parameter");
         midiMessages.clear();
-        midiMessages.addEvent(juce::MidiMessage::pitchWheel(1, 0), 0);
+        midiMessages.addEvent(juce::MidiMessage::pitchWheel(1, 16383), 0);
         midi.processBlock(buffer, midiMessages);
         auto bend = apvts.getRawParameterValue(ParameterIds::pitchBend)->load();
-        expectLessThan(bend, 0.0f);
+        expectGreaterThan(bend, 0.0f);
 
         beginTest("Legato note changes highest note");
         midiMessages.clear();
