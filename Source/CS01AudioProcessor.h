@@ -1,7 +1,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include <juce_dsp/juce_dsp.h>
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
 #include "CS01Synth/EGProcessor.h"
