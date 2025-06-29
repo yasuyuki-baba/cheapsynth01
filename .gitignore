@@ -1,5 +1,6 @@
 # CMake build files
 build/
+build_tests/
 
 # macOS specific
 .DS_Store
