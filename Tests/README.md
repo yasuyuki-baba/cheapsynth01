@@ -49,7 +49,29 @@ This script performs the following:
 2. Runs CMake to configure the project
 3. Builds the tests
 4. Runs the tests
-5. Displays the results
+5. Generates XML test results
+6. Displays a test summary and results
+
+### Continuous Integration
+
+Tests are automatically run via GitHub Actions whenever code is pushed to any branch in the repository or a pull request is created. The workflow:
+
+1. Builds and runs tests on multiple platforms (Windows, macOS, Linux)
+2. Generates XML test reports
+3. Uploads test results as artifacts
+4. Publishes test results to the GitHub Actions interface
+
+The current test status can be seen in the repository README badge or in the Actions tab on GitHub.
+
+### Test Results Format
+
+Test results are saved in JUnit-compatible XML format in the `build_tests/test_results.xml` file. This format includes:
+
+- Test suite information
+- Individual test cases
+- Pass/fail status
+- Error messages for failed tests
+- Execution time for tests
 
 ## Test Implementation Guidelines
 
