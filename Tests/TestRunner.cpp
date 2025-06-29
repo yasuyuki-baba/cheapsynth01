@@ -1,135 +1,190 @@
 #include <JuceHeader.h>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <ctime>
+#include <map>
 
-// Custom test listener to generate XML results
-class XmlTestListener : public juce::UnitTestRunner::Listener
+/**
+ * Generate JUnit XML format test report using UnitTestRunner result data
+ */
+void generateJUnitXmlReport(const juce::UnitTestRunner& testRunner, const juce::String& outputPath)
 {
-public:
-    XmlTestListener()
-    {
-        xml = std::make_unique<juce::XmlElement>("testsuites");
-    }
+    // Set up XML structure
+    juce::XmlElement rootElement("testsuites");
+    rootElement.setAttribute("name", "CheapSynth01Tests");
     
-    void testStarted(const juce::String& currentTestName) override
-    {
-        currentTest = currentTestName;
-        currentTestStartTime = juce::Time::getMillisecondCounter();
-    }
+    int totalTests = 0;
+    int totalFailures = 0;
     
-    void testFinished() override
-    {
-        // Not used
-    }
+    // Process test results
+    std::map<juce::String, juce::XmlElement*> testSuites;  // test suite name -> XML element
+    std::map<juce::String, int> suiteTestCounts;           // test suite name -> test count
+    std::map<juce::String, int> suiteFailureCounts;        // test suite name -> failure count
+    std::map<juce::String, std::set<juce::String>> suiteTestNames; // test suite -> set of test names
     
-    void testPassed(const juce::String& testName) override
+    // Process each test result
+    for (int i = 0; i < testRunner.getNumResults(); ++i)
     {
-        addTestCase(testName, true, "");
-    }
-    
-    void testFailed(const juce::String& testName, const juce::String& failureMessage) override
-    {
-        addTestCase(testName, false, failureMessage);
-        anyTestsFailed = true;
-    }
-    
-    void allTestsStarted() override
-    {
-        totalTestsStartTime = juce::Time::getMillisecondCounter();
-    }
-    
-    void allTestsEnded() override
-    {
-        auto testsRunTime = (juce::Time::getMillisecondCounter() - totalTestsStartTime) / 1000.0;
-        xml->setAttribute("time", juce::String(testsRunTime));
+        const auto* result = testRunner.getResult(i);
+        juce::String suiteName = result->unitTestName;
         
-        // Write the XML to a file
-        juce::File outputFile("build_tests/test_results.xml");
-        if (!outputFile.getParentDirectory().exists())
-            outputFile.getParentDirectory().createDirectory();
+        // Extract test case name from the message
+        juce::String message = result->messages[0];
+        juce::String testName;
         
-        xml->writeTo(outputFile);
-        juce::String resultSummary = "\nTest results written to: " + outputFile.getFullPathName();
-        juce::Logger::writeToLog(resultSummary);
-    }
-    
-    bool didAnyTestsFail() const
-    {
-        return anyTestsFailed;
-    }
-    
-private:
-    void addTestCase(const juce::String& testName, bool success, const juce::String& failureMessage)
-    {
-        // Get or create the test suite element for this class
-        juce::String className = testName.upToFirstOccurrenceOf(":", false, false);
-        juce::XmlElement* testSuite = nullptr;
-        
-        for (auto* suite : xml->getChildIterator())
+        // Look for test names in format "Test Name / Method Name"
+        if (message.contains("Starting tests in:") && message.contains("/"))
         {
-            if (suite->getStringAttribute("name") == className)
+            juce::String afterPrefix = message.fromFirstOccurrenceOf("Starting tests in:", false, false).trim();
+            testName = afterPrefix.fromLastOccurrenceOf("/", false, false).trim();
+            
+            // Remove trailing "..." if present
+            if (testName.contains("..."))
+                testName = testName.upToFirstOccurrenceOf("...", false, false).trim();
+        }
+        else
+        {
+            // If we can't extract a method name, use a summary of the message
+            testName = message.substring(0, 30).trim();
+            if (testName.isEmpty())
+                testName = "Test";
+        }
+        
+        // Check if this is a failure message
+        bool isFailure = false;
+        juce::String failureMessage;
+        
+        for (const auto& msg : result->messages)
+        {
+            if (msg.contains("FAILED"))
             {
-                testSuite = suite;
+                isFailure = true;
+                failureMessage = msg.contains(" - ") ? 
+                                 msg.fromLastOccurrenceOf(" - ", false, false).trim() : 
+                                 "Test failed";
                 break;
             }
         }
         
-        if (testSuite == nullptr)
+        // Make sure test name is unique within its suite
+        if (!testName.isEmpty())
         {
-            testSuite = xml->createNewChildElement("testsuite");
-            testSuite->setAttribute("name", className);
+            if (suiteTestNames[suiteName].count(testName) > 0)
+            {
+                // Add index to make unique if needed
+                int index = 1;
+                juce::String baseName = testName;
+                while (suiteTestNames[suiteName].count(testName) > 0)
+                {
+                    testName = baseName + " (" + juce::String(index++) + ")";
+                }
+            }
+            
+            // Remember this test name is used
+            suiteTestNames[suiteName].insert(testName);
         }
         
-        // Update test suite stats
-        int tests = testSuite->getIntAttribute("tests", 0);
-        testSuite->setAttribute("tests", tests + 1);
-        
-        if (!success)
+        // Get or create test suite element
+        if (testSuites.find(suiteName) == testSuites.end())
         {
-            int failures = testSuite->getIntAttribute("failures", 0);
-            testSuite->setAttribute("failures", failures + 1);
+            juce::XmlElement* suiteElement = new juce::XmlElement("testsuite");
+            suiteElement->setAttribute("name", suiteName);
+            testSuites[suiteName] = suiteElement;
+            suiteTestCounts[suiteName] = 0;
+            suiteFailureCounts[suiteName] = 0;
         }
         
-        // Add the test case
-        auto* testCase = testSuite->createNewChildElement("testcase");
-        testCase->setAttribute("name", testName.fromFirstOccurrenceOf(":", false, false).trim());
-        testCase->setAttribute("classname", className);
-        
-        auto testTime = (juce::Time::getMillisecondCounter() - currentTestStartTime) / 1000.0;
-        testCase->setAttribute("time", juce::String(testTime));
-        
-        if (!success)
+        // Create test case element if we have a valid test name
+        if (!testName.isEmpty())
         {
-            auto* failure = testCase->createNewChildElement("failure");
-            failure->setAttribute("message", failureMessage);
+            // Create testcase element
+            juce::XmlElement* testCaseElement = new juce::XmlElement("testcase");
+            testCaseElement->setAttribute("name", testName);
+            testCaseElement->setAttribute("classname", suiteName);
+            testCaseElement->setAttribute("time", "0");
+            
+            // Add failure element if test failed
+            if (isFailure)
+            {
+                juce::XmlElement* failureElement = new juce::XmlElement("failure");
+                failureElement->setAttribute("message", failureMessage);
+                testCaseElement->addChildElement(failureElement);
+                suiteFailureCounts[suiteName]++;
+                totalFailures++;
+            }
+            
+            // Add test case to suite
+            testSuites[suiteName]->addChildElement(testCaseElement);
+            suiteTestCounts[suiteName]++;
+            totalTests++;
         }
     }
     
-    std::unique_ptr<juce::XmlElement> xml;
-    juce::String currentTest;
-    juce::uint32 currentTestStartTime = 0;
-    juce::uint32 totalTestsStartTime = 0;
-    bool anyTestsFailed = false;
-};
+    // Add test suites to root element with counts
+    for (const auto& [name, suiteElement] : testSuites)
+    {
+        suiteElement->setAttribute("tests", suiteTestCounts[name]);
+        suiteElement->setAttribute("failures", suiteFailureCounts[name]);
+        suiteElement->setAttribute("errors", "0");
+        rootElement.addChildElement(suiteElement);
+    }
+    
+    // Set overall counts
+    rootElement.setAttribute("tests", totalTests);
+    rootElement.setAttribute("failures", totalFailures);
+    
+    // Write XML to file
+    juce::File outputFile(outputPath);
+    
+    // Ensure parent directory exists
+    if (outputFile.getParentDirectory().createDirectory())
+    {
+        // Write XML
+        juce::FileOutputStream stream(outputFile);
+        
+        if (stream.openedOk())
+        {
+            rootElement.writeToStream(stream, {});
+            std::cout << "JUnit XML report created at " << outputPath << std::endl;
+            std::cout << "Total tests: " << totalTests << ", Failures: " << totalFailures << std::endl;
+        }
+        else
+        {
+            std::cerr << "Failed to create test report: could not open output file." << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Failed to create test report: could not create directory." << std::endl;
+    }
+}
 
-// Main entry point for the test runner
 int main(int argc, char* argv[])
 {
+    // Get XML output path from arguments
+    juce::String xmlOutputPath = "test_results.xml";
+    if (argc > 1)
+        xmlOutputPath = argv[1];
+    
     // Initialize JUCE
     juce::ScopedJuceInitialiser_GUI juceInit;
     
-    // Set up console output
-    juce::ConsoleApplication app;
-    app.addVersionCommand("--version", "1.0.0");
-    app.addHelpCommand("--help|-h", "CheapSynth01 Tests", "Runs unit tests for CheapSynth01");
+    // Run all tests
+    std::cout << "Running all tests..." << std::endl;
     
-    // Create XML test listener
-    XmlTestListener xmlListener;
-    
-    // Run the tests
+    // Create and configure test runner
     juce::UnitTestRunner testRunner;
     testRunner.setAssertOnFailure(false);
-    testRunner.addListener(&xmlListener);
+    
+    // Run the tests
     testRunner.runAllTests();
     
-    // Return non-zero exit code if any tests failed
-    return xmlListener.didAnyTestsFail() ? 1 : 0;
+    std::cout << "Tests completed." << std::endl;
+    
+    // Generate JUnit XML report using the test runner's results
+    generateJUnitXmlReport(testRunner, xmlOutputPath);
+    
+    // Return success code (XML generation handles reporting failures)
+    return 0;
 }

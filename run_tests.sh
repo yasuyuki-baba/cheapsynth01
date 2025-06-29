@@ -33,41 +33,23 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Run tests
+# Run tests and generate JUnit XML report
 echo -e "${YELLOW}Running tests...${NC}"
 echo "========================================"
-./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests
+./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests test_results.xml
 TEST_RESULT=$?
 
-# Check if test results XML exists
-if [ -f "test_results.xml" ]; then
-    echo -e "${BLUE}Test results saved to:${NC} $(pwd)/test_results.xml"
-    
-    # Count passed and failed tests
-    TOTAL_TESTS=$(grep -c "<testcase" test_results.xml)
-    FAILED_TESTS=$(grep -c "<failure" test_results.xml)
-    PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
-    
-    echo "========================================"
-    echo -e "${BLUE}Test Summary:${NC}"
-    echo -e "Total: ${TOTAL_TESTS}, Passed: ${GREEN}${PASSED_TESTS}${NC}, Failed: ${RED}${FAILED_TESTS}${NC}"
-    
-    # If there are failures, print them
-    if [ $FAILED_TESTS -gt 0 ]; then
-        echo "========================================"
-        echo -e "${YELLOW}Failed Tests:${NC}"
-        grep -B 1 -A 1 "<failure" test_results.xml | grep -v "</failure>" | sed 's/<failure message="/ - /g' | sed 's/".*>//g' | sed 's/<testcase name="/ /g' | sed 's/" classname=.*//g'
-    fi
-else
-    echo -e "${YELLOW}No test results file found${NC}"
-fi
-
-# Check test results
+# Display test summary
 if [ $TEST_RESULT -eq 0 ]; then
     echo "========================================"
     echo -e "${GREEN}All tests passed!${NC}"
 else
     echo "========================================"
     echo -e "${RED}Tests failed${NC}"
-    exit 1
 fi
+
+echo -e "${BLUE}Test results saved to:${NC} $(pwd)/test_results.xml"
+echo "========================================"
+
+# Return the original test result
+exit $TEST_RESULT

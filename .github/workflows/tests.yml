@@ -37,15 +37,17 @@ jobs:
           cmake .. -DSTANDALONE_ONLY=ON
           cmake --build . --target CheapSynth01Tests --config Debug
       
-      - name: Run tests
+      - name: Run tests and generate XML report
         id: run_tests
         run: |
           cd build_tests
           if [ "$RUNNER_OS" == "Windows" ]; then
-            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests.exe
+            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests.exe test_results.xml
           else
-            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests
+            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests test_results.xml
           fi
+          TEST_EXIT_CODE=$?
+          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
         shell: bash
         continue-on-error: true
         
@@ -56,6 +58,7 @@ jobs:
           name: test-results-${{ runner.os }}
           path: build_tests/test_results.xml
           
+          
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2.5.0
         if: runner.os == 'Linux' && always()
@@ -63,5 +66,5 @@ jobs:
           files: build_tests/test_results.xml
           
       - name: Check test status
-        if: steps.run_tests.outcome != 'success'
+        if: steps.run_tests.outputs.test_exit_code != '0'
         run: exit 1

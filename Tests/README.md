@@ -65,13 +65,41 @@ The current test status can be seen in the repository README badge or in the Act
 
 ### Test Results Format
 
-Test results are saved in JUnit-compatible XML format in the `build_tests/test_results.xml` file. This format includes:
+Test results are saved in JUnit compatible XML format to `build_tests/test_results.xml`. This format includes the following information:
 
 - Test suite information
 - Individual test cases
 - Pass/fail status
 - Error messages for failed tests
-- Execution time for tests
+- Test execution time
+
+#### XML Output Feature for Test Results
+
+Test results are automatically output in JUnit compatible XML format:
+
+1. The TestRunner.cpp code processes test results from UnitTestRunner
+2. After test completion, this information is saved in JUnit XML format as `test_results.xml`
+3. This XML file is uploaded to GitHub Actions for test result visualization
+
+This approach allows JUCE test results to be integrated with GitHub test results API without relying on external scripts.
+
+#### JUnit XML Report Structure
+
+The generated XML has the following structure:
+
+```xml
+<?xml version="1.0" ?>
+<testsuites name="CheapSynth01Tests" timestamp="...">
+  <testsuite name="TestSuiteName" tests="numberOfTests" failures="numberOfFailures" errors="0">
+    <testcase name="TestName" classname="TestSuiteName" time="0"/>
+    <testcase name="FailedTest" classname="TestSuiteName" time="0">
+      <failure message="ErrorMessage"/>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+This structure complies with the standards of common CI/CD platforms such as Jenkins and GitHub Actions.
 
 ## Test Implementation Guidelines
 
