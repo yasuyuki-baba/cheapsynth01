@@ -4,21 +4,33 @@
 #include "../../Source/CS01Synth/ToneGenerator.h"
 #include "../mocks/MockToneGenerator.h"
 
-// Helper function to create a dummy APVTS for testing
-juce::AudioProcessorValueTreeState* createDummyAPVTS()
+// Helper class to manage APVTS and processor lifecycle
+class APVTSHolder
 {
-    // Create a dummy processor
-    auto* dummyProcessor = new juce::AudioProcessorGraph();
+public:
+    APVTSHolder()
+    {
+        // Create a dummy processor
+        dummyProcessor = std::make_unique<juce::AudioProcessorGraph>();
+        
+        // Create parameter layout
+        juce::AudioProcessorValueTreeState::ParameterLayout layout;
+        
+        layout.add(std::make_unique<juce::AudioParameterFloat>("vco_waveform", "Waveform", 0.0f, 4.0f, 0.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>("vco_octave", "Octave", -2.0f, 2.0f, 0.0f));
+        
+        // Create APVTS
+        apvts = std::make_unique<juce::AudioProcessorValueTreeState>(*dummyProcessor, nullptr, "Parameters", std::move(layout));
+    }
     
-    // Create parameter layout
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    ~APVTSHolder() = default;
     
-    layout.add(std::make_unique<juce::AudioParameterFloat>("vco_waveform", "Waveform", 0.0f, 4.0f, 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("vco_octave", "Octave", -2.0f, 2.0f, 0.0f));
+    juce::AudioProcessorValueTreeState& getAPVTS() { return *apvts; }
     
-    // Create APVTS
-    return new juce::AudioProcessorValueTreeState(*dummyProcessor, nullptr, "Parameters", std::move(layout));
-}
+private:
+    std::unique_ptr<juce::AudioProcessorGraph> dummyProcessor;
+    std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
+};
 
 class ToneGeneratorTest : public juce::UnitTest
 {
@@ -35,11 +47,11 @@ private:
     {
         beginTest("Initialization Test");
         
-        // Create APVTS with smart pointer to manage memory
-        std::unique_ptr<juce::AudioProcessorValueTreeState> apvts(createDummyAPVTS());
+        // Create APVTS holder to manage memory
+        APVTSHolder apvtsHolder;
         
         // Create mock tone generator
-        testing::MockToneGenerator toneGenerator(*apvts);
+        testing::MockToneGenerator toneGenerator(apvtsHolder.getAPVTS());
         
         // Check initial state
         expect(!toneGenerator.isActive());
