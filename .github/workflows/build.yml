@@ -1,4 +1,4 @@
-name: cheapsynth01-pipeline
+name: cheapsynth01-build
 
 on:
   push:

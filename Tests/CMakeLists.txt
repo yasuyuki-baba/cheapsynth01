@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Create test executable
 juce_add_console_app(CheapSynth01Tests
-    PRODUCT_NAME "CheapSynth01 Tests"
-    COMPANY_NAME "YasuyukiBaba"
+    PRODUCT_NAME "CheapSynth01Tests"
+    COMPANY_NAME "Yasuyuki Baba"
     BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01tests"
     MODULES
         juce_core
@@ -112,7 +112,7 @@ endif()
 
 # JUCE settings
 target_compile_definitions(CheapSynth01Tests
-    PUBLIC
+    PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
