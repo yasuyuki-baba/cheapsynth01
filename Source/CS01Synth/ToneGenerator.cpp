@@ -193,7 +193,7 @@ void ToneGenerator::calculateSlideParameters(int targetNote)
         return;
     }
 
-    // 1半音あたりの時間を直接使用
+    // Use time per semitone directly
     samplesPerStep = static_cast<int>(timePerSemitone * sampleRate);
     if (samplesPerStep < 1) samplesPerStep = 1;
 

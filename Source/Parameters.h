@@ -26,5 +26,5 @@ namespace ParameterIds
     const juce::String breathInput { "BREATH_INPUT" };
     const juce::String pitchBendUpRange { "PITCH_BEND_UP_RANGE" };
     const juce::String pitchBendDownRange { "PITCH_BEND_DOWN_RANGE" };
-    const juce::String filterType { "FILTER_TYPE" }; // フィルタータイプ（MODERN/CS01）
+    const juce::String filterType { "FILTER_TYPE" }; // Filter type (MODERN/CS01)
 }
