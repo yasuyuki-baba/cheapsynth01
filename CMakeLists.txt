@@ -149,3 +149,6 @@ target_link_juce_modules(CheapSynth01)
 target_link_libraries(CheapSynth01 PUBLIC CheapSynth01Resources)
 
 message(STATUS "CheapSynth01 configuration complete!")
+
+# Add Tests directory
+add_subdirectory(Tests)

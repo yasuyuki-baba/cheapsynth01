@@ -1,5 +1,7 @@
 # CheapSynth01
 
+[![Tests](https://github.com/username/cheapsynth01/actions/workflows/tests.yml/badge.svg)](https://github.com/username/cheapsynth01/actions/workflows/tests.yml)
+
 CheapSynth01 is a software emulation of an early 80s compact monophonic synthesizer. Developed using the JUCE framework, it recreates classic analog sounds with precision.
 
 ## Features
@@ -37,9 +39,31 @@ cmake -B build
 cmake --build build
 ```
 
+### Running Tests
+
+To run the tests locally:
+
+```bash
+./run_tests.sh
+```
+
+This will build and run all tests, generating a detailed test report in XML format.
+
 ## Usage
 
 Load the plugin in your DAW or launch the standalone application.
+
+## Development
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration. On each push and pull request to any branch, the following actions are performed:
+
+- Building the project on multiple platforms (Windows, macOS, Linux)
+- Running all tests
+- Generating and publishing test reports
+
+You can view the latest test results in the Actions tab of the GitHub repository.
 
 ## License
 
