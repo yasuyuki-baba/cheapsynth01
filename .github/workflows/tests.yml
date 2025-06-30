@@ -2,7 +2,10 @@ name: CheapSynth01 Tests
 
 on:
   push:
+    branches:
+      - main  # Only run on pushes to main branch
   pull_request:
+    # Run on all pull requests
 
 jobs:
   build-and-test:
