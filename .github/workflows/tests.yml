@@ -1,4 +1,4 @@
-name: CheapSynth01 Tests
+name: cheapsynth01-tests
 
 on:
   push:

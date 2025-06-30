@@ -52,7 +52,7 @@ juce_add_plugin(CheapSynth01
     LV2URI "http://github.com/yasuyukibaba/cheapsynth01"
     FORMATS
         ${PLUGIN_FORMATS}
-    PRODUCT_NAME "Cheap Synth 01"
+    PRODUCT_NAME "CheapSynth01"
     BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01"
     MODULES
         juce_core
@@ -81,7 +81,7 @@ juce_add_binary_data(CheapSynth01Resources
 
 # JUCE target settings
 target_compile_definitions(CheapSynth01
-    PUBLIC
+    PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
@@ -111,7 +111,7 @@ add_compile_definitions(JUCE_DISPLAY_SPLASH_SCREEN=0)
 
 # Source files
 target_sources(CheapSynth01
-    PUBLIC
+    PRIVATE
         Source/CS01AudioProcessor.cpp
         Source/CS01AudioProcessorEditor.cpp
         Source/UI/ModulationComponent.cpp

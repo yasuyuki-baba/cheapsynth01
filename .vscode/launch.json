@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) 起動",
+            "name": "Launch (lldb)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/CheapSynth01_artefacts/Debug/Standalone/Cheap Synth 01.app",
+            "program": "${workspaceFolder}/build/CheapSynth01_artefacts/Debug/Standalone/CheapSynth01.app",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
