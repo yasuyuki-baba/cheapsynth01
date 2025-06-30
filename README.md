@@ -1,6 +1,10 @@
 # CheapSynth01
 
-[![Tests](https://github.com/username/cheapsynth01/actions/workflows/tests.yml/badge.svg)](https://github.com/username/cheapsynth01/actions/workflows/tests.yml)
+[![Build](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml)
+[![Tests](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
+[![JUCE](https://img.shields.io/badge/JUCE-Framework-orange.svg)](https://juce.com/)
 
 CheapSynth01 is a software emulation of an early 80s compact monophonic synthesizer. Developed using the JUCE framework, it recreates classic analog sounds with precision.
 
