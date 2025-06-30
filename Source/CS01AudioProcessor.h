@@ -38,7 +38,7 @@ public:
     bool hasEditor() const override;
 
     //==============================================================================
-    const juce::String getName() const override { return "CS01 Emulator"; }
+    const juce::String getName() const override { return "CheapSynth01"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }

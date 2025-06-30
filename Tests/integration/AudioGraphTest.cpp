@@ -29,7 +29,7 @@ private:
         expect(processor != nullptr);
         
         // Check that processor has expected properties
-        expectEquals(processor->getName(), juce::String("CS01 Emulator"));
+        expectEquals(processor->getName(), juce::String("CheapSynth01"));
         expect(processor->acceptsMidi());
         expect(!processor->producesMidi());
         expect(processor->isMidiEffect() == false);
