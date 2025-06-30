@@ -1,6 +1,6 @@
 # CheapSynth01 Test Framework
 
-This directory contains the test code for the YAMAHA CS-01 emulation project. Tests are implemented using JUCE's built-in unit testing framework.
+This directory contains the test code. Tests are implemented using JUCE's built-in unit testing framework.
 
 ## Test Structure
 
