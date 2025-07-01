@@ -102,8 +102,9 @@ private:
     {
         beginTest("Process Block Test");
         
-        // Skip this test as it's still causing segmentation faults
-        return;
+        // Test is now enabled
+        // Removed: // Skip this test as it's still causing segmentation faults
+        // return;
         
         juce::AudioProcessorGraph dummyProcessor;
         
@@ -245,8 +246,9 @@ private:
     {
         beginTest("Waveform Change Test");
         
-        // Skip this test as it's still causing segmentation faults
-        return;
+        // Test is now enabled
+        // Removed: // Skip this test as it's still causing segmentation faults
+        // return;
         
         // Create a dummy processor for APVTS
         juce::AudioProcessorGraph dummyProcessor;
@@ -362,8 +364,9 @@ private:
     {
         beginTest("Octave Change Test");
         
-        // Skip this test as it's still causing segmentation faults
-        return;
+        // Test is now enabled
+        // Removed: // Skip this test as it's still causing segmentation faults
+        // return;
         
         // Create a dummy processor for APVTS
         juce::AudioProcessorGraph dummyProcessor;
@@ -502,8 +505,9 @@ private:
     {
         beginTest("Pitch Bend Test");
         
-        // Skip this test as it's still causing segmentation faults
-        return;
+        // Test is now enabled
+        // Removed: // Skip this test as it's still causing segmentation faults
+        // return;
         
         // Create a dummy processor for APVTS
         juce::AudioProcessorGraph dummyProcessor;
