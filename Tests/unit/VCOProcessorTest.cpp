@@ -145,13 +145,25 @@ private:
         // Start a note
         noteHandler->startNote(60, 1.0f, 8192);
         
-        // Create audio buffer for processing - ensure buffer sizes match what the processor expects
-        // Make sure we have enough output channels
-        juce::AudioBuffer<float> buffer(std::max(1, processor->getTotalNumOutputChannels()), samplesPerBlock);
+        // Create audio buffer for processing with more defensive channel handling
+        const int numChannels = processor->getTotalNumOutputChannels();
+        DBG("VCOProcessor has " + juce::String(numChannels) + " output channels");
+        
+        // Always ensure at least one channel and handle gracefully
+        const int safeNumChannels = std::max(1, numChannels);
+        juce::AudioBuffer<float> buffer(safeNumChannels, samplesPerBlock);
+        buffer.clear(); // Ensure buffer is initialized with zeros
         juce::MidiBuffer midiBuffer;
         
-        // Process block
-        processor->processBlock(buffer, midiBuffer);
+        try {
+            // Process block with additional safeguards
+            processor->processBlock(buffer, midiBuffer);
+        } catch (const std::exception& e) {
+            // Log any exceptions rather than crashing
+            DBG("Exception in processBlock: " + juce::String(e.what()));
+            expect(false); // Mark test as failed but don't crash
+            return;
+        }
         
         // Check that output buffer has non-zero values (sound is generated)
         float sum = 0.0f;
@@ -287,8 +299,13 @@ private:
         // Start a note
         noteHandler->startNote(60, 1.0f, 8192);
         
-        // Create audio buffer for processing
-        juce::AudioBuffer<float> buffer(std::max(1, processor->getTotalNumOutputChannels()), samplesPerBlock);
+        // Create audio buffer for processing with defensive handling
+        const int numChannels = processor->getTotalNumOutputChannels();
+        DBG("VCOProcessor has " + juce::String(numChannels) + " output channels for waveform test");
+        
+        // Always ensure at least one channel
+        const int safeNumChannels = std::max(1, numChannels);
+        juce::AudioBuffer<float> buffer(safeNumChannels, samplesPerBlock);
         juce::MidiBuffer midiBuffer;
         
         // Test different waveforms
@@ -296,8 +313,15 @@ private:
         if (waveTypeParam != nullptr)
             waveTypeParam->setValueNotifyingHost(waveTypeParam->convertTo0to1(0)); // Triangle
         
-        buffer.clear();
-        processor->processBlock(buffer, midiBuffer);
+        buffer.clear(); // Ensure buffer is initialized with zeros
+        
+        try {
+            processor->processBlock(buffer, midiBuffer);
+        } catch (const std::exception& e) {
+            DBG("Exception in testWaveformChange (triangle): " + juce::String(e.what()));
+            expect(false);
+            return;
+        }
         
         // Store samples for triangle waveform
         std::vector<float> triangleSamples;
@@ -405,8 +429,14 @@ private:
         // Start a note
         noteHandler->startNote(60, 1.0f, 8192);
         
-        // Create audio buffer for processing - use appropriate channel count
-        juce::AudioBuffer<float> buffer(std::max(1, processor->getTotalNumOutputChannels()), samplesPerBlock);
+        // Create audio buffer for processing with defensive handling
+        const int numChannels = processor->getTotalNumOutputChannels();
+        DBG("VCOProcessor has " + juce::String(numChannels) + " output channels for octave test");
+        
+        // Always ensure at least one channel
+        const int safeNumChannels = std::max(1, numChannels);
+        juce::AudioBuffer<float> buffer(safeNumChannels, samplesPerBlock);
+        buffer.clear(); // Ensure buffer is initialized with zeros
         juce::MidiBuffer midiBuffer;
         
         // Test different octave settings
@@ -414,8 +444,13 @@ private:
         if (feetParam != nullptr)
             feetParam->setValueNotifyingHost(feetParam->convertTo0to1(0)); // 32'
         
-        buffer.clear();
-        processor->processBlock(buffer, midiBuffer);
+        try {
+            processor->processBlock(buffer, midiBuffer);
+        } catch (const std::exception& e) {
+            DBG("Exception in testOctaveChange (32'): " + juce::String(e.what()));
+            expect(false);
+            return;
+        }
         
         // Store samples for 32' setting
         std::vector<float> feet32Samples;
@@ -549,13 +584,23 @@ private:
         // Start a note with center pitch bend
         noteHandler->startNote(60, 1.0f, 8192);
         
-        // Create audio buffer for processing - using a safer approach with fixed channel count
+        // Create audio buffer for processing with defensive handling
+        const int numChannels = processor->getTotalNumOutputChannels();
+        DBG("VCOProcessor has " + juce::String(numChannels) + " output channels for pitch bend test");
+        
+        // Always use a safe approach with fixed channel count
         juce::AudioBuffer<float> buffer(1, samplesPerBlock);
+        buffer.clear(); // Ensure buffer is initialized with zeros
         juce::MidiBuffer midiBuffer;
         
         // Process block with center pitch bend
-        buffer.clear();
-        processor->processBlock(buffer, midiBuffer);
+        try {
+            processor->processBlock(buffer, midiBuffer);
+        } catch (const std::exception& e) {
+            DBG("Exception in testPitchBend (center): " + juce::String(e.what()));
+            expect(false);
+            return;
+        }
         
         // Store samples for center pitch bend
         std::vector<float> centerPitchSamples;
