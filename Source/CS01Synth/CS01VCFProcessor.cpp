@@ -21,6 +21,9 @@ void CS01VCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Initialize filter
     filter.reset();
     filter.prepare(sampleRate);
+    
+    // Pre-allocate buffer for modulation values
+    cutoffModulationBuffer.allocate(samplesPerBlock, true);
 }
 
 void CS01VCFProcessor::releaseResources()
@@ -77,9 +80,12 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     const auto* audioData = audioInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
     
-    // Calculate modulation values for each sample
-    juce::HeapBlock<float> cutoffModulation;
-    cutoffModulation.allocate(buffer.getNumSamples(), true);
+    // Check buffer size and reallocate if necessary
+    // (Since HeapBlock size cannot be checked directly, reallocate when needed)
+    if (buffer.getNumSamples() > 0) {
+        cutoffModulationBuffer.realloc(buffer.getNumSamples());
+        cutoffModulationBuffer.clear(buffer.getNumSamples());
+    }
     
     // Process each sample to calculate modulated cutoff frequencies
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
@@ -119,12 +125,12 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
         
         // Store modulated cutoff for this sample
-        cutoffModulation[sample] = modulatedCutoffHz;
+        cutoffModulationBuffer[sample] = modulatedCutoffHz;
     }
     
     // Copy audio input to output buffer
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     
     // Process the entire block with per-sample cutoff modulation using IG02610LPF
-    filter.processBlock(outputData, buffer.getNumSamples(), cutoffModulation, resonance);
+    filter.processBlock(outputData, buffer.getNumSamples(), cutoffModulationBuffer, resonance);
 }
