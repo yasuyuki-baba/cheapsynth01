@@ -436,58 +436,95 @@ private:
             juce::MidiBuffer midiBuffer;
             buffer.clear();
             
-            // 10. Custom waveform generation logic
+            // 10. Custom waveform generation logic with defensive programming
             try {
-                // Generate simple sine wave
+                // Generate simple sine wave with bounds checking
                 float frequency = 440.0f; // A4 (69) = 440Hz
                 float phase = 0.0f;
                 const float phaseIncrement = 2.0f * juce::MathConstants<float>::pi * frequency / sampleRate;
                 
-                // Write sine wave directly to output channel
-                float* outputChannel = buffer.getWritePointer(numInputChannels); // First output channel
-                
-                for (int i = 0; i < samplesPerBlock; ++i) {
-                    outputChannel[i] = std::sin(phase);
-                    phase += phaseIncrement;
-                    if (phase > 2.0f * juce::MathConstants<float>::pi)
-                        phase -= 2.0f * juce::MathConstants<float>::pi;
+                // Check buffer validity and channel count first
+                if (numInputChannels >= 0 && numInputChannels < buffer.getNumChannels()) {
+                    // Write sine wave directly to output channel with proper error handling
+                    float* outputChannel = nullptr;
+                    
+                    try {
+                        outputChannel = buffer.getWritePointer(numInputChannels); // First output channel
+                        
+                        if (outputChannel != nullptr && samplesPerBlock <= buffer.getNumSamples()) {
+                            for (int i = 0; i < samplesPerBlock; ++i) {
+                                outputChannel[i] = std::sin(phase);
+                                phase += phaseIncrement;
+                                if (phase > 2.0f * juce::MathConstants<float>::pi)
+                                    phase -= 2.0f * juce::MathConstants<float>::pi;
+                            }
+                        }
+                        else {
+                            DBG("Invalid buffer or sample count in testBufferProcessing");
+                        }
+                    }
+                    catch (const std::exception& e) {
+                        DBG("Exception accessing buffer channels: " + juce::String(e.what()));
+                    }
+                }
+                else {
+                    DBG("Invalid channel configuration in testBufferProcessing");
                 }
             }
             catch (const std::exception& e) {
                 DBG("Error during waveform generation: " + juce::String(e.what()));
-                throw;
+                // Don't rethrow - handle gracefully instead
+                expect(false, "Exception during waveform generation: " + juce::String(e.what()));
+                return;
             }
             
-            // 11. Analyze output buffer
-            const float* outputData = buffer.getReadPointer(numInputChannels); // First output channel
-            
-            // Basic waveform characteristic analysis
+            // 11. Analyze output buffer with defensive approach
             float maxValue = 0.0f;
             float minValue = 0.0f;
             float rms = 0.0f;
             int zeroCrossings = 0;
-            bool wasPositive = outputData[0] >= 0.0f;
             
-            for (int i = 0; i < buffer.getNumSamples(); ++i) {
-                float sample = outputData[i];
-                
-                // Max/min values
-                maxValue = std::max(maxValue, sample);
-                minValue = std::min(minValue, sample);
-                
-                // RMS calculation
-                rms += sample * sample;
-                
-                // Zero crossing measurement
-                bool isPositive = sample >= 0.0f;
-                if (isPositive != wasPositive) {
-                    zeroCrossings++;
-                    wasPositive = isPositive;
+            // Safe buffer reading
+            try {
+                if (numInputChannels >= 0 && numInputChannels < buffer.getNumChannels()) {
+                    const float* outputData = buffer.getReadPointer(numInputChannels); // First output channel
+                    
+                    if (outputData != nullptr && buffer.getNumSamples() > 0) {
+                        // Initialize with first sample value safely
+                        bool wasPositive = outputData[0] >= 0.0f;
+            
+                        // Process samples safely
+                        for (int i = 0; i < buffer.getNumSamples(); ++i) {
+                            float sample = outputData[i];
+                            
+                            // Max/min values
+                            maxValue = std::max(maxValue, sample);
+                            minValue = std::min(minValue, sample);
+                            
+                            // RMS calculation
+                            rms += sample * sample;
+                            
+                            // Zero crossing measurement
+                            bool isPositive = sample >= 0.0f;
+                            if (isPositive != wasPositive) {
+                                zeroCrossings++;
+                                wasPositive = isPositive;
+                            }
+                        }
+                        
+                        // Complete RMS calculation only if we have samples
+                        if (buffer.getNumSamples() > 0) {
+                            rms = std::sqrt(rms / buffer.getNumSamples());
+                        }
+                    }
                 }
             }
-            
-            // Complete RMS calculation
-            rms = std::sqrt(rms / buffer.getNumSamples());
+            catch (const std::exception& e) {
+                DBG("Exception during buffer analysis: " + juce::String(e.what()));
+                // Handle the error gracefully
+                expect(false, "Exception during buffer analysis: " + juce::String(e.what()));
+                return;
+            }
             
             // 12. Verify that waveform was generated
             expect(maxValue > 0.01f);  // Signal should be generated
