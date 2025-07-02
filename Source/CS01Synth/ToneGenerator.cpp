@@ -132,7 +132,11 @@ void ToneGenerator::updateBlockRateParameters()
 {
     currentFeet = static_cast<Feet>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::feet)));
     currentWaveform = static_cast<Waveform>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::waveType)));
-    pwmLfo.setFrequency(apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load());
+    
+    // PWM LFO frequency setting with hardware-accurate range (0-60Hz)
+    float pwmSpeed = apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load();
+    pwmLfo.setFrequency(pwmSpeed);
+    
     currentModDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
 }
 
