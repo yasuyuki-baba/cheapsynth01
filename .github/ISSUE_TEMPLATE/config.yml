@@ -1,0 +1,11 @@
+# GitHub Issue Template configuration
+# See: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: false
+contact_links:
+  - name: CheapSynth01 Discussions
+    url: https://github.com/yasuyuki-baba/cheapsynth01/discussions
+    about: Please ask and answer questions here.
+  - name: CheapSynth01 Documentation
+    url: https://github.com/yasuyuki-baba/cheapsynth01/blob/main/README.md
+    about: Please check our documentation first.

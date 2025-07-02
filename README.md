@@ -78,47 +78,11 @@ The architecture supports real-time parameter changes, allowing for expressive p
 
 ## Build Instructions
 
-### Requirements
-
-- CMake 3.15 or higher
-- C++20 compatible compiler
-- JUCE (automatically fetched by CMake)
-
-### Build Steps
-
-```bash
-# Create and configure build directory
-cmake -B build
-
-# Build the project
-cmake --build build
-```
-
-### Running Tests
-
-To run the tests locally:
-
-```bash
-./run_tests.sh
-```
-
-This will build and run all tests, generating a detailed test report in XML format.
+For build instructions and development setup, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Usage
 
 Load the plugin in your DAW or launch the standalone application.
-
-## Development
-
-### Continuous Integration
-
-This project uses GitHub Actions for continuous integration. On each push and pull request to any branch, the following actions are performed:
-
-- Building the project on multiple platforms (Windows, macOS, Linux)
-- Running all tests
-- Generating and publishing test reports
-
-You can view the latest test results in the Actions tab of the GitHub repository.
 
 ## License
 
