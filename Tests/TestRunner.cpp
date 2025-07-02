@@ -134,9 +134,9 @@ void generateJUnitXmlReport(const juce::UnitTestRunner& testRunner, const juce::
     rootElement.setAttribute("tests", totalTests);
     rootElement.setAttribute("failures", totalFailures);
     
-    // Write XML to file
-    juce::File outputFile(outputPath);
-    
+    // Write XML to file - use absolute path to avoid JUCE assertion
+    juce::File outputFile = juce::File::getCurrentWorkingDirectory().getChildFile(outputPath);
+
     // Ensure parent directory exists
     if (outputFile.getParentDirectory().createDirectory())
     {
