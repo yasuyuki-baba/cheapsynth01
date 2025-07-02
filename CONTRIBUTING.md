@@ -89,7 +89,7 @@ To run the tests:
 
 ### Sound Design
 
-- Prioritize accurate emulation of the original sound
+- Prioritize accurate emulation of the original hardware
 - Implement accurate waveforms, filter characteristics, and envelope responses
 - Include special features like breath control
 
