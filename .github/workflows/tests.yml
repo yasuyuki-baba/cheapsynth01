@@ -50,9 +50,13 @@ jobs:
             ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests test_results.xml
           fi
           TEST_EXIT_CODE=$?
+          echo "Test exit code: $TEST_EXIT_CODE"
           echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "Tests failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
         shell: bash
-        continue-on-error: true
         
       - name: Upload test results
         uses: actions/upload-artifact@v4
