@@ -29,6 +29,13 @@ void ModernVCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
         filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), static_cast<uint32>(numChannels)});
     }
+    
+    // Initialize temporary buffers
+    tempBuffers.resize(numChannels);
+    for (auto& buffer : tempBuffers)
+    {
+        buffer.setSize(1, samplesPerBlock);
+    }
 }
 
 void ModernVCFProcessor::releaseResources()
@@ -92,12 +99,19 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         auto* channelData = buffer.getWritePointer(channel);
         const auto* audioData = audioInput.getReadPointer(channel);
         
-        // Ensure filter instance
+        // Ensure filter instance and temp buffer
         if (channel >= filters.size())
             filters.resize(channel + 1);
+        if (channel >= tempBuffers.size())
+            tempBuffers.resize(channel + 1, juce::AudioBuffer<float>(1, buffer.getNumSamples()));
             
-        // Create temporary buffer for audio processing
-        juce::AudioBuffer<float> tempBuffer(1, buffer.getNumSamples());
+        // Use pre-allocated temporary buffer
+        auto& tempBuffer = tempBuffers[channel];
+        // Adjust buffer size if necessary
+        if (tempBuffer.getNumSamples() < buffer.getNumSamples())
+            tempBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
+            
+        tempBuffer.clear();
         tempBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
         float* samples = tempBuffer.getWritePointer(0);
         
