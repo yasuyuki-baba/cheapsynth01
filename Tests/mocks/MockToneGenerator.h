@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "MockOscillator.h"
 #include "../../Source/CS01Synth/ToneGenerator.h"
-#include "../../Source/CS01Synth/INoteHandler.h"
+#include "../../Source/CS01Synth/ISoundGenerator.h"
 #include "../../Source/Parameters.h"
 
 namespace testing
@@ -12,7 +12,7 @@ namespace testing
      * Mock implementation of ToneGenerator for testing
      * This uses MockOscillator internally to avoid timer-related issues in tests
      */
-    class MockToneGenerator : public INoteHandler
+    class MockToneGenerator : public ISoundGenerator
     {
     public:
         MockToneGenerator(juce::AudioProcessorValueTreeState& apvts)

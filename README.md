@@ -19,12 +19,16 @@ CheapSynth01 uses JUCE's AudioProcessorGraph to implement a modular synthesis ar
 ```mermaid
 graph TD
     MIDI[MIDI Input] --> MidiProc[MIDI Processor]
-    MidiProc --> |Note On/Off| VCO[VCO]
-    MidiProc --> |Note On/Off| Noise[White Noise]
+    MidiProc --> |ISoundGenerator| VCO[VCO Processor]
     MidiProc --> |Triggers| EG[Envelope Generator]
     
+    subgraph "VCO Processor"
+        VCO --> |manages| GenSwitch{Generator Type}
+        GenSwitch --> |Tone| ToneGen[Tone Generator]
+        GenSwitch --> |Noise| NoiseGen[Noise Generator]
+    end
+    
     VCO --> |Audio| FilterSwitch{Filter Type}
-    Noise --> |Audio| FilterSwitch
     
     FilterSwitch --> |CS-01| CS01VCF[CS-01 VCF]
     FilterSwitch --> |Modern| ModernVCF[Modern VCF]
@@ -47,19 +51,24 @@ graph TD
 ### Key Signal Paths:
 
 1. **Main Audio Path**:
-   - Sound Generation: VCO (oscillator) or Noise generator
+   - Sound Generation: VCO Processor managing Tone Generator and Noise Generator
    - Filtering: Either CS-01 VCF (vintage) or Modern VCF
    - Amplification: VCA controls final output level
 
 2. **Control Paths**:
-   - MIDI Processor: Handles note on/off, controls VCO/Noise and triggers EG
+   - MIDI Processor: Interacts with VCO Processor via ISoundGenerator interface
    - Envelope Generator: Modulates both VCA (amplitude) and VCF (filter cutoff)
    - LFO: Can be routed to either VCO (pitch modulation) or VCF (filter modulation)
    
 3. **Dynamic Routing**:
    - Filter Type parameter switches between vintage and modern filter
-   - Feet parameter switches between VCO and Noise as sound source
+   - Feet parameter switches between Tone and Noise generators within the VCO Processor
    - LFO Target parameter determines modulation destination
+
+4. **Architecture Pattern**:
+   - Centralized communication via CS01AudioProcessor
+   - Interface-based design with ISoundGenerator
+   - Component decoupling using callback functions
 
 The architecture supports real-time parameter changes, allowing for expressive performances and sound design.
 
