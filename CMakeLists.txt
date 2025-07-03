@@ -114,11 +114,12 @@ target_sources(CheapSynth01
     PRIVATE
         Source/CS01AudioProcessor.cpp
         Source/CS01AudioProcessorEditor.cpp
+        Source/ProgramManager.cpp
         Source/UI/ModulationComponent.cpp
         Source/UI/VCOComponent.cpp
         Source/UI/LFOComponent.cpp
         Source/UI/VCFComponent.cpp
-        Source/UI/PresetPanel.cpp
+        Source/UI/ProgramPanel.cpp
         Source/UI/VCAComponent.cpp
         Source/UI/EGComponent.cpp
         Source/UI/BreathControlComponent.cpp
