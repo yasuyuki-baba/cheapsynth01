@@ -79,7 +79,7 @@ private:
     juce::AudioProcessorGraph::Node::Ptr vcfNode;
     juce::AudioProcessorGraph::Node::Ptr modernVcfNode;
     
-    // プリセット管理
+    // プログラム管理
     ProgramManager presetManager;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CS01AudioProcessor)
