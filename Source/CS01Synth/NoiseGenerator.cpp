@@ -1,16 +1,14 @@
-#include "NoiseProcessor.h"
+#include "NoiseGenerator.h"
 
-NoiseProcessor::NoiseProcessor(juce::AudioProcessorValueTreeState& vts)
-    : AudioProcessor(BusesProperties()
-                        .withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      apvts(vts)
+NoiseGenerator::NoiseGenerator(juce::AudioProcessorValueTreeState& apvts)
+    : apvts(apvts)
 {
 }
 
-void NoiseProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec)
 {
-    juce::dsp::ProcessSpec spec{ sampleRate, (juce::uint32)samplesPerBlock, (juce::uint32)getTotalNumOutputChannels() };
     noiseFilter.prepare(spec);
+    sampleRate = spec.sampleRate;
     
     // Limit frequency to not exceed Nyquist frequency
     float cutoffFreq = std::min(12000.0f, static_cast<float>(spec.sampleRate * 0.45f));
@@ -18,31 +16,15 @@ void NoiseProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     *noiseFilter.coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(spec.sampleRate, cutoffFreq);
 }
 
-bool NoiseProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples)
 {
-    const auto& mainOut = layouts.getChannelSet(false, 0);
-    
-    // Only support mono output
-    if (mainOut != juce::AudioChannelSet::mono())
-        return false;
-    
-    return true;
-}
-
-void NoiseProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
-{
-    juce::ScopedNoDenormals noDenormals;
-    
-    // Clear buffer first
-    buffer.clear();
-    
     // Only generate noise if note is on
     if (isActive())
     {
         // Process tail off if needed
         if (tailOff)
         {
-            tailOffCounter += buffer.getNumSamples();
+            tailOffCounter += numSamples;
             
             // Check if tail off is complete
             if (tailOffCounter >= tailOffDuration)
@@ -53,29 +35,31 @@ void NoiseProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
         }
         
         // Generate white noise
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        for (int sample = 0; sample < numSamples; ++sample)
         {
             float whiteNoise = random.nextFloat() * 2.0f - 1.0f;
             float filteredNoise = noiseFilter.processSample(whiteNoise);
             
             for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
             {
-                buffer.setSample(channel, sample, filteredNoise);
+                buffer.setSample(channel, startSample + sample, filteredNoise);
             }
         }
     }
+    // If not active, nothing to do
 }
 
 // INoteHandler implementation
-void NoiseProcessor::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition)
+void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition)
 {
     currentlyPlayingNote = midiNoteNumber;
     pitchWheelValue = currentPitchWheelPosition;
     noteOn = true;
     tailOff = false;
+    
 }
 
-void NoiseProcessor::stopNote(bool allowTailOff)
+void NoiseGenerator::stopNote(bool allowTailOff)
 {
     if (allowTailOff)
     {
@@ -97,24 +81,24 @@ void NoiseProcessor::stopNote(bool allowTailOff)
     currentlyPlayingNote = 0;
 }
 
-void NoiseProcessor::changeNote(int midiNoteNumber)
+void NoiseGenerator::changeNote(int midiNoteNumber)
 {
     currentlyPlayingNote = midiNoteNumber;
     // For noise, we don't need to change anything else when the note changes
 }
 
-void NoiseProcessor::pitchWheelMoved(int newPitchWheelValue)
+void NoiseGenerator::pitchWheelMoved(int newPitchWheelValue)
 {
     pitchWheelValue = newPitchWheelValue;
     // For noise, pitch wheel doesn't affect the sound
 }
 
-bool NoiseProcessor::isActive() const
+bool NoiseGenerator::isActive() const
 {
     return noteOn || (tailOff && tailOffCounter < tailOffDuration);
 }
 
-int NoiseProcessor::getCurrentlyPlayingNote() const
+int NoiseGenerator::getCurrentlyPlayingNote() const
 {
     return currentlyPlayingNote;
 }

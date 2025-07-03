@@ -8,7 +8,6 @@
 #include "CS01Synth/VCAProcessor.h"
 #include "CS01Synth/CS01VCFProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
-#include "CS01Synth/NoiseProcessor.h"
 
 //==============================================================================
 struct Preset
@@ -70,6 +69,7 @@ private:
     void loadPresetFromBinaryData(const juce::String& filename);
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateVCAOutputConnections();
+    void handleGeneratorTypeChanged();
 
     juce::MidiKeyboardState keyboardState;
     juce::MidiMessageCollector midiMessageCollector;
@@ -83,7 +83,6 @@ private:
     juce::AudioProcessorGraph::Node::Ptr vcaNode;
     juce::AudioProcessorGraph::Node::Ptr vcfNode;
     juce::AudioProcessorGraph::Node::Ptr modernVcfNode;
-    juce::AudioProcessorGraph::Node::Ptr noiseNode;
     std::vector<Preset> factoryPresets;
     int currentProgram = 0;
     

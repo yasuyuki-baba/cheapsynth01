@@ -177,8 +177,8 @@ private:
             std::unique_ptr<VCOProcessor> processor = std::make_unique<VCOProcessor>(apvts);
             expect(processor != nullptr);
             
-            // Check if INoteHandler interface can be obtained
-            INoteHandler* noteHandler = processor->getNoteHandler();
+            // Check if ISoundGenerator interface can be obtained
+            ISoundGenerator* noteHandler = processor->getNoteHandler();
             expect(noteHandler != nullptr);
             
             // No further operations (especially no processBlock call)

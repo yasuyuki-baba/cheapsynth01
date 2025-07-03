@@ -132,9 +132,10 @@ target_sources(CheapSynth01
         Source/UI/CS01LookAndFeel.cpp
         Source/CS01Synth/EGProcessor.cpp
         Source/CS01Synth/LFOProcessor.cpp
-        Source/CS01Synth/IG02610LPF.cpp
+        Source/CS01Synth/MidiProcessor.cpp
         Source/CS01Synth/ModernVCFProcessor.cpp
-        Source/CS01Synth/NoiseProcessor.cpp
+        Source/CS01Synth/NoiseGenerator.cpp
+        Source/CS01Synth/IG02610LPF.cpp
         Source/UI/FilterTypeComponent.cpp
 )
 
