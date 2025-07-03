@@ -48,13 +48,12 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     audioOutputNode = audioGraph.addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
         juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
     midiProcessorNode = audioGraph.addNode(std::make_unique<MidiProcessor>(apvts));
-    vcoNode = audioGraph.addNode(std::make_unique<VCOProcessor>(apvts));
+    vcoNode = audioGraph.addNode(std::make_unique<VCOProcessor>(apvts)); // デフォルトはToneGenerator
     egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
     lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
     vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
     vcfNode = audioGraph.addNode(std::make_unique<CS01VCFProcessor>(apvts));
     modernVcfNode = audioGraph.addNode(std::make_unique<ModernVCFProcessor>(apvts));
-    noiseNode = audioGraph.addNode(std::make_unique<NoiseProcessor>(apvts));
 
     // 2. Set bus layouts
     audioOutputNode->getProcessor()->enableAllBuses();
@@ -65,40 +64,21 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     vcaNode->getProcessor()->enableAllBuses();
     vcfNode->getProcessor()->enableAllBuses();
     modernVcfNode->getProcessor()->enableAllBuses();
-    noiseNode->getProcessor()->enableAllBuses();
 
     // 3. Connect nodes
-    // Configure connections based on filter type and feet setting
+    // Configure connections based on filter type
     auto filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
-    auto feetValue = static_cast<int>(apvts.getRawParameterValue(ParameterIds::feet)->load());
-    bool isNoiseMode = (feetValue == static_cast<int>(Feet::WhiteNoise));
     
-    // Audio Path: 
-    // If noise mode: noise -> vcf -> vca -> output
-    // Otherwise: vco -> vcf -> vca -> output
+    // Audio Path: vco -> vcf -> vca -> output
     // Connect only the mono channel (ch = 0)
     if (filterType == 0) // CS01
     {
-        if (isNoiseMode)
-        {
-            audioGraph.addConnection({ {noiseNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-        }
-        else
-        {
-            audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-        }
+        audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
         audioGraph.addConnection({ {vcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
     }
     else // MODERN
     {
-        if (isNoiseMode)
-        {
-            audioGraph.addConnection({ {noiseNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-        }
-        else
-        {
-            audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-        }
+        audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
         audioGraph.addConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
     }
     // Connection from VCA to audioOutputNode (automatically configured based on output bus layout)
@@ -122,25 +102,18 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Set references to NoteHandler and EGProcessor in MidiProcessor
     auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
     auto* synthProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
-    auto* noiseProcessor = static_cast<NoiseProcessor*>(noiseNode->getProcessor());
     auto* egProcessor = static_cast<EGProcessor*>(egNode->getProcessor());
     
-    if (midiProcessor != nullptr && synthProcessor != nullptr && noiseProcessor != nullptr && egProcessor != nullptr)
+    if (midiProcessor != nullptr && synthProcessor != nullptr && egProcessor != nullptr)
     {
-        // Set the appropriate note handler based on the feet parameter
-        auto feetValue = static_cast<int>(apvts.getRawParameterValue(ParameterIds::feet)->load());
-        bool isNoiseMode = (feetValue == static_cast<int>(Feet::WhiteNoise));
-        
-        if (isNoiseMode)
-        {
-            midiProcessor->setNoteHandler(noiseProcessor);
-        }
-        else
-        {
-            midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
-        }
-        
+        // Set the note handler
+        midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
         midiProcessor->setEGProcessor(egProcessor);
+        
+        // Set up VCO generator type change callback
+        synthProcessor->onGeneratorTypeChanged = [this]() {
+            handleGeneratorTypeChanged();
+        };
     }
     // 4. Set graph's main bus layout and prepare
     audioGraph.setPlayConfigDetails(getMainBusNumInputChannels(),
@@ -458,68 +431,31 @@ void CS01AudioProcessor::processorLayoutsChanged()
     }
 }
 
+// Handler for VCOProcessor's generator type changes
+void CS01AudioProcessor::handleGeneratorTypeChanged()
+{
+    // Check if audio graph nodes are initialized
+    if (midiProcessorNode == nullptr || vcoNode == nullptr)
+    {
+        return;
+    }
+
+    // Update the MidiProcessor's note handler reference
+    auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
+    auto* vcoProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
+    
+    if (midiProcessor != nullptr && vcoProcessor != nullptr)
+    {
+        midiProcessor->setNoteHandler(vcoProcessor->getNoteHandler());
+    }
+}
+
 void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     if (parameterID == ParameterIds::feet)
     {
-        // Check if audio graph nodes are initialized
-        if (vcoNode == nullptr || noiseNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr || midiProcessorNode == nullptr)
-        {
-            // Do nothing if nodes are not initialized yet
-            return;
-        }
-
-        // Determine if we're in noise mode
-        bool isNoiseMode = (static_cast<int>(newValue) == static_cast<int>(Feet::WhiteNoise));
-        
-        // Remove existing connections
-        audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-        audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-        audioGraph.removeConnection({ {noiseNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-        audioGraph.removeConnection({ {noiseNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-        
-        // Reconfigure connections based on filter type and noise mode
-        auto filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
-        
-        if (filterType == 0) // CS01
-        {
-            if (isNoiseMode)
-            {
-                audioGraph.addConnection({ {noiseNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-            }
-            else
-            {
-                audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-            }
-        }
-        else // MODERN
-        {
-            if (isNoiseMode)
-            {
-                audioGraph.addConnection({ {noiseNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-            }
-            else
-            {
-                audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-            }
-        }
-        
-        // Update the note handler in MidiProcessor based on the feet parameter
-        auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
-        auto* synthProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
-        auto* noiseProcessor = static_cast<NoiseProcessor*>(noiseNode->getProcessor());
-        
-        if (midiProcessor != nullptr && synthProcessor != nullptr && noiseProcessor != nullptr)
-        {
-            if (isNoiseMode)
-            {
-                midiProcessor->setNoteHandler(noiseProcessor);
-            }
-            else
-            {
-                midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
-            }
-        }
+        // VCOProcessor now handles the generator type change internally
+        // and notifies us via the callback we set up
     }
     else if (parameterID == ParameterIds::lfoTarget)
     {
@@ -572,27 +508,16 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         audioGraph.removeConnection({ {vcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
         audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
         audioGraph.removeConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
-
-        // Determine if we're in noise mode
-        bool isNoiseMode = (static_cast<int>(apvts.getRawParameterValue(ParameterIds::feet)->load()) == static_cast<int>(Feet::WhiteNoise));
         
         // Reconfigure connections based on filter type
         if (static_cast<int>(newValue) == 0) // CS01
         {
             // Remove existing connections
             audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-            audioGraph.removeConnection({ {noiseNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
             audioGraph.removeConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
             
             // Add new connections
-            if (isNoiseMode)
-            {
-                audioGraph.addConnection({ {noiseNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-            }
-            else
-            {
-                audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-            }
+            audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
             audioGraph.addConnection({ {vcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
             
             // Also update LFO connection (if LFO target is VCF)
@@ -606,18 +531,10 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         {
             // Remove existing connections
             audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
-            audioGraph.removeConnection({ {noiseNode->nodeID, 0}, {vcfNode->nodeID, 0} });
             audioGraph.removeConnection({ {vcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
             
             // Add new connections
-            if (isNoiseMode)
-            {
-                audioGraph.addConnection({ {noiseNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-            }
-            else
-            {
-                audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
-            }
+            audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
             audioGraph.addConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
             
             // Also update LFO connection (if LFO target is VCF)

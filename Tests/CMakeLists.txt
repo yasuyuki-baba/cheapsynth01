@@ -49,7 +49,7 @@ target_sources(CheapSynth01Tests
         unit/VCOProcessorTest.cpp
         unit/MidiProcessorTest.cpp
         unit/ModernVCFProcessorTest.cpp
-        unit/NoiseProcessorTest.cpp
+        unit/NoiseGeneratorTest.cpp
         integration/AudioGraphTest.cpp
 )
 
@@ -65,7 +65,7 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCOProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/MidiProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ModernVCFProcessor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/NoiseProcessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/NoiseGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessorEditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/BreathControlComponent.cpp

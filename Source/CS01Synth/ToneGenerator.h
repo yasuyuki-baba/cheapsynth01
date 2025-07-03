@@ -3,20 +3,20 @@
 #include <JuceHeader.h>
 #include "../Parameters.h"
 #include "SynthConstants.h"
-#include "INoteHandler.h"
+#include "ISoundGenerator.h"
 
 /**
  * ToneGenerator - Responsible for sound generation and MIDI note handling
  * 
- * This class implements the INoteHandler interface and generates audio samples
+ * This class implements the ISoundGenerator interface and generates audio samples
  * based on MIDI note input and various synthesis parameters.
  */
-class ToneGenerator : public INoteHandler
+class ToneGenerator : public ISoundGenerator
 {
 public:
     ToneGenerator(juce::AudioProcessorValueTreeState& apvts);
 
-    // INoteHandler interface implementation
+    // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
     void stopNote(bool allowTailOff) override;
     void changeNote(int midiNoteNumber) override;
@@ -25,15 +25,15 @@ public:
     int getCurrentlyPlayingNote() const override;
 
     // Audio processing methods
-    void prepare(const juce::dsp::ProcessSpec &spec);
+    void prepare(const juce::dsp::ProcessSpec &spec) override;
     void updateBlockRateParameters();
     void reset();
-    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
+    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override;
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
     
     // Sound generation methods
     float getNextSample();
-    void setLfoValue(float lfoValue);
+    void setLfoValue(float lfoValue) override;
     void setNote(int midiNoteNumber, bool isLegato);
     void setPitchBend(float bendInSemitones);
 

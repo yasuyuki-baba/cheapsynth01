@@ -1,16 +1,15 @@
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/NoiseProcessor.h"
+#include "../../Source/CS01Synth/NoiseGenerator.h"
 #include "../../Source/Parameters.h"
 
-class NoiseProcessorTest : public juce::UnitTest
+class NoiseGeneratorTest : public juce::UnitTest
 {
 public:
-    NoiseProcessorTest() : juce::UnitTest("NoiseProcessor Tests") {}
+    NoiseGeneratorTest() : juce::UnitTest("NoiseGenerator Tests") {}
     
     void runTest() override
     {
         testInitialization();
-        testBusesLayout();
         testPrepareToPlay();
         testProcessBlock();
         testNoteHandling();
@@ -23,7 +22,7 @@ private:
     {
         juce::AudioProcessorValueTreeState::ParameterLayout layout;
         
-        // Add parameters needed for NoiseProcessor
+        // Add parameters needed for NoiseGenerator
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::release, "Release", 
             juce::NormalisableRange<float>(0.01f, 5.0f), 0.1f));
@@ -42,45 +41,15 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
+        // Create NoiseGenerator
+        std::unique_ptr<NoiseGenerator> generator = std::make_unique<NoiseGenerator>(apvts);
         
-        // Check that processor was created successfully
-        expect(processor != nullptr);
+        // Check that generator was created successfully
+        expect(generator != nullptr);
         
-        // Check that processor has expected properties
-        expectEquals(processor->getName(), juce::String("NoiseProcessor"));
-        expect(!processor->acceptsMidi());
-        expect(!processor->producesMidi());
-        expect(!processor->isActive()); // Initially not active
-        expectEquals(processor->getCurrentlyPlayingNote(), 0); // No note playing initially
-    }
-    
-    void testBusesLayout()
-    {
-        beginTest("Buses Layout Test");
-        
-        // Create a dummy processor for APVTS
-        std::unique_ptr<juce::AudioProcessor> dummyProcessor = std::make_unique<juce::AudioProcessorGraph>();
-        
-        auto parameterLayout = createParameterLayout();
-        juce::UndoManager undoManager;
-        juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
-        
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
-        
-        // Test valid layout
-        juce::AudioProcessor::BusesLayout validLayout;
-        validLayout.outputBuses.add(juce::AudioChannelSet::mono());  // Output
-        
-        expect(processor->isBusesLayoutSupported(validLayout));
-        
-        // Test invalid layout with stereo output
-        juce::AudioProcessor::BusesLayout invalidLayout;
-        invalidLayout.outputBuses.add(juce::AudioChannelSet::stereo()); // Output
-        
-        expect(!processor->isBusesLayoutSupported(invalidLayout));
+        // Check that generator has expected properties
+        expect(!generator->isActive()); // Initially not active
+        expectEquals(generator->getCurrentlyPlayingNote(), 0); // No note playing initially
     }
     
     void testPrepareToPlay()
@@ -94,19 +63,25 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
+        // Create NoiseGenerator
+        std::unique_ptr<NoiseGenerator> generator = std::make_unique<NoiseGenerator>(apvts);
         
-        // Test prepareToPlay with different sample rates
+        // Test prepare with different sample rates
         // This should not throw any exceptions
-        processor->prepareToPlay(44100.0, 512);
+        juce::dsp::ProcessSpec spec1;
+        spec1.sampleRate = 44100.0;
+        spec1.maximumBlockSize = 512;
+        spec1.numChannels = 1;
+        
+        generator->prepare(spec1);
         expect(true); // If we got here, no exception was thrown
         
-        processor->prepareToPlay(48000.0, 1024);
-        expect(true); // If we got here, no exception was thrown
+        juce::dsp::ProcessSpec spec2;
+        spec2.sampleRate = 48000.0;
+        spec2.maximumBlockSize = 1024;
+        spec2.numChannels = 1;
         
-        // Test releaseResources
-        processor->releaseResources();
+        generator->prepare(spec2);
         expect(true); // If we got here, no exception was thrown
     }
     
@@ -121,21 +96,22 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
+        // Create NoiseGenerator
+        std::unique_ptr<NoiseGenerator> generator = std::make_unique<NoiseGenerator>(apvts);
         
-        // Prepare processor
-        const double sampleRate = 44100.0;
-        const int samplesPerBlock = 512;
-        processor->prepareToPlay(sampleRate, samplesPerBlock);
+        // Prepare generator
+        juce::dsp::ProcessSpec spec;
+        spec.sampleRate = 44100.0;
+        spec.maximumBlockSize = 512;
+        spec.numChannels = 1;
+        generator->prepare(spec);
         
         // Create audio buffer for processing
-        juce::AudioBuffer<float> buffer(1, samplesPerBlock);
-        juce::MidiBuffer midiBuffer;
+        juce::AudioBuffer<float> buffer(1, 512);
         
         // Test 1: No note should produce silence
         buffer.clear();
-        processor->processBlock(buffer, midiBuffer);
+        generator->renderNextBlock(buffer, 0, buffer.getNumSamples());
         
         // Check that output buffer contains silence
         float sum1 = 0.0f;
@@ -149,8 +125,8 @@ private:
         
         // Test 2: With note active, should produce noise
         buffer.clear();
-        processor->startNote(60, 1.0f, 8192);
-        processor->processBlock(buffer, midiBuffer);
+        generator->startNote(60, 1.0f, 8192);
+        generator->renderNextBlock(buffer, 0, buffer.getNumSamples());
         
         // Check that output buffer contains non-zero values
         float sum2 = 0.0f;
@@ -164,8 +140,8 @@ private:
         
         // Test 3: After stopping note, should revert to silence
         buffer.clear();
-        processor->stopNote(false); // Immediate stop
-        processor->processBlock(buffer, midiBuffer);
+        generator->stopNote(false); // Immediate stop
+        generator->renderNextBlock(buffer, 0, buffer.getNumSamples());
         
         // Check that output buffer contains silence
         float sum3 = 0.0f;
@@ -189,33 +165,33 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
+        // Create NoiseGenerator
+        std::unique_ptr<NoiseGenerator> generator = std::make_unique<NoiseGenerator>(apvts);
         
         // Initially not active
-        expect(!processor->isActive());
-        expectEquals(processor->getCurrentlyPlayingNote(), 0);
+        expect(!generator->isActive());
+        expectEquals(generator->getCurrentlyPlayingNote(), 0);
         
         // Test 1: Start note
-        processor->startNote(60, 1.0f, 8192);
+        generator->startNote(60, 1.0f, 8192);
         
         // Check that note is active
-        expect(processor->isActive());
-        expectEquals(processor->getCurrentlyPlayingNote(), 60);
+        expect(generator->isActive());
+        expectEquals(generator->getCurrentlyPlayingNote(), 60);
         
         // Test 2: Change note
-        processor->changeNote(64);
+        generator->changeNote(64);
         
         // Check that note has changed
-        expect(processor->isActive());
-        expectEquals(processor->getCurrentlyPlayingNote(), 64);
+        expect(generator->isActive());
+        expectEquals(generator->getCurrentlyPlayingNote(), 64);
         
         // Test 3: Stop note without tail
-        processor->stopNote(false);
+        generator->stopNote(false);
         
         // Check that note is no longer active
-        expect(!processor->isActive());
-        expectEquals(processor->getCurrentlyPlayingNote(), 0);
+        expect(!generator->isActive());
+        expectEquals(generator->getCurrentlyPlayingNote(), 0);
     }
     
     void testReleaseBehavior()
@@ -232,41 +208,41 @@ private:
         // Set release parameter to a known value
         auto releaseParam = static_cast<juce::AudioParameterFloat*>(apvts.getParameter(ParameterIds::release));
         if (releaseParam != nullptr)
-            releaseParam->setValueNotifyingHost(0.1f); // 短いリリースタイム（100ms）にして確実にテストが終わるようにする
+            releaseParam->setValueNotifyingHost(0.1f); // 短いリリースタイム（100ms）
         
-        // Create NoiseProcessor
-        std::unique_ptr<NoiseProcessor> processor = std::make_unique<NoiseProcessor>(apvts);
+        // Create NoiseGenerator
+        std::unique_ptr<NoiseGenerator> generator = std::make_unique<NoiseGenerator>(apvts);
         
-        // Prepare processor
-        const double sampleRate = 44100.0;
-        const int samplesPerBlock = 512;
-        processor->prepareToPlay(sampleRate, samplesPerBlock);
+        // Prepare generator
+        juce::dsp::ProcessSpec spec;
+        spec.sampleRate = 44100.0;
+        spec.maximumBlockSize = 512;
+        spec.numChannels = 1;
+        generator->prepare(spec);
         
         // Start a note
-        processor->startNote(60, 1.0f, 8192);
-        expect(processor->isActive());
+        generator->startNote(60, 1.0f, 8192);
+        expect(generator->isActive());
         
         // Stop note with tail off
-        processor->stopNote(true);
+        generator->stopNote(true);
         
         // Note should still be active during release phase
-        expect(processor->isActive());
+        expect(generator->isActive());
         
         // Process enough blocks to cover the release time
-        juce::AudioBuffer<float> buffer(1, samplesPerBlock);
-        juce::MidiBuffer midiBuffer;
+        juce::AudioBuffer<float> buffer(1, 512);
         
         // プロセスブロックを複数回実行して、リリース時間が経過したことをシミュレート
         for (int i = 0; i < 10; ++i) // 十分な回数（10回）プロセスを実行
         {
             buffer.clear();
-            processor->processBlock(buffer, midiBuffer);
+            generator->renderNextBlock(buffer, 0, buffer.getNumSamples());
         }
         
-        // このテストでは、リリース時間後にアクティブ状態が終了するかどうかを確認するのではなく
-        // リリース処理自体が正常に機能することを確認する
+        // このテストでは、リリース処理自体が正常に機能することを確認する
         expect(true);
     }
 };
 
-static NoiseProcessorTest noiseProcessorTest;
+static NoiseGeneratorTest noiseGeneratorTest;

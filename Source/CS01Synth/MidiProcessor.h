@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include <functional>
 #include "EGProcessor.h"
-#include "INoteHandler.h"
+#include "ISoundGenerator.h"
 
 class MidiProcessor : public juce::AudioProcessor
 {
@@ -31,7 +31,7 @@ public:
     void setStateInformation(const void*, int) override {}
 
     // Set note handler
-    void setNoteHandler(INoteHandler* handler) { noteHandler = handler; }
+    void setNoteHandler(ISoundGenerator* handler) { noteHandler = handler; }
     
     // Set EG processor
     void setEGProcessor(EGProcessor* processor) { egProcessor = processor; }
@@ -40,7 +40,7 @@ public:
     int getCurrentlyPlayingNote() const { return activeNotes.isEmpty() ? 0 : activeNotes.getLast(); }
     
     // Get note handler
-    INoteHandler* getNoteHandler() const { return noteHandler; }
+    ISoundGenerator* getNoteHandler() const { return noteHandler; }
     
     // Get array of active notes
     const juce::Array<int>& getActiveNotes() const { return activeNotes; }
@@ -54,7 +54,7 @@ private:
     void handleControllerMessage(const juce::MidiMessage& midiMessage);
 
     juce::AudioProcessorValueTreeState& apvts;
-    INoteHandler* noteHandler = nullptr;
+    ISoundGenerator* noteHandler = nullptr;
     EGProcessor* egProcessor = nullptr;
     
     // For monophonic sound management
