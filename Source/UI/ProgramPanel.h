@@ -2,13 +2,13 @@
 
 #include <JuceHeader.h>
 
-class PresetPanel : public juce::Component,
-                    private juce::ComboBox::Listener,
-                    private juce::Timer
+class ProgramPanel : public juce::Component,
+                     private juce::ComboBox::Listener,
+                     private juce::Timer
 {
 public:
-    PresetPanel(juce::AudioProcessor& p);
-    ~PresetPanel() override;
+    ProgramPanel(juce::AudioProcessor& p);
+    ~ProgramPanel() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -16,12 +16,12 @@ public:
 private:
     void timerCallback() override;
     void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
-    void populatePresetMenu();
-    void loadPreset(int presetIndex);
+    void populateProgramMenu();
+    void loadProgram(int programIndex);
 
     juce::AudioProcessor& audioProcessor;
 
-    juce::ComboBox presetMenu;
+    juce::ComboBox programMenu;
     juce::TextButton prevButton{ "<" };
     juce::TextButton nextButton{ ">" };
 };
