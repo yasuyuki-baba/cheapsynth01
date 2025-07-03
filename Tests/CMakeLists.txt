@@ -50,12 +50,14 @@ target_sources(CheapSynth01Tests
         unit/MidiProcessorTest.cpp
         unit/ModernVCFProcessorTest.cpp
         unit/NoiseGeneratorTest.cpp
+        unit/ProgramManagerTest.cpp
         integration/AudioGraphTest.cpp
 )
 
 # Include source files to be tested
 target_sources(CheapSynth01Tests
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/ProgramManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610LPF.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ToneGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01VCFProcessor.cpp
@@ -75,7 +77,7 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/LFOComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/ModulationComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/OscilloscopeComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/PresetPanel.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/ProgramPanel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/VCAComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/VCFComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/UI/VCOComponent.cpp

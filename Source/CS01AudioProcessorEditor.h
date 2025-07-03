@@ -10,7 +10,7 @@
 #include "UI/EGComponent.h"
 #include "UI/BreathControlComponent.h"
 #include "UI/VolumeComponent.h"
-#include "UI/PresetPanel.h"
+#include "UI/ProgramPanel.h"
 #include "UI/FilterTypeComponent.h"
 #include "UI/OscilloscopeComponent.h"
 
@@ -43,7 +43,7 @@ private:
     std::unique_ptr<EGComponent> egComponent;
     std::unique_ptr<BreathControlComponent> breathControlComponent;
     std::unique_ptr<VolumeComponent> volumeComponent;
-    std::unique_ptr<PresetPanel> presetPanel;
+    std::unique_ptr<ProgramPanel> programPanel;
     std::unique_ptr<FilterTypeComponent> filterTypeComponent;
     std::unique_ptr<CS01LookAndFeel> lookAndFeel;
     OscilloscopeComponent oscilloscopeComponent;
