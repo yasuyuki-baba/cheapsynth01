@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ProgramManager.h"
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
 #include "CS01Synth/EGProcessor.h"
@@ -8,13 +9,6 @@
 #include "CS01Synth/VCAProcessor.h"
 #include "CS01Synth/CS01VCFProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
-
-//==============================================================================
-struct Preset
-{
-    juce::String name;
-    juce::String filename;
-};
 
 class CS01AudioProcessor  : public juce::AudioProcessor,
                             public juce::AudioProcessorValueTreeState::Listener
@@ -53,6 +47,9 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    
+    // ProgramManager access
+    ProgramManager& getPresetManager() { return presetManager; }
 
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void processorLayoutsChanged() override;
@@ -65,8 +62,6 @@ public:
     juce::AudioProcessorValueTreeState apvts;
 
 private:
-    void initializePresets();
-    void loadPresetFromBinaryData(const juce::String& filename);
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateVCAOutputConnections();
     void handleGeneratorTypeChanged();
@@ -83,24 +78,9 @@ private:
     juce::AudioProcessorGraph::Node::Ptr vcaNode;
     juce::AudioProcessorGraph::Node::Ptr vcfNode;
     juce::AudioProcessorGraph::Node::Ptr modernVcfNode;
-    std::vector<Preset> factoryPresets;
-    int currentProgram = 0;
     
-    // List of parameters that retain their values during preset changes or state save/restore
-    const std::vector<juce::String> stateExcludedParameters = {
-        ParameterIds::breathInput,
-        ParameterIds::volume,
-        ParameterIds::modDepth,
-        ParameterIds::pitchBend
-    };
-    
-    // Helper method to check if a parameter is excluded from state changes
-    bool isStateExcludedParameter(const juce::String& paramId) const
-    {
-        return std::find(stateExcludedParameters.begin(), 
-                         stateExcludedParameters.end(), 
-                         paramId) != stateExcludedParameters.end();
-    }
+    // プリセット管理
+    ProgramManager presetManager;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CS01AudioProcessor)
 };

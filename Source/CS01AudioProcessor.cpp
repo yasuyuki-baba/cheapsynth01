@@ -3,14 +3,13 @@
 #include "Parameters.h"
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
-#include "BinaryData.h"
 
 //==============================================================================
 CS01AudioProcessor::CS01AudioProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts (*this, nullptr, "Parameters", createParameterLayout())
+      apvts (*this, nullptr, "Parameters", createParameterLayout()),
+      presetManager(apvts)
 {
-    initializePresets();
     apvts.addParameterListener(ParameterIds::lfoTarget, this);
     apvts.addParameterListener(ParameterIds::filterType, this);
     apvts.addParameterListener(ParameterIds::feet, this);
@@ -21,17 +20,6 @@ CS01AudioProcessor::~CS01AudioProcessor()
     apvts.removeParameterListener(ParameterIds::lfoTarget, this);
     apvts.removeParameterListener(ParameterIds::filterType, this);
     apvts.removeParameterListener(ParameterIds::feet, this);
-}
-
-void CS01AudioProcessor::initializePresets()
-{
-    factoryPresets.push_back({ "Default", "Default.xml" });
-    factoryPresets.push_back({ "Flute", "Flute.xml" });
-    factoryPresets.push_back({ "Violin", "Violin.xml" });
-    factoryPresets.push_back({ "Trumpet", "Trumpet.xml" });
-    factoryPresets.push_back({ "Clavinet", "Clavinet.xml" });
-    factoryPresets.push_back({ "Solo Synth Lead", "Solo_Synth_Lead.xml" });
-    factoryPresets.push_back({ "Synth Bass", "Synth_Bass.xml" });
 }
 
 //==============================================================================
@@ -161,28 +149,22 @@ void CS01AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
 //==============================================================================
 int CS01AudioProcessor::getNumPrograms() 
 { 
-    return static_cast<int>(factoryPresets.size());
+    return presetManager.getNumPrograms();
 }
 
 int CS01AudioProcessor::getCurrentProgram() 
 { 
-    return currentProgram;
+    return presetManager.getCurrentProgram();
 }
 
 void CS01AudioProcessor::setCurrentProgram (int index) 
 {
-    if (index >= 0 && index < factoryPresets.size())
-    {
-        currentProgram = index;
-        loadPresetFromBinaryData(factoryPresets[index].filename);
-    }
+    presetManager.setCurrentProgram(index);
 }
 
 const juce::String CS01AudioProcessor::getProgramName (int index) 
 { 
-    if (index >= 0 && index < factoryPresets.size())
-        return factoryPresets[index].name;
-    return {};
+    return presetManager.getProgramName(index);
 }
 
 void CS01AudioProcessor::changeProgramName (int index, const juce::String& newName) { }
@@ -190,120 +172,12 @@ void CS01AudioProcessor::changeProgramName (int index, const juce::String& newNa
 //==============================================================================
 void CS01AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // Get current state as XML
-    std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
-    
-    // Get parameter elements from XML
-    if (xml != nullptr)
-    {
-        // Add program number
-        xml->setAttribute("program", currentProgram);
-        
-        // Get parameter elements
-        if (auto* params = xml->getChildByName("PARAMETERS"))
-        {
-            // Remove excluded parameters
-            for (int i = params->getNumChildElements() - 1; i >= 0; --i)
-            {
-                auto* param = params->getChildElement(i);
-                if (param != nullptr)
-                {
-                    // Get parameter ID
-                    if (param->hasAttribute("id"))
-                    {
-                        juce::String id = param->getStringAttribute("id");
-                        
-                        // Remove parameters excluded from state
-                        if (isStateExcludedParameter(id))
-                        {
-                            params->removeChildElement(param, true);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Convert XML to binary
-        copyXmlToBinary(*xml, destData);
-    }
+    presetManager.getStateInformation(destData);
 }
 
 void CS01AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
-    if (xmlState.get() != nullptr)
-    {
-        if (xmlState->hasTagName (apvts.state.getType()))
-        {
-            // Save current values of parameters excluded from state
-            std::map<juce::String, float> persistentValues;
-            for (const auto& paramId : stateExcludedParameters)
-            {
-                if (auto* param = apvts.getParameter(paramId))
-                {
-                    persistentValues[paramId] = param->getValue();
-                }
-            }
-            
-            // Restore state
-            currentProgram = xmlState->getIntAttribute("program", 0);
-            apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
-            
-            // Restore values of parameters excluded from state
-            for (const auto& [paramId, value] : persistentValues)
-            {
-                if (auto* param = apvts.getParameter(paramId))
-                {
-                    param->setValueNotifyingHost(value);
-                }
-            }
-        }
-    }
-}
-
-void CS01AudioProcessor::loadPresetFromBinaryData(const juce::String& filename)
-{
-    // Generate resource name (replace dot in filename extension with underscore)
-    auto resourceName = filename.replace(".", "_");
-    
-    int dataSize = 0;
-    const char* data = BinaryData::getNamedResource(resourceName.toRawUTF8(), dataSize);
-
-    if (dataSize > 0)
-    {
-        std::unique_ptr<juce::XmlElement> xmlState(juce::XmlDocument::parse(data));
-        if (xmlState != nullptr)
-        {
-            
-            // Save current values of parameters excluded from state
-            std::map<juce::String, float> persistentValues;
-            for (const auto& paramId : stateExcludedParameters)
-            {
-                if (auto* param = apvts.getParameter(paramId))
-                {
-                    persistentValues[paramId] = param->getValue();
-                }
-            }
-                
-            // Replace ValueTree state
-            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
-            
-            // Restore values of parameters excluded from state
-            for (const auto& [paramId, value] : persistentValues)
-            {
-                if (auto* param = apvts.getParameter(paramId))
-                {
-                    param->setValueNotifyingHost(value);
-                }
-            }
-            
-            // Notify parameter changes
-            for (auto* param : getParameters())
-            {
-                param->sendValueChangedMessageToListeners(param->getValue());
-            }
-        }
-    }
+    presetManager.setStateInformation(data, sizeInBytes);
 }
 
 //==============================================================================
