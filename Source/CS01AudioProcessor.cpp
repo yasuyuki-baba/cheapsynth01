@@ -36,7 +36,7 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     audioOutputNode = audioGraph.addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
         juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
     midiProcessorNode = audioGraph.addNode(std::make_unique<MidiProcessor>(apvts));
-    vcoNode = audioGraph.addNode(std::make_unique<VCOProcessor>(apvts)); // デフォルトはToneGenerator
+    vcoNode = audioGraph.addNode(std::make_unique<VCOProcessor>(apvts)); // Default is ToneGenerator
     egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
     lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
     vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
