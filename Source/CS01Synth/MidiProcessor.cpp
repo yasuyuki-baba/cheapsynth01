@@ -59,21 +59,21 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage)
     int highestNote = activeNotes.getLast();
     float velocity = midiMessage.getVelocity() / 127.0f;
 
-    if (noteHandler != nullptr)
+    if (soundGenerator != nullptr)
     {
         if (wasEmpty)
         {
-            noteHandler->startNote(highestNote, velocity, lastPitchWheelValue);
+            soundGenerator->startNote(highestNote, velocity, lastPitchWheelValue);
             
             // Call EG note-on only for the first note
             if (egProcessor != nullptr)
             {
-                egProcessor->triggerNoteOn();
+                egProcessor->startEnvelope();
             }
         }
         else
         {
-            noteHandler->changeNote(highestNote);
+            soundGenerator->changeNote(highestNote);
         }
     }
 }
@@ -82,24 +82,24 @@ void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage)
 {
     activeNotes.removeFirstMatchingValue(midiMessage.getNoteNumber());
     
-    if (noteHandler != nullptr)
+    if (soundGenerator != nullptr)
     {
         if (activeNotes.isEmpty())
         {
             // Always set allowTailOff = true to make sound fade gradually
-            noteHandler->stopNote(true);
+            soundGenerator->stopNote(true);
             
             // Start EG release only when all notes are off
             if (egProcessor != nullptr)
             {
-                egProcessor->triggerNoteOff();
+                egProcessor->releaseEnvelope();
             }
         }
         else
         {
             activeNotes.sort();
             int highestNote = activeNotes.getLast();
-            noteHandler->changeNote(highestNote);
+            soundGenerator->changeNote(highestNote);
         }
     }
 }
@@ -108,10 +108,10 @@ void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage)
 {
     lastPitchWheelValue = midiMessage.getPitchWheelValue();
     
-    // Set pitch wheel value to note handler
-    if (noteHandler != nullptr)
+    // Set pitch wheel value to sound generator
+    if (soundGenerator != nullptr)
     {
-        noteHandler->pitchWheelMoved(lastPitchWheelValue);
+        soundGenerator->pitchWheelMoved(lastPitchWheelValue);
     }
     
     // Also set pitch bend value to parameter

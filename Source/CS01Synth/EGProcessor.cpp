@@ -43,7 +43,7 @@ void EGProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     buffer.clear();
 
     // Skip MIDI message processing (already processed in MidiProcessor)
-    // MIDI messages are processed by triggerNoteOn/triggerNoteOff methods
+    // MIDI messages are processed by startEnvelope/releaseEnvelope methods
 
     // Process only a single channel as output is mono
     auto* channelData = buffer.getWritePointer(0);

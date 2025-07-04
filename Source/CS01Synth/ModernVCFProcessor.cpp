@@ -30,9 +30,9 @@ void ModernVCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), static_cast<uint32>(numChannels)});
     }
     
-    // Initialize temporary buffers
-    tempBuffers.resize(numChannels);
-    for (auto& buffer : tempBuffers)
+    // Initialize processing buffers
+    processingBuffers.resize(numChannels);
+    for (auto& buffer : processingBuffers)
     {
         buffer.setSize(1, samplesPerBlock);
     }
@@ -78,14 +78,14 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
-    // Cutoff frequency mapping
-    float cutoff = mapCutoffFrequency(cutoffParam);
+    // Cutoff frequency calculation
+    float cutoff = calculateCutoffFrequency(cutoffParam);
     
     // Ensure minimum cutoff frequency
     cutoff = juce::jmax(20.0f, cutoff);
     
-    // Resonance mapping
-    float resonance = mapResonance(resonanceParam);
+    // Resonance calculation
+    float resonance = calculateResonance(resonanceParam);
 
     // Check sample count of LFO input buffer
     const int lfoSamples = lfoInput.getNumSamples();
@@ -99,14 +99,14 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         auto* channelData = buffer.getWritePointer(channel);
         const auto* audioData = audioInput.getReadPointer(channel);
         
-        // Ensure filter instance and temp buffer
+        // Ensure filter instance and processing buffer
         if (channel >= filters.size())
             filters.resize(channel + 1);
-        if (channel >= tempBuffers.size())
-            tempBuffers.resize(channel + 1, juce::AudioBuffer<float>(1, buffer.getNumSamples()));
+        if (channel >= processingBuffers.size())
+            processingBuffers.resize(channel + 1, juce::AudioBuffer<float>(1, buffer.getNumSamples()));
             
-        // Use pre-allocated temporary buffer
-        auto& tempBuffer = tempBuffers[channel];
+        // Use pre-allocated processing buffer
+        auto& tempBuffer = processingBuffers[channel];
         // Adjust buffer size if necessary
         if (tempBuffer.getNumSamples() < buffer.getNumSamples())
             tempBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
