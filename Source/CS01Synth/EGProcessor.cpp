@@ -39,16 +39,16 @@ void EGProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     juce::ScopedNoDenormals noDenormals;
     updateADSR();
 
-    // This processor does not need to process audio, just generate envelope.
+    // CS01 is a mono synth, so only generate mono output
     buffer.clear();
 
     // Skip MIDI message processing (already processed in MidiProcessor)
     // MIDI messages are processed by startEnvelope/releaseEnvelope methods
 
-    // Process only a single channel as output is mono
+    // Process mono output (channel 0) only
     auto* channelData = buffer.getWritePointer(0);
     
-    // Static variables for envelope shaping
+    // Static variable for envelope shaping
     static float prevSample = 0.0f;
     
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)

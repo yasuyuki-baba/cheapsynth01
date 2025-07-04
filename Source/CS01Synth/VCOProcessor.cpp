@@ -122,11 +122,12 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         return;
     }
 
-    // Process audio block
+    // Process audio block - CS01 is a mono synth, so processing is simplified
 
     // Process LFO input for Tone generator
     if (currentGenerator == toneGenerator.get())
     {
+        // LFO input is always mono (channel 0)
         auto lfoInput = getBusBuffer(buffer, true, 0);
         lfoValue = lfoInput.getNumSamples() > 0 ? lfoInput.getSample(0, 0) : 0.0f;
 
@@ -134,17 +135,17 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         const float lfoModRangeSemitones = 1.0f;
         float finalLfoValue = lfoValue * modDepth * lfoModRangeSemitones;
 
-        // Set LFO value directly to the ToneGenerator
+        // Set LFO value directly to the tone generator
         toneGenerator->setLfoValue(finalLfoValue);
     }
 
-    // Clear audio buffer
+    // Clear the buffer
     buffer.clear();
 
     // Sound generation using the current generator
     if (currentGenerator->isActive())
     {
-            
+        // Process mono output
         currentGenerator->renderNextBlock(buffer, 0, buffer.getNumSamples());
     }
     // If not active, buffer remains cleared
