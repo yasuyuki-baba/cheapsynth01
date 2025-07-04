@@ -40,7 +40,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(1); // Group ID for waveform
             button->setClickingTogglesState(true);
-            button->onClick = [this, choiceParam, i] { *choiceParam = i; };
+            button->onClick = [choiceParam, i] { *choiceParam = i; };
         }
     }
     waveTypeParam->addListener(this);
@@ -61,7 +61,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(2); // Group ID for feet
             button->setClickingTogglesState(true);
-            button->onClick = [this, choiceParam, i] { *choiceParam = i; };
+            button->onClick = [choiceParam, i] { *choiceParam = i; };
         }
     }
     feetParam->addListener(this);

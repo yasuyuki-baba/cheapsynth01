@@ -224,13 +224,11 @@ private:
         if (numPrograms <= 1)
             return;
         
-        // Get initial program and save parameter values
+        // Get initial program
         int initialProgram = processor->getCurrentProgram();
-        auto& apvts = processor->getValueTreeState();
         
-        // Store initial parameter values for later comparison
-        float initialWaveType = apvts.getParameter(ParameterIds::waveType)->getValue();
-        float initialCutoff = apvts.getParameter(ParameterIds::cutoff)->getValue();
+        // Future implementation note:
+        // Will add parameter comparison for future test enhancement
         
         // Process some audio with initial program
         juce::AudioBuffer<float> initialBuffer(2, 512);

@@ -10,8 +10,8 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     : AudioProcessorEditor(&p), 
       audioProcessor(p),
       midiKeyboard(p.getKeyboardState(), juce::MidiKeyboardComponent::Orientation::horizontalKeyboard),
-      audioVisualiser(p.getTotalNumOutputChannels()),
-      oscilloscopeComponent(p.getTotalNumOutputChannels())
+      oscilloscopeComponent(p.getTotalNumOutputChannels()),
+      audioVisualiser(p.getTotalNumOutputChannels())
 {
     lookAndFeel = std::make_unique<CS01LookAndFeel>();
     setLookAndFeel(lookAndFeel.get());
