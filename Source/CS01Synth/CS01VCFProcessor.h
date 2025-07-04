@@ -47,7 +47,7 @@ private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
     IG02610LPF filter; // Using IG02610LPF instead of StateVariableTPTFilter
-    juce::HeapBlock<float> modulationBuffer; // バッファを事前に確保して再利用
+    juce::HeapBlock<float> modulationBuffer; //  Buffer preallocated for reuse
     
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam)
