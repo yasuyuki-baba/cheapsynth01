@@ -416,9 +416,6 @@ private:
             VCOProcessor processor(apvts);
             
             // 3. Collect processor details
-            // 以下の変数はデバッグ用に取得（実際には使用していない）
-            // int numInputBuses = processor.getBusCount(true);
-            // int numOutputBuses = processor.getBusCount(false);
             int numInputChannels = processor.getTotalNumInputChannels();
             int numOutputChannels = processor.getTotalNumOutputChannels();
             
@@ -440,8 +437,6 @@ private:
             expect(layoutSetSuccess);
             
             // Retrieve bus information again
-            // int numInputBuses = processor.getBusCount(true); // 未使用なのでコメントアウト
-            // int numOutputBuses = processor.getBusCount(false); // 未使用なのでコメントアウト
             numInputChannels = processor.getTotalNumInputChannels();
             numOutputChannels = processor.getTotalNumOutputChannels();
             
@@ -515,7 +510,6 @@ private:
             float maxValue = 0.0f;
             float minValue = 0.0f;
             float rms = 0.0f;
-            // int zeroCrossings = 0; // 未使用なのでコメントアウト
             
             // Safe buffer reading
             try {
@@ -537,10 +531,10 @@ private:
                             // RMS calculation
                             rms += sample * sample;
                             
-                            // Zero crossing measurement (現在は未使用)
+                            // Zero crossing measurement (currently unused)
                             bool isPositive = sample >= 0.0f;
                             if (isPositive != wasPositive) {
-                                // zeroCrossings++;  // 変数定義をコメントアウトしたので、ここもコメントアウト
+                                // Zero crossing detected - but counter variable is removed
                                 wasPositive = isPositive;
                             }
                         }
