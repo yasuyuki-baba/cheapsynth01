@@ -51,7 +51,7 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // CS01は完全にモノラルなので、チャンネル0のみで処理
+    // CS01 is completely mono, so only process channel 0
     auto audioInput = getBusBuffer(buffer, true, 0);
     auto egInput = getBusBuffer(buffer, true, 1);
     auto lfoInput = getBusBuffer(buffer, true, 2);
@@ -73,61 +73,61 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // Resonance calculation
     float resonance = calculateResonance(resonanceParam);
 
-    // モノラル処理のためのポインタ取得
+    // Get pointers for mono processing
     const auto* egData = egInput.getReadPointer(0);
     const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
     const auto* audioData = audioInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
     
-    // モジュレーションバッファのリサイズ
+    // Resize modulation buffer
     if (buffer.getNumSamples() > 0) {
         modulationBuffer.realloc(buffer.getNumSamples());
         modulationBuffer.clear(buffer.getNumSamples());
     }
     
-    // サンプル毎にカットオフ周波数の計算
+    // Calculate cutoff frequency for each sample
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
         float egValue = egData[sample];
         float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
 
-        // 変調効果の計算定数
+        // Modulation effect calculation constants
         const float egModRangeSemitones = 36.0f; // 3 octaves
         const float lfoModRangeSemitones = 24.0f; // 2 octaves
         const float breathModRangeSemitones = 24.0f; // 2 octaves
 
-        // ベースカットオフ周波数
+        // Base cutoff frequency
         float baseCutoff = cutoff;
         
-        // EG変調
+        // EG modulation
         float egMod = egValue * egDepth * egModRangeSemitones;
         float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
         
-        // LFO変調
+        // LFO modulation
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
         float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
         
-        // ブレス変調
+        // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
         float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
         
-        // すべての変調を適用
+        // Apply all modulations
         float modulatedCutoffHz = baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
         
-        // NaNや無限大のチェック
+        // Check for NaN or Infinity
         if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
             modulatedCutoffHz = baseCutoff;
         }
         
         modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
         
-        // このサンプルの変調されたカットオフを保存
+        // Store modulated cutoff for this sample
         modulationBuffer[sample] = modulatedCutoffHz;
     }
     
-    // オーディオ入力を出力バッファにコピー
+    // Copy audio input to output buffer
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     
-    // フィルタを使用して処理
+    // Process using filter
     filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
 }

@@ -122,12 +122,12 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         return;
     }
 
-    // Process audio block - CS01はモノラルのため、単純に処理する
+    // Process audio block - CS01 is a mono synth, so processing is simplified
 
-    // トーン生成器の場合はLFO入力を処理
+    // Process LFO input for Tone generator
     if (currentGenerator == toneGenerator.get())
     {
-        // LFO入力は常にモノラル（チャンネル0）
+        // LFO input is always mono (channel 0)
         auto lfoInput = getBusBuffer(buffer, true, 0);
         lfoValue = lfoInput.getNumSamples() > 0 ? lfoInput.getSample(0, 0) : 0.0f;
 
@@ -135,20 +135,20 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         const float lfoModRangeSemitones = 1.0f;
         float finalLfoValue = lfoValue * modDepth * lfoModRangeSemitones;
 
-        // LFO値をトーン生成器に直接設定
+        // Set LFO value directly to the tone generator
         toneGenerator->setLfoValue(finalLfoValue);
     }
 
-    // バッファをクリア
+    // Clear the buffer
     buffer.clear();
 
-    // 現在の生成器を使用してサウンド生成
+    // Sound generation using the current generator
     if (currentGenerator->isActive())
     {
-        // モノラル出力で処理
+        // Process mono output
         currentGenerator->renderNextBlock(buffer, 0, buffer.getNumSamples());
     }
-    // アクティブでない場合、バッファはクリアされたまま
+    // If not active, buffer remains cleared
 
-    // MIDIバッファはそのまま通過（処理はMidiProcessorで行われる）
+    // Pass MIDI buffer through (processing is done in MidiProcessor)
 }
