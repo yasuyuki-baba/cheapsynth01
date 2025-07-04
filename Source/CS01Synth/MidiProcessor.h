@@ -30,8 +30,8 @@ public:
     void getStateInformation(juce::MemoryBlock&) override {}
     void setStateInformation(const void*, int) override {}
 
-    // Set note handler
-    void setNoteHandler(ISoundGenerator* handler) { noteHandler = handler; }
+    // Set sound generator
+    void setSoundGenerator(ISoundGenerator* generator) { soundGenerator = generator; }
     
     // Set EG processor
     void setEGProcessor(EGProcessor* processor) { egProcessor = processor; }
@@ -39,8 +39,8 @@ public:
     // Get currently playing note
     int getCurrentlyPlayingNote() const { return activeNotes.isEmpty() ? 0 : activeNotes.getLast(); }
     
-    // Get note handler
-    ISoundGenerator* getNoteHandler() const { return noteHandler; }
+    // Get sound generator
+    ISoundGenerator* getSoundGenerator() const { return soundGenerator; }
     
     // Get array of active notes
     const juce::Array<int>& getActiveNotes() const { return activeNotes; }
@@ -54,7 +54,7 @@ private:
     void handleControllerMessage(const juce::MidiMessage& midiMessage);
 
     juce::AudioProcessorValueTreeState& apvts;
-    ISoundGenerator* noteHandler = nullptr;
+    ISoundGenerator* soundGenerator = nullptr;
     EGProcessor* egProcessor = nullptr;
     
     // For monophonic sound management

@@ -43,23 +43,20 @@ public:
     // AudioProcessorValueTreeState::Listener implementation
     void parameterChanged(const juce::String& parameterID, float newValue) override;
 
-    // Accessor for active ISoundGenerator
-    ISoundGenerator* getActiveGenerator() { return activeGenerator; }
-    
-    // Accessor for note handler interface
-    ISoundGenerator* getNoteHandler() { return activeGenerator; }
+    // Accessor for sound generator interface
+    ISoundGenerator* getSoundGenerator() { return currentGenerator; }
     
     // Method to notify when generator type changes (for external use)
     std::function<void()> onGeneratorTypeChanged;
     
     // Check if noise generator is active
-    bool isNoiseMode() const { return activeGenerator == noiseGenerator.get(); }
+    bool isNoiseMode() const { return currentGenerator == noiseGenerator.get(); }
 
 private:
     juce::AudioProcessorValueTreeState& apvts;
     std::unique_ptr<ToneGenerator> toneGenerator;
     std::unique_ptr<NoiseGenerator> noiseGenerator;
-    ISoundGenerator* activeGenerator; // Pointer to the currently active generator
+    ISoundGenerator* currentGenerator; // Pointer to the currently selected generator
     juce::dsp::ProcessSpec lastSpec;
     bool isPrepared = false;
     float lfoValue = 0.0f;
