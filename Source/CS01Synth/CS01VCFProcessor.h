@@ -47,10 +47,10 @@ private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
     IG02610LPF filter; // Using IG02610LPF instead of StateVariableTPTFilter
-    juce::HeapBlock<float> cutoffModulationBuffer; // Buffer preallocated for reuse
+    juce::HeapBlock<float> modulationBuffer; //  Buffer preallocated for reuse
     
-    // Cutoff frequency mapping function
-    float mapCutoffFrequency(float cutoffParam)
+    // Cutoff frequency calculation function
+    float calculateCutoffFrequency(float cutoffParam)
     {
         // Range covering the entire audible spectrum
         const float minFreq = 20.0f;  // Minimum cutoff frequency
@@ -62,8 +62,8 @@ private:
         return cutoffFreq;
     }
     
-    // Resonance mapping function
-    float mapResonance(bool isHighResonance)
+    // Resonance calculation function
+    float calculateResonance(bool isHighResonance)
     {
         // Simple resonance value based on switch state
         if (isHighResonance)

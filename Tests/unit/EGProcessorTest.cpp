@@ -206,7 +206,7 @@ private:
             apvts.getParameter(ParameterIds::release)->convertTo0to1(0.2f)); // 200ms release
         
         // Trigger note on
-        processor->triggerNoteOn();
+        processor->startEnvelope();
         
         // Process block (should generate attack phase)
         buffer.clear();
@@ -234,7 +234,7 @@ private:
         expect(processor->isActive());
         
         // Trigger note off
-        processor->triggerNoteOff();
+        processor->releaseEnvelope();
         
         // Process block (should generate release phase)
         buffer.clear();
@@ -275,13 +275,13 @@ private:
         expect(!processor->isActive());
         
         // Trigger note on
-        processor->triggerNoteOn();
+        processor->startEnvelope();
         
         // Check that envelope is active
         expect(processor->isActive());
         
         // Trigger note off
-        processor->triggerNoteOff();
+        processor->releaseEnvelope();
         
         // Note: We can't check that envelope is inactive immediately after noteOff
         // because the release phase takes time. In a real test, we would process
