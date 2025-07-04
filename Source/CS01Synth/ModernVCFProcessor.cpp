@@ -18,33 +18,19 @@ ModernVCFProcessor::~ModernVCFProcessor()
 //==============================================================================
 void ModernVCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Prepare filters according to channel count
-    const int numChannels = getMainBusNumOutputChannels();
-    filters.resize(numChannels);
+    // Initialize filter for mono processing
+    filter.reset();
+    filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
+    filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1}); // Always 1 channel (mono)
     
-    // Initialize each filter
-    for (auto& filter : filters)
-    {
-        filter.reset();
-        filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
-        filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), static_cast<uint32>(numChannels)});
-    }
-    
-    // Initialize temporary buffers
-    tempBuffers.resize(numChannels);
-    for (auto& buffer : tempBuffers)
-    {
-        buffer.setSize(1, samplesPerBlock);
-    }
+    // Initialize temporary buffer
+    tempBuffer.setSize(1, samplesPerBlock);
 }
 
 void ModernVCFProcessor::releaseResources()
 {
-    // Reset each filter
-    for (auto& filter : filters)
-    {
-        filter.reset();
-    }
+    // Reset filter
+    filter.reset();
 }
 
 bool ModernVCFProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -87,86 +73,71 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     // Resonance mapping
     float resonance = mapResonance(resonanceParam);
 
-    // Check sample count of LFO input buffer
-    const int lfoSamples = lfoInput.getNumSamples();
-
+    // Get input and output data pointers (using mono channels)
+    const auto* audioData = audioInput.getReadPointer(0);
     const auto* egData = egInput.getReadPointer(0);
-    const auto* lfoData = lfoSamples > 0 ? lfoInput.getReadPointer(0) : nullptr;
-
-    // Process each channel
-    for (int channel = 0; channel < audioInput.getNumChannels(); ++channel)
+    const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
+    auto* channelData = buffer.getWritePointer(0);
+    
+    // Prepare temporary buffer
+    if (tempBuffer.getNumSamples() < buffer.getNumSamples())
+        tempBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
+        
+    tempBuffer.clear();
+    tempBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
+    float* samples = tempBuffer.getWritePointer(0);
+    
+    // Process each sample
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        const auto* audioData = audioInput.getReadPointer(channel);
+        float egValue = egData[sample];
+        // Use LFO data only if available
+        float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
         
-        // Ensure filter instance and temp buffer
-        if (channel >= filters.size())
-            filters.resize(channel + 1);
-        if (channel >= tempBuffers.size())
-            tempBuffers.resize(channel + 1, juce::AudioBuffer<float>(1, buffer.getNumSamples()));
-            
-        // Use pre-allocated temporary buffer
-        auto& tempBuffer = tempBuffers[channel];
-        // Adjust buffer size if necessary
-        if (tempBuffer.getNumSamples() < buffer.getNumSamples())
-            tempBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
-            
-        tempBuffer.clear();
-        tempBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
-        float* samples = tempBuffer.getWritePointer(0);
+        // Limit LFO value to range [-1.0, 1.0]
+        lfoValue = juce::jlimit(-1.0f, 1.0f, lfoValue);
+
+        // Calculate modulation effects
+        const float egModRangeSemitones = 36.0f; // 3 octaves
+        const float lfoModRangeSemitones = 24.0f; // 2 octaves
+        const float breathModRangeSemitones = 24.0f; // 2 octaves
+
+        // Base cutoff frequency
+        float baseCutoff = cutoff;
         
-        // Process each sample
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        {
-            float egValue = egData[sample];
-            // Use LFO data only if available
-            float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
-            
-            // Limit LFO value to range [-1.0, 1.0]
-            lfoValue = juce::jlimit(-1.0f, 1.0f, lfoValue);
-
-            // Calculate modulation effects
-            const float egModRangeSemitones = 36.0f; // 3 octaves
-            const float lfoModRangeSemitones = 24.0f; // 2 octaves
-            const float breathModRangeSemitones = 24.0f; // 2 octaves
-
-            // Base cutoff frequency
-            float baseCutoff = cutoff;
-            
-            // EG modulation
-            float egMod = egValue * egDepth * egModRangeSemitones;
-            float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
-            
-            // LFO modulation - using multiplicative method (same as CS01VCFProcessor)
-            float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-            float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
-            
-            // Breath modulation - using multiplicative method
-            float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-            float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
-            
-            // Apply all modulations - unified multiplicative method
-            float modulatedCutoffHz = baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
-            
-            // Check for NaN or Infinity
-            if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
-                modulatedCutoffHz = baseCutoff; // Use base value if there's a problem
-            }
-            
-            modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
-            
-            // Update filter parameters
-            filters[channel].setCutoffFrequency(modulatedCutoffHz);
-            filters[channel].setResonance(resonance);
-            
-            // Process sample
-            samples[sample] = filters[channel].processSample(0, samples[sample]);
+        // EG modulation
+        float egMod = egValue * egDepth * egModRangeSemitones;
+        float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
+        
+        // LFO modulation - using multiplicative method
+        float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
+        float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
+        
+        // Breath modulation - using multiplicative method
+        float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
+        float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
+        
+        // Apply all modulations - unified multiplicative method
+        float modulatedCutoffHz = baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
+        
+        // Check for NaN or Infinity
+        if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
+            modulatedCutoffHz = baseCutoff; // Use base value if there's a problem
         }
         
-        // Copy processed samples back to output
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        {
-            channelData[sample] = samples[sample];
-        }
+        modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
+        
+        // Update filter parameters
+        filter.setCutoffFrequency(modulatedCutoffHz);
+        filter.setResonance(resonance);
+        
+        // Process sample
+        samples[sample] = filter.processSample(0, samples[sample]);
+    }
+    
+    // Copy processed samples back to output
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    {
+        channelData[sample] = samples[sample];
     }
 }

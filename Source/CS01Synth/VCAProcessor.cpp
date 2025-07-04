@@ -63,51 +63,53 @@ void VCAProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // Get the audio and EG input buffers
+    // CS01はモノラルシンセサイザーなので、モノラルバッファ（チャンネル0）のみを処理
     auto audioInput = getBusBuffer(buffer, true, 0);
     auto egInput = getBusBuffer(buffer, true, 1);
 
-    // Get parameters
+    // パラメータの取得
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load();
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
     auto volume = apvts.getRawParameterValue(ParameterIds::volume)->load();
 
+    // モノラルバッファのデータポインタを取得
     const auto* audioData = audioInput.getReadPointer(0);
     const auto* egData = egInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
 
+    // サンプルごとに処理
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        // TP3: Get input sample
+        // TP3: 入力サンプルを取得
         float inputSample = audioData[sample];
         
-        // Apply input stage high-pass filter (82K resistor and 1/50 capacitor)
+        // 入力段のハイパスフィルタ適用（82Kレジスタと1/50コンデンサ）
         inputSample = inputHighPass.processSample(inputSample);
         
-        // Apply DC blocking (additional safety)
+        // DCブロッキング適用（追加の安全策）
         inputSample = dcBlocker.processSample(inputSample);
         
-        // Get EG value
+        // EG値を取得
         float egValue = egData[sample];
         
-        // Calculate control voltage for VCA
+        // VCA用の制御電圧を計算
         float controlVoltage = (1.0f - egDepth) + (egValue * egDepth);
         controlVoltage *= (1.0f - breathVcaDepth) + (breathInput * breathVcaDepth);
         
-        // Process through IG02600 VCA chip emulation
+        // IG02600 VCAチップエミュレーションで処理
         float outputSample = processVCA(inputSample, controlVoltage, volume);
         
-        // Process through Tr7 transistor buffer emulation
+        // Tr7トランジスタバッファエミュレーションで処理
         outputSample = processTr7Buffer(outputSample);
         
-        // Process through output coupling capacitor (4.7/25)
+        // 出力カップリングコンデンサ（4.7/25）で処理
         outputSample = processOutputCoupling(outputSample);
         
-        // Apply high frequency rolloff (additional filtering for realism)
+        // 高周波ロールオフを適用（リアリズム向上のための追加フィルタリング）
         outputSample = highFreqRolloff.processSample(outputSample);
         
-        // TP5: Final output
+        // TP5: 最終出力
         outputData[sample] = outputSample;
     }
 }
