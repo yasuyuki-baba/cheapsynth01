@@ -24,7 +24,7 @@ void ModernVCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1}); // Always 1 channel (mono)
     
     // Initialize temporary buffer
-    tempBuffer.setSize(1, samplesPerBlock);
+    processingBuffer.setSize(1, samplesPerBlock);
 }
 
 void ModernVCFProcessor::releaseResources()
@@ -64,14 +64,14 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
-    // Cutoff frequency mapping
-    float cutoff = mapCutoffFrequency(cutoffParam);
+    // Cutoff frequency calculation
+    float cutoff = calculateCutoffFrequency(cutoffParam);
     
     // Ensure minimum cutoff frequency
     cutoff = juce::jmax(20.0f, cutoff);
     
-    // Resonance mapping
-    float resonance = mapResonance(resonanceParam);
+    // Resonance calculation
+    float resonance = calculateResonance(resonanceParam);
 
     // Get input and output data pointers (using mono channels)
     const auto* audioData = audioInput.getReadPointer(0);
@@ -80,12 +80,12 @@ void ModernVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     auto* channelData = buffer.getWritePointer(0);
     
     // Prepare temporary buffer
-    if (tempBuffer.getNumSamples() < buffer.getNumSamples())
-        tempBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
+    if (processingBuffer.getNumSamples() < buffer.getNumSamples())
+        processingBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
         
-    tempBuffer.clear();
-    tempBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
-    float* samples = tempBuffer.getWritePointer(0);
+    processingBuffer.clear();
+    processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
+    float* samples = processingBuffer.getWritePointer(0);
     
     // Process each sample
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
