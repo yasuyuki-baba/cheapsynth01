@@ -71,7 +71,6 @@ private:
     // Cached Parameters
     float currentModDepth = 0.0f;
     Waveform currentWaveform = Waveform::Sawtooth;
-    LfoTarget currentLfoTarget = LfoTarget::Vco;
     Feet currentFeet = Feet::Feet8;
 
     // LFOs
