@@ -8,7 +8,7 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
       apvts(vts),
       toneGenerator(std::make_unique<ToneGenerator>(apvts)),
       noiseGenerator(std::make_unique<NoiseGenerator>(apvts)),
-      activeGenerator(nullptr) // Will be set in parameterChanged
+      currentGenerator(nullptr) // Will be set in parameterChanged
 {
     // Register as listener for feet parameter
     apvts.addParameterListener(ParameterIds::feet, this);
@@ -17,7 +17,7 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
     auto* feetParam = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet));
     if (feetParam != nullptr)
     {
-        // Trigger the parameter changed handler to setup the active generator
+        // Trigger the parameter changed handler to setup the current generator
         float paramValue = feetParam->getIndex(); // Get current index as float
         parameterChanged(ParameterIds::feet, paramValue);
     }
@@ -25,9 +25,9 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
     {
         // Fallback to constructor parameter if parameter not found
         if (isNoiseMode)
-            activeGenerator = static_cast<ISoundGenerator*>(noiseGenerator.get());
+            currentGenerator = static_cast<ISoundGenerator*>(noiseGenerator.get());
         else
-            activeGenerator = static_cast<ISoundGenerator*>(toneGenerator.get());
+            currentGenerator = static_cast<ISoundGenerator*>(toneGenerator.get());
     }
 }
 
@@ -45,7 +45,7 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
         if (feetParam != nullptr)
         {
             bool isNoiseMode = (feetParam->getIndex() == static_cast<int>(Feet::WhiteNoise));
-            ISoundGenerator* oldGenerator = activeGenerator;
+            ISoundGenerator* oldGenerator = currentGenerator;
             ISoundGenerator* newGenerator = nullptr;
             
             if (isNoiseMode)
@@ -69,15 +69,15 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
             }
             
             // Switch generator
-            activeGenerator = newGenerator;
+            currentGenerator = newGenerator;
             
             // Initialize if already prepared
-            if (isPrepared && activeGenerator)
-                activeGenerator->prepare(lastSpec);
+            if (isPrepared && currentGenerator)
+                currentGenerator->prepare(lastSpec);
             
             // Transfer state to new generator if needed
-            if (wasActive && activeGenerator != nullptr)
-                activeGenerator->startNote(currentNote, velocity, pitchWheel);
+            if (wasActive && currentGenerator != nullptr)
+                currentGenerator->startNote(currentNote, velocity, pitchWheel);
             
             if (onGeneratorTypeChanged)
                 onGeneratorTypeChanged();
@@ -117,7 +117,7 @@ bool VCOProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 
 void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
-    if (!activeGenerator)
+    if (!currentGenerator)
     {
         return;
     }
@@ -125,7 +125,7 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     // Process audio block - CS01はモノラルのため、単純に処理する
 
     // トーン生成器の場合はLFO入力を処理
-    if (activeGenerator == toneGenerator.get())
+    if (currentGenerator == toneGenerator.get())
     {
         // LFO入力は常にモノラル（チャンネル0）
         auto lfoInput = getBusBuffer(buffer, true, 0);
@@ -142,11 +142,11 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     // バッファをクリア
     buffer.clear();
 
-    // アクティブな生成器を使用してサウンド生成
-    if (activeGenerator->isActive())
+    // 現在の生成器を使用してサウンド生成
+    if (currentGenerator->isActive())
     {
         // モノラル出力で処理
-        activeGenerator->renderNextBlock(buffer, 0, buffer.getNumSamples());
+        currentGenerator->renderNextBlock(buffer, 0, buffer.getNumSamples());
     }
     // アクティブでない場合、バッファはクリアされたまま
 

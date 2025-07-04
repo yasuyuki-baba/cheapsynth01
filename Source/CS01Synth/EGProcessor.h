@@ -22,8 +22,8 @@ public:
     bool isActive() const { return adsr.isActive(); }
     
     // Methods to control ADSR from outside
-    void triggerNoteOn() { adsr.noteOn(); }
-    void triggerNoteOff() { adsr.noteOff(); }
+    void startEnvelope() { adsr.noteOn(); }
+    void releaseEnvelope() { adsr.noteOff(); }
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override { return nullptr; }

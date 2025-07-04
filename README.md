@@ -19,13 +19,16 @@ CheapSynth01 uses JUCE's AudioProcessorGraph to implement a modular synthesis ar
 ```mermaid
 graph TD
     MIDI[MIDI Input] --> MidiProc[MIDI Processor]
-    MidiProc --> |ISoundGenerator| VCO[VCO Processor]
+    MidiProc --> |Uses| VCO[VCO Processor]
     MidiProc --> |Triggers| EG[Envelope Generator]
     
     subgraph "VCO Processor"
         VCO --> |manages| GenSwitch{Generator Type}
         GenSwitch --> |Tone| ToneGen[Tone Generator]
         GenSwitch --> |Noise| NoiseGen[Noise Generator]
+        ToneGen --> |implements| ISG[ISoundGenerator]
+        NoiseGen --> |implements| ISG
+        ISG --> |provided to| MidiProc
     end
     
     VCO --> |Audio| FilterSwitch{Filter Type}

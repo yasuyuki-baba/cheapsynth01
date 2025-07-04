@@ -47,10 +47,10 @@ private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
     juce::dsp::StateVariableTPTFilter<float> filter; // Single filter for mono processing
-    juce::AudioBuffer<float> tempBuffer; // Reusable temporary buffer for audio processing
+    juce::AudioBuffer<float> processingBuffer; // Reusable temporary buffer for audio processing
     
-    // Cutoff frequency mapping function
-    float mapCutoffFrequency(float cutoffParam)
+    // Cutoff frequency calculation function
+    float calculateCutoffFrequency(float cutoffParam)
     {
         // Range covering the entire audible spectrum
         const float minFreq = 20.0f;  // Minimum cutoff frequency
@@ -62,8 +62,8 @@ private:
         return cutoffFreq;
     }
     
-    // Resonance mapping function
-    float mapResonance(bool isHighResonance)
+    // Resonance calculation function
+    float calculateResonance(bool isHighResonance)
     {
         // Simple resonance value based on switch state
         if (isHighResonance)

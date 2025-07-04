@@ -43,7 +43,7 @@ void EGProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     buffer.clear();
 
     // MIDIメッセージ処理はスキップ (MidiProcessorですでに処理済み)
-    // MIDIメッセージはtriggerNoteOn/triggerNoteOffメソッドで処理される
+    // MIDIメッセージはstartEnvelope/releaseEnvelopeメソッドで処理される
 
     // モノラル出力（チャンネル0）のみを処理
     auto* channelData = buffer.getWritePointer(0);

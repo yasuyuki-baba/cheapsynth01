@@ -87,19 +87,19 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     audioGraph.addConnection({{midiInputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex},
                               {midiProcessorNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex}});
                               
-    // Set references to NoteHandler and EGProcessor in MidiProcessor
+    // Set references to SoundGenerator and EGProcessor in MidiProcessor
     auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
-    auto* synthProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
+    auto* vcoProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
     auto* egProcessor = static_cast<EGProcessor*>(egNode->getProcessor());
     
-    if (midiProcessor != nullptr && synthProcessor != nullptr && egProcessor != nullptr)
+    if (midiProcessor != nullptr && vcoProcessor != nullptr && egProcessor != nullptr)
     {
-        // Set the note handler
-        midiProcessor->setNoteHandler(synthProcessor->getNoteHandler());
+        // Set the sound generator
+        midiProcessor->setSoundGenerator(vcoProcessor->getSoundGenerator());
         midiProcessor->setEGProcessor(egProcessor);
         
         // Set up VCO generator type change callback
-        synthProcessor->onGeneratorTypeChanged = [this]() {
+        vcoProcessor->onGeneratorTypeChanged = [this]() {
             handleGeneratorTypeChanged();
         };
     }
@@ -314,13 +314,13 @@ void CS01AudioProcessor::handleGeneratorTypeChanged()
         return;
     }
 
-    // Update the MidiProcessor's note handler reference
+    // Update the MidiProcessor's sound generator reference
     auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
     auto* vcoProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
     
     if (midiProcessor != nullptr && vcoProcessor != nullptr)
     {
-        midiProcessor->setNoteHandler(vcoProcessor->getNoteHandler());
+        midiProcessor->setSoundGenerator(vcoProcessor->getSoundGenerator());
     }
 }
 
@@ -349,7 +349,7 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         // Reconnect based on the new value
         if (static_cast<int>(newValue) == 0) // Target: VCO
         {
-            // Connect LFO to SynthProcessor's LFO input (bus 0)
+            // Connect LFO to VCOProcessor's LFO input (bus 0)
             audioGraph.addConnection({ {lfoNode->nodeID, 0}, {vcoNode->nodeID, 0} });
         }
         else // Target: VCF

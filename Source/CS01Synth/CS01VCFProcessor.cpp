@@ -23,7 +23,7 @@ void CS01VCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     filter.prepare(sampleRate);
     
     // Pre-allocate buffer for modulation values
-    cutoffModulationBuffer.allocate(samplesPerBlock, true);
+    modulationBuffer.allocate(samplesPerBlock, true);
 }
 
 void CS01VCFProcessor::releaseResources()
@@ -64,14 +64,14 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
-    // Cutoff frequency mapping
-    float cutoff = mapCutoffFrequency(cutoffParam);
+    // Cutoff frequency calculation
+    float cutoff = calculateCutoffFrequency(cutoffParam);
     
     // Ensure minimum cutoff frequency
     cutoff = juce::jmax(20.0f, cutoff);
     
-    // Resonance mapping
-    float resonance = mapResonance(resonanceParam);
+    // Resonance calculation
+    float resonance = calculateResonance(resonanceParam);
 
     // モノラル処理のためのポインタ取得
     const auto* egData = egInput.getReadPointer(0);
@@ -81,8 +81,8 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     
     // モジュレーションバッファのリサイズ
     if (buffer.getNumSamples() > 0) {
-        cutoffModulationBuffer.realloc(buffer.getNumSamples());
-        cutoffModulationBuffer.clear(buffer.getNumSamples());
+        modulationBuffer.realloc(buffer.getNumSamples());
+        modulationBuffer.clear(buffer.getNumSamples());
     }
     
     // サンプル毎にカットオフ周波数の計算
@@ -122,12 +122,12 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
         
         // このサンプルの変調されたカットオフを保存
-        cutoffModulationBuffer[sample] = modulatedCutoffHz;
+        modulationBuffer[sample] = modulatedCutoffHz;
     }
     
     // オーディオ入力を出力バッファにコピー
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     
     // フィルタを使用して処理
-    filter.processBlock(outputData, buffer.getNumSamples(), cutoffModulationBuffer, resonance);
+    filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
 }
