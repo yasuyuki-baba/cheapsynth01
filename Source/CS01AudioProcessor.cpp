@@ -26,7 +26,6 @@ CS01AudioProcessor::~CS01AudioProcessor()
 void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     midiMessageCollector.reset(sampleRate);
-    // ProcessSpecはここでは使用しないので削除
 
     audioGraph.clear();
 

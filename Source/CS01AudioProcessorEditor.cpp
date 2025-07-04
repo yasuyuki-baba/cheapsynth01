@@ -10,7 +10,6 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     : AudioProcessorEditor(&p), 
       audioProcessor(p),
       midiKeyboard(p.getKeyboardState(), juce::MidiKeyboardComponent::Orientation::horizontalKeyboard),
-      // ヘッダーファイルの宣言順序と一致するように初期化順序を変更
       oscilloscopeComponent(p.getTotalNumOutputChannels()),
       audioVisualiser(p.getTotalNumOutputChannels())
 {

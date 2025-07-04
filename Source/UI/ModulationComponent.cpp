@@ -40,7 +40,7 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p)
             addAndMakeVisible(button);
             button->setRadioGroupId(3); // Group ID for LFO Target
             button->setClickingTogglesState(true);
-            button->onClick = [choiceParam, i] { *choiceParam = i; }; // 未使用の'this'キャプチャを削除
+            button->onClick = [choiceParam, i] { *choiceParam = i; };
         }
     }
     lfoTargetParam->addListener(this);

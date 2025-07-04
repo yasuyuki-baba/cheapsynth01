@@ -226,11 +226,9 @@ private:
         
         // Get initial program
         int initialProgram = processor->getCurrentProgram();
-        // auto& apvts = processor->getValueTreeState(); // 警告解消のためコメントアウト
         
-        // 以下の変数は現在使用していませんが、将来的に比較機能を実装する際に使用予定
-        // float initialWaveType = apvts.getParameter(ParameterIds::waveType)->getValue();
-        // float initialCutoff = apvts.getParameter(ParameterIds::cutoff)->getValue();
+        // Future implementation note:
+        // Will add parameter comparison for future test enhancement
         
         // Process some audio with initial program
         juce::AudioBuffer<float> initialBuffer(2, 512);
