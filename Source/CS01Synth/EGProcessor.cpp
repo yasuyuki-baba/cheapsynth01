@@ -39,49 +39,49 @@ void EGProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     juce::ScopedNoDenormals noDenormals;
     updateADSR();
 
-    // CS01はモノラルシンセサイザーなので、モノラル出力のみを生成
+    // CS01 is a mono synth, so only generate mono output
     buffer.clear();
 
-    // MIDIメッセージ処理はスキップ (MidiProcessorですでに処理済み)
-    // MIDIメッセージはstartEnvelope/releaseEnvelopeメソッドで処理される
+    // Skip MIDI message processing (already processed in MidiProcessor)
+    // MIDI messages are processed by startEnvelope/releaseEnvelope methods
 
-    // モノラル出力（チャンネル0）のみを処理
+    // Process mono output (channel 0) only
     auto* channelData = buffer.getWritePointer(0);
     
-    // エンベロープ整形用の静的変数
+    // Static variable for envelope shaping
     static float prevSample = 0.0f;
     
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        // 生のエンベロープサンプルを取得
+        // Get the raw envelope sample
         float envSample = adsr.getNextSample();
         
-        // FET非線形特性の適用 (回路中のFET1)
-        // 1. 低レベルでの軽い圧縮 (FETのしきい値効果)
+        // Apply FET non-linear characteristics (FET1 in the circuit)
+        // 1. Slight compression at low levels (FET threshold effect)
         if (envSample < 0.1f)
             envSample = envSample * 0.7f + 0.03f * std::sqrt(envSample);
             
-        // 2. 中レベルでの軽い拡張 (FETの二乗法則領域)
+        // 2. Slight expansion at mid levels (FET's square-law region)
         else if (envSample < 0.7f)
             envSample = envSample * (1.0f + (envSample - 0.1f) * 0.15f);
             
-        // 3. 高レベルでのソフト飽和 (FET飽和領域)
+        // 3. Soft saturation at high levels (FET saturation region)
         else
             envSample = 0.7f + (1.0f - 0.7f) * std::tanh((envSample - 0.7f) / (1.0f - 0.7f) * 2.0f);
         
-        // 4. トランジスタバッファ効果の適用 (Tr14)
-        // - カップリングによる軽いハイパス特性
-        // - 高速なトランジェントのための小さな時定数
-        const float alpha = 0.99f; // 時定数
+        // 4. Apply transistor buffer effect (Tr14)
+        // - Slight high-pass characteristic due to coupling
+        // - Small time constant for fast transients
+        const float alpha = 0.99f; // Time constant
         
-        // シンプルな一次ハイパスフィルタ
+        // Simple first-order high-pass filter
         float highPassComponent = (envSample - prevSample) * (1.0f - alpha);
         prevSample = envSample * alpha + prevSample * (1.0f - alpha);
         
-        // トランジェント強調のための少量のハイパス成分追加
+        // Add a small amount of high-pass to enhance transients
         envSample = envSample * 0.95f + highPassComponent * 2.0f;
         
-        // 出力が有効範囲内に収まることを保証
+        // Ensure the output stays in valid range
         envSample = juce::jlimit(0.0f, 1.0f, envSample);
         
         channelData[sample] = envSample;
