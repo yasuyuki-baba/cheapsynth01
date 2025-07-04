@@ -23,7 +23,7 @@ void CS01VCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     filter.prepare(sampleRate);
     
     // Pre-allocate buffer for modulation values
-    cutoffModulationBuffer.allocate(samplesPerBlock, true);
+    modulationBuffer.allocate(samplesPerBlock, true);
 }
 
 void CS01VCFProcessor::releaseResources()
@@ -63,14 +63,14 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
-    // Cutoff frequency mapping
-    float cutoff = mapCutoffFrequency(cutoffParam);
+    // Cutoff frequency calculation
+    float cutoff = calculateCutoffFrequency(cutoffParam);
     
     // Ensure minimum cutoff frequency
     cutoff = juce::jmax(20.0f, cutoff);
     
-    // Resonance mapping
-    float resonance = mapResonance(resonanceParam);
+    // Resonance calculation
+    float resonance = calculateResonance(resonanceParam);
 
     // Check sample count of LFO input buffer
     const int lfoSamples = lfoInput.getNumSamples();
@@ -83,8 +83,8 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // Check buffer size and reallocate if necessary
     // (Since HeapBlock size cannot be checked directly, reallocate when needed)
     if (buffer.getNumSamples() > 0) {
-        cutoffModulationBuffer.realloc(buffer.getNumSamples());
-        cutoffModulationBuffer.clear(buffer.getNumSamples());
+        modulationBuffer.realloc(buffer.getNumSamples());
+        modulationBuffer.clear(buffer.getNumSamples());
     }
     
     // Process each sample to calculate modulated cutoff frequencies
@@ -125,12 +125,12 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
         
         // Store modulated cutoff for this sample
-        cutoffModulationBuffer[sample] = modulatedCutoffHz;
+        modulationBuffer[sample] = modulatedCutoffHz;
     }
     
     // Copy audio input to output buffer
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     
     // Process the entire block with per-sample cutoff modulation using IG02610LPF
-    filter.processBlock(outputData, buffer.getNumSamples(), cutoffModulationBuffer, resonance);
+    filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
 }

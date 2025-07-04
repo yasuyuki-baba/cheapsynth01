@@ -90,7 +90,7 @@ private:
         // Check initial state
         expect(processor->getActiveNotes().isEmpty());
         expectEquals(processor->getCurrentlyPlayingNote(), 0);
-        expect(processor->getNoteHandler() == nullptr);
+        expect(processor->getSoundGenerator() == nullptr);
     }
     
     void testNoteOnOff()
@@ -107,9 +107,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Create EGProcessor
         std::unique_ptr<EGProcessor> egProcessor = std::make_unique<EGProcessor>(apvts);
@@ -161,9 +161,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Create audio buffer and MIDI buffer
         juce::AudioBuffer<float> buffer(1, 512);
@@ -246,9 +246,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Create audio buffer and MIDI buffer
         juce::AudioBuffer<float> buffer(1, 512);
@@ -314,9 +314,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Create audio buffer and MIDI buffer
         juce::AudioBuffer<float> buffer(1, 512);
@@ -504,9 +504,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Set very short attack, decay and release times for testing
         auto attackParam = static_cast<juce::AudioParameterFloat*>(apvts.getParameter(ParameterIds::attack));
@@ -618,9 +618,9 @@ private:
         // Create MidiProcessor
         std::unique_ptr<MidiProcessor> processor = std::make_unique<MidiProcessor>(apvts);
         
-        // Create mock tone generator as note handler
+        // Create mock tone generator as sound generator
         testing::MockToneGenerator mockToneGenerator(apvts);
-        processor->setNoteHandler(&mockToneGenerator);
+        processor->setSoundGenerator(&mockToneGenerator);
         
         // Create audio buffer and MIDI buffer
         juce::AudioBuffer<float> buffer(1, 512);
