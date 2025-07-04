@@ -178,7 +178,7 @@ private:
             expect(processor != nullptr);
             
             // Check if ISoundGenerator interface can be obtained
-            ISoundGenerator* noteHandler = processor->getNoteHandler();
+            ISoundGenerator* noteHandler = processor->getSoundGenerator();
             expect(noteHandler != nullptr);
             
             // No further operations (especially no processBlock call)
@@ -238,7 +238,7 @@ private:
             }
             
             // 6. Note handler test
-            auto* noteHandler = processor.getNoteHandler();
+            auto* noteHandler = processor.getSoundGenerator();
             expect(noteHandler != nullptr);
             
             // API call verification only
@@ -305,7 +305,7 @@ private:
             }
             
             // 5. Note handler API test
-            auto* noteHandler = processor.getNoteHandler();
+            auto* noteHandler = processor.getSoundGenerator();
             expect(noteHandler != nullptr);
             
             if (noteHandler) {
@@ -381,7 +381,7 @@ private:
             
             // 3. Test VCOProcessor creation and note handler API
             VCOProcessor processor(apvts);
-            auto* noteHandler = processor.getNoteHandler();
+            auto* noteHandler = processor.getSoundGenerator();
             expect(noteHandler != nullptr);
             
             if (noteHandler) {
@@ -460,7 +460,7 @@ private:
                 feetParam->setValueNotifyingHost(feetParam->convertTo0to1(2)); // 8'
             
             // 8. Start note
-            auto* noteHandler = processor.getNoteHandler();
+            auto* noteHandler = processor.getSoundGenerator();
             expect(noteHandler != nullptr);
             
             noteHandler->startNote(69, 1.0f, 8192); // A4 (440Hz)
