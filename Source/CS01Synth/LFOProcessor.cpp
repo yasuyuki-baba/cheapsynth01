@@ -47,11 +47,15 @@ void LFOProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     juce::ScopedNoDenormals noDenormals;
     updateParameters();
 
+    // CS01はモノラルシンセサイザーなので、モノラル出力のみを生成
     buffer.clear();
     
+    // JUCEのDSPモジュールを使用してLFO信号を生成（モノラル出力）
     juce::dsp::AudioBlock<float> block(buffer);
     juce::dsp::ProcessContextReplacing<float> context(block);
     lfo.process(context);
+    
+    // LFO出力はそのままモノラルバッファに書き込まれる
 }
 
 void LFOProcessor::updateParameters()
