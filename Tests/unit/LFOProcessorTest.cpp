@@ -1,5 +1,3 @@
-#pragma once
-
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/LFOProcessor.h"
 #include "../../Source/Parameters.h"

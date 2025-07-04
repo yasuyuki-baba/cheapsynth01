@@ -88,7 +88,7 @@ void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int 
 
     updateBlockRateParameters();
     
-    for (int sample = 0; sample < numSamples; ++sample)
+    for (size_t sample = 0; sample < static_cast<size_t>(numSamples); ++sample)
     {
         float currentSample = getNextSample();
         
@@ -116,11 +116,11 @@ void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& con
     auto numSamples = outputBlock.getNumSamples();
     auto numChannels = outputBlock.getNumChannels();
 
-    for (int sample = 0; sample < numSamples; ++sample)
+    for (size_t sample = 0; sample < static_cast<size_t>(numSamples); ++sample)
     {
         float currentSample = getNextSample();
 
-        for (int channel = 0; channel < numChannels; ++channel)
+        for (size_t channel = 0; channel < static_cast<size_t>(numChannels); ++channel)
         {
             outputBlock.setSample(channel, sample, currentSample);
         }

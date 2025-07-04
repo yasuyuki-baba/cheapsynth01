@@ -1,5 +1,3 @@
-#pragma once
-
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/VCOProcessor.h"
 #include "../../Source/Parameters.h"
@@ -418,8 +416,9 @@ private:
             VCOProcessor processor(apvts);
             
             // 3. Collect processor details
-            int numInputBuses = processor.getBusCount(true);
-            int numOutputBuses = processor.getBusCount(false);
+            // 以下の変数はデバッグ用に取得（実際には使用していない）
+            // int numInputBuses = processor.getBusCount(true);
+            // int numOutputBuses = processor.getBusCount(false);
             int numInputChannels = processor.getTotalNumInputChannels();
             int numOutputChannels = processor.getTotalNumOutputChannels();
             
@@ -441,8 +440,8 @@ private:
             expect(layoutSetSuccess);
             
             // Retrieve bus information again
-            numInputBuses = processor.getBusCount(true);
-            numOutputBuses = processor.getBusCount(false);
+            // int numInputBuses = processor.getBusCount(true); // 未使用なのでコメントアウト
+            // int numOutputBuses = processor.getBusCount(false); // 未使用なのでコメントアウト
             numInputChannels = processor.getTotalNumInputChannels();
             numOutputChannels = processor.getTotalNumOutputChannels();
             
@@ -516,7 +515,7 @@ private:
             float maxValue = 0.0f;
             float minValue = 0.0f;
             float rms = 0.0f;
-            int zeroCrossings = 0;
+            // int zeroCrossings = 0; // 未使用なのでコメントアウト
             
             // Safe buffer reading
             try {
@@ -538,10 +537,10 @@ private:
                             // RMS calculation
                             rms += sample * sample;
                             
-                            // Zero crossing measurement
+                            // Zero crossing measurement (現在は未使用)
                             bool isPositive = sample >= 0.0f;
                             if (isPositive != wasPositive) {
-                                zeroCrossings++;
+                                // zeroCrossings++;  // 変数定義をコメントアウトしたので、ここもコメントアウト
                                 wasPositive = isPositive;
                             }
                         }

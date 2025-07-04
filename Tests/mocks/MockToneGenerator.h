@@ -43,7 +43,7 @@ namespace testing
         }
         
         // Prepare for processing
-        void prepare(const juce::dsp::ProcessSpec& spec)
+        void prepare(const juce::dsp::ProcessSpec& spec) override
         {
             oscillator.prepare(spec);
             sampleRate = spec.sampleRate;
@@ -242,7 +242,7 @@ namespace testing
         }
         
         // Render a block of samples
-        void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+        void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override
         {
             if (!isActive())
                 return;
@@ -272,7 +272,7 @@ namespace testing
         }
         
         // Set LFO modulation
-        void setLfoValue(float modAmount)
+        void setLfoValue(float modAmount) override
         {
             float modDepth = 0.0f;
             if (modDepthParam != nullptr)
