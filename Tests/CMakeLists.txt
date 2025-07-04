@@ -101,15 +101,33 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # Windows (MSVC) specific compiler options
     target_compile_options(CheapSynth01Tests
         PRIVATE
-        /wd4996  # Equivalent to -Wno-deprecated-declarations
+        /W4             # Warning level 4
+        /permissive-    # Enforce standards conformance
+        /wd4996        # Disable deprecated functions warnings
+        /MP             # Multi-processor compilation
     )
 else()
     # GCC/Clang (Unix) specific compiler options
     target_compile_options(CheapSynth01Tests
         PRIVATE
-        -Wno-deprecated-declarations
+        -Wall           # All warnings
+        -Wextra         # Extra warnings
+        -Wpedantic      # Strict ISO C/C++
+        -Wno-deprecated-declarations  # Needed for JUCE compatibility
         -Wno-error=deprecated-declarations
+        -Wno-unused-parameter  # Don't warn about unused parameters
+        -Wformat=2     # Stricter format checking
+        -fvisibility=hidden  # Better optimization/binary size
     )
+    
+    # Extra optimization flags for non-Debug builds
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(CheapSynth01Tests
+            PRIVATE
+            -ffunction-sections
+            -fdata-sections
+        )
+    endif()
 endif()
 
 # JUCE settings

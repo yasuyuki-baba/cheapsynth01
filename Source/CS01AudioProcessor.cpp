@@ -26,7 +26,7 @@ CS01AudioProcessor::~CS01AudioProcessor()
 void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     midiMessageCollector.reset(sampleRate);
-    juce::dsp::ProcessSpec spec { sampleRate, (juce::uint32) samplesPerBlock, (juce::uint32) getMainBusNumOutputChannels() };
+    // ProcessSpecはここでは使用しないので削除
 
     audioGraph.clear();
 

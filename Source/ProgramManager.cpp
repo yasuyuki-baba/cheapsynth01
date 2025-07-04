@@ -34,7 +34,7 @@ int ProgramManager::getCurrentProgram() const
 
 void ProgramManager::setCurrentProgram(int index) 
 {
-    if (index >= 0 && index < factoryPresets.size())
+    if (index >= 0 && index < static_cast<int>(factoryPresets.size()))
     {
         currentProgram = index;
         loadFactoryPreset(index);
@@ -43,14 +43,14 @@ void ProgramManager::setCurrentProgram(int index)
 
 juce::String ProgramManager::getProgramName(int index) const
 { 
-    if (index >= 0 && index < factoryPresets.size())
+    if (index >= 0 && index < static_cast<int>(factoryPresets.size()))
         return factoryPresets[index].name;
     return {};
 }
 
 void ProgramManager::loadFactoryPreset(int index)
 {
-    if (index >= 0 && index < factoryPresets.size())
+    if (index >= 0 && index < static_cast<int>(factoryPresets.size()))
     {
         loadPresetFromBinaryData(factoryPresets[index].filename);
     }
