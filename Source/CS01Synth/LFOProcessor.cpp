@@ -47,11 +47,15 @@ void LFOProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     juce::ScopedNoDenormals noDenormals;
     updateParameters();
 
+    // CS01 is a mono synth, so only generate mono output
     buffer.clear();
     
+    // Use JUCE DSP module to generate LFO signal (mono output)
     juce::dsp::AudioBlock<float> block(buffer);
     juce::dsp::ProcessContextReplacing<float> context(block);
     lfo.process(context);
+    
+    // LFO output is written directly to the mono buffer
 }
 
 void LFOProcessor::updateParameters()

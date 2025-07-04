@@ -46,8 +46,8 @@ public:
 private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
-    std::vector<juce::dsp::StateVariableTPTFilter<float>> filters; // Filter for each channel
-    std::vector<juce::AudioBuffer<float>> processingBuffers; // Reusable buffers for audio processing
+    juce::dsp::StateVariableTPTFilter<float> filter; // Single filter for mono processing
+    juce::AudioBuffer<float> processingBuffer; // Reusable temporary buffer for audio processing
     
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam)

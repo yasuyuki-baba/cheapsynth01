@@ -51,6 +51,7 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 {
     juce::ScopedNoDenormals noDenormals;
 
+    // CS01 is completely mono, so only process channel 0
     auto audioInput = getBusBuffer(buffer, true, 0);
     auto egInput = getBusBuffer(buffer, true, 1);
     auto lfoInput = getBusBuffer(buffer, true, 2);
@@ -72,29 +73,25 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // Resonance calculation
     float resonance = calculateResonance(resonanceParam);
 
-    // Check sample count of LFO input buffer
-    const int lfoSamples = lfoInput.getNumSamples();
-
+    // Get pointers for mono processing
     const auto* egData = egInput.getReadPointer(0);
-    const auto* lfoData = lfoSamples > 0 ? lfoInput.getReadPointer(0) : nullptr;
+    const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
     const auto* audioData = audioInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
     
-    // Check buffer size and reallocate if necessary
-    // (Since HeapBlock size cannot be checked directly, reallocate when needed)
+    // Resize modulation buffer
     if (buffer.getNumSamples() > 0) {
         modulationBuffer.realloc(buffer.getNumSamples());
         modulationBuffer.clear(buffer.getNumSamples());
     }
     
-    // Process each sample to calculate modulated cutoff frequencies
+    // Calculate cutoff frequency for each sample
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
         float egValue = egData[sample];
-        // Use LFO data only if available
         float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
 
-        // Calculate modulation effects
+        // Modulation effect calculation constants
         const float egModRangeSemitones = 36.0f; // 3 octaves
         const float lfoModRangeSemitones = 24.0f; // 2 octaves
         const float breathModRangeSemitones = 24.0f; // 2 octaves
@@ -119,7 +116,7 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         
         // Check for NaN or Infinity
         if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
-            modulatedCutoffHz = baseCutoff; // Use base value if there's a problem
+            modulatedCutoffHz = baseCutoff;
         }
         
         modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
@@ -131,6 +128,6 @@ void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // Copy audio input to output buffer
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     
-    // Process the entire block with per-sample cutoff modulation using IG02610LPF
+    // Process using filter
     filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
 }

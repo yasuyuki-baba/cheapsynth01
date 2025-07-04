@@ -63,7 +63,7 @@ void VCAProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // Get the audio and EG input buffers
+    // CS01 is a mono synth, so only process mono buffers (channel 0)
     auto audioInput = getBusBuffer(buffer, true, 0);
     auto egInput = getBusBuffer(buffer, true, 1);
 
@@ -73,10 +73,12 @@ void VCAProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
     auto volume = apvts.getRawParameterValue(ParameterIds::volume)->load();
 
+    // Get data pointers for mono buffers
     const auto* audioData = audioInput.getReadPointer(0);
     const auto* egData = egInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
 
+    // Process each sample
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
         // TP3: Get input sample
