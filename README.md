@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml)
 [![Tests](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![JUCE](https://img.shields.io/badge/JUCE-Framework-orange.svg)](https://juce.com/)
 
@@ -19,19 +19,16 @@ CheapSynth01 uses JUCE's AudioProcessorGraph to implement a modular synthesis ar
 ```mermaid
 graph TD
     MIDI[MIDI Input] --> MidiProc[MIDI Processor]
-    MidiProc --> |Uses| VCO[VCO Processor]
     MidiProc --> |Triggers| EG[Envelope Generator]
     
-    subgraph "VCO Processor"
-        VCO --> |manages| GenSwitch{Generator Type}
-        GenSwitch --> |Tone| ToneGen[Tone Generator]
-        GenSwitch --> |Noise| NoiseGen[Noise Generator]
-        ToneGen --> |implements| ISG[ISoundGenerator]
-        NoiseGen --> |implements| ISG
-        ISG --> |provided to| MidiProc
-    end
+    VCOProc[VCO Processor] --> |manages| GenSwitch{Generator Type}
+    GenSwitch --> |Tone| ToneGen[Tone Generator]
+    GenSwitch --> |Noise| NoiseGen[Noise Generator]
+    ToneGen --> |implements| ISG[ISoundGenerator]
+    NoiseGen --> |implements| ISG
+    MidiProc --> |Uses| ISG
     
-    VCO --> |Audio| FilterSwitch{Filter Type}
+    VCOProc --> |Audio| FilterSwitch{Filter Type}
     
     FilterSwitch --> |CS-01| CS01VCF[CS-01 VCF]
     FilterSwitch --> |Modern| ModernVCF[Modern VCF]
@@ -44,7 +41,7 @@ graph TD
     EG --> |Modulation| ModernVCF
     
     LFO[LFO] --> LFOTarget{LFO Target}
-    LFOTarget --> |VCO| VCO
+    LFOTarget --> |VCO| VCOProc
     LFOTarget --> |VCF| CS01VCF
     LFOTarget --> |VCF| ModernVCF
     
@@ -98,4 +95,4 @@ Load the plugin in your DAW or launch the standalone application.
 
 ## License
 
-This project is released under the MIT License. See the LICENSE file for details.
+This project is released under the GNU General Public License v3. See the LICENSE file for details.
