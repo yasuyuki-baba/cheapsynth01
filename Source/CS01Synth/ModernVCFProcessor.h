@@ -2,10 +2,11 @@
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
+#include "IFilter.h" // Interface
 
 //==============================================================================
 // ModernVCFProcessor - Filter using JUCE's StateVariableTPTFilter (with less distortion)
-class ModernVCFProcessor  : public juce::AudioProcessor
+class ModernVCFProcessor  : public juce::AudioProcessor, public IFilter
 {
 public:
     //==============================================================================
@@ -42,6 +43,12 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override {}
     void setStateInformation (const void* data, int sizeInBytes) override {}
+    
+    // Implementation of IFilter interface
+    ResonanceMode getResonanceMode() const override 
+    { 
+        return ResonanceMode::Continuous;
+    }
 
 private:
     //==============================================================================
@@ -63,19 +70,11 @@ private:
     }
     
     // Resonance calculation function
-    float calculateResonance(bool isHighResonance)
+    float calculateResonance(float resonanceParam)
     {
-        // Simple resonance value based on switch state
-        if (isHighResonance)
-        {
-            // High resonance setting
-            return 0.8f;
-        }
-        else
-        {
-            // Low resonance setting
-            return 0.2f;
-        }
+        // Map normalized input (0.0 - 1.0) to useful resonance range
+        // Resonance for StateVariableTPTFilter is effective in the range of 0.1 to 0.9
+        return 0.1f + (resonanceParam * 0.8f);  // Map to range 0.1 to 0.9
     }
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModernVCFProcessor)

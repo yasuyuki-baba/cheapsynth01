@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/IFilter.h" // Explicit include
 
 //==============================================================================
 CS01AudioProcessor::CS01AudioProcessor()
@@ -39,7 +40,7 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
     lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
     vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
-    vcfNode = audioGraph.addNode(std::make_unique<CS01VCFProcessor>(apvts));
+    vcfNode = audioGraph.addNode(std::make_unique<OriginalVCFProcessor>(apvts));
     modernVcfNode = audioGraph.addNode(std::make_unique<ModernVCFProcessor>(apvts));
 
     // 2. Set bus layouts
@@ -58,12 +59,12 @@ void CS01AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     
     // Audio Path: vco -> vcf -> vca -> output
     // Connect only the mono channel (ch = 0)
-    if (filterType == 0) // CS01
+    if (filterType == 0) // Original
     {
         audioGraph.addConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
         audioGraph.addConnection({ {vcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
     }
-    else // MODERN
+    else // Modern
     {
         audioGraph.addConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
         audioGraph.addConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
@@ -204,7 +205,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
     auto vcfGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "vcf", "VCF", "|",
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::cutoff, "Cutoff", juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.3f), 20000.0f),
-        std::make_unique<juce::AudioParameterBool>(ParameterIds::resonance, "Resonance", false),
+        std::make_unique<juce::AudioParameterFloat>(ParameterIds::resonance, "Resonance", juce::NormalisableRange<float>(0.0f, 1.0f), 0.2f),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::vcfEgDepth, "VCF EG Depth", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f)
     );
     layout.add(std::move(vcfGroup));
@@ -250,7 +251,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
         "global", "Global", "|",
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::volume, "Volume", juce::NormalisableRange<float>(0.0f, 1.0f), 0.7f),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::breathInput, "Breath Input", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
-        std::make_unique<juce::AudioParameterChoice>(ParameterIds::filterType, "Filter Type", juce::StringArray{"CS01", "MODERN"}, 0)
+        std::make_unique<juce::AudioParameterChoice>(ParameterIds::filterType, "Filter Type", juce::StringArray{"Original", "Modern"}, 0)
     );
     layout.add(std::move(globalGroup));
 
@@ -323,6 +324,29 @@ void CS01AudioProcessor::handleGeneratorTypeChanged()
     }
 }
 
+// Get current filter processor
+IFilter* CS01AudioProcessor::getCurrentFilterProcessor()
+{
+    auto filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
+    
+    if (filterType == 0) // Original
+    {
+        if (vcfNode != nullptr && vcfNode->getProcessor() != nullptr)
+        {
+            return dynamic_cast<IFilter*>(vcfNode->getProcessor());
+        }
+    }
+    else // Modern
+    {
+        if (modernVcfNode != nullptr && modernVcfNode->getProcessor() != nullptr)
+        {
+            return dynamic_cast<IFilter*>(modernVcfNode->getProcessor());
+        }
+    }
+    
+    return nullptr;
+}
+
 void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     if (parameterID == ParameterIds::feet)
@@ -355,12 +379,12 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         {
             // Connect LFO according to current filter type
             auto filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
-            if (filterType == 0) // CS01
+            if (filterType == 0) // Original
             {
                 // Connect LFO to VCFProcessor's LFO input (bus 2)
                 audioGraph.addConnection({ {lfoNode->nodeID, 0}, {vcfNode->nodeID, 2} });
             }
-            else // MODERN
+            else // Modern
             {
                 // Connect LFO to ModernVCFProcessor's LFO input (bus 2)
                 audioGraph.addConnection({ {lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2} });
@@ -383,7 +407,7 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         audioGraph.removeConnection({ {modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0} });
         
         // Reconfigure connections based on filter type
-        if (static_cast<int>(newValue) == 0) // CS01
+        if (static_cast<int>(newValue) == 0) // Original
         {
             // Remove existing connections
             audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0} });
@@ -400,7 +424,7 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
                 audioGraph.addConnection({ {lfoNode->nodeID, 0}, {vcfNode->nodeID, 2} });
             }
         }
-        else // MODERN
+        else // Modern
         {
             // Remove existing connections
             audioGraph.removeConnection({ {vcoNode->nodeID, 0}, {vcfNode->nodeID, 0} });
@@ -415,6 +439,13 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
             {
                 audioGraph.removeConnection({ {lfoNode->nodeID, 0}, {vcfNode->nodeID, 2} });
                 audioGraph.addConnection({ {lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2} });
+            }
+            
+            // If there is a current editor, notify it about the filter type change
+            if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor()))
+            {
+                // Notify about filter type change
+                editor->filterTypeChanged(getCurrentFilterProcessor());
             }
         }
     }

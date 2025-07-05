@@ -1,7 +1,7 @@
-#include "CS01VCFProcessor.h"
+#include "OriginalVCFProcessor.h"
 
 //==============================================================================
-CS01VCFProcessor::CS01VCFProcessor(juce::AudioProcessorValueTreeState& apvts)
+OriginalVCFProcessor::OriginalVCFProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor (BusesProperties()
                           .withInput  ("AudioInput",  juce::AudioChannelSet::mono(), true)
                           .withInput  ("EGInput", juce::AudioChannelSet::mono(), true)
@@ -11,12 +11,12 @@ CS01VCFProcessor::CS01VCFProcessor(juce::AudioProcessorValueTreeState& apvts)
 {
 }
 
-CS01VCFProcessor::~CS01VCFProcessor()
+OriginalVCFProcessor::~OriginalVCFProcessor()
 {
 }
 
 //==============================================================================
-void CS01VCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void OriginalVCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Initialize filter
     filter.reset();
@@ -26,13 +26,13 @@ void CS01VCFProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     modulationBuffer.allocate(samplesPerBlock, true);
 }
 
-void CS01VCFProcessor::releaseResources()
+void OriginalVCFProcessor::releaseResources()
 {
     // Reset filter
     filter.reset();
 }
 
-bool CS01VCFProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool OriginalVCFProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto& mainIn = layouts.getChannelSet(true, 0);
     const auto& egIn   = layouts.getChannelSet(true, 1);
@@ -47,11 +47,11 @@ bool CS01VCFProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
     return true;
 }
 
-void CS01VCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void OriginalVCFProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // CS01 is completely mono, so only process channel 0
+    // Original filter is completely mono, so only process channel 0
     auto audioInput = getBusBuffer(buffer, true, 0);
     auto egInput = getBusBuffer(buffer, true, 1);
     auto lfoInput = getBusBuffer(buffer, true, 2);

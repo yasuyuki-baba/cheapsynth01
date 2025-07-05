@@ -3,8 +3,8 @@
 
 FilterTypeComponent::FilterTypeComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts)
 {
-    filterTypeComboBox.addItem("CS01", 1);
-    filterTypeComboBox.addItem("MODERN", 2);
+    filterTypeComboBox.addItem("Original", 1);
+    filterTypeComboBox.addItem("Modern", 2);
     addAndMakeVisible(filterTypeComboBox);
     
     filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
