@@ -2,18 +2,21 @@
 
 #include <JuceHeader.h>
 #include "ProgramManager.h"
+#include "CS01Synth/IFilter.h"
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
 #include "CS01Synth/EGProcessor.h"
 #include "CS01Synth/LFOProcessor.h"
 #include "CS01Synth/VCAProcessor.h"
-#include "CS01Synth/CS01VCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
 
 class CS01AudioProcessor  : public juce::AudioProcessor,
                             public juce::AudioProcessorValueTreeState::Listener
 {
 public:
+    // Get current filter processor
+    IFilter* getCurrentFilterProcessor();
     //==============================================================================
     CS01AudioProcessor();
     ~CS01AudioProcessor() override;

@@ -5,7 +5,7 @@
   <PARAM id="PITCH" value="0.0"/>
   <PARAM id="GLISSANDO" value="0.0"/>
   <PARAM id="CUTOFF" value="3000.0"/>
-  <PARAM id="RESONANCE" value="0"/>
+  <PARAM id="RESONANCE" value="0.35"/>
   <PARAM id="VCF_EG_DEPTH" value="0.6"/>
   <PARAM id="VCA_EG_DEPTH" value="1.0"/>
   <PARAM id="ATTACK" value="1.2"/>

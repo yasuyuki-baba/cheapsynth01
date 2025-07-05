@@ -1,11 +1,11 @@
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/CS01VCFProcessor.h"
+#include "../../Source/CS01Synth/OriginalVCFProcessor.h"
 #include "../../Source/Parameters.h"
 
-class CS01VCFProcessorTest : public juce::UnitTest
+class OriginalVCFProcessorTest : public juce::UnitTest
 {
 public:
-    CS01VCFProcessorTest() : juce::UnitTest("CS01VCFProcessor Tests") {}
+    OriginalVCFProcessorTest() : juce::UnitTest("OriginalVCFProcessor Tests") {}
     
     void runTest() override
     {
@@ -22,7 +22,7 @@ private:
     {
         juce::AudioProcessorValueTreeState::ParameterLayout layout;
         
-        // Add parameters needed for CS01VCFProcessor
+        // Add parameters needed for OriginalVCFProcessor
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::cutoff, "Cutoff", 
             juce::NormalisableRange<float>(20.0f, 20000.0f, 0.01f, 0.3f), 1000.0f));
@@ -60,14 +60,14 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create CS01VCFProcessor
-        std::unique_ptr<CS01VCFProcessor> processor = std::make_unique<CS01VCFProcessor>(apvts);
+        // Create OriginalVCFProcessor
+        std::unique_ptr<OriginalVCFProcessor> processor = std::make_unique<OriginalVCFProcessor>(apvts);
         
         // Check that processor was created successfully
         expect(processor != nullptr);
         
         // Check that processor has expected properties
-        expectEquals(processor->getName(), juce::String("VCF"));
+        expectEquals(processor->getName(), juce::String("Original VCF"));
         expect(!processor->acceptsMidi());
         expect(!processor->producesMidi());
         expect(!processor->isMidiEffect());
@@ -93,8 +93,8 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create CS01VCFProcessor
-        std::unique_ptr<CS01VCFProcessor> processor = std::make_unique<CS01VCFProcessor>(apvts);
+        // Create OriginalVCFProcessor
+        std::unique_ptr<OriginalVCFProcessor> processor = std::make_unique<OriginalVCFProcessor>(apvts);
         
         // Test cutoff parameter
         auto* cutoffParam = apvts.getParameter(ParameterIds::cutoff);
@@ -141,8 +141,8 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create CS01VCFProcessor
-        std::unique_ptr<CS01VCFProcessor> processor = std::make_unique<CS01VCFProcessor>(apvts);
+        // Create OriginalVCFProcessor
+        std::unique_ptr<OriginalVCFProcessor> processor = std::make_unique<OriginalVCFProcessor>(apvts);
         
         // Test supported buses layout
         juce::AudioProcessor::BusesLayout supportedLayout;
@@ -186,8 +186,8 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create CS01VCFProcessor
-        std::unique_ptr<CS01VCFProcessor> processor = std::make_unique<CS01VCFProcessor>(apvts);
+        // Create OriginalVCFProcessor
+        std::unique_ptr<OriginalVCFProcessor> processor = std::make_unique<OriginalVCFProcessor>(apvts);
         
         // Prepare processor
         processor->prepareToPlay(44100.0, 512);
@@ -277,8 +277,8 @@ private:
         juce::UndoManager undoManager;
         juce::AudioProcessorValueTreeState apvts(*dummyProcessor, &undoManager, "PARAMETERS", std::move(parameterLayout));
         
-        // Create CS01VCFProcessor
-        std::unique_ptr<CS01VCFProcessor> processor = std::make_unique<CS01VCFProcessor>(apvts);
+        // Create OriginalVCFProcessor
+        std::unique_ptr<OriginalVCFProcessor> processor = std::make_unique<OriginalVCFProcessor>(apvts);
         
         // Prepare processor
         processor->prepareToPlay(44100.0, 512);
@@ -354,4 +354,4 @@ private:
     }
 };
 
-static CS01VCFProcessorTest cs01VCFProcessorTest;
+static OriginalVCFProcessorTest originalVCFProcessorTest;
