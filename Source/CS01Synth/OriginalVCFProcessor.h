@@ -3,14 +3,15 @@
 #include <JuceHeader.h>
 #include "../Parameters.h"
 #include "IG02610LPF.h" // Include the IG02610LPF filter
+#include "IFilter.h" // Updated interface
 
 //==============================================================================
-class CS01VCFProcessor  : public juce::AudioProcessor
+class OriginalVCFProcessor  : public juce::AudioProcessor, public IFilter
 {
 public:
     //==============================================================================
-    CS01VCFProcessor(juce::AudioProcessorValueTreeState& apvts);
-    ~CS01VCFProcessor() override;
+    OriginalVCFProcessor(juce::AudioProcessorValueTreeState& apvts);
+    ~OriginalVCFProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -25,7 +26,7 @@ public:
     bool hasEditor() const override { return false; }
 
     //==============================================================================
-    const juce::String getName() const override { return "VCF"; }
+    const juce::String getName() const override { return "Original VCF"; }
 
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
@@ -42,6 +43,12 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override {}
     void setStateInformation (const void* data, int sizeInBytes) override {}
+    
+    // Implementation of IFilter interface
+    ResonanceMode getResonanceMode() const override 
+    { 
+        return ResonanceMode::Toggle;
+    }
 
 private:
     //==============================================================================
@@ -63,10 +70,11 @@ private:
     }
     
     // Resonance calculation function
-    float calculateResonance(bool isHighResonance)
+    float calculateResonance(float resonanceParam)
     {
-        // Simple resonance value based on switch state
-        if (isHighResonance)
+        // For original filter, use threshold to binarize the value
+        // Treat as High Resonance if value is 0.5 or higher
+        if (resonanceParam >= 0.5f)
         {
             // High resonance setting - IG02610LPF has max resonance of 0.8f
             return 0.7f;
@@ -78,5 +86,5 @@ private:
         }
     }
     
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CS01VCFProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OriginalVCFProcessor)
 };
