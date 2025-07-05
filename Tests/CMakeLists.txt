@@ -42,7 +42,7 @@ target_sources(CheapSynth01Tests
         mocks/MockToneGenerator.h
         unit/IG02610LPFTest.cpp
         unit/ToneGeneratorTest.cpp
-        unit/CS01VCFProcessorTest.cpp
+        unit/OriginalVCFProcessorTest.cpp
         unit/VCAProcessorTest.cpp
         unit/EGProcessorTest.cpp
         unit/LFOProcessorTest.cpp
@@ -60,7 +60,7 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/ProgramManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610LPF.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ToneGenerator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01VCFProcessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/OriginalVCFProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCAProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/EGProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/LFOProcessor.cpp

@@ -1,6 +1,7 @@
 #include "CS01AudioProcessor.h"
 #include "CS01AudioProcessorEditor.h"
 #include "UI/CS01LookAndFeel.h"
+#include "CS01Synth/IFilter.h"
 
 // Use JUCE namespace
 using namespace juce;
@@ -97,4 +98,15 @@ void CS01AudioProcessorEditor::paint(juce::Graphics& g)
 void CS01AudioProcessorEditor::resized()
 {
     mainFlex.performLayout(getLocalBounds().reduced(10));
+}
+
+// Called when filter type changes
+void CS01AudioProcessorEditor::filterTypeChanged(IFilter* newFilterProcessor)
+{
+    // Get resonance control type from IFilterProcessor
+    if (newFilterProcessor != nullptr && vcfComponent != nullptr)
+    {
+        // Notify VCFComponent about filter type change
+        vcfComponent->updateFilterControl(newFilterProcessor);
+    }
 }

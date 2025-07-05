@@ -1,7 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "CS01AudioProcessor.h"
+// 循環参照を避けるために前方宣言
+class CS01AudioProcessor;
+class IFilter;
 #include "UI/ModulationComponent.h"
 #include "UI/VCOComponent.h"
 #include "UI/LFOComponent.h"
@@ -26,6 +28,9 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    
+    // フィルタータイプが変更されたときに呼び出される
+    void filterTypeChanged(IFilter* newFilterProcessor);
     
     OscilloscopeComponent& getOscilloscope() { return oscilloscopeComponent; }
     juce::AudioVisualiserComponent& getAudioVisualiser() { return audioVisualiser; }
