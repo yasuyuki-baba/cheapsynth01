@@ -11,6 +11,9 @@ CheapSynth01 is a software emulation of an early 80's compact monophonic synthes
 ## Features
 
 - Faithful circuit emulation
+- Two filter types with different resonance control modes:
+  - Original VCF with toggle resonance (High/Low)
+  - Modern VCF with continuous resonance control
 
 ## Signal Flow Architecture
 
@@ -30,19 +33,19 @@ graph TD
     
     VCOProc --> |Audio| FilterSwitch{Filter Type}
     
-    FilterSwitch --> |CS-01| CS01VCF[CS-01 VCF]
+    FilterSwitch --> |Original| OriginalVCF[Original VCF]
     FilterSwitch --> |Modern| ModernVCF[Modern VCF]
     
-    CS01VCF --> VCA[VCA]
-    ModernVCF --> VCA
+    OriginalVCF --> |Toggle Resonance| VCA[VCA]
+    ModernVCF --> |Continuous Resonance| VCA
     
     EG --> |Modulation| VCA
-    EG --> |Modulation| CS01VCF
+    EG --> |Modulation| OriginalVCF
     EG --> |Modulation| ModernVCF
     
     LFO[LFO] --> LFOTarget{LFO Target}
     LFOTarget --> |VCO| VCOProc
-    LFOTarget --> |VCF| CS01VCF
+    LFOTarget --> |VCF| OriginalVCF
     LFOTarget --> |VCF| ModernVCF
     
     VCA --> Output[Audio Output]
@@ -52,7 +55,7 @@ graph TD
 
 1. **Main Audio Path**:
    - Sound Generation: VCO Processor managing Tone Generator and Noise Generator
-   - Filtering: Either CS-01 VCF (vintage) or Modern VCF
+   - Filtering: Either Original VCF (vintage) or Modern VCF
    - Amplification: VCA controls final output level
 
 2. **Control Paths**:
@@ -61,7 +64,8 @@ graph TD
    - LFO: Can be routed to either VCO (pitch modulation) or VCF (filter modulation)
    
 3. **Dynamic Routing**:
-   - Filter Type parameter switches between vintage and modern filter
+   - Filter Type parameter switches between Original (vintage) and Modern filter types
+   - Each filter type has its own resonance control: Toggle mode for Original VCF and Continuous mode for Modern VCF
    - Feet parameter switches between Tone and Noise generators within the VCO Processor
    - LFO Target parameter determines modulation destination
 
