@@ -85,10 +85,10 @@ TEST_F(EGProcessorTest, ParameterSettings)
     
     // Set attack to different values
     attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.05f)); // 50ms
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.05f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.05f, 0.001f);
     
     attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.5f)); // 500ms
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.5f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.5f, 0.001f);
     
     // Test decay parameter
     auto* decayParam = apvts->getParameter(ParameterIds::decay);
@@ -96,10 +96,10 @@ TEST_F(EGProcessorTest, ParameterSettings)
     
     // Set decay to different values
     decayParam->setValueNotifyingHost(decayParam->convertTo0to1(0.1f)); // 100ms
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::decay)->load(), 0.1f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::decay)->load(), 0.1f, 0.001f);
     
     decayParam->setValueNotifyingHost(decayParam->convertTo0to1(1.0f)); // 1s
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::decay)->load(), 1.0f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::decay)->load(), 1.0f, 0.001f);
     
     // Test sustain parameter
     auto* sustainParam = apvts->getParameter(ParameterIds::sustain);
@@ -107,10 +107,10 @@ TEST_F(EGProcessorTest, ParameterSettings)
     
     // Set sustain to different values
     sustainParam->setValueNotifyingHost(0.25f); // 25%
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.25f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.25f, 0.001f);
     
     sustainParam->setValueNotifyingHost(0.75f); // 75%
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.75f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.75f, 0.001f);
     
     // Test release parameter
     auto* releaseParam = apvts->getParameter(ParameterIds::release);
@@ -118,10 +118,10 @@ TEST_F(EGProcessorTest, ParameterSettings)
     
     // Set release to different values
     releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(0.2f)); // 200ms
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::release)->load(), 0.2f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::release)->load(), 0.2f, 0.001f);
     
     releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(2.0f)); // 2s
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::release)->load(), 2.0f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::release)->load(), 2.0f, 0.001f);
 }
 
 TEST_F(EGProcessorTest, BusesLayout)

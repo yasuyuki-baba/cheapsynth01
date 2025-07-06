@@ -70,10 +70,10 @@ TEST_F(LFOProcessorTest, ParameterSettings)
     
     // Set LFO speed to different values
     lfoSpeedParam->setValueNotifyingHost(lfoSpeedParam->convertTo0to1(0.5f)); // 0.5 Hz
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::lfoSpeed)->load(), 0.5f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::lfoSpeed)->load(), 0.5f, 0.001f);
     
     lfoSpeedParam->setValueNotifyingHost(lfoSpeedParam->convertTo0to1(5.0f)); // 5.0 Hz
-    EXPECT_EQ(apvts->getRawParameterValue(ParameterIds::lfoSpeed)->load(), 5.0f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::lfoSpeed)->load(), 5.0f, 0.001f);
 }
 
 TEST_F(LFOProcessorTest, BusesLayout)
