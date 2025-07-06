@@ -45,9 +45,9 @@ jobs:
         run: |
           cd build_tests
           if [ "$RUNNER_OS" == "Windows" ]; then
-            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests.exe test_results.xml
+            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests.exe --gtest_output=xml:test_results.xml
           else
-            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests test_results.xml
+            ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests --gtest_output=xml:test_results.xml
           fi
           TEST_EXIT_CODE=$?
           echo "Test exit code: $TEST_EXIT_CODE"
