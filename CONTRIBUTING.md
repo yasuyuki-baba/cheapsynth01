@@ -45,15 +45,46 @@ Feature requests are welcome! Use our feature request template to submit your id
 
 ### Build Instructions
 
+#### First Time Setup
+
+If you've cloned the repository, initialize the submodules:
+
 ```bash
-# Create and configure build directory
+git submodule update --init --recursive
+```
+
+#### Development Build (Fast)
+
+For development, we recommend using the `-DSTANDALONE_ONLY=ON` option to reduce build times:
+
+```bash
+# Create and configure build directory (standalone only)
 cmake -B build -DSTANDALONE_ONLY=ON
 
 # Build the project
 cmake --build build
 ```
 
-For development, we recommend using the `-DSTANDALONE_ONLY=ON` option to reduce build times.
+This builds only the standalone application, which is sufficient for most development and testing.
+
+#### Release Build (All Formats)
+
+To build all plugin formats including CLAP:
+
+```bash
+# Create and configure build directory (all formats)
+cmake -B build -DSTANDALONE_ONLY=OFF
+
+# Build the project
+cmake --build build
+```
+
+This builds all supported plugin formats:
+- Standalone application
+- VST3
+- AU (macOS only)
+- LV2 (macOS and Linux only)
+- CLAP (CLever Audio Plugin)
 
 ### Running Tests
 

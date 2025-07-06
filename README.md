@@ -88,6 +88,7 @@ The architecture supports real-time parameter changes, allowing for expressive p
 - VST3
 - AU (macOS only)
 - LV2 (macOS and Linux only)
+- CLAP (CLever Audio Plugin)
 
 ## Build Instructions
 

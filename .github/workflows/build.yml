@@ -45,6 +45,7 @@ jobs:
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             
       - name: Package for Release
         if: github.ref_type == 'tag'
@@ -54,6 +55,7 @@ jobs:
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-standalone.zip Standalone/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-vst3.zip VST3/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-lv2.zip LV2/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-linux-clap.zip CLAP/
           
       - name: Upload Release Packages
         if: github.ref_type == 'tag'
@@ -96,6 +98,7 @@ jobs:
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
             ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
+            ${{github.workspace}}/build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
             
       - name: Package for Release
         if: github.ref_type == 'tag'
@@ -106,6 +109,7 @@ jobs:
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-vst3.zip VST3/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-au.zip AU/
           zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-lv2.zip LV2/
+          zip -r ${{github.workspace}}/release-packages/cheapsynth01-macos-clap.zip CLAP/
           
       - name: Upload Release Packages
         if: github.ref_type == 'tag'
