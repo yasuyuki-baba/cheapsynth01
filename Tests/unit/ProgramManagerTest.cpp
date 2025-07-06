@@ -1,21 +1,12 @@
+#include <gtest/gtest.h>
 #include <JuceHeader.h>
 #include "../../Source/ProgramManager.h"
 #include "../../Source/Parameters.h"
 
-class ProgramManagerTest : public juce::UnitTest
+// Test fixture for ProgramManager tests
+class ProgramManagerTest : public ::testing::Test
 {
-public:
-    ProgramManagerTest() : juce::UnitTest("Program Manager Tests") {}
-    
-    void runTest() override
-    {
-        testFactoryPresets();
-        testProgramSelection();
-        testStateManagement();
-        testExcludedParameters();
-    }
-    
-private:
+protected:
     // Simple AudioProcessor implementation for testing
     class TestAudioProcessor : public juce::AudioProcessor
     {
@@ -84,148 +75,148 @@ private:
         return layout;
     }
 
-    void testFactoryPresets()
+    void SetUp() override
     {
-        beginTest("Factory Presets Test");
-        
-        // Create mock AudioProcessor and parameters
-        TestAudioProcessor processor;
-        juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
-        
-        // Instantiate ProgramManager
-        ProgramManager programManager(apvts);
-        
-        // Verify program count (factory presets)
-        expect(programManager.getNumPrograms() > 0, "Should have at least one factory preset");
-        
-        // Verify program names
-        for (int i = 0; i < programManager.getNumPrograms(); ++i) {
-            expect(!programManager.getProgramName(i).isEmpty(), 
-                   "Program name should not be empty for index " + juce::String(i));
-        }
-        
-        // Verify default initial program number
-        expectEquals(programManager.getCurrentProgram(), 0, "Initial program should be 0");
+        // Test setup if needed
     }
     
-    void testProgramSelection()
+    void TearDown() override
     {
-        beginTest("Program Selection Test");
-        
-        // Create mock AudioProcessor and parameters
-        TestAudioProcessor processor;
-        juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
-        
-        // Instantiate ProgramManager
-        ProgramManager programManager(apvts);
-        
-        // Get program count
-        int numPrograms = programManager.getNumPrograms();
-        expect(numPrograms > 1, "Need at least 2 programs for selection test");
-        
-        if (numPrograms > 1) {
-            // Store initial program
-            int initialProgram = programManager.getCurrentProgram();
-            
-            // Change to a different program
-            int newProgram = (initialProgram + 1) % numPrograms;
-            programManager.setCurrentProgram(newProgram);
-            
-            // Verify program was changed
-            expectEquals(programManager.getCurrentProgram(), newProgram, 
-                       "Current program should be updated after setCurrentProgram");
-            
-            // Verify different program names can be retrieved
-            juce::String name1 = programManager.getProgramName(initialProgram);
-            juce::String name2 = programManager.getProgramName(newProgram);
-            expect(name1 != name2 || name1.isEmpty(), "Different presets should have different names");
-        }
-    }
-    
-    void testStateManagement()
-    {
-        beginTest("State Management Test");
-        
-        // Create mock AudioProcessor and parameters
-        TestAudioProcessor processor;
-        juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
-        
-        // Instantiate ProgramManager
-        ProgramManager programManager(apvts);
-        
-        // Select program
-        int program = programManager.getNumPrograms() > 1 ? 1 : 0;
-        programManager.setCurrentProgram(program);
-        
-        // Set parameter value
-        apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.5f); // Change waveform type
-        
-        // Save state
-        juce::MemoryBlock savedState;
-        programManager.getStateInformation(savedState);
-        
-        // Verify state has valid size
-        expect(savedState.getSize() > 0, "Saved state should have data");
-        
-        // Change parameter value
-        apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.0f);
-        
-        // Restore state
-        programManager.setStateInformation(savedState.getData(), (int)savedState.getSize());
-        
-        // Verify program number is restored
-        expectEquals(programManager.getCurrentProgram(), program, "Current program should be restored");
-        
-        // Verify parameter value is restored
-        float restoredValue = apvts.getParameter(ParameterIds::waveType)->getValue();
-        expectWithinAbsoluteError(restoredValue, 0.5f, 0.01f, "Parameter value should be restored");
-    }
-    
-    void testExcludedParameters()
-    {
-        beginTest("Excluded Parameters Test");
-        
-        // Create mock AudioProcessor and parameters
-        TestAudioProcessor processor;
-        juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
-        
-        // Instantiate ProgramManager
-        ProgramManager programManager(apvts);
-        
-        // Set initial values for excluded parameters
-        apvts.getParameter(ParameterIds::volume)->setValueNotifyingHost(0.8f);
-        apvts.getParameter(ParameterIds::breathInput)->setValueNotifyingHost(0.3f);
-        apvts.getParameter(ParameterIds::pitchBend)->setValueNotifyingHost(0.2f);
-        
-        // Set value for normal parameter
-        apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.5f);
-        
-        // Save state
-        juce::MemoryBlock savedState;
-        programManager.getStateInformation(savedState);
-        
-        // Change parameter values
-        apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.0f);
-        apvts.getParameter(ParameterIds::volume)->setValueNotifyingHost(0.1f);
-        apvts.getParameter(ParameterIds::breathInput)->setValueNotifyingHost(0.1f);
-        apvts.getParameter(ParameterIds::pitchBend)->setValueNotifyingHost(0.1f);
-        
-        // Restore state
-        programManager.setStateInformation(savedState.getData(), (int)savedState.getSize());
-        
-        // Verify normal parameter is restored
-        float restoredNormalParam = apvts.getParameter(ParameterIds::waveType)->getValue();
-        expectWithinAbsoluteError(restoredNormalParam, 0.5f, 0.01f, "Normal parameter should be restored");
-        
-        // Verify excluded parameters are not restored (should remain at 0.1f)
-        float restoredVolume = apvts.getParameter(ParameterIds::volume)->getValue();
-        float restoredBreath = apvts.getParameter(ParameterIds::breathInput)->getValue();
-        float restoredPitchBend = apvts.getParameter(ParameterIds::pitchBend)->getValue();
-        
-        expectWithinAbsoluteError(restoredVolume, 0.1f, 0.01f, "Volume should not be restored");
-        expectWithinAbsoluteError(restoredBreath, 0.1f, 0.01f, "Breath input should not be restored");
-        expectWithinAbsoluteError(restoredPitchBend, 0.1f, 0.01f, "Pitch bend should not be restored");
+        // Test cleanup if needed
     }
 };
 
-static ProgramManagerTest programManagerTest;
+TEST_F(ProgramManagerTest, FactoryPresets)
+{
+    // Create mock AudioProcessor and parameters
+    TestAudioProcessor processor;
+    juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
+    
+    // Instantiate ProgramManager
+    ProgramManager programManager(apvts);
+    
+    // Verify program count (factory presets)
+    EXPECT_GT(programManager.getNumPrograms(), 0) << "Should have at least one factory preset";
+    
+    // Verify program names
+    for (int i = 0; i < programManager.getNumPrograms(); ++i) {
+        EXPECT_FALSE(programManager.getProgramName(i).isEmpty()) 
+            << "Program name should not be empty for index " << i;
+    }
+    
+    // Verify default initial program number
+    EXPECT_EQ(programManager.getCurrentProgram(), 0) << "Initial program should be 0";
+}
+
+TEST_F(ProgramManagerTest, ProgramSelection)
+{
+    // Create mock AudioProcessor and parameters
+    TestAudioProcessor processor;
+    juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
+    
+    // Instantiate ProgramManager
+    ProgramManager programManager(apvts);
+    
+    // Get program count
+    int numPrograms = programManager.getNumPrograms();
+    EXPECT_GT(numPrograms, 1) << "Need at least 2 programs for selection test";
+    
+    if (numPrograms > 1) {
+        // Store initial program
+        int initialProgram = programManager.getCurrentProgram();
+        
+        // Change to a different program
+        int newProgram = (initialProgram + 1) % numPrograms;
+        programManager.setCurrentProgram(newProgram);
+        
+        // Verify program was changed
+        EXPECT_EQ(programManager.getCurrentProgram(), newProgram) 
+            << "Current program should be updated after setCurrentProgram";
+        
+        // Verify different program names can be retrieved
+        juce::String name1 = programManager.getProgramName(initialProgram);
+        juce::String name2 = programManager.getProgramName(newProgram);
+        EXPECT_TRUE(name1 != name2 || name1.isEmpty()) << "Different presets should have different names";
+    }
+}
+
+TEST_F(ProgramManagerTest, StateManagement)
+{
+    // Create mock AudioProcessor and parameters
+    TestAudioProcessor processor;
+    juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
+    
+    // Instantiate ProgramManager
+    ProgramManager programManager(apvts);
+    
+    // Select program
+    int program = programManager.getNumPrograms() > 1 ? 1 : 0;
+    programManager.setCurrentProgram(program);
+    
+    // Set parameter value
+    apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.5f); // Change waveform type
+    
+    // Save state
+    juce::MemoryBlock savedState;
+    programManager.getStateInformation(savedState);
+    
+    // Verify state has valid size
+    EXPECT_GT(savedState.getSize(), 0) << "Saved state should have data";
+    
+    // Change parameter value
+    apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.0f);
+    
+    // Restore state
+    programManager.setStateInformation(savedState.getData(), (int)savedState.getSize());
+    
+    // Verify program number is restored
+    EXPECT_EQ(programManager.getCurrentProgram(), program) << "Current program should be restored";
+    
+    // Verify parameter value is restored
+    float restoredValue = apvts.getParameter(ParameterIds::waveType)->getValue();
+    EXPECT_NEAR(restoredValue, 0.5f, 0.01f) << "Parameter value should be restored";
+}
+
+TEST_F(ProgramManagerTest, ExcludedParameters)
+{
+    // Create mock AudioProcessor and parameters
+    TestAudioProcessor processor;
+    juce::AudioProcessorValueTreeState apvts(processor, nullptr, "Parameters", createTestParameterLayout());
+    
+    // Instantiate ProgramManager
+    ProgramManager programManager(apvts);
+    
+    // Set initial values for excluded parameters
+    apvts.getParameter(ParameterIds::volume)->setValueNotifyingHost(0.8f);
+    apvts.getParameter(ParameterIds::breathInput)->setValueNotifyingHost(0.3f);
+    apvts.getParameter(ParameterIds::pitchBend)->setValueNotifyingHost(0.2f);
+    
+    // Set value for normal parameter
+    apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.5f);
+    
+    // Save state
+    juce::MemoryBlock savedState;
+    programManager.getStateInformation(savedState);
+    
+    // Change parameter values
+    apvts.getParameter(ParameterIds::waveType)->setValueNotifyingHost(0.0f);
+    apvts.getParameter(ParameterIds::volume)->setValueNotifyingHost(0.1f);
+    apvts.getParameter(ParameterIds::breathInput)->setValueNotifyingHost(0.1f);
+    apvts.getParameter(ParameterIds::pitchBend)->setValueNotifyingHost(0.1f);
+    
+    // Restore state
+    programManager.setStateInformation(savedState.getData(), (int)savedState.getSize());
+    
+    // Verify normal parameter is restored
+    float restoredNormalParam = apvts.getParameter(ParameterIds::waveType)->getValue();
+    EXPECT_NEAR(restoredNormalParam, 0.5f, 0.01f) << "Normal parameter should be restored";
+    
+    // Verify excluded parameters are not restored (should remain at 0.1f)
+    float restoredVolume = apvts.getParameter(ParameterIds::volume)->getValue();
+    float restoredBreath = apvts.getParameter(ParameterIds::breathInput)->getValue();
+    float restoredPitchBend = apvts.getParameter(ParameterIds::pitchBend)->getValue();
+    
+    EXPECT_NEAR(restoredVolume, 0.1f, 0.01f) << "Volume should not be restored";
+    EXPECT_NEAR(restoredBreath, 0.1f, 0.01f) << "Breath input should not be restored";
+    EXPECT_NEAR(restoredPitchBend, 0.1f, 0.01f) << "Pitch bend should not be restored";
+}

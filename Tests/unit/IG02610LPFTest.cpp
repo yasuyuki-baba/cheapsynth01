@@ -1,30 +1,31 @@
+#include <gtest/gtest.h>
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/IG02610LPF.h"
 
-class IG02610LPFTest : public juce::UnitTest
+// Test fixture for IG02610LPF tests
+class IG02610LPFTest : public ::testing::Test
 {
-public:
-    IG02610LPFTest() : juce::UnitTest("IG02610LPF Tests") {}
-    
-    void runTest() override
+protected:
+    void SetUp() override
     {
-        testInitialization();
+        // Set up test environment
+        filter = std::make_unique<IG02610LPF>();
     }
     
-private:
-    void testInitialization()
+    void TearDown() override
     {
-        beginTest("Initialization Test");
-        
-        IG02610LPF filter;
-        
-        // Just check that the filter can be created without crashing
-        expect(true);
-        
-        // Check that the filter doesn't crash when used before preparation
-        float sample = filter.processSample(0, 0.5f);
-        expect(std::isfinite(sample));
+        filter.reset();
     }
+    
+    std::unique_ptr<IG02610LPF> filter;
 };
 
-static IG02610LPFTest ig02610LPFTest;
+TEST_F(IG02610LPFTest, Initialization)
+{
+    // Just check that the filter can be created without crashing
+    EXPECT_TRUE(true);
+    
+    // Check that the filter doesn't crash when used before preparation
+    float sample = filter->processSample(0, 0.5f);
+    EXPECT_TRUE(std::isfinite(sample));
+}
