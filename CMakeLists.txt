@@ -13,6 +13,9 @@ endif()
 # Include JUCE modules
 include(cmake/JUCE.cmake)
 
+# Add CLAP JUCE extensions
+add_subdirectory(libs/clap-juce-extensions EXCLUDE_FROM_ALL)
+
 # Compiler settings
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -37,6 +40,8 @@ else()
     if(NOT WIN32 OR UNIX)
         list(APPEND PLUGIN_FORMATS LV2)
     endif()
+    
+    message(STATUS "Building with plugin formats: ${PLUGIN_FORMATS}")
 endif()
 
 # JUCE plugin settings
@@ -168,6 +173,17 @@ target_link_juce_modules(CheapSynth01)
 target_link_libraries(CheapSynth01 PUBLIC CheapSynth01Resources)
 
 message(STATUS "CheapSynth01 configuration complete!")
+
+# Add CLAP plugin support (only when not building standalone only)
+if(NOT STANDALONE_ONLY)
+    clap_juce_extensions_plugin(TARGET CheapSynth01
+        CLAP_ID "com.yasuyukibaba.cheapsynth01"
+        CLAP_FEATURES instrument synthesizer vintage analog
+        CLAP_MANUAL_URL "https://github.com/yasuyuki-baba/cheapsynth01"
+        CLAP_SUPPORT_URL "https://github.com/yasuyuki-baba/cheapsynth01/issues"
+    )
+    message(STATUS "CLAP plugin target added: CheapSynth01_CLAP")
+endif()
 
 # Add Tests directory
 add_subdirectory(Tests)

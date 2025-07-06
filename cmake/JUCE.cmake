@@ -7,7 +7,7 @@ include(FetchContent)
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.8  # Use latest version (improved compatibility with macOS 15)
+    GIT_TAG 8.0.8  # Latest stable version
 )
 
 # Make JUCE available
