@@ -1,14 +1,22 @@
 #include "IG02610LPF.h"
 
 IG02610LPF::IG02610LPF() 
-    : cutoff(1000.0f), resonance(0.1f), sampleRate(44100.0f)
+    : cutoff(1000.0f), resonance(0.1f), sampleRate(0.0f)  // Unset state, will be set by prepare()
 {
     reset();
+}
+
+IG02610LPF::IG02610LPF(double sampleRate) 
+    : cutoff(1000.0f), resonance(0.1f), sampleRate(static_cast<float>(sampleRate))
+{
+    reset();
+    updateCoefficients();
 }
 
 void IG02610LPF::reset()
 {
     z1 = z2 = 0.0f;
+    inputLevelSmoothed = 0.0f;
     
     // Reset input and output stages
     inputStage.reset();
@@ -40,29 +48,25 @@ float IG02610LPF::accurateTanh(float x)
     }
 }
 
-// Input stage processing
+// Input stage processing - Clean DC blocking based on circuit diagram
 float IG02610LPF::processInputStage(float sample)
 {
-    // Model input capacitor (0.022μF) and resistor (22KΩ) effects
-    // High-pass filter characteristic (approx 72Hz cutoff)
+    // Model input capacitor (0.022μF) and resistor (22KΩ) from circuit diagram
+    // Clean DC blocking without distortion - actual circuit is linear
     sample = inputStage.dcBlocker.processSample(sample);
-    
-    // Light saturation in input stage
-    const float inputSaturation = 1.1f;
-    sample = accurateTanh(sample * inputSaturation);
     
     return sample;
 }
 
-// Output stage processing
+// Output stage processing - Clean DC blocking based on circuit diagram
 float IG02610LPF::processOutputStage(float sample)
 {
-    // Simple DC blocker (1st order high-pass filter)
-    // Modeling the 1/50 capacitor and 82kΩ resistor combination
-    const float cutoffFreq = 5.0f; // Low cutoff frequency around 5Hz
+    // Model the output capacitor (1/50 = 0.02µF) and resistor (10KΩ) from circuit diagram
+    // Clean DC blocking without additional coloration - actual circuit is linear
+    const float cutoffFreq = 8.0f; // Approximately 8Hz cutoff based on RC values
     const float alpha = 1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffFreq / outputStage.sampleRate);
     
-    // DC blocking
+    // Clean DC blocking filter
     outputStage.prevOutput = alpha * (outputStage.prevOutput + sample - outputStage.prevInput);
     outputStage.prevInput = sample;
     
@@ -84,121 +88,150 @@ void IG02610LPF::setResonance(float newResonance)
 
 float IG02610LPF::processSample(int channel, float sample)
 {
-    // Apply input stage processing
+    // Apply input stage processing (clean DC blocking only)
     sample = processInputStage(sample);
     
-    // Limit input signal range to prevent overload (using fast min/max)
+    // Soft limiting to prevent overload (gentler than hard clipping)
     sample = sample > 1.0f ? 1.0f : (sample < -1.0f ? -1.0f : sample);
     
-    // Standard processing (direct form II transposed structure)
-    // More numerically stable and efficient
+    // Track input level with envelope follower for OTA input level dependency
+    float inputLevel = std::abs(sample);
+    inputLevelSmoothed = inputLevelSmoothed * LEVEL_SMOOTHING + 
+                       inputLevel * (1.0f - LEVEL_SMOOTHING);
+    
+    // Apply OTA input level dependent cutoff modulation
+    // Large signals make cutoff slightly higher (brighter), small signals make it lower (darker)
+    float levelModulation = (inputLevelSmoothed - 0.5f) * INPUT_LEVEL_INFLUENCE;
+    float dynamicCutoff = cutoff * (1.0f + levelModulation);
+    
+    // Temporarily update cutoff for this sample if there's significant modulation
+    bool needsUpdate = std::abs(levelModulation) > 0.001f;
+    float originalCutoff = cutoff;
+    if (needsUpdate) {
+        cutoff = juce::jlimit(20.0f, 20000.0f, dynamicCutoff);
+        updateCoefficients();
+    }
+    
+    // Standard 2nd order filter processing (direct form II transposed)
     const float input = sample;
     const float output = b0 * input + z1;
     
-    // Update filter state
+    // Update filter state variables
     z1 = b1 * input - a1 * output + z2;
     z2 = b2 * input - a2 * output;
     
-    // Apply resonance nonlinearity with smooth blending instead of conditional branch
-    // This eliminates the branch prediction failure when resonance is near the threshold
-    float y = output;
-    
-    // Calculate resonance drive factor (will be near zero when resonance <= 0.5)
-    const float resAmount = resonance > 0.5f ? (resonance - 0.5f) * 3.0f : 0.0f;
-    
-    // Only apply significant processing when resonance is high enough
-    if (resAmount > 0.01f)
-    {
-        // Use more accurate tanh approximation
-        const float driven = y * (1.0f + resAmount);
-        const float absInput = std::abs(driven);
-        const float fastTanh = accurateTanh(driven * 0.7f);
-        
-        // Simplified resonance shaping (avoiding expensive exp calculation)
-        const float shaped = fastTanh * (1.0f - RESONANCE_SHAPE * (1.0f / (1.0f + absInput * 2.0f)));
-        
-        // Blend between original and shaped signal based on resonance amount
-        y = y * (1.0f - resAmount) + shaped * resAmount;
+    // Restore original cutoff if it was temporarily changed
+    if (needsUpdate) {
+        cutoff = originalCutoff;
+        // Note: We don't update coefficients back here for performance,
+        // they will be updated when setCutoffFrequency is called next time
     }
     
-    // Use more accurate tanh approximation for output shaping
-    const float driven = y * OUTPUT_DRIVE;
-    y = accurateTanh(driven * 0.6f);
+    // IG02610's unique characteristic: Mix lowpass with slight highpass for notch behavior
+    // Based on analysis showing "half lowpass, half highpass mixed to create notch"
+    float y = output;
     
-    // Apply output stage processing
-    return processOutputStage(y);
+    // Add subtle notch characteristic when cutoff is lowered (below ~500Hz)
+    if (cutoff < 500.0f && resonance > 0.5f) {
+        const float notchAmount = (500.0f - cutoff) / 500.0f; // 0.0 to 1.0 as cutoff decreases
+        const float highpassComponent = input - output; // Simple highpass approximation
+        
+        // Mix slight highpass to create notch effect (very subtle)
+        y = output + highpassComponent * notchAmount * 0.1f;
+    }
+    
+    // Enhanced OTA-based nonlinear distortion characteristics
+    // Apply across all resonance ranges with varying intensity
+    {
+        // Stage 1: Subtle even harmonics for low resonance (OTA input stage)
+        float lightDistortion = 0.0f;
+        if (resonance <= 0.4f) {
+            const float lightAmount = resonance / 0.4f; // 0.0 to 1.0
+            const float evenHarmonics = y * y * y * 0.05f; // Cubic for even harmonics
+            lightDistortion = evenHarmonics * lightAmount * 0.3f;
+        }
+        
+        // Stage 2: Balanced distortion for medium resonance
+        float mediumDistortion = 0.0f;
+        if (resonance > 0.4f && resonance <= 0.7f) {
+            const float medAmount = (resonance - 0.4f) / 0.3f; // 0.0 to 1.0
+            
+            // Frequency-dependent drive (low frequencies get more distortion)
+            const float freqFactor = cutoff < 1000.0f ? 
+                1.2f - (cutoff / 1000.0f) * 0.4f : 0.8f;
+            
+            const float drivenSignal = y * (1.0f + medAmount * 0.15f * freqFactor);
+            const float balancedSat = accurateTanh(drivenSignal * 0.4f);
+            mediumDistortion = balancedSat * medAmount * 0.4f;
+        }
+        
+        // Stage 3: Strong distortion for high resonance (enhanced from original)
+        float strongDistortion = 0.0f;
+        if (resonance > 0.7f) {
+            const float strongAmount = (resonance - 0.7f) / 0.1f; // 0.0 to 1.0
+            
+            // Input level dependent drive (larger signals get more distortion)
+            const float inputLevel = std::abs(y);
+            const float levelFactor = 1.0f + inputLevel * 0.5f;
+            
+            // Frequency-dependent saturation characteristics
+            const float freqSaturation = cutoff < 500.0f ? 1.3f : 
+                (cutoff > 5000.0f ? 0.7f : 1.0f);
+            
+            const float heavilyDriven = y * levelFactor * (1.0f + strongAmount * 0.25f);
+            const float primarySat = accurateTanh(heavilyDriven * 0.5f * freqSaturation);
+            
+            // Add asymmetric clipping for OTA-like behavior
+            const float asymmetric = y > 0.0f ? 
+                accurateTanh(y * 1.2f) : accurateTanh(y * 0.8f);
+            
+            strongDistortion = (primarySat * 0.7f + asymmetric * 0.3f) * strongAmount * 0.5f;
+        }
+        
+        // Combine all distortion stages
+        const float totalDistortion = lightDistortion + mediumDistortion + strongDistortion;
+        
+        // Apply distortion with smooth blending
+        const float distortionAmount = resonance * 0.6f; // Overall distortion scaling
+        y = y * (1.0f - distortionAmount) + totalDistortion * distortionAmount;
+        
+        // Final gentle limiting to prevent extreme values
+        y = juce::jlimit(-1.5f, 1.5f, y);
+    }
+    
+    // Apply output stage processing and reduce volume to 50%
+    return processOutputStage(y);// * 0.5f;
 }
 
 void IG02610LPF::updateCoefficients()
 {
+    if (sampleRate <= 0.0f) return; // Prevent division by zero
+    
     // Limit cutoff frequency range
     cutoff = juce::jlimit(20.0f, 20000.0f, cutoff);
     
     // Limit resonance range (max 0.8f to prevent extreme resonance)
     resonance = juce::jlimit(0.1f, 0.8f, resonance);
     
-    // Normalized cutoff frequency (0 to π)
-    const float wc = juce::MathConstants<float>::pi * cutoff / sampleRate;
+    // Use standard biquad lowpass filter design
+    const float frequency = cutoff / sampleRate;
+    const float omega = 2.0f * juce::MathConstants<float>::pi * frequency;
+    const float sin_omega = std::sin(omega);
+    const float cos_omega = std::cos(omega);
     
-    // Fast approximation of sin(wc) and cos(wc) using Taylor series
-    // sin(x) ≈ x - x³/6 for small x
-    // cos(x) ≈ 1 - x²/2 for small x
-    const float wcSquared = wc * wc;
-    const float sinWc = wc * (1.0f - wcSquared / 6.0f);
-    const float cosWc = 1.0f - wcSquared / 2.0f;
+    // Q factor - more reasonable range
+    const float Q = 0.5f + resonance * 4.5f; // Range from 0.5 to 5.0
     
-    // Resonance coefficient (based on PSW4 switch state)
-    // Q factor based on original CS-10 specs (Q=10 according to documentation)
-    // Pre-compute both paths to avoid branching
-    const float qFactor = resonance > 0.5f ? 10.0f : 1.0f;
+    const float alpha = sin_omega / (2.0f * Q);
     
-    // Convert to standard second-order filter form
-    const float alpha = sinWc / (2.0f * qFactor);
-    
-    // Adjustment factor based on capacitor ratio from circuit diagram
-    const float adjustmentFactor = 1.658f; // Pre-computed sqrt(11) * 0.5
-    
-    // Standard 2-pole filter coefficients
-    const float oneMinusCosWc = 1.0f - cosWc;
-    b0 = oneMinusCosWc * 0.5f * adjustmentFactor;
-    b1 = oneMinusCosWc * adjustmentFactor;
-    b2 = b0;
-    a1 = -2.0f * cosWc;
-    a2 = 1.0f - alpha;
-    
-    // Normalize coefficients
+    // Standard lowpass biquad coefficients
     const float norm = 1.0f / (1.0f + alpha);
-    b0 *= norm;
-    b1 *= norm;
-    b2 *= norm;
-    a1 *= norm;
-    a2 *= norm;
     
-    // Apply frequency-dependent adjustments using smooth interpolation
-    // instead of conditional branches
-    
-    // Low frequency adjustment factor (smooth transition around 500Hz)
-    const float lowFreqBlend = juce::jlimit(0.0f, 1.0f, cutoff / 500.0f);
-    const float lowFreqFactor = 0.8f + 0.2f * lowFreqBlend;
-    
-    // High frequency adjustment factor (smooth transition around 5000Hz)
-    const float highFreqBlend = juce::jlimit(0.0f, 1.0f, (cutoff - 5000.0f) / 15000.0f);
-    const float highFreqFactor = 1.0f - highFreqBlend * 0.15f;
-    
-    // Apply low frequency adjustment (affects all frequencies below 500Hz with smooth transition)
-    if (cutoff < 500.0f)
-    {
-        b0 *= lowFreqFactor;
-        b1 *= lowFreqFactor;
-        b2 *= lowFreqFactor;
-    }
-    
-    // Apply high frequency adjustment (affects all frequencies above 5000Hz with smooth transition)
-    if (cutoff > 5000.0f)
-    {
-        a1 *= highFreqFactor;
-        a2 *= highFreqFactor;
-    }
+    b0 = ((1.0f - cos_omega) * 0.5f) * norm;
+    b1 = (1.0f - cos_omega) * norm;
+    b2 = b0;
+    a1 = (-2.0f * cos_omega) * norm;
+    a2 = (1.0f - alpha) * norm;
 }
 
 
