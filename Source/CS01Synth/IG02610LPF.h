@@ -7,7 +7,8 @@
 class IG02610LPF
 {
 public:
-    IG02610LPF();
+    IG02610LPF();                    // Default constructor (safe initial values)
+    IG02610LPF(double sampleRate);   // Constructor with sample rate specification
     ~IG02610LPF() = default;
     
     void reset();
@@ -33,10 +34,17 @@ private:
     float a1, a2, b0, b1, b2;
     float z1, z2;
     
+    // Input level tracking for OTA input level dependency characteristic
+    float inputLevelSmoothed = 0.0f;
+    
     // WaveShaper parameters - defined as static constants
     static constexpr float RESONANCE_DRIVE = 1.2f;
     static constexpr float RESONANCE_SHAPE = 0.8f;
     static constexpr float OUTPUT_DRIVE = 1.1f;
+    
+    // OTA input level dependency parameters
+    static constexpr float INPUT_LEVEL_INFLUENCE = 0.02f; // ±2% cutoff modulation
+    static constexpr float LEVEL_SMOOTHING = 0.99f;      // Envelope follower coefficient
     
     // Input stage model
     struct InputStage {
