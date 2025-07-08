@@ -82,6 +82,12 @@ class MidiProcessor : public juce::AudioProcessor {
     void handlePitchWheel(const juce::MidiMessage& midiMessage);
     void handleControllerMessage(const juce::MidiMessage& midiMessage);
 
+    // 14bit CC parameter update methods
+    void updateModulationParameter();
+    void updateBreathParameter();
+    void updateVolumeParameter();
+    void updateGlissandoParameter();
+
     juce::AudioProcessorValueTreeState& apvts;
     ISoundGenerator* soundGenerator = nullptr;
     EGProcessor* egProcessor = nullptr;
@@ -89,6 +95,12 @@ class MidiProcessor : public juce::AudioProcessor {
     // For monophonic sound management
     juce::Array<int> activeNotes;
     int lastPitchWheelValue = 8192;  // Center value
+
+    // 14bit CC values storage
+    int modulationMSB = 0, modulationLSB = 0;     // CC #1/#33
+    int breathMSB = 0, breathLSB = 0;             // CC #2/#34  
+    int volumeMSB = 0, volumeLSB = 0;             // CC #7/#39
+    int glissandoMSB = 0, glissandoLSB = 0;       // CC #35/#37
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiProcessor)
 };
