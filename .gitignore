@@ -9,7 +9,7 @@ build_tests/
 *.bak
 
 # Documentation
-docs/
+references/
 
 # Clinerules
 .clinerules/
