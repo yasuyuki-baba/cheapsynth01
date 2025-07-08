@@ -1,0 +1,70 @@
+---
+# CS01 Project Code Formatting Configuration
+# Based on Google Style with JUCE-specific modifications
+
+BasedOnStyle: Google
+
+# Indentation and spacing
+IndentWidth: 4                          # JUCE standard (vs Google's 2)
+UseTab: Never
+TabWidth: 4
+
+# Line length
+ColumnLimit: 100                        # Modern screen-friendly (vs Google's 80)
+
+# Braces - keep Google's attach style
+BreakBeforeBraces: Attach
+BraceWrapping:
+  BeforeCatch: false
+  BeforeElse: false
+
+# Includes - disable sorting to preserve JUCE header priority
+SortIncludes: false                     # Keep JUCEHeader.h first
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: true
+
+# Function formatting
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+
+# Line breaking
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+
+# Comments
+ReflowComments: true
+SpacesBeforeTrailingComments: 2
+
+# Preprocessor
+IndentPPDirectives: None
+
+# Penalties for line breaking (lower = more likely to break)
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+
+# Language specific
+Language: Cpp
+Standard: Auto
