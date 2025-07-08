@@ -111,9 +111,6 @@ target_include_directories(CheapSynth01Tests
 target_link_juce_modules(CheapSynth01Tests)
 target_link_libraries(CheapSynth01Tests
     PRIVATE
-        gtest
-        gtest_main
-        gmock
         gmock_main
 )
 
