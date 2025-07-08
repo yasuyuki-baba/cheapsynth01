@@ -4,6 +4,7 @@
 #include "../Parameters.h"
 #include "SynthConstants.h"
 #include "ISoundGenerator.h"
+#include "IWaveformStrategy.h"
 
 /**
  * ToneGenerator - Responsible for sound generation and MIDI note handling
@@ -38,9 +39,11 @@ public:
     void setPitchBend(float bendInSemitones);
 
 private:
-    float generateVcoSample();
-    void setVcoFrequency(float frequency);
+    float generateVcoSampleFromMaster(float masterSquare);
     void calculateSlideParameters(int targetNote);
+    
+    // Base waveform generation methods
+    float generateMasterSquareWave(float finalPitch);
 
     juce::AudioProcessorValueTreeState& apvts;
 
@@ -54,10 +57,8 @@ private:
     // Pitch State
     float currentPitch = 60.0f;
     float targetPitch = 60.0f;
-    float midiPitchBendValue = 0.0f;
+    float pitchBend = 0.0f;
     bool isSliding = false;
-    int slideSamplesRemaining = 0;
-    float slideIncrement = 0.0f;
     int samplesPerStep = 0;
     int stepCounter = 0;
 
@@ -68,12 +69,26 @@ private:
     float leakyIntegratorState = 0.0f;
     float dcBlockerState = 0.0f;
     
+    // Base square wave generation (master clock)
+    float previousBaseSquare = 0.0f;
+    
     // Cached Parameters
     float currentModDepth = 0.0f;
+    float pitchBendOffset = 0.0f;
+    float pitchOffset = 0.0f;
     Waveform currentWaveform = Waveform::Sawtooth;
     Feet currentFeet = Feet::Feet8;
 
     // LFOs
     juce::dsp::Oscillator<float> pwmLfo;
     float lfoValue = 0.0f;
+    
+    // Waveform Strategy Pattern - simplified with direct mapping
+    std::map<Waveform, std::unique_ptr<IWaveformStrategy>> waveformStrategies;
+    IWaveformStrategy* currentWaveformStrategy = nullptr;
+    Waveform previousWaveform = Waveform::Sawtooth;
+    
+    // Helper methods for strategy pattern
+    void initializeWaveformStrategies();
+    void updateWaveformStrategy();
 };
