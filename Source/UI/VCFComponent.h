@@ -3,22 +3,22 @@
 #include "../Parameters.h"
 #include "../CS01Synth/IFilter.h"
 
-class VCFComponent : public juce::Component
-{
-public:
+class VCFComponent : public juce::Component {
+   public:
     VCFComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCFComponent() override;
     void paint(juce::Graphics& g) override;
     void resized() override;
-    
+
     // Update UI when filter processor changes
     void updateFilterControl(IFilter* filterProcessor);
-private:
+
+   private:
     // Method to monitor filter type changes and update resonance UI
     void updateResonanceControl(float filterType);
 
     juce::AudioProcessorValueTreeState& valueTreeState;
-    
+
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;
     std::unique_ptr<juce::SliderParameterAttachment> cutoffAttachment;

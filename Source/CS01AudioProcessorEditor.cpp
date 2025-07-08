@@ -8,12 +8,12 @@ using namespace juce;
 
 //==============================================================================
 CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
-    : AudioProcessorEditor(&p), 
+    : AudioProcessorEditor(&p),
       audioProcessor(p),
-      midiKeyboard(p.getKeyboardState(), juce::MidiKeyboardComponent::Orientation::horizontalKeyboard),
+      midiKeyboard(p.getKeyboardState(),
+                   juce::MidiKeyboardComponent::Orientation::horizontalKeyboard),
       oscilloscopeComponent(p.getTotalNumOutputChannels()),
-      audioVisualiser(p.getTotalNumOutputChannels())
-{
+      audioVisualiser(p.getTotalNumOutputChannels()) {
     lookAndFeel = std::make_unique<CS01LookAndFeel>();
     setLookAndFeel(lookAndFeel.get());
 
@@ -47,7 +47,7 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
 
     programPanel.reset(new ProgramPanel(audioProcessor));
     addAndMakeVisible(programPanel.get());
-    
+
     filterTypeComponent.reset(new FilterTypeComponent(audioProcessor.getValueTreeState()));
     addAndMakeVisible(filterTypeComponent.get());
 
@@ -60,12 +60,12 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     upperFlex.items.add(juce::FlexItem(*vcfComponent).withFlex(5));
     upperFlex.items.add(juce::FlexItem(*vcaComponent).withFlex(2));
     upperFlex.items.add(juce::FlexItem(*egComponent).withFlex(6));
-    
+
     // Configure FlexBox for waveform display (vertical layout)
     visualizerFlex.flexDirection = juce::FlexBox::Direction::column;
     visualizerFlex.items.add(juce::FlexItem(oscilloscopeComponent).withFlex(1));
     visualizerFlex.items.add(juce::FlexItem(audioVisualiser).withFlex(1));
-    
+
     // Add waveform display FlexBox to the upper FlexBox
     upperFlex.items.add(juce::FlexItem(visualizerFlex).withFlex(4));
 
@@ -84,28 +84,23 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     setSize(1200, 500);
 }
 
-CS01AudioProcessorEditor::~CS01AudioProcessorEditor()
-{
+CS01AudioProcessorEditor::~CS01AudioProcessorEditor() {
     setLookAndFeel(nullptr);
 }
 
 //==============================================================================
-void CS01AudioProcessorEditor::paint(juce::Graphics& g)
-{
+void CS01AudioProcessorEditor::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
 }
 
-void CS01AudioProcessorEditor::resized()
-{
+void CS01AudioProcessorEditor::resized() {
     mainFlex.performLayout(getLocalBounds().reduced(10));
 }
 
 // Called when filter type changes
-void CS01AudioProcessorEditor::filterTypeChanged(IFilter* newFilterProcessor)
-{
+void CS01AudioProcessorEditor::filterTypeChanged(IFilter* newFilterProcessor) {
     // Get resonance control type from IFilterProcessor
-    if (newFilterProcessor != nullptr && vcfComponent != nullptr)
-    {
+    if (newFilterProcessor != nullptr && vcfComponent != nullptr) {
         // Notify VCFComponent about filter type change
         vcfComponent->updateFilterControl(newFilterProcessor);
     }

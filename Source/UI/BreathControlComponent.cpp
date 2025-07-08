@@ -1,8 +1,8 @@
 #include "BreathControlComponent.h"
 #include "../Parameters.h"
 
-BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts)
-{
+BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeState& apvts)
+    : valueTreeState(apvts) {
     breathVcfSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     breathVcfSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(breathVcfSlider);
@@ -22,18 +22,16 @@ BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeStat
 
 BreathControlComponent::~BreathControlComponent() {}
 
-void BreathControlComponent::paint(juce::Graphics& g)
-{
+void BreathControlComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
     g.setColour(juce::Colours::white);
     g.setFont(15.0f);
     g.drawFittedText("Breath Control", getLocalBounds(), juce::Justification::centredTop, 1);
 }
 
-void BreathControlComponent::resized()
-{
+void BreathControlComponent::resized() {
     auto bounds = getLocalBounds().withTrimmedTop(20);
-    
+
     juce::FlexBox flexbox;
     flexbox.flexDirection = juce::FlexBox::Direction::column;
     flexbox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;

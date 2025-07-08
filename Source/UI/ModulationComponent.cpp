@@ -2,8 +2,7 @@
 #include "../CS01AudioProcessor.h"
 #include "../Parameters.h"
 
-ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p)
-{
+ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     // Pitch Bend Slider
     pitchBendSlider.setSliderStyle(juce::Slider::LinearVertical);
     pitchBendSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -31,64 +30,56 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p)
     addAndMakeVisible(lfoTargetLabel);
     lfoTargetLabel.setText("TARGET", juce::dontSendNotification);
 
-    if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam))
-    {
+    if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam)) {
         auto choices = choiceParam->choices;
-        for (int i = 0; i < choices.size(); ++i)
-        {
+        for (int i = 0; i < choices.size(); ++i) {
             auto* button = lfoTargetButtons.add(new juce::ToggleButton(choices[i]));
             addAndMakeVisible(button);
-            button->setRadioGroupId(3); // Group ID for LFO Target
+            button->setRadioGroupId(3);  // Group ID for LFO Target
             button->setClickingTogglesState(true);
             button->onClick = [choiceParam, i] { *choiceParam = i; };
         }
     }
     lfoTargetParam->addListener(this);
-    
+
     // Initial update
     parameterValueChanged(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
 }
 
-ModulationComponent::~ModulationComponent()
-{
+ModulationComponent::~ModulationComponent() {
     pitchBendSlider.removeListener(this);
     modDepthSlider.removeListener(this);
-    if (lfoTargetParam) lfoTargetParam->removeListener(this);
+    if (lfoTargetParam)
+        lfoTargetParam->removeListener(this);
 }
 
-void ModulationComponent::paint(juce::Graphics& g)
-{
+void ModulationComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
     g.setColour(juce::Colours::white);
     g.setFont(15.0f);
     g.drawFittedText("Modulation", getLocalBounds(), juce::Justification::centredTop, 1);
 }
 
-void ModulationComponent::sliderValueChanged(juce::Slider* slider)
-{
-    if (slider == &pitchBendSlider)
-    {
+void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
+    if (slider == &pitchBendSlider) {
         // Pitch bend value is from 0.0 to 1.0. MIDI pitch wheel is 14-bit (0-16383).
         // We map our range to the upper half of the MIDI pitch wheel range (8192-16383).
         int pitchWheelValue = static_cast<int>(8192 + slider->getValue() * 8191.0);
         auto message = juce::MidiMessage::pitchWheel(1, pitchWheelValue);
         message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
         processor.getMidiMessageCollector().addMessageToQueue(message);
-    }
-    else if (slider == &modDepthSlider)
-    {
+    } else if (slider == &modDepthSlider) {
         // Mod depth is 0.0 to 1.0. MIDI CC is 0-127.
         int controllerValue = static_cast<int>(slider->getValue() * 127);
-        auto message = juce::MidiMessage::controllerEvent(1, 1, controllerValue); // CC #1
+        auto message = juce::MidiMessage::controllerEvent(1, 1, controllerValue);  // CC #1
         message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
         processor.getMidiMessageCollector().addMessageToQueue(message);
     }
 }
 
-void ModulationComponent::resized()
-{
+void ModulationComponent::resized() {
     auto bounds = getLocalBounds().reduced(5).withTrimmedTop(20);
-    
+
     juce::FlexBox flex;
     flex.flexDirection = juce::FlexBox::Direction::row;
     flex.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
@@ -124,18 +115,15 @@ void ModulationComponent::resized()
     flex.performLayout(bounds);
 }
 
-void ModulationComponent::parameterValueChanged(int parameterIndex, float newValue)
-{
-    if (parameterIndex == lfoTargetParam->getParameterIndex())
-    {
-        if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam))
-        {
-            lfoTargetButtons[choiceParam->getIndex()]->setToggleState(true, juce::dontSendNotification);
+void ModulationComponent::parameterValueChanged(int parameterIndex, float newValue) {
+    if (parameterIndex == lfoTargetParam->getParameterIndex()) {
+        if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam)) {
+            lfoTargetButtons[choiceParam->getIndex()]->setToggleState(true,
+                                                                      juce::dontSendNotification);
         }
     }
 }
 
-void ModulationComponent::parameterGestureChanged(int parameterIndex, bool gestureIsStarting)
-{
+void ModulationComponent::parameterGestureChanged(int parameterIndex, bool gestureIsStarting) {
     // Not needed for this component
 }

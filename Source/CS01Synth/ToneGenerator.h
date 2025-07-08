@@ -8,13 +8,12 @@
 
 /**
  * ToneGenerator - Responsible for sound generation and MIDI note handling
- * 
+ *
  * This class implements the ISoundGenerator interface and generates audio samples
  * based on MIDI note input and various synthesis parameters.
  */
-class ToneGenerator : public ISoundGenerator
-{
-public:
+class ToneGenerator : public ISoundGenerator {
+   public:
     ToneGenerator(juce::AudioProcessorValueTreeState& apvts);
 
     // ISoundGenerator implementation - note handling methods
@@ -26,22 +25,23 @@ public:
     int getCurrentlyPlayingNote() const override;
 
     // Audio processing methods
-    void prepare(const juce::dsp::ProcessSpec &spec) override;
+    void prepare(const juce::dsp::ProcessSpec& spec) override;
     void updateBlockRateParameters();
     void reset();
-    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override;
+    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample,
+                         int numSamples) override;
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
-    
+
     // Sound generation methods
     float getNextSample();
     void setLfoValue(float lfoValue) override;
     void setNote(int midiNoteNumber, bool isLegato);
     void setPitchBend(float bendInSemitones);
 
-private:
+   private:
     float generateVcoSampleFromMaster(float masterSquare);
     void calculateSlideParameters(int targetNote);
-    
+
     // Base waveform generation methods
     float generateMasterSquareWave(float finalPitch);
 
@@ -68,10 +68,10 @@ private:
     float phaseIncrement = 0.0f;
     float leakyIntegratorState = 0.0f;
     float dcBlockerState = 0.0f;
-    
+
     // Base square wave generation (master clock)
     float previousBaseSquare = 0.0f;
-    
+
     // Cached Parameters
     float currentModDepth = 0.0f;
     float pitchBendOffset = 0.0f;
@@ -82,12 +82,12 @@ private:
     // LFOs
     juce::dsp::Oscillator<float> pwmLfo;
     float lfoValue = 0.0f;
-    
+
     // Waveform Strategy Pattern - simplified with direct mapping
     std::map<Waveform, std::unique_ptr<IWaveformStrategy>> waveformStrategies;
     IWaveformStrategy* currentWaveformStrategy = nullptr;
     Waveform previousWaveform = Waveform::Sawtooth;
-    
+
     // Helper methods for strategy pattern
     void initializeWaveformStrategies();
     void updateWaveformStrategy();

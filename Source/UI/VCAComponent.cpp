@@ -1,8 +1,7 @@
 #include "VCAComponent.h"
 #include "../Parameters.h"
 
-VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts)
-{
+VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     vcaEgDepthSlider.setSliderStyle(juce::Slider::LinearVertical);
     vcaEgDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(vcaEgDepthSlider);
@@ -15,27 +14,22 @@ VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
 
 VCAComponent::~VCAComponent() {}
 
-void VCAComponent::paint(juce::Graphics& g)
-{
+void VCAComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
     g.setColour(juce::Colours::white);
     g.setFont(15.0f);
     g.drawFittedText("VCA", getLocalBounds(), juce::Justification::centredTop, 1);
 }
 
-void VCAComponent::resized()
-{
+void VCAComponent::resized() {
     juce::Grid grid;
     using Track = juce::Grid::TrackInfo;
     using Fr = juce::Grid::Fr;
 
-    grid.templateRows    = { Track(Fr(5)), Track(Fr(1)) }; // Make slider area taller
-    grid.templateColumns = { Track(Fr(1)) };
+    grid.templateRows = {Track(Fr(5)), Track(Fr(1))};  // Make slider area taller
+    grid.templateColumns = {Track(Fr(1))};
 
-    grid.items = {
-        juce::GridItem(vcaEgDepthSlider),
-        juce::GridItem(vcaEgDepthLabel)
-    };
-    
+    grid.items = {juce::GridItem(vcaEgDepthSlider), juce::GridItem(vcaEgDepthLabel)};
+
     grid.performLayout(getLocalBounds().reduced(10).withTrimmedTop(20));
 }

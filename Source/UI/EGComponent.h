@@ -1,14 +1,14 @@
 #pragma once
 #include <JuceHeader.h>
 
-class EGComponent : public juce::Component
-{
-public:
+class EGComponent : public juce::Component {
+   public:
     EGComponent(juce::AudioProcessorValueTreeState& apvts);
     ~EGComponent() override;
     void paint(juce::Graphics& g) override;
     void resized() override;
-private:
+
+   private:
     juce::AudioProcessorValueTreeState& valueTreeState;
     juce::Slider attackSlider;
     juce::Label attackLabel;
