@@ -1,22 +1,17 @@
 #include "ToneGenerator.h"
+#include "WaveformStrategies.h"
 
-namespace
+ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) 
 {
-    float poly_blep(float t, float dt)
-    {
-        if (t < dt) { t /= dt; return t + t - t * t - 1.0f; }
-        if (t > 1.0f - dt) { t = (t - 1.0f) / dt; return t * t + t + t + 1.0f; }
-        return 0.0f;
-    }
+    initializeWaveformStrategies();
 }
-
-ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
 
 void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec)
 {
     sampleRate = spec.sampleRate;
     pwmLfo.prepare(spec);
     pwmLfo.initialise([](float x) { return std::asin(std::sin(x)) * (2.0f / juce::MathConstants<float>::pi); }, 128);
+    
     reset();
 }
 
@@ -61,13 +56,13 @@ void ToneGenerator::pitchWheelMoved(int newPitchWheelValue)
 
     auto bendValue = juce::jmap(static_cast<float>(newPitchWheelValue), 0.0f, 16383.0f, -1.0f, 1.0f);
     
-    float pitchOffset = 0.0f;
+    float bendOffset = 0.0f;
     if (bendValue > 0)
-        pitchOffset = bendValue * upRange;
+        bendOffset = bendValue * upRange;
     else
-        pitchOffset = bendValue * downRange;
+        bendOffset = bendValue * downRange;
 
-    midiPitchBendValue = pitchOffset;
+    pitchBend = bendOffset;
 }
 
 bool ToneGenerator::isActive() const
@@ -116,6 +111,8 @@ void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& con
     auto numSamples = outputBlock.getNumSamples();
     auto numChannels = outputBlock.getNumChannels();
 
+    updateBlockRateParameters();
+
     for (size_t sample = 0; sample < static_cast<size_t>(numSamples); ++sample)
     {
         float currentSample = getNextSample();
@@ -138,6 +135,13 @@ void ToneGenerator::updateBlockRateParameters()
     pwmLfo.setFrequency(pwmSpeed);
     
     currentModDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
+    
+    // Cache pitch-related parameters to avoid per-sample parameter access
+    pitchBendOffset = apvts.getRawParameterValue(ParameterIds::pitchBend)->load();
+    pitchOffset = apvts.getRawParameterValue(ParameterIds::pitch)->load();
+    
+    // Update waveform strategy based on current waveform
+    updateWaveformStrategy();
 }
 
 void ToneGenerator::reset()
@@ -145,13 +149,14 @@ void ToneGenerator::reset()
     currentPitch = 60.0f;
     targetPitch = 60.0f;
     isSliding = false;
-    slideSamplesRemaining = 0;
-    slideIncrement = 0.0f;
     samplesPerStep = 0;
     stepCounter = 0;
     phase = 0.0f;
     leakyIntegratorState = 0.0f;
     dcBlockerState = 0.0f;
+    
+    // Reset base square wave state
+    previousBaseSquare = 0.0f;
     
     // Reset note state
     noteOn = false;
@@ -207,6 +212,7 @@ void ToneGenerator::calculateSlideParameters(int targetNote)
 
 float ToneGenerator::getNextSample()
 {
+    // Handle glissando (discrete semitone steps - remains unchanged)
     if (isSliding)
     {
         stepCounter++;
@@ -214,9 +220,9 @@ float ToneGenerator::getNextSample()
         {
             stepCounter = 0;
             if (targetPitch > currentPitch)
-                currentPitch += 1.0f;
+                currentPitch += 1.0f;  // Half-tone steps for glissando
             else
-                currentPitch -= 1.0f;
+                currentPitch -= 1.0f;  // Half-tone steps for glissando
 
             if (std::abs(targetPitch - currentPitch) < 0.1f)
             {
@@ -226,18 +232,16 @@ float ToneGenerator::getNextSample()
         }
     }
 
-    float finalPitch = currentPitch;
+    // Calculate final pitch with continuous modulations
+    float finalPitch = currentPitch;  // Base pitch (discrete for glissando)
     
-    // Add pitch bend from MIDI and GUI
-    finalPitch += midiPitchBendValue;
-    finalPitch += apvts.getRawParameterValue(ParameterIds::pitchBend)->load();
+    // Add continuous pitch modulations (smooth, continuous changes)
+    finalPitch += pitchBend;                 // Pitch bend wheel (continuous)
+    finalPitch += pitchBendOffset;           // Pitch bend offset (continuous)
+    finalPitch += pitchOffset;               // Fine pitch adjustment (continuous)
+    finalPitch += lfoValue;                  // LFO pitch modulation (continuous)
 
-    // Add continuous pitch offsets
-    finalPitch += apvts.getRawParameterValue(ParameterIds::pitch)->load();
-    
-    finalPitch += lfoValue;
-
-    // Add octave offset
+    // Add octave offset (discrete, but doesn't affect continuity)
     int octaveOffset = 0;
     switch (currentFeet)
     {
@@ -249,76 +253,40 @@ float ToneGenerator::getNextSample()
     }
     finalPitch += octaveOffset;
 
-    float frequency = juce::MidiMessage::getMidiNoteInHertz(finalPitch);
-    setVcoFrequency(frequency);
+    // Generate master square wave with continuous pitch calculation
+    float masterSquare = generateMasterSquareWave(finalPitch);
     
-    return generateVcoSample();
+    // Convert to desired waveform
+    return generateVcoSampleFromMaster(masterSquare);
 }
 
-float ToneGenerator::generateVcoSample()
+
+void ToneGenerator::initializeWaveformStrategies()
 {
-    // Pulse width setting (adjusted to match CS-01 characteristics)
-    float pulseWidth = 0.5f;
-    if (currentWaveform == Waveform::Pulse) pulseWidth = 0.25f;
-    else if (currentWaveform == Waveform::Pwm) pulseWidth = 0.5f * (1.0f + pwmLfo.processSample(0.0f));
+    // Initialize waveform strategy mapping directly
+    waveformStrategies[Waveform::Triangle] = std::make_unique<TriangleWaveformStrategy>();
+    waveformStrategies[Waveform::Sawtooth] = std::make_unique<SawtoothWaveformStrategy>();
+    waveformStrategies[Waveform::Square] = std::make_unique<SquareWaveformStrategy>();
+    waveformStrategies[Waveform::Pulse] = std::make_unique<PulseWaveformStrategy>();
+    waveformStrategies[Waveform::Pwm] = std::make_unique<PWMWaveformStrategy>();
+    
+    // Set default strategy
+    currentWaveformStrategy = waveformStrategies[Waveform::Sawtooth].get();
+}
 
-    float t = phase;
-    
-    // Square wave generation (with characteristics similar to CS-01 master clock oscillator)
-    float pulseWave = (t < pulseWidth) ? 1.0f : -1.0f;
-    
-    // Poly_blep processing to reduce aliasing
-    pulseWave += poly_blep(t, phaseIncrement);
-    pulseWave -= poly_blep(fmod(t + (1.0f - pulseWidth), 1.0f), phaseIncrement);
-    
-    // Emulate nonlinearity of analog circuit
-    pulseWave = std::tanh(pulseWave * 1.2f);
-
-    float value = 0.0f;
-    switch (currentWaveform)
+void ToneGenerator::updateWaveformStrategy()
+{
+    // Reset strategy-specific states when waveform changes
+    if (previousWaveform != currentWaveform)
     {
-        case Waveform::Sawtooth:
-            // Approximate CS-01 sawtooth wave characteristics
-            value = 1.0f - (phase * 2.0f); // Downward sawtooth wave (from +1 to -1)
-            value += poly_blep(phase, phaseIncrement);
-            
-            // Emphasize higher harmonics (CS-01 characteristic)
-            value = value * 0.7f + std::sin(value * juce::MathConstants<float>::pi) * 0.3f;
-            break;
-            
-        case Waveform::Triangle:
-        {
-            // CS-01 triangle wave generation (integration of square wave)
-            leakyIntegratorState += pulseWave * phaseIncrement * 4.0f;
-            float output = leakyIntegratorState - dcBlockerState;
-            dcBlockerState = leakyIntegratorState + (dcBlockerState - leakyIntegratorState) * 0.995f;
-            
-            // Adjust triangle wave smoothness (CS-01 characteristic)
-            value = output * 0.8f + std::sin(output * juce::MathConstants<float>::pi * 0.5f) * 0.2f;
-            break;
-        }
-        
-        case Waveform::Square:
-            // CS-01 square wave characteristics (slightly rounded rise/fall)
-            value = pulseWave;
-            break;
-            
-        case Waveform::Pulse:
-        case Waveform::Pwm:
-            // CS-01 pulse wave characteristics
-            value = pulseWave;
-            break;
-            
-        default: 
-            break;
+        currentWaveformStrategy->reset();
     }
-
-    // Phase update
-    phase += phaseIncrement;
-    if (phase >= 1.0f) phase -= 1.0f;
     
-    // Emulate analog circuit output stage (slight distortion and volume increase)
-    return std::tanh(value * 1.5f);
+    // Direct access to strategy (all waveforms are guaranteed to be initialized)
+    currentWaveformStrategy = waveformStrategies[currentWaveform].get();
+    
+    // Update for next comparison
+    previousWaveform = currentWaveform;
 }
 
 void ToneGenerator::setLfoValue(float newLfoValue)
@@ -326,12 +294,50 @@ void ToneGenerator::setLfoValue(float newLfoValue)
     lfoValue = newLfoValue;
 }
 
-void ToneGenerator::setVcoFrequency(float frequency)
-{
-    phaseIncrement = frequency / sampleRate;
-}
-
 void ToneGenerator::setPitchBend(float bendInSemitones)
 {
-    midiPitchBendValue = bendInSemitones;
+    pitchBend = bendInSemitones;
+}
+
+float ToneGenerator::generateMasterSquareWave(float finalPitch)
+{
+    // Calculate frequency directly from finalPitch using continuous calculation
+    // This ensures smooth pitch bend and pitch slider operation
+    float frequency = 440.0f * std::pow(2.0f, (finalPitch - 69.0f) / 12.0f);
+    phaseIncrement = frequency / sampleRate;  // Update global phaseIncrement!
+    
+    // Generate master clock square wave (50% duty cycle)
+    float t = phase;
+    float baseSquare = (t < 0.5f) ? 1.0f : -1.0f;
+    
+    // Apply poly_blep anti-aliasing
+    baseSquare += poly_blep(t, phaseIncrement);
+    baseSquare -= poly_blep(fmod(t + 0.5f, 1.0f), phaseIncrement);
+    
+    // Update phase for next sample
+    phase += phaseIncrement;
+    if (phase >= 1.0f) phase -= 1.0f;
+    
+    // Emulate analog circuit characteristics
+    return std::tanh(baseSquare * 1.2f);
+}
+
+
+float ToneGenerator::generateVcoSampleFromMaster(float masterSquare)
+{
+    if (currentWaveformStrategy == nullptr)
+        return masterSquare;
+    
+    // Use Strategy pattern to generate waveform
+    float value = currentWaveformStrategy->generate(
+        masterSquare,
+        phase,
+        phaseIncrement,
+        sampleRate,
+        previousBaseSquare,
+        pwmLfo
+    );
+    
+    // Standard analog circuit output stage for all waveforms
+    return std::tanh(value * 1.2f);
 }
