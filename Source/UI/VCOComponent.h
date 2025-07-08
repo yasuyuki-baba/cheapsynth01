@@ -1,10 +1,8 @@
 #pragma once
 #include <JuceHeader.h>
 
-class VCOComponent : public juce::Component,
-                       public juce::AudioProcessorParameter::Listener
-{
-public:
+class VCOComponent : public juce::Component, public juce::AudioProcessorParameter::Listener {
+   public:
     VCOComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCOComponent() override;
 
@@ -13,7 +11,7 @@ public:
     void parameterValueChanged(int parameterIndex, float newValue) override;
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
-private:
+   private:
     juce::AudioProcessorValueTreeState& valueTreeState;
     juce::Slider glissandoSlider;
     juce::Label glissandoLabel;
@@ -26,7 +24,7 @@ private:
     juce::OwnedArray<juce::ToggleButton> waveTypeButtons;
     juce::Label waveTypeLabel;
     juce::AudioProcessorParameter* waveTypeParam = nullptr;
-    
+
     juce::OwnedArray<juce::ToggleButton> feetButtons;
     juce::Label feetLabel;
     juce::AudioProcessorParameter* feetParam = nullptr;

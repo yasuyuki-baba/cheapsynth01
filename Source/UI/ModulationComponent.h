@@ -6,9 +6,8 @@ class CS01AudioProcessor;
 
 class ModulationComponent : public juce::Component,
                             public juce::AudioProcessorParameter::Listener,
-                            public juce::Slider::Listener
-{
-public:
+                            public juce::Slider::Listener {
+   public:
     ModulationComponent(CS01AudioProcessor& p);
     ~ModulationComponent() override;
 
@@ -19,7 +18,7 @@ public:
     void parameterValueChanged(int parameterIndex, float newValue) override;
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
-private:
+   private:
     CS01AudioProcessor& processor;
 
     juce::Slider pitchBendSlider;

@@ -20,26 +20,29 @@ class IFilter;
 class CS01LookAndFeel;
 
 //==============================================================================
-class CS01AudioProcessorEditor : public juce::AudioProcessorEditor
-{
-public:
+class CS01AudioProcessorEditor : public juce::AudioProcessorEditor {
+   public:
     CS01AudioProcessorEditor(CS01AudioProcessor&);
     ~CS01AudioProcessorEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
-    
+
     // フィルタータイプが変更されたときに呼び出される
     void filterTypeChanged(IFilter* newFilterProcessor);
-    
-    OscilloscopeComponent& getOscilloscope() { return oscilloscopeComponent; }
-    juce::AudioVisualiserComponent& getAudioVisualiser() { return audioVisualiser; }
 
-private:
+    OscilloscopeComponent& getOscilloscope() {
+        return oscilloscopeComponent;
+    }
+    juce::AudioVisualiserComponent& getAudioVisualiser() {
+        return audioVisualiser;
+    }
+
+   private:
     CS01AudioProcessor& audioProcessor;
 
     juce::MidiKeyboardComponent midiKeyboard;
-    
+
     std::unique_ptr<ModulationComponent> modulationComponent;
     std::unique_ptr<VCOComponent> vcoComponent;
     std::unique_ptr<LFOComponent> lfoComponent;
@@ -57,7 +60,7 @@ private:
     juce::FlexBox upperFlex;
     juce::FlexBox lowerFlex;
     juce::FlexBox mainFlex;
-    juce::FlexBox visualizerFlex; // FlexBox for waveform display
+    juce::FlexBox visualizerFlex;  // FlexBox for waveform display
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CS01AudioProcessorEditor)
 };

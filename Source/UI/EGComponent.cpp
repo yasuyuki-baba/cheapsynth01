@@ -1,8 +1,7 @@
 #include "EGComponent.h"
 #include "../Parameters.h"
 
-EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts)
-{
+EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     attackSlider.setSliderStyle(juce::Slider::LinearVertical);
     attackSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(attackSlider);
@@ -38,33 +37,25 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
 
 EGComponent::~EGComponent() {}
 
-void EGComponent::paint(juce::Graphics& g)
-{
+void EGComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
     g.setColour(juce::Colours::white);
     g.setFont(15.0f);
     g.drawFittedText("EG", getLocalBounds(), juce::Justification::centredTop, 1);
 }
 
-void EGComponent::resized()
-{
+void EGComponent::resized() {
     juce::Grid grid;
     using Track = juce::Grid::TrackInfo;
     using Fr = juce::Grid::Fr;
 
-    grid.templateRows    = { Track(Fr(5)), Track(Fr(1)) }; // Make slider area taller
-    grid.templateColumns = { Track(Fr(1)), Track(Fr(1)), Track(Fr(1)), Track(Fr(1)) };
+    grid.templateRows = {Track(Fr(5)), Track(Fr(1))};  // Make slider area taller
+    grid.templateColumns = {Track(Fr(1)), Track(Fr(1)), Track(Fr(1)), Track(Fr(1))};
 
-    grid.items = {
-        juce::GridItem(attackSlider),
-        juce::GridItem(decaySlider),
-        juce::GridItem(sustainSlider),
-        juce::GridItem(releaseSlider),
-        juce::GridItem(attackLabel),
-        juce::GridItem(decayLabel),
-        juce::GridItem(sustainLabel),
-        juce::GridItem(releaseLabel)
-    };
+    grid.items = {juce::GridItem(attackSlider),  juce::GridItem(decaySlider),
+                  juce::GridItem(sustainSlider), juce::GridItem(releaseSlider),
+                  juce::GridItem(attackLabel),   juce::GridItem(decayLabel),
+                  juce::GridItem(sustainLabel),  juce::GridItem(releaseLabel)};
 
     grid.performLayout(getLocalBounds().reduced(10).withTrimmedTop(20));
 }
