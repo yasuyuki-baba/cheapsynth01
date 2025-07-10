@@ -3,22 +3,26 @@
 
 ProgramManager::ProgramManager(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
     initializePresets();
+    createUserPresetsDirectory();
+    refreshUserPresets();
+    rebuildAllPresetsList();
 }
 
 ProgramManager::~ProgramManager() {}
 
 void ProgramManager::initializePresets() {
-    factoryPresets.push_back({"Default", "Default.xml"});
-    factoryPresets.push_back({"Flute", "Flute.xml"});
-    factoryPresets.push_back({"Violin", "Violin.xml"});
-    factoryPresets.push_back({"Trumpet", "Trumpet.xml"});
-    factoryPresets.push_back({"Clavinet", "Clavinet.xml"});
-    factoryPresets.push_back({"Solo Synth Lead", "Solo_Synth_Lead.xml"});
-    factoryPresets.push_back({"Synth Bass", "Synth_Bass.xml"});
+    factoryPresets.clear();
+    factoryPresets.emplace_back("Default", "Default.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Flute", "Flute.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Violin", "Violin.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Trumpet", "Trumpet.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Clavinet", "Clavinet.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Solo Synth Lead", "Solo_Synth_Lead.xml", PresetType::Factory);
+    factoryPresets.emplace_back("Synth Bass", "Synth_Bass.xml", PresetType::Factory);
 }
 
 int ProgramManager::getNumPrograms() const {
-    return static_cast<int>(factoryPresets.size());
+    return static_cast<int>(allPresets.size());
 }
 
 int ProgramManager::getCurrentProgram() const {
@@ -26,16 +30,35 @@ int ProgramManager::getCurrentProgram() const {
 }
 
 void ProgramManager::setCurrentProgram(int index) {
-    if (index >= 0 && index < static_cast<int>(factoryPresets.size())) {
+    if (index >= 0 && index < static_cast<int>(allPresets.size())) {
         currentProgram = index;
-        loadFactoryPreset(index);
+        const auto& preset = allPresets[index];
+        
+        if (preset.type == PresetType::Factory) {
+            loadPresetFromBinaryData(preset.filename);
+        } else {
+            // Load user preset from file
+            auto userPresetsDir = getUserPresetsDirectory();
+            auto presetFile = userPresetsDir.getChildFile(preset.filename);
+            loadUserPresetFromFile(presetFile);
+        }
     }
 }
 
 juce::String ProgramManager::getProgramName(int index) const {
-    if (index >= 0 && index < static_cast<int>(factoryPresets.size()))
-        return factoryPresets[index].name;
+    if (index >= 0 && index < static_cast<int>(allPresets.size()))
+        return allPresets[index].name;
     return {};
+}
+
+PresetType ProgramManager::getPresetType(int index) const {
+    if (index >= 0 && index < static_cast<int>(allPresets.size()))
+        return allPresets[index].type;
+    return PresetType::Factory;
+}
+
+bool ProgramManager::isUserPreset(int index) const {
+    return getPresetType(index) == PresetType::User;
 }
 
 void ProgramManager::loadFactoryPreset(int index) {
@@ -147,7 +170,160 @@ void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
 }
 
 void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
-    // Not implemented yet - could be used for user presets in the future
+    auto userPresetsDir = getUserPresetsDirectory();
+    
+    if (!userPresetsDir.exists()) {
+        if (!createUserPresetsDirectory()) {
+            return; // Failed to create directory
+        }
+    }
+
+    // Use the exact name provided (no automatic numbering)
+    auto filename = name + ".xml";
+    auto presetFile = userPresetsDir.getChildFile(filename);
+
+    // Get current state as XML
+    std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
+    if (xml != nullptr) {
+        // Remove excluded parameters from saved state
+        if (auto* params = xml->getChildByName("PARAMETERS")) {
+            for (int i = params->getNumChildElements() - 1; i >= 0; --i) {
+                auto* param = params->getChildElement(i);
+                if (param != nullptr && param->hasAttribute("id")) {
+                    juce::String id = param->getStringAttribute("id");
+                    if (isStateExcludedParameter(id)) {
+                        params->removeChildElement(param, true);
+                    }
+                }
+            }
+        }
+
+        // Save to file (will overwrite if exists)
+        if (xml->writeTo(presetFile)) {
+            // Add to user presets list and rebuild
+            refreshUserPresets();
+            rebuildAllPresetsList();
+        }
+    }
+}
+
+bool ProgramManager::deleteUserPreset(int index) {
+    if (!isUserPreset(index)) {
+        return false; // Cannot delete factory presets
+    }
+
+    const auto& preset = allPresets[index];
+    auto userPresetsDir = getUserPresetsDirectory();
+    auto presetFile = userPresetsDir.getChildFile(preset.filename);
+
+    if (presetFile.exists() && presetFile.deleteFile()) {
+        // Refresh presets and rebuild list
+        refreshUserPresets();
+        rebuildAllPresetsList();
+        
+        // Adjust current program if necessary
+        if (currentProgram >= static_cast<int>(allPresets.size())) {
+            currentProgram = allPresets.empty() ? 0 : static_cast<int>(allPresets.size()) - 1;
+        }
+        
+        return true;
+    }
+    
+    return false;
+}
+
+bool ProgramManager::renameUserPreset(int index, const juce::String& newName) {
+    if (!isUserPreset(index) || newName.isEmpty()) {
+        return false;
+    }
+
+    const auto& preset = allPresets[index];
+    auto userPresetsDir = getUserPresetsDirectory();
+    auto oldFile = userPresetsDir.getChildFile(preset.filename);
+    
+    if (!oldFile.exists()) {
+        return false;
+    }
+
+    // Generate unique filename for new name
+    auto uniqueName = generateUniquePresetName(newName);
+    auto newFilename = uniqueName + ".xml";
+    auto newFile = userPresetsDir.getChildFile(newFilename);
+
+    if (oldFile.moveFileTo(newFile)) {
+        refreshUserPresets();
+        rebuildAllPresetsList();
+        return true;
+    }
+    
+    return false;
+}
+
+void ProgramManager::refreshUserPresets() {
+    userPresets.clear();
+    auto userPresetsDir = getUserPresetsDirectory();
+    
+    if (userPresetsDir.exists()) {
+        for (const auto& file : userPresetsDir.findChildFiles(juce::File::findFiles, false, "*.xml")) {
+            auto nameWithoutExtension = file.getFileNameWithoutExtension();
+            userPresets.emplace_back(nameWithoutExtension, file.getFileName(), PresetType::User);
+        }
+        
+        // Sort user presets alphabetically
+        std::sort(userPresets.begin(), userPresets.end(), 
+                  [](const Program& a, const Program& b) {
+                      return a.name < b.name;
+                  });
+    }
+}
+
+juce::File ProgramManager::getUserPresetsDirectory() const {
+    return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+           .getChildFile("CheapSynth01")
+           .getChildFile("UserPresets");
+}
+
+bool ProgramManager::createUserPresetsDirectory() {
+    auto dir = getUserPresetsDirectory();
+    return dir.createDirectory();
+}
+
+void ProgramManager::rebuildAllPresetsList() {
+    allPresets.clear();
+    
+    // Add factory presets first
+    for (const auto& preset : factoryPresets) {
+        allPresets.push_back(preset);
+    }
+    
+    // Add user presets
+    for (const auto& preset : userPresets) {
+        allPresets.push_back(preset);
+    }
+}
+
+void ProgramManager::loadUserPresetFromFile(const juce::File& file) {
+    if (file.exists()) {
+        juce::XmlDocument xmlDoc(file.loadFileAsString());
+        std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
+        if (xmlState != nullptr) {
+            loadPresetFromXml(xmlState.get());
+        }
+    }
+}
+
+juce::String ProgramManager::generateUniquePresetName(const juce::String& baseName) const {
+    auto userPresetsDir = getUserPresetsDirectory();
+    auto name = baseName;
+    int counter = 1;
+    
+    // Check if name already exists
+    while (userPresetsDir.getChildFile(name + ".xml").exists()) {
+        name = baseName + " (" + juce::String(counter) + ")";
+        counter++;
+    }
+    
+    return name;
 }
 
 bool ProgramManager::isStateExcludedParameter(const juce::String& paramId) const {

@@ -4,9 +4,18 @@
 #include "Parameters.h"
 
 //==============================================================================
+enum class PresetType {
+    Factory,
+    User
+};
+
 struct Program {
     juce::String name;
     juce::String filename;
+    PresetType type;
+    
+    Program(const juce::String& n, const juce::String& f, PresetType t = PresetType::Factory)
+        : name(n), filename(f), type(t) {}
 };
 
 class ProgramManager {
@@ -18,12 +27,21 @@ class ProgramManager {
     void loadFactoryPreset(int index);
     void loadPresetFromXml(const juce::XmlElement* xml);
     void saveCurrentStateAsPreset(const juce::String& name);
+    bool deleteUserPreset(int index);
+    bool renameUserPreset(int index, const juce::String& newName);
 
     // プログラム（プリセット）管理
     int getNumPrograms() const;
     int getCurrentProgram() const;
     void setCurrentProgram(int index);
     juce::String getProgramName(int index) const;
+    PresetType getPresetType(int index) const;
+    bool isUserPreset(int index) const;
+
+    // ユーザープリセット管理  
+    void refreshUserPresets();
+    juce::File getUserPresetsDirectory() const;
+    bool createUserPresetsDirectory();
 
     // 状態の保存と復元
     void getStateInformation(juce::MemoryBlock& destData);
@@ -32,6 +50,8 @@ class ProgramManager {
    private:
     juce::AudioProcessorValueTreeState& apvts;
     std::vector<Program> factoryPresets;
+    std::vector<Program> userPresets;
+    std::vector<Program> allPresets; // Combined list for easy access
     int currentProgram = 0;
 
     // 特定パラメータをステート保存から除外
@@ -43,4 +63,7 @@ class ProgramManager {
 
     void initializePresets();
     void loadPresetFromBinaryData(const juce::String& filename);
+    void rebuildAllPresetsList();
+    void loadUserPresetFromFile(const juce::File& file);
+    juce::String generateUniquePresetName(const juce::String& baseName) const;
 };
