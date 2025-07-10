@@ -75,7 +75,7 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     lowerFlex.items.add(juce::FlexItem(midiKeyboard).withFlex(27.0f));
 
     mainFlex.flexDirection = juce::FlexBox::Direction::column;
-    mainFlex.items.add(juce::FlexItem(*programPanel).withHeight(40));
+    mainFlex.items.add(juce::FlexItem(*programPanel).withMinHeight(26));
     mainFlex.items.add(juce::FlexItem(upperFlex).withFlex(0.65));
     mainFlex.items.add(juce::FlexItem(lowerFlex).withFlex(0.35));
 
