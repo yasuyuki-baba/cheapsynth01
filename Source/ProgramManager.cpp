@@ -78,7 +78,7 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
 
         // Get parameter elements
         if (auto* params = xml->getChildByName("PARAMETERS")) {
-            // Remove excluded parameters
+            // Remove excluded parameters (only realtime input parameters for DAW sessions)
             for (int i = params->getNumChildElements() - 1; i >= 0; --i) {
                 auto* param = params->getChildElement(i);
                 if (param != nullptr) {
@@ -86,8 +86,8 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
                     if (param->hasAttribute("id")) {
                         juce::String id = param->getStringAttribute("id");
 
-                        // Remove parameters excluded from state
-                        if (isStateExcludedParameter(id)) {
+                        // Remove parameters excluded from DAW session state
+                        if (isSessionExcludedParameter(id)) {
                             params->removeChildElement(param, true);
                         }
                     }
@@ -105,9 +105,9 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
         juce::AudioProcessor::getXmlFromBinary(data, sizeInBytes));
     if (xmlState.get() != nullptr) {
         if (xmlState->hasTagName(apvts.state.getType())) {
-            // Save current values of parameters excluded from state
+            // Save current values of parameters excluded from DAW session state
             std::map<juce::String, float> persistentValues;
-            for (const auto& paramId : stateExcludedParameters) {
+            for (const auto& paramId : sessionExcludedParameters) {
                 if (auto* param = apvts.getParameter(paramId)) {
                     persistentValues[paramId] = param->getValue();
                 }
@@ -117,7 +117,7 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
             currentProgram = xmlState->getIntAttribute("program", 0);
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 
-            // Restore values of parameters excluded from state
+            // Restore values of parameters excluded from DAW session state
             for (const auto& [paramId, value] : persistentValues) {
                 if (auto* param = apvts.getParameter(paramId)) {
                     param->setValueNotifyingHost(value);
@@ -144,9 +144,9 @@ void ProgramManager::loadPresetFromBinaryData(const juce::String& filename) {
 
 void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
     if (xml != nullptr) {
-        // Save current values of parameters excluded from state
+        // Save current values of parameters excluded from preset loading
         std::map<juce::String, float> persistentValues;
-        for (const auto& paramId : stateExcludedParameters) {
+        for (const auto& paramId : presetExcludedParameters) {
             if (auto* param = apvts.getParameter(paramId)) {
                 persistentValues[paramId] = param->getValue();
             }
@@ -155,7 +155,7 @@ void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
         // Replace ValueTree state
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
 
-        // Restore values of parameters excluded from state
+        // Restore values of parameters excluded from preset loading
         for (const auto& [paramId, value] : persistentValues) {
             if (auto* param = apvts.getParameter(paramId)) {
                 param->setValueNotifyingHost(value);
@@ -185,13 +185,13 @@ void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
     // Get current state as XML
     std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
     if (xml != nullptr) {
-        // Remove excluded parameters from saved state
+        // Remove excluded parameters from saved preset
         if (auto* params = xml->getChildByName("PARAMETERS")) {
             for (int i = params->getNumChildElements() - 1; i >= 0; --i) {
                 auto* param = params->getChildElement(i);
                 if (param != nullptr && param->hasAttribute("id")) {
                     juce::String id = param->getStringAttribute("id");
-                    if (isStateExcludedParameter(id)) {
+                    if (isPresetExcludedParameter(id)) {
                         params->removeChildElement(param, true);
                     }
                 }
@@ -326,7 +326,12 @@ juce::String ProgramManager::generateUniquePresetName(const juce::String& baseNa
     return name;
 }
 
-bool ProgramManager::isStateExcludedParameter(const juce::String& paramId) const {
-    return std::find(stateExcludedParameters.begin(), stateExcludedParameters.end(), paramId) !=
-           stateExcludedParameters.end();
+bool ProgramManager::isSessionExcludedParameter(const juce::String& paramId) const {
+    return std::find(sessionExcludedParameters.begin(), sessionExcludedParameters.end(), paramId) !=
+           sessionExcludedParameters.end();
+}
+
+bool ProgramManager::isPresetExcludedParameter(const juce::String& paramId) const {
+    return std::find(presetExcludedParameters.begin(), presetExcludedParameters.end(), paramId) !=
+           presetExcludedParameters.end();
 }

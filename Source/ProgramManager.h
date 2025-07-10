@@ -54,12 +54,17 @@ class ProgramManager {
     std::vector<Program> allPresets; // Combined list for easy access
     int currentProgram = 0;
 
-    // 特定パラメータをステート保存から除外
-    const std::vector<juce::String> stateExcludedParameters = {
+    // プリセット読み込み時に除外するパラメータ（音量変化を防ぐため）
+    const std::vector<juce::String> presetExcludedParameters = {
         ParameterIds::breathInput, ParameterIds::volume, ParameterIds::modDepth,
         ParameterIds::pitchBend};
 
-    bool isStateExcludedParameter(const juce::String& paramId) const;
+    // DAWセッション保存時に除外するパラメータ（リアルタイム入力系のみ）
+    const std::vector<juce::String> sessionExcludedParameters = {
+        ParameterIds::breathInput, ParameterIds::pitchBend, ParameterIds::modDepth};
+
+    bool isSessionExcludedParameter(const juce::String& paramId) const;
+    bool isPresetExcludedParameter(const juce::String& paramId) const;
 
     void initializePresets();
     void loadPresetFromBinaryData(const juce::String& filename);
