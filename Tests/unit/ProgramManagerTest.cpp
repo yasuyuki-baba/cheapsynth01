@@ -211,12 +211,13 @@ TEST_F(ProgramManagerTest, ExcludedParameters)
     float restoredNormalParam = apvts.getParameter(ParameterIds::waveType)->getValue();
     EXPECT_NEAR(restoredNormalParam, 0.5f, 0.01f) << "Normal parameter should be restored";
     
-    // Verify excluded parameters are not restored (should remain at 0.1f)
+    // Verify session excluded parameters are not restored (should remain at 0.1f)
+    // Volume is now included in DAW session state, so it should be restored to 0.8f
     float restoredVolume = apvts.getParameter(ParameterIds::volume)->getValue();
     float restoredBreath = apvts.getParameter(ParameterIds::breathInput)->getValue();
     float restoredPitchBend = apvts.getParameter(ParameterIds::pitchBend)->getValue();
     
-    EXPECT_NEAR(restoredVolume, 0.1f, 0.01f) << "Volume should not be restored";
+    EXPECT_NEAR(restoredVolume, 0.8f, 0.01f) << "Volume should be restored in DAW session state";
     EXPECT_NEAR(restoredBreath, 0.1f, 0.01f) << "Breath input should not be restored";
     EXPECT_NEAR(restoredPitchBend, 0.1f, 0.01f) << "Pitch bend should not be restored";
 }
