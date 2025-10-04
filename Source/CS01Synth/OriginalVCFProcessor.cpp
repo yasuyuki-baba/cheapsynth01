@@ -1,4 +1,5 @@
 #include "OriginalVCFProcessor.h"
+#include <cmath>
 
 //==============================================================================
 OriginalVCFProcessor::OriginalVCFProcessor(juce::AudioProcessorValueTreeState& apvts)
@@ -109,15 +110,15 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // EG modulation
         float egMod = egValue * egDepth * egModRangeSemitones;
-        float egModFreqRatio = std::exp2f(egMod / 12.0f);
+        float egModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(egMod / 12.0f)));
 
         // LFO modulation
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = std::exp2f(lfoMod / 12.0f);
+        float lfoModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(lfoMod / 12.0f)));
 
         // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio = std::exp2f(breathMod / 12.0f);
+        float breathModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
 
         // Apply all modulations
         float modulatedCutoffHz =

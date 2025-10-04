@@ -1,5 +1,6 @@
 #include "ToneGenerator.h"
 #include "WaveformStrategies.h"
+#include <cmath>
 
 ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
     initializeWaveformStrategies();
@@ -279,7 +280,7 @@ void ToneGenerator::setPitchBend(float bendInSemitones) {
 float ToneGenerator::generateMasterSquareWave(float finalPitch) {
     // Calculate frequency directly from finalPitch using continuous calculation
     // This ensures smooth pitch bend and pitch slider operation
-    float frequency = 440.0f * std::pow(2.0f, (finalPitch - 69.0f) / 12.0f);
+    float frequency = 440.0f * static_cast<float>(std::exp2(static_cast<double>((finalPitch - 69.0f) / 12.0f)));
     phaseIncrement = frequency / sampleRate;  // Update global phaseIncrement!
 
     // Generate master clock square wave (50% duty cycle)

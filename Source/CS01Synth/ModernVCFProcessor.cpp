@@ -1,4 +1,5 @@
 #include "ModernVCFProcessor.h"
+#include <cmath>
 
 //==============================================================================
 ModernVCFProcessor::ModernVCFProcessor(juce::AudioProcessorValueTreeState& apvts)
@@ -118,7 +119,7 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     float avgSemitone = (numSamples > 0) ? (accumSemitone / static_cast<float>(numSamples)) : 0.0f;
 
     // Convert average semitone modulation to frequency ratio and compute block cutoff
-    float avgFreqRatio = std::exp2f(avgSemitone / 12.0f);
+    float avgFreqRatio = static_cast<float>(std::exp2(static_cast<double>(avgSemitone / 12.0f)));
     float blockCutoffHz = juce::jlimit(20.0f, 20000.0f, cutoff * avgFreqRatio);
 
     // Apply averaged filter parameters (per-block)
