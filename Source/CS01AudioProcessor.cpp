@@ -199,8 +199,15 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     audioGraph.processBlock(buffer, midiMessages);
 
     if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
-        editor->getOscilloscope().pushBuffer(buffer);
-        editor->getAudioVisualiser().pushBuffer(buffer);
+        // Forward a copy of the audio buffer to the UI thread to avoid touching UI from the audio thread.
+        juce::Component::SafePointer<CS01AudioProcessorEditor> safeEditor(editor);
+        juce::AudioBuffer<float> uiBuffer(buffer);
+        juce::MessageManager::callAsync([safeEditor, uiBuffer = std::move(uiBuffer)]() mutable {
+            if (auto* ed = safeEditor.getComponent()) {
+                ed->getOscilloscope().pushBuffer(uiBuffer);
+                ed->getAudioVisualiser().pushBuffer(uiBuffer);
+            }
+        });
     }
 }
 
@@ -426,13 +433,17 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
     if (parameterID == ParameterIds::feet) {
         // VCOProcessor now handles the generator type change internally
         // and notifies us via the callback we set up
-    } else if (parameterID == ParameterIds::lfoTarget) {
+        return;
+    }
+
+    if (parameterID == ParameterIds::lfoTarget) {
         // Record request and apply on audio thread
         requestedLfoTarget.store(static_cast<int>(newValue));
         pendingLfoTargetChange.store(true);
         return;
     }
-    } else if (parameterID == ParameterIds::filterType) {
+
+    if (parameterID == ParameterIds::filterType) {
         // Record request and apply on audio thread
         requestedFilterType.store(static_cast<int>(newValue));
         pendingFilterTypeChange.store(true);
