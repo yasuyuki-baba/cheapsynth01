@@ -73,6 +73,7 @@ class ModernVCFProcessor : public juce::AudioProcessor, public IFilter {
     juce::AudioProcessorValueTreeState& apvts;
     juce::dsp::StateVariableTPTFilter<float> filter;  // Single filter for mono processing
     juce::AudioBuffer<float> processingBuffer;  // Reusable temporary buffer for audio processing
+    int processingBufferCapacity = 0; // Capacity (in samples) of processingBuffer
 
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam) {
