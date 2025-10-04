@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <atomic>
 #include "ProgramManager.h"
 #include "CS01Synth/IFilter.h"
 #include "CS01Synth/VCOProcessor.h"
@@ -85,6 +86,7 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateVCAOutputConnections();
     void handleGeneratorTypeChanged();
+    void applyPendingGraphChanges();
 
     juce::MidiKeyboardState keyboardState;
     juce::MidiMessageCollector midiMessageCollector;
@@ -101,6 +103,12 @@ class CS01AudioProcessor : public juce::AudioProcessor,
 
     // プログラム管理
     ProgramManager presetManager;
+
+    // Pending graph change flags (thread-safe)
+    std::atomic<bool> pendingFilterTypeChange{false};
+    std::atomic<int> requestedFilterType{0};
+    std::atomic<bool> pendingLfoTargetChange{false};
+    std::atomic<int> requestedLfoTarget{0};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CS01AudioProcessor)
 };
