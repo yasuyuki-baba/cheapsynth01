@@ -17,8 +17,15 @@ void OriginalVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     filter.reset();
     filter.prepare(sampleRate);
 
-    // Pre-allocate buffer for modulation values
-    modulationBuffer.allocate(samplesPerBlock, true);
+    // Pre-allocate buffer for modulation values to avoid reallocations per block
+    if (samplesPerBlock > modulationBufferCapacity) {
+        modulationBuffer.free();
+        modulationBuffer.allocate(samplesPerBlock, true);
+        modulationBufferCapacity = samplesPerBlock;
+    } else if (modulationBufferCapacity > 0) {
+        // clear previously allocated portion (only need to clear if reused)
+        modulationBuffer.clear(samplesPerBlock);
+    }
 }
 
 void OriginalVCFProcessor::releaseResources() {
@@ -76,14 +83,19 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto* audioData = audioInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
 
-    // Resize modulation buffer
-    if (buffer.getNumSamples() > 0) {
-        modulationBuffer.realloc(buffer.getNumSamples());
-        modulationBuffer.clear(buffer.getNumSamples());
+    int numSamples = buffer.getNumSamples();
+
+    // Ensure modulation buffer capacity
+    if (numSamples > modulationBufferCapacity) {
+        modulationBuffer.free();
+        modulationBuffer.allocate(numSamples, true);
+        modulationBufferCapacity = numSamples;
+    } else if (modulationBufferCapacity > 0) {
+        modulationBuffer.clear(numSamples);
     }
 
     // Calculate cutoff frequency for each sample
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
+    for (int sample = 0; sample < numSamples; ++sample) {
         float egValue = egData[sample];
         float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
 
@@ -97,15 +109,15 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // EG modulation
         float egMod = egValue * egDepth * egModRangeSemitones;
-        float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
+        float egModFreqRatio = std::exp2f(egMod / 12.0f);
 
         // LFO modulation
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
+        float lfoModFreqRatio = std::exp2f(lfoMod / 12.0f);
 
         // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
+        float breathModFreqRatio = std::exp2f(breathMod / 12.0f);
 
         // Apply all modulations
         float modulatedCutoffHz =
