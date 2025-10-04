@@ -112,6 +112,67 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
                      apvts.getRawParameterValue(ParameterIds::lfoTarget)->load());
 }
 
+// Apply pending graph changes on the audio thread
+void CS01AudioProcessor::applyPendingGraphChanges() {
+    // Apply filter type change if requested
+    if (pendingFilterTypeChange.exchange(false)) {
+        int newType = requestedFilterType.load();
+
+        // If nodes are not ready yet, re-request for next block
+        if (vcoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr || vcaNode == nullptr) {
+            requestedFilterType.store(newType);
+            pendingFilterTypeChange.store(true);
+        } else {
+            // Remove existing connections (safe to call even if absent)
+            audioGraph.removeConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
+            audioGraph.removeConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+            audioGraph.removeConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
+            audioGraph.removeConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+
+            if (newType == 0) {
+                audioGraph.addConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
+                audioGraph.addConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+            } else {
+                audioGraph.addConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
+                audioGraph.addConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+            }
+
+            // Notify UI on message thread
+            juce::MessageManager::callAsync([this]() {
+                if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
+                    editor->filterTypeChanged(getCurrentFilterProcessor());
+                }
+            });
+        }
+    }
+
+    // Apply LFO target change if requested
+    if (pendingLfoTargetChange.exchange(false)) {
+        int newTarget = requestedLfoTarget.load();
+
+        if (lfoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr || vcoNode == nullptr) {
+            requestedLfoTarget.store(newTarget);
+            pendingLfoTargetChange.store(true);
+        } else {
+            // Disconnect existing LFO connections
+            audioGraph.removeConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
+            audioGraph.removeConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
+            audioGraph.removeConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}});
+
+            if (newTarget == 0) {
+                audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}});
+            } else {
+                int filterType = static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
+                if (filterType == 0) {
+                    audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
+                } else {
+                    audioGraph.addConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
+                }
+            }
+        }
+    }
+}
+
 void CS01AudioProcessor::releaseResources() {
     audioGraph.releaseResources();
 }
@@ -130,6 +191,8 @@ bool CS01AudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) cons
 void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
+    // Apply pending graph changes requested from other threads (atomic flags)
+    applyPendingGraphChanges();
     midiMessageCollector.removeNextBlockOfMessages(midiMessages, buffer.getNumSamples());
 
     keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
@@ -364,92 +427,15 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         // VCOProcessor now handles the generator type change internally
         // and notifies us via the callback we set up
     } else if (parameterID == ParameterIds::lfoTarget) {
-        // Check if audio graph nodes are initialized
-        if (lfoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr ||
-            vcoNode == nullptr) {
-            // Do nothing if nodes are not initialized yet
-            return;
-        }
-
-        // Disconnect all LFO connections first
-        audioGraph.removeConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
-        audioGraph.removeConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
-        audioGraph.removeConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}});
-
-        // LFOProcessor has mono output, so connect only channel 0
-        // Reconnect based on the new value
-        if (static_cast<int>(newValue) == 0)  // Target: VCO
-        {
-            // Connect LFO to VCOProcessor's LFO input (bus 0)
-            audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}});
-        } else  // Target: VCF
-        {
-            // Connect LFO according to current filter type
-            auto filterType =
-                static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
-            if (filterType == 0)  // Original
-            {
-                // Connect LFO to VCFProcessor's LFO input (bus 2)
-                audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
-            } else  // Modern
-            {
-                // Connect LFO to ModernVCFProcessor's LFO input (bus 2)
-                audioGraph.addConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
-            }
-        }
+        // Record request and apply on audio thread
+        requestedLfoTarget.store(static_cast<int>(newValue));
+        pendingLfoTargetChange.store(true);
+        return;
+    }
     } else if (parameterID == ParameterIds::filterType) {
-        // Check if audio graph nodes are initialized
-        if (vcoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr ||
-            vcaNode == nullptr) {
-            // Do nothing if nodes are not initialized yet
-            return;
-        }
-
-        // Remove existing connections (mono channel only)
-        audioGraph.removeConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
-        audioGraph.removeConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-        audioGraph.removeConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
-        audioGraph.removeConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-
-        // Reconfigure connections based on filter type
-        if (static_cast<int>(newValue) == 0)  // Original
-        {
-            // Remove existing connections
-            audioGraph.removeConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
-            audioGraph.removeConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-
-            // Add new connections
-            audioGraph.addConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
-            audioGraph.addConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-
-            // Also update LFO connection (if LFO target is VCF)
-            if (static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()) ==
-                1) {
-                audioGraph.removeConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
-                audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
-            }
-        } else  // Modern
-        {
-            // Remove existing connections
-            audioGraph.removeConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
-            audioGraph.removeConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-
-            // Add new connections
-            audioGraph.addConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
-            audioGraph.addConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
-
-            // Also update LFO connection (if LFO target is VCF)
-            if (static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()) ==
-                1) {
-                audioGraph.removeConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
-                audioGraph.addConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
-            }
-
-            // If there is a current editor, notify it about the filter type change
-            if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
-                // Notify about filter type change
-                editor->filterTypeChanged(getCurrentFilterProcessor());
-            }
-        }
+        // Record request and apply on audio thread
+        requestedFilterType.store(static_cast<int>(newValue));
+        pendingFilterTypeChange.store(true);
+        return;
     }
 }
