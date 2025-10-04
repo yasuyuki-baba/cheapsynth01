@@ -113,7 +113,7 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
 // IG02600 VCA chip emulation
 float VCAProcessor::processVCA(float input, float controlVoltage, float volumeParam) {
     // Apply logarithmic volume control characteristic (PVR5)
-    float volume = std::powf(volumeParam, 2.5f);  // Use float version for performance
+    float volume = std::pow(volumeParam, 2.5f);  // Use std::pow (float overload) for portability
 
     // Calculate gain based on control voltage and volume
     float gain = controlVoltage * volume;
