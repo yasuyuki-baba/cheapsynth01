@@ -16,11 +16,15 @@ void ModernVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // Initialize filter for mono processing
     filter.reset();
     filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
-    filter.prepare(
-        {sampleRate, static_cast<uint32>(samplesPerBlock), 1});  // Always 1 channel (mono)
+    filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});  // Always 1 channel (mono)
 
-    // Initialize temporary buffer
-    processingBuffer.setSize(1, samplesPerBlock);
+    // Pre-allocate temporary buffer to avoid reallocations per block
+    if (samplesPerBlock > processingBufferCapacity) {
+        processingBuffer.setSize(1, samplesPerBlock);
+        processingBufferCapacity = samplesPerBlock;
+    } else if (processingBufferCapacity > 0) {
+        processingBuffer.clear();
+    }
 }
 
 void ModernVCFProcessor::releaseResources() {
@@ -78,11 +82,15 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto* channelData = buffer.getWritePointer(0);
 
     // Prepare temporary buffer
-    if (processingBuffer.getNumSamples() < buffer.getNumSamples())
-        processingBuffer.setSize(1, buffer.getNumSamples(), false, false, true);
+    int numSamples = buffer.getNumSamples();
+    if (numSamples > processingBufferCapacity) {
+        processingBuffer.setSize(1, numSamples);
+        processingBufferCapacity = numSamples;
+    } else if (processingBufferCapacity > 0) {
+        processingBuffer.clear();
+    }
 
-    processingBuffer.clear();
-    processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
+    processingBuffer.copyFrom(0, 0, audioData, numSamples);
     float* samples = processingBuffer.getWritePointer(0);
 
     // Process each sample
@@ -104,15 +112,15 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // EG modulation
         float egMod = egValue * egDepth * egModRangeSemitones;
-        float egModFreqRatio = std::pow(2.0f, egMod / 12.0f);
+        float egModFreqRatio = std::exp2f(egMod / 12.0f);
 
         // LFO modulation - using multiplicative method
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = std::pow(2.0f, lfoMod / 12.0f);
+        float lfoModFreqRatio = std::exp2f(lfoMod / 12.0f);
 
         // Breath modulation - using multiplicative method
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio = std::pow(2.0f, breathMod / 12.0f);
+        float breathModFreqRatio = std::exp2f(breathMod / 12.0f);
 
         // Apply all modulations - unified multiplicative method
         float modulatedCutoffHz =
