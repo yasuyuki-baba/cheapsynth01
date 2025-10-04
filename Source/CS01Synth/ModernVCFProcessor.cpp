@@ -127,8 +127,8 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Process the whole block using JUCE DSP block API (SIMD-friendly)
     {
-        juce::dsp::AudioBlock<float> audioBlock(reinterpret_cast<float*>(processingBuffer.getWritePointer(0)),
-                                                1, static_cast<size_t>(numSamples));
+        // Use the AudioBlock constructor that accepts an AudioBuffer reference.
+        juce::dsp::AudioBlock<float> audioBlock(processingBuffer);
         juce::dsp::ProcessContextReplacing<float> context(audioBlock);
         filter.process(context);
     }
