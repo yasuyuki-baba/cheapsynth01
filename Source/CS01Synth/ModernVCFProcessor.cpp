@@ -82,67 +82,59 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto* channelData = buffer.getWritePointer(0);
 
     // Prepare temporary buffer
-    int numSamples = buffer.getNumSamples();
-    if (numSamples > processingBufferCapacity) {
-        processingBuffer.setSize(1, numSamples);
-        processingBufferCapacity = numSamples;
+    if (buffer.getNumSamples() > processingBufferCapacity) {
+        processingBuffer.setSize(1, buffer.getNumSamples());
+        processingBufferCapacity = buffer.getNumSamples();
     } else if (processingBufferCapacity > 0) {
         processingBuffer.clear();
     }
 
-    processingBuffer.copyFrom(0, 0, audioData, numSamples);
+    processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
     float* samples = processingBuffer.getWritePointer(0);
 
-    // Process each sample
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        float egValue = egData[sample];
-        // Use LFO data only if available
-        float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
+    // Compute average modulation in semitones across the block to allow block processing.
+    // This reduces per-sample filter coefficient updates while keeping modulation behaviour
+    // approximately correct and allowing the filter to use processBlock (SIMD-friendly).
+    int numSamples = buffer.getNumSamples();
+    float accumSemitone = 0.0f;
 
-        // Limit LFO value to range [-1.0, 1.0]
+    const float egModRangeSemitones = 36.0f;      // 3 octaves
+    const float lfoModRangeSemitones = 24.0f;     // 2 octaves
+    const float breathModRangeSemitones = 24.0f;  // 2 octaves
+
+    for (int sample = 0; sample < numSamples; ++sample) {
+        float egValue = egData[sample];
+        float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
         lfoValue = juce::jlimit(-1.0f, 1.0f, lfoValue);
 
-        // Calculate modulation effects
-        const float egModRangeSemitones = 36.0f;      // 3 octaves
-        const float lfoModRangeSemitones = 24.0f;     // 2 octaves
-        const float breathModRangeSemitones = 24.0f;  // 2 octaves
-
-        // Base cutoff frequency
-        float baseCutoff = cutoff;
-
-        // EG modulation
         float egMod = egValue * egDepth * egModRangeSemitones;
-        float egModFreqRatio = std::exp2f(egMod / 12.0f);
-
-        // LFO modulation - using multiplicative method
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = std::exp2f(lfoMod / 12.0f);
-
-        // Breath modulation - using multiplicative method
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio = std::exp2f(breathMod / 12.0f);
 
-        // Apply all modulations - unified multiplicative method
-        float modulatedCutoffHz =
-            baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
+        accumSemitone += (egMod + lfoMod + breathMod);
+    }
 
-        // Check for NaN or Infinity
-        if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
-            modulatedCutoffHz = baseCutoff;  // Use base value if there's a problem
-        }
+    // Average semitone modulation for the block
+    float avgSemitone = (numSamples > 0) ? (accumSemitone / static_cast<float>(numSamples)) : 0.0f;
 
-        modulatedCutoffHz = juce::jlimit(20.0f, 20000.0f, modulatedCutoffHz);
+    // Convert average semitone modulation to frequency ratio and compute block cutoff
+    float avgFreqRatio = std::exp2f(avgSemitone / 12.0f);
+    float blockCutoffHz = juce::jlimit(20.0f, 20000.0f, cutoff * avgFreqRatio);
 
-        // Update filter parameters
-        filter.setCutoffFrequency(modulatedCutoffHz);
-        filter.setResonance(resonance);
+    // Apply averaged filter parameters (per-block)
+    filter.setCutoffFrequency(blockCutoffHz);
+    filter.setResonance(resonance);
 
-        // Process sample
-        samples[sample] = filter.processSample(0, samples[sample]);
+    // Process the whole block using JUCE DSP block API (SIMD-friendly)
+    {
+        juce::dsp::AudioBlock<float> audioBlock(reinterpret_cast<float*>(processingBuffer.getWritePointer(0)),
+                                                1, static_cast<size_t>(numSamples));
+        juce::dsp::ProcessContextReplacing<float> context(audioBlock);
+        filter.process(context);
     }
 
     // Copy processed samples back to output
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        channelData[sample] = samples[sample];
+    for (int sample = 0; sample < numSamples; ++sample) {
+        channelData[sample] = processingBuffer.getReadPointer(0)[sample];
     }
 }
