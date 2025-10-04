@@ -91,7 +91,6 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     }
 
     processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
-    float* samples = processingBuffer.getWritePointer(0);
 
     // Compute average modulation in semitones across the block to allow block processing.
     // This reduces per-sample filter coefficient updates while keeping modulation behaviour
