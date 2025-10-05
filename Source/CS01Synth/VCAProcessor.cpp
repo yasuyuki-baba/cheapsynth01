@@ -70,6 +70,8 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
     auto volume = apvts.getRawParameterValue(ParameterIds::volume)->load();
+    // Precompute nonlinear volume curve once per block
+    float volumeGain = std::pow(volume, 2.5f);
 
     // Get data pointers for mono buffers
     const auto* audioData = audioInput.getReadPointer(0);
@@ -95,7 +97,7 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         controlVoltage *= (1.0f - breathVcaDepth) + (breathInput * breathVcaDepth);
 
         // Process through IG02600 VCA chip emulation
-        float outputSample = processVCA(inputSample, controlVoltage, volume);
+        float outputSample = processVCA(inputSample, controlVoltage, volumeGain);
 
         // Process through Tr7 transistor buffer emulation
         outputSample = processTr7Buffer(outputSample);
@@ -112,12 +114,10 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
 }
 
 // IG02600 VCA chip emulation
-float VCAProcessor::processVCA(float input, float controlVoltage, float volumeParam) {
-    // Apply logarithmic volume control characteristic (PVR5)
-    float volume = static_cast<float>(std::pow(static_cast<double>(volumeParam), 2.5));  // Use std::pow with explicit casts for portability
-
+float VCAProcessor::processVCA(float input, float controlVoltage, float volumeGain) {
+    // volumeGain is precomputed nonlinear volume curve (PVR5)
     // Calculate gain based on control voltage and volume
-    float gain = controlVoltage * volume;
+    float gain = controlVoltage * volumeGain;
 
     // Apply gain
     float output = input * gain;
