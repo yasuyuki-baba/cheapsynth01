@@ -1,14 +1,36 @@
-Title: Yamaha CS-01 LFO — Technical Summary
+# Yamaha CS-01 LFO — Technical Summary
 
-Short summary
-The Yamaha CS-01 LFO is a deliberately simple but effective low-frequency oscillator: a single triangle wave source with a rate range of approximately 0.8 Hz to 21 Hz, routable to either VCO (pitch) or VCF (filter cutoff). Implemented using a digital logic core in the original hardware, the LFO provides stable, musically useful modulation without complex waveform options. Its independence from the PWM speed control and internal integration with the YM10150/DCO architecture gives the CS-01 characteristic, performance-friendly modulation behavior.
+## Short summary
 
-Key technical points
+The Yamaha CS-01 LFO is a deliberately simple but effective low-frequency oscillator: a single triangle-wave source with a rate range of approximately 0.8 Hz to 21 Hz, routable to either the VCO (pitch) or the VCF (filter cutoff). Implemented using digital logic in the original hardware, the LFO provides a stable analog modulation voltage and predictable behavior across units. It is independent from the PWM speed control and integrated with the YM10150/DCO architecture.
+
+## Key technical points
+
 - Waveform: Single triangle wave (confirmed by service documentation and circuit analysis).
 - Rate range: ~0.8 Hz – 21 Hz (official manuals for CS-01 and CS-01II).
 - Destinations: VCO (vibrato) or VCF (wah/auto-filter); switched via front-panel selector.
-- Implementation: Digital-logic-driven oscillator (TC7476-based topology reported), producing a stable analog LFO voltage output.
-- Distinction: LFO is independent of PWM speed (PWM has a separate speed control and range).
+- Implementation: Digital-logic-driven oscillator (reported TC7476-based topology) with analog output.
+- Distinction: LFO and PWM are separate, independent modulation sources.
+
+## Detailed notes
+
+### Overview and intent
+
+The CS-01’s LFO reflects the instrument’s design philosophy: simple, robust, and performer-focused. Rather than offering multiple waveforms or sync features, Yamaha provided a single, reliably shaped modulation source with a wide range suitable for slow sweeps and near-audio-rate modulation for timbral effects. This simplicity reduces component count, improves stability at power-up, and aligns with the YM10150-driven hybrid architecture.
+
+### Hardware and behavior
+
+Service schematics and community analyses indicate the LFO core is realized using digital logic (flip-flop/timer circuits) rather than an op-amp integrator. The board-level design outputs an analog control voltage for routing to either pitch-control or filter-control summing networks. The digital basis gives consistent timing and stable performance across units and thermal conditions.
+
+### Operational implications
+
+- Sound design: low rates (0.8–~5 Hz) are ideal for slow sweeps and subtle vibrato; mid-to-high rates (5–21 Hz) produce more pronounced chorusing or near-audio-rate modulation textures.
+- Emulation: preserve a single triangle waveform, replicate the rate range and analog output scaling, and keep LFO and PWM speed separate.
+- Repairs/mods: respect the separate PWM and LFO circuits—merging them changes the instrument’s characteristic sound.
+
+## References & confidence
+
+- Confirmed from official service manuals and multiple community analyses (confidence: high for specs and topology; medium for implementation detail nuances).
 
 Detailed notes
 Overview and intent
