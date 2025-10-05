@@ -82,14 +82,13 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
     auto* channelData = buffer.getWritePointer(0);
 
-    // Prepare temporary buffer
-    if (buffer.getNumSamples() > processingBufferCapacity) {
-        processingBuffer.setSize(1, buffer.getNumSamples());
-        processingBufferCapacity = buffer.getNumSamples();
-    } else if (processingBufferCapacity > 0) {
+    // Expect processingBuffer to be preallocated in prepareToPlay; avoid reallocating on audio thread
+    jassert(buffer.getNumSamples() <= processingBufferCapacity);
+    if (processingBufferCapacity > 0) {
         processingBuffer.clear();
     }
 
+    // Copy input into the preallocated processing buffer
     processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
 
     // Compute average modulation in semitones across the block to allow block processing.
@@ -133,8 +132,6 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         filter.process(context);
     }
 
-    // Copy processed samples back to output
-    for (int sample = 0; sample < numSamples; ++sample) {
-        channelData[sample] = processingBuffer.getReadPointer(0)[sample];
-    }
+    // Copy processed samples back to output efficiently
+    buffer.copyFrom(0, 0, processingBuffer, 0, 0, numSamples);
 }

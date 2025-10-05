@@ -76,12 +76,18 @@ void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int 
 
     updateBlockRateParameters();
 
-    for (size_t sample = 0; sample < static_cast<size_t>(numSamples); ++sample) {
-        float currentSample = getNextSample();
+    const int numChannels = outputBuffer.getNumChannels();
 
-        for (int channel = 0; channel < outputBuffer.getNumChannels(); ++channel) {
-            outputBuffer.addSample(channel, startSample + sample, currentSample);
-        }
+    // Fill channel 0 (mono) directly to avoid per-sample per-channel inner loop.
+    float* ch0 = outputBuffer.getWritePointer(0, startSample);
+    for (int i = 0; i < numSamples; ++i) {
+        float currentSample = getNextSample();
+        ch0[i] += currentSample; // preserve additive behavior
+    }
+
+    // Duplicate channel 0 into other channels efficiently
+    for (int channel = 1; channel < numChannels; ++channel) {
+        outputBuffer.addFrom(channel, startSample, outputBuffer, 0, startSample, numSamples);
     }
 
     // Advance counter if in tail-off
@@ -96,16 +102,21 @@ void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int 
 
 void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& context) {
     auto& outputBlock = context.getOutputBlock();
-    auto numSamples = outputBlock.getNumSamples();
-    auto numChannels = outputBlock.getNumChannels();
+    const auto numSamples = static_cast<int>(outputBlock.getNumSamples());
+    const auto numChannels = static_cast<int>(outputBlock.getNumChannels());
 
     updateBlockRateParameters();
 
-    for (size_t sample = 0; sample < static_cast<size_t>(numSamples); ++sample) {
+    // Fill channel 0 (mono) first
+    for (int sample = 0; sample < numSamples; ++sample) {
         float currentSample = getNextSample();
+        outputBlock.setSample(0, sample, currentSample);
+    }
 
-        for (size_t channel = 0; channel < static_cast<size_t>(numChannels); ++channel) {
-            outputBlock.setSample(channel, sample, currentSample);
+    // For additional channels, copy channel 0 contents to avoid regenerating per channel
+    for (int ch = 1; ch < numChannels; ++ch) {
+        for (int sample = 0; sample < numSamples; ++sample) {
+            outputBlock.setSample(ch, sample, outputBlock.getSample(0, sample));
         }
     }
 }

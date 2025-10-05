@@ -85,26 +85,21 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto* outputData = buffer.getWritePointer(0);
 
     int numSamples = buffer.getNumSamples();
-
-    // Ensure modulation buffer capacity
-    if (numSamples > modulationBufferCapacity) {
-        modulationBuffer.free();
-        modulationBuffer.allocate(numSamples, true);
-        modulationBufferCapacity = numSamples;
-    } else if (modulationBufferCapacity > 0) {
+    // Expect modulationBuffer to be preallocated in prepareToPlay; avoid reallocating on audio thread
+    jassert(numSamples <= modulationBufferCapacity);
+    if (modulationBufferCapacity > 0) {
         modulationBuffer.clear(numSamples);
     }
+
+    // Prepare modulation constants (move invariants out of per-sample loop)
+    const float egModRangeSemitones = 36.0f;      // 3 octaves
+    const float lfoModRangeSemitones = 24.0f;     // 2 octaves
+    const float breathModRangeSemitones = 24.0f;  // 2 octaves
 
     // Calculate cutoff frequency for each sample
     for (int sample = 0; sample < numSamples; ++sample) {
         float egValue = egData[sample];
         float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
-
-        // Modulation effect calculation constants
-        const float egModRangeSemitones = 36.0f;      // 3 octaves
-        const float lfoModRangeSemitones = 24.0f;     // 2 octaves
-        const float breathModRangeSemitones = 24.0f;  // 2 octaves
-
         // Base cutoff frequency
         float baseCutoff = cutoff;
 

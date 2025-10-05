@@ -79,6 +79,8 @@ class EGProcessor : public juce::AudioProcessor {
 
     juce::AudioProcessorValueTreeState& apvts;
     juce::ADSR adsr;
+    // Instance member for envelope shaping state (was previously a static local in processBlock)
+    float prevSample = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
 };

@@ -38,8 +38,7 @@ void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffe
     // Process mono output (channel 0) only
     auto* channelData = buffer.getWritePointer(0);
 
-    // Static variable for envelope shaping
-    static float prevSample = 0.0f;
+    // Envelope shaping state is kept in the instance member prevSample (EGProcessor.h)
 
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         // Get the raw envelope sample
