@@ -80,7 +80,6 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto* audioData = audioInput.getReadPointer(0);
     const auto* egData = egInput.getReadPointer(0);
     const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
-    auto* channelData = buffer.getWritePointer(0);
 
     // Expect processingBuffer to be preallocated in prepareToPlay; avoid reallocating on audio thread
     jassert(buffer.getNumSamples() <= processingBufferCapacity);
