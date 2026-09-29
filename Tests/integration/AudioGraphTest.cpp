@@ -203,6 +203,63 @@ TEST_F(AudioGraphTest, ParameterConnections)
     processor->releaseResources();
 }
 
+TEST_F(AudioGraphTest, FilterAndLfoRoutingStayConsistent)
+{
+    CS01AudioProcessor processor;
+    processor.prepareToPlay(44100.0, 512);
+
+    auto& state = processor.getValueTreeState();
+    const auto setChoice = [&state](const juce::String& parameterId, int choice)
+    {
+        auto* parameter = dynamic_cast<juce::AudioParameterChoice*>(state.getParameter(parameterId));
+        ASSERT_NE(parameter, nullptr);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(choice)));
+    };
+
+    juce::AudioBuffer<float> buffer(2, 512);
+    juce::MidiBuffer midi;
+
+    for (int filterType = 0; filterType < 2; ++filterType)
+    {
+        for (int lfoTarget = 0; lfoTarget < 2; ++lfoTarget)
+        {
+            setChoice(ParameterIds::filterType, filterType);
+            setChoice(ParameterIds::lfoTarget, lfoTarget);
+            processor.flushPendingGraphChangesForTesting();
+
+            buffer.clear();
+            processor.processBlock(buffer, midi);
+
+            const auto hasConnection = [&processor](juce::AudioProcessorGraph::NodeID sourceNode,
+                                                    int sourceChannel,
+                                                    juce::AudioProcessorGraph::NodeID destinationNode,
+                                                    int destinationChannel)
+            {
+                return processor.getAudioGraphForTesting().isConnected({
+                    {sourceNode, sourceChannel}, {destinationNode, destinationChannel}});
+            };
+
+            const auto originalFilter = processor.getOriginalFilterNodeIdForTesting();
+            const auto modernFilter = processor.getModernFilterNodeIdForTesting();
+            const auto vco = processor.getVcoNodeIdForTesting();
+            const auto lfo = processor.getLfoNodeIdForTesting();
+            const auto vca = processor.getVcaNodeIdForTesting();
+
+            EXPECT_EQ(hasConnection(vco, 0, originalFilter, 0), filterType == 0);
+            EXPECT_EQ(hasConnection(originalFilter, 0, vca, 0), filterType == 0);
+            EXPECT_EQ(hasConnection(vco, 0, modernFilter, 0), filterType == 1);
+            EXPECT_EQ(hasConnection(modernFilter, 0, vca, 0), filterType == 1);
+            EXPECT_EQ(hasConnection(lfo, 0, vco, 0), lfoTarget == 0);
+            EXPECT_EQ(hasConnection(lfo, 0, originalFilter, 2),
+                      lfoTarget == 1 && filterType == 0);
+            EXPECT_EQ(hasConnection(lfo, 0, modernFilter, 2),
+                      lfoTarget == 1 && filterType == 1);
+        }
+    }
+
+    processor.releaseResources();
+}
+
 TEST_F(AudioGraphTest, ProgramChangeEffect)
 {
     // Create processor
