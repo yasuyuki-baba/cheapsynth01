@@ -13,7 +13,8 @@
 #include "CS01Synth/ModernVCFProcessor.h"
 
 class CS01AudioProcessor : public juce::AudioProcessor,
-                           public juce::AudioProcessorValueTreeState::Listener {
+                           public juce::AudioProcessorValueTreeState::Listener,
+                           private juce::AsyncUpdater {
    public:
     // Get current filter processor
     IFilter* getCurrentFilterProcessor();
@@ -80,14 +81,31 @@ class CS01AudioProcessor : public juce::AudioProcessor,
         return midiMessageCollector;
     }
 
+    const juce::AudioProcessorGraph& getAudioGraphForTesting() const { return audioGraph; }
+    juce::AudioProcessorGraph::NodeID getVcoNodeIdForTesting() const { return vcoNode->nodeID; }
+    juce::AudioProcessorGraph::NodeID getLfoNodeIdForTesting() const { return lfoNode->nodeID; }
+    juce::AudioProcessorGraph::NodeID getVcaNodeIdForTesting() const { return vcaNode->nodeID; }
+    juce::AudioProcessorGraph::NodeID getOriginalFilterNodeIdForTesting() const {
+        return vcfNode->nodeID;
+    }
+    juce::AudioProcessorGraph::NodeID getModernFilterNodeIdForTesting() const {
+        return modernVcfNode->nodeID;
+    }
+    // Call only on the message thread; flush both routing and graph rendering updates.
+    void flushPendingGraphChangesForTesting() {
+        handleUpdateNowIfNeeded();
+        audioGraph.rebuild();
+    }
+
     juce::AudioProcessorValueTreeState apvts;
 
    private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void applyFilterRouting(int filterType, int lfoTarget,
+                            juce::AudioProcessorGraph::UpdateKind updateKind);
+    void handleAsyncUpdate() override;
     void updateVCAOutputConnections();
     void handleGeneratorTypeChanged();
-    void applyPendingGraphChanges();
-
     juce::MidiKeyboardState keyboardState;
     juce::MidiMessageCollector midiMessageCollector;
     juce::AudioProcessorGraph audioGraph;
@@ -104,11 +122,9 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     // プログラム管理
     ProgramManager presetManager;
 
-    // Pending graph change flags (thread-safe)
-    std::atomic<bool> pendingFilterTypeChange{false};
+    // Latest requested routing state; parameter callbacks only publish values here.
     std::atomic<int> requestedFilterType{0};
-    std::atomic<bool> pendingLfoTargetChange{false};
     std::atomic<int> requestedLfoTarget{0};
-
+    std::atomic<bool> pendingRoutingChange{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CS01AudioProcessor)
 };
