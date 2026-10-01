@@ -4,17 +4,16 @@
 // 循環参照を避けるために前方宣言
 class CS01AudioProcessor;
 class IFilter;
-#include "UI/ModulationComponent.h"
-#include "UI/VCOComponent.h"
-#include "UI/LFOComponent.h"
-#include "UI/VCFComponent.h"
-#include "UI/VCAComponent.h"
-#include "UI/EGComponent.h"
 #include "UI/BreathControlComponent.h"
-#include "UI/VolumeComponent.h"
-#include "UI/ProgramPanel.h"
-#include "UI/FilterTypeComponent.h"
+#include "UI/EGComponent.h"
+#include "UI/LFOComponent.h"
+#include "UI/ModulationComponent.h"
 #include "UI/OscilloscopeComponent.h"
+#include "UI/ProgramPanel.h"
+#include "UI/VCAComponent.h"
+#include "UI/VCFComponent.h"
+#include "UI/VCOComponent.h"
+#include "UI/VolumeComponent.h"
 
 // Forward declarations
 class CS01LookAndFeel;
@@ -42,6 +41,7 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor {
     CS01AudioProcessor& audioProcessor;
 
     juce::MidiKeyboardComponent midiKeyboard;
+    juce::TextButton monitorButton { "MONITOR" };
 
     std::unique_ptr<ModulationComponent> modulationComponent;
     std::unique_ptr<VCOComponent> vcoComponent;
@@ -52,7 +52,6 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor {
     std::unique_ptr<BreathControlComponent> breathControlComponent;
     std::unique_ptr<VolumeComponent> volumeComponent;
     std::unique_ptr<ProgramPanel> programPanel;
-    std::unique_ptr<FilterTypeComponent> filterTypeComponent;
     std::unique_ptr<CS01LookAndFeel> lookAndFeel;
     OscilloscopeComponent oscilloscopeComponent;
     juce::AudioVisualiserComponent audioVisualiser;

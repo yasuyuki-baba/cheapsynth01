@@ -8,6 +8,7 @@
   ==============================================================================
 */
 
+#include "CS01LookAndFeel.h"
 #include "OscilloscopeComponent.h"
 
 //==============================================================================
@@ -15,8 +16,8 @@ OscilloscopeComponent::OscilloscopeComponent(int initialNumChannels)
     : bufferSize(1024),
       bufferIndex(0),
       numChannels(initialNumChannels),
-      waveformColour(juce::Colours::lime),
-      backgroundColour(juce::Colours::black),
+      waveformColour(juce::Colours::lime), // Classic Green
+      backgroundColour(juce::Colours::black), // Black CRT-like background
       gridColour(juce::Colours::darkgrey.withAlpha(0.5f)),
       waveformThickness(1.5f) {
     // Initialize audio buffer
@@ -35,17 +36,39 @@ OscilloscopeComponent::~OscilloscopeComponent() {
 }
 
 void OscilloscopeComponent::paint(juce::Graphics& g) {
-    // Draw background
-    g.fillAll(backgroundColour);
+    // Draw Bezel
+    auto bounds = getLocalBounds().toFloat();
 
-    // Draw grid lines
+    // Outer Bezel (Plastic)
+    g.setColour(juce::Colours::darkgrey.darker(0.3f));
+    g.fillRoundedRectangle(bounds, 5.0f);
+
+    // Inner Bezel (Shadow)
+    g.setColour(juce::Colours::black);
+    g.fillRoundedRectangle(bounds.reduced(4.0f), 3.0f);
+
+    // Screen Area
+    auto screenBounds = bounds.reduced(8.0f);
+
+    // Draw background (Black)
+    g.setColour(juce::Colours::black);
+    g.fillRect(screenBounds);
+
+    // Clip to screen
+    g.saveState();
+    g.reduceClipRegion(screenBounds.toNearestInt());
+
+    // Draw grid lines (faint green)
+    g.setColour(juce::Colours::green.withAlpha(0.2f));
     drawGrid(g);
 
-    // Draw waveforms for all channels
+    // Draw waveforms (Clean Green Line)
     g.setColour(waveformColour);
     for (int ch = 0; ch < numChannels; ++ch) {
         g.strokePath(waveformPaths[ch], juce::PathStrokeType(waveformThickness));
     }
+
+    g.restoreState();
 }
 
 void OscilloscopeComponent::resized() {

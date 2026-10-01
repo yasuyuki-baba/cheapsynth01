@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "FilterTypeComponent.h"
 #include "../Parameters.h"
 
@@ -14,11 +15,7 @@ FilterTypeComponent::FilterTypeComponent(juce::AudioProcessorValueTreeState& apv
 FilterTypeComponent::~FilterTypeComponent() {}
 
 void FilterTypeComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("FILTER TYPE", getLocalBounds().withTrimmedBottom(getHeight() / 2),
-                     juce::Justification::centred, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "FILTER TYPE");
 }
 
 void FilterTypeComponent::resized() {

@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "VolumeComponent.h"
 #include "../Parameters.h"
 
@@ -16,10 +17,7 @@ VolumeComponent::VolumeComponent(juce::AudioProcessorValueTreeState& apvts)
 VolumeComponent::~VolumeComponent() {}
 
 void VolumeComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("Volume", getLocalBounds(), juce::Justification::centredTop, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "VOLUME");
 }
 
 void VolumeComponent::resized() {

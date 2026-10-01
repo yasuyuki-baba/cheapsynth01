@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "ModulationComponent.h"
 #include "../CS01AudioProcessor.h"
 #include "../Parameters.h"
@@ -8,10 +9,14 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     pitchBendSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     pitchBendSlider.setRange(0.0, 1.0, 0.001);
     pitchBendSlider.setValue(0.0);
+    pitchBendSlider.getProperties().set("performanceWheel", true);
+    pitchBendSlider.setSliderSnapsToMousePosition(false);
+    pitchBendSlider.setPopupDisplayEnabled(true, true, this);
     pitchBendSlider.setDoubleClickReturnValue(true, 0.0);
     pitchBendSlider.addListener(this);
     addAndMakeVisible(pitchBendSlider);
     pitchBendLabel.setText("BEND", juce::dontSendNotification);
+    pitchBendLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(pitchBendLabel);
 
     // Mod Depth Slider
@@ -19,9 +24,14 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     modDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     modDepthSlider.setRange(0.0, 1.0, 0.001);
     modDepthSlider.setValue(0.0);
+    modDepthSlider.getProperties().set("performanceWheel", true);
+    modDepthSlider.setSliderSnapsToMousePosition(false);
+    modDepthSlider.setPopupDisplayEnabled(true, true, this);
+    modDepthSlider.setDoubleClickReturnValue(true, 0.0);
     modDepthSlider.addListener(this);
     addAndMakeVisible(modDepthSlider);
     modDepthLabel.setText("MOD", juce::dontSendNotification);
+    modDepthLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(modDepthLabel);
 
     // LFO Target Buttons
@@ -54,10 +64,7 @@ ModulationComponent::~ModulationComponent() {
 }
 
 void ModulationComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("Modulation", getLocalBounds(), juce::Justification::centredTop, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "CONTROL");
 }
 
 void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
@@ -78,41 +85,18 @@ void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
 }
 
 void ModulationComponent::resized() {
-    auto bounds = getLocalBounds().reduced(5).withTrimmedTop(20);
-
-    juce::FlexBox flex;
-    flex.flexDirection = juce::FlexBox::Direction::row;
-    flex.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
-    flex.alignItems = juce::FlexBox::AlignItems::stretch;
-
-    auto sliderWidth = bounds.getWidth() / 4;
-    auto buttonGroupWidth = bounds.getWidth() / 2;
-
-    // Calculate slider height (to match other components)
-    float totalHeight = bounds.getHeight();
-    float labelHeight = 15.0f;
-    float sliderHeight = (totalHeight - labelHeight) * 5.0f / 6.0f;
-
-    juce::FlexBox bendBox;
-    bendBox.flexDirection = juce::FlexBox::Direction::column;
-    bendBox.items.add(juce::FlexItem(pitchBendSlider).withHeight(sliderHeight));
-    bendBox.items.add(juce::FlexItem(pitchBendLabel).withHeight(labelHeight));
-    flex.items.add(juce::FlexItem(bendBox).withWidth(sliderWidth));
-
-    juce::FlexBox modBox;
-    modBox.flexDirection = juce::FlexBox::Direction::column;
-    modBox.items.add(juce::FlexItem(modDepthSlider).withHeight(sliderHeight));
-    modBox.items.add(juce::FlexItem(modDepthLabel).withHeight(labelHeight));
-    flex.items.add(juce::FlexItem(modBox).withWidth(sliderWidth));
-
-    juce::FlexBox targetBox;
-    targetBox.flexDirection = juce::FlexBox::Direction::column;
-    targetBox.items.add(juce::FlexItem(lfoTargetLabel).withHeight(15.0f));
+    auto bounds = getLocalBounds().reduced(5).withTrimmedTop(24);
+    auto targets = bounds.removeFromRight(76);
+    lfoTargetLabel.setBounds(targets.removeFromTop(22));
     for (auto* button : lfoTargetButtons)
-        targetBox.items.add(juce::FlexItem(*button).withFlex(1.0f));
-    flex.items.add(juce::FlexItem(targetBox).withWidth(buttonGroupWidth));
+        button->setBounds(targets.removeFromTop(28));
 
-    flex.performLayout(bounds);
+    bounds.removeFromRight(6);
+    auto bend = bounds.removeFromLeft(bounds.getWidth() / 2);
+    pitchBendLabel.setBounds(bend.removeFromBottom(24));
+    modDepthLabel.setBounds(bounds.removeFromBottom(24));
+    pitchBendSlider.setBounds(bend.reduced(3, 0));
+    modDepthSlider.setBounds(bounds.reduced(3, 0));
 }
 
 void ModulationComponent::parameterValueChanged(int parameterIndex, float newValue) {

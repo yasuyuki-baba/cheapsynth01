@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "LFOComponent.h"
 #include "../Parameters.h"
 
@@ -10,17 +11,19 @@ LFOComponent::LFOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
 
     lfoSpeedAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::lfoSpeed), lfoSpeedSlider);
+    // Match the VCO faders without changing parameter ranges or values.
+    lfoSpeedSlider.setPopupDisplayEnabled(true, true, this);
+    lfoSpeedSlider.setSliderSnapsToMousePosition(false);
+    lfoSpeedSlider.setDoubleClickReturnValue(true,
+        valueTreeState.getParameter(ParameterIds::lfoSpeed)->convertFrom0to1(
+            valueTreeState.getParameter(ParameterIds::lfoSpeed)->getDefaultValue()));
+
 }
 
 LFOComponent::~LFOComponent() {}
 
 void LFOComponent::paint(juce::Graphics& g) {
-    // The LookAndFeel will now handle the drawing of the components.
-    // We can keep this for background and titles if needed.
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("LFO", getLocalBounds(), juce::Justification::centredTop, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "LFO");
 }
 
 void LFOComponent::resized() {
@@ -28,7 +31,7 @@ void LFOComponent::resized() {
     using Track = juce::Grid::TrackInfo;
     using Fr = juce::Grid::Fr;
 
-    grid.templateRows = {Track(Fr(5)), Track(Fr(1))};  // Make slider area taller
+    grid.templateRows = {Track(Fr(1)), Track(juce::Grid::Px(32))};
     grid.templateColumns = {Track(Fr(1))};
 
     grid.items = {juce::GridItem(lfoSpeedSlider), juce::GridItem(lfoSpeedLabel)};
