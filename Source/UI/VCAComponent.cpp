@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "VCAComponent.h"
 #include "../Parameters.h"
 
@@ -10,15 +11,19 @@ VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
 
     vcaEgDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcaEgDepth), vcaEgDepthSlider);
+    // Match the VCO faders without changing parameter ranges or values.
+    vcaEgDepthSlider.setPopupDisplayEnabled(true, true, this);
+    vcaEgDepthSlider.setSliderSnapsToMousePosition(false);
+    vcaEgDepthSlider.setDoubleClickReturnValue(true,
+        valueTreeState.getParameter(ParameterIds::vcaEgDepth)->convertFrom0to1(
+            valueTreeState.getParameter(ParameterIds::vcaEgDepth)->getDefaultValue()));
+
 }
 
 VCAComponent::~VCAComponent() {}
 
 void VCAComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("VCA", getLocalBounds(), juce::Justification::centredTop, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "VCA");
 }
 
 void VCAComponent::resized() {
@@ -26,7 +31,7 @@ void VCAComponent::resized() {
     using Track = juce::Grid::TrackInfo;
     using Fr = juce::Grid::Fr;
 
-    grid.templateRows = {Track(Fr(5)), Track(Fr(1))};  // Make slider area taller
+    grid.templateRows = {Track(Fr(1)), Track(juce::Grid::Px(32))};
     grid.templateColumns = {Track(Fr(1))};
 
     grid.items = {juce::GridItem(vcaEgDepthSlider), juce::GridItem(vcaEgDepthLabel)};

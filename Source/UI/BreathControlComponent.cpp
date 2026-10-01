@@ -1,3 +1,4 @@
+#include "CS01LookAndFeel.h"
 #include "BreathControlComponent.h"
 #include "../Parameters.h"
 
@@ -23,10 +24,7 @@ BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeStat
 BreathControlComponent::~BreathControlComponent() {}
 
 void BreathControlComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
-    g.drawFittedText("Breath Control", getLocalBounds(), juce::Justification::centredTop, 1);
+    CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "BREATH");
 }
 
 void BreathControlComponent::resized() {

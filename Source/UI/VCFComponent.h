@@ -1,42 +1,43 @@
 #pragma once
 #include <JuceHeader.h>
 #include "../Parameters.h"
-#include "../CS01Synth/IFilter.h"
 
-class VCFComponent : public juce::Component {
+class VCFComponent : public juce::Component,
+                     public juce::AudioProcessorParameter::Listener {
    public:
     VCFComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCFComponent() override;
+
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // Update UI when filter processor changes
-    void updateFilterControl(IFilter* filterProcessor);
+    // AudioProcessorValueTreeState::Listener interface
+    void parameterValueChanged(int parameterIndex, float newValue) override;
+    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
    private:
-    // Method to monitor filter type changes and update resonance UI
-    void updateResonanceControl(float filterType);
-
     juce::AudioProcessorValueTreeState& valueTreeState;
+
+    // Filter Type Selector (Integrated)
+    juce::RangedAudioParameter* filterTypeParam = nullptr;
+    juce::OwnedArray<juce::ToggleButton> filterTypeButtons;
+    juce::Label filterTypeLabel;
 
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;
     std::unique_ptr<juce::SliderParameterAttachment> cutoffAttachment;
 
-    // Toggle button for CS01 filter resonance
-    juce::ToggleButton resonanceButton;
-    juce::Label resonanceLabel;
-    std::unique_ptr<juce::ButtonParameterAttachment> resonanceAttachment;
-
-    // Slider for Modern filter resonance
+    // Resonance controls (swapped based on mode)
     juce::Slider resonanceSlider;
-    juce::Label resonanceSliderLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> resonanceSliderAttachment;
+    juce::Label resonanceLabel;
+    std::unique_ptr<juce::SliderParameterAttachment> resonanceAttachment;
 
-    juce::Slider vcfEgDepthSlider;
-    juce::Label vcfEgDepthLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> vcfEgDepthAttachment;
+    juce::ToggleButton resonanceButton;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> resonanceButtonAttachment;
 
-    // Attachment to monitor filter type parameter changes
-    std::unique_ptr<juce::ParameterAttachment> filterTypeAttachment;
+    juce::Slider egDepthSlider;
+    juce::Label egDepthLabel;
+    std::unique_ptr<juce::SliderParameterAttachment> egDepthAttachment;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VCFComponent)
 };
