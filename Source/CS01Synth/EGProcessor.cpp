@@ -9,11 +9,19 @@ EGProcessor::~EGProcessor() {}
 
 //==============================================================================
 void EGProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    adsr.reset();
+    lastOutput = 0.0f;
+    releasing = false;
     adsr.setSampleRate(sampleRate);
+    parametersInitialized = false;
     updateADSR();
 }
 
-void EGProcessor::releaseResources() {}
+void EGProcessor::releaseResources() {
+    adsr.reset();
+    lastOutput = 0.0f;
+    releasing = false;
+}
 
 bool EGProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
     if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::disabled())
@@ -53,5 +61,28 @@ void EGProcessor::updateADSR() {
     adsrParams.sustain = apvts.getRawParameterValue(ParameterIds::sustain)->load();
     adsrParams.release = apvts.getRawParameterValue(ParameterIds::release)->load();
 
-    adsr.setParameters(adsrParams);
+    const auto& current = adsr.getParameters();
+    // Defer controls unrelated to release until the next note. Updating JUCE's
+    // complete parameter set would overwrite the running note-off rate.
+    if (releasing && adsr.isActive() && adsrParams.release == current.release)
+        return;
+    if (releasing && adsr.isActive()) {
+        // JUCE recalculates release from sustain and may immediately reset when
+        // sustain is zero. Use the current level while changing release, then
+        // let noteOff() calculate the new slope without changing that level.
+        // The real sustain setting is restored by startEnvelope().
+        adsrParams.sustain = lastOutput;
+        adsr.setParameters(adsrParams);
+        adsr.noteOff();
+        parametersInitialized = true;
+        return;
+    }
+    // Unchanged settings must not overwrite the rate calculated by noteOff()
+    // from the actual envelope level (which may differ from sustain).
+    if (!parametersInitialized || adsrParams.attack != current.attack
+        || adsrParams.decay != current.decay || adsrParams.sustain != current.sustain
+        || adsrParams.release != current.release) {
+        adsr.setParameters(adsrParams);
+        parametersInitialized = true;
+    }
 }

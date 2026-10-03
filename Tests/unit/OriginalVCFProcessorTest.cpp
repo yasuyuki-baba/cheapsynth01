@@ -183,6 +183,50 @@ TEST_F(OriginalVCFProcessorTest, BreathDepthIndependenceAndControlDirection)
     }
 }
 
+TEST_F(OriginalVCFProcessorTest, EgAndLfoDepthIndependenceAndDirection)
+{
+    // Constant control inputs isolate polarity; no hardware modulation span assumed.
+    const auto render = [&](float egDepth, float eg, float lfoDepth, float lfo) {
+        apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(egDepth);
+        apvts->getParameter(ParameterIds::modDepth)->setValueNotifyingHost(lfoDepth);
+        apvts->getParameter(ParameterIds::breathVcf)->setValueNotifyingHost(0.0f);
+        apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(0.0f);
+        OriginalVCFProcessor filter(*apvts);
+        filter.prepareToPlay(48000.0, 256);
+        juce::AudioBuffer<float> buffer(3, 256);
+        juce::MidiBuffer midi;
+        std::vector<float> samples;
+        for (int offset = 0; offset < 96000; offset += 256) {
+            for (int i = 0; i < 256; ++i) {
+                buffer.setSample(0, i, static_cast<float>(0.001 * std::sin(
+                    juce::MathConstants<double>::twoPi * 10000.0 * (offset + i) / 48000.0)));
+                buffer.setSample(1, i, eg);
+                buffer.setSample(2, i, lfo);
+            }
+            filter.processBlock(buffer, midi);
+            for (int i = 0; i < 256 && offset + i < 96000; ++i)
+                if (offset + i >= 48000) {
+                    EXPECT_TRUE(std::isfinite(buffer.getSample(0, i)));
+                    samples.push_back(buffer.getSample(0, i));
+                }
+        }
+        return samples;
+    };
+    const auto baseline = render(0.0f, 0.0f, 0.0f, 0.0f);
+    EXPECT_EQ(baseline, render(0.0f, 1.0f, 0.0f, 1.0f));
+    EXPECT_EQ(baseline, render(1.0f, 0.0f, 1.0f, 0.0f));
+    const auto power = [](const auto& samples) {
+        double sum = 0.0;
+        for (float value : samples) sum += static_cast<double>(value) * value;
+        return sum;
+    };
+    const double basePower = power(baseline);
+    ASSERT_GT(basePower, 0.0);
+    EXPECT_GT(power(render(1.0f, 1.0f, 0.0f, 0.0f)), basePower);
+    EXPECT_LT(power(render(0.0f, 0.0f, 1.0f, -1.0f)), basePower);
+    EXPECT_GT(power(render(0.0f, 0.0f, 1.0f, 1.0f)), basePower);
+}
+
 TEST_F(OriginalVCFProcessorTest, Initialization)
 {
     // Check that processor was created successfully

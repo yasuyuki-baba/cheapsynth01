@@ -91,7 +91,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         modulationBuffer.clear(numSamples);
     }
 
-    // Prepare modulation constants (move invariants out of per-sample loop)
+    // Empirical modulation spans, not calibrated from IG02610 control-current data.
+    // Keep these separate from tests of polarity and disabled-control independence.
     const float egModRangeSemitones = 36.0f;      // 3 octaves
     const float lfoModRangeSemitones = 24.0f;     // 2 octaves
     const float breathModRangeSemitones = 24.0f;  // 2 octaves

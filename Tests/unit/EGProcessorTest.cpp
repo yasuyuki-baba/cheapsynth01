@@ -56,6 +56,232 @@ protected:
     std::unique_ptr<EGProcessor> processor;
 };
 
+TEST_F(EGProcessorTest, EarlyReleaseIsIndependentOfBlockPartition)
+{
+    // Implementation invariant, not a hardware-calibrated envelope curve.
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        const int noteOff = static_cast<int>(sampleRate * 0.037);
+        const int count = static_cast<int>(sampleRate * 0.7);
+        std::vector<float> reference;
+        for (int blockSize : {1, 7, 64, 256}) {
+            SCOPED_TRACE(sampleRate);
+            SCOPED_TRACE(blockSize);
+            EGProcessor envelope(*apvts);
+            envelope.prepareToPlay(sampleRate, blockSize);
+            envelope.startEnvelope();
+            juce::MidiBuffer midi;
+            std::vector<float> output;
+            for (int offset = 0; offset < count;) {
+                if (offset == noteOff)
+                    envelope.releaseEnvelope();
+                const int boundary = offset < noteOff ? noteOff : count;
+                const int length = std::min(blockSize, boundary - offset);
+                juce::AudioBuffer<float> buffer(1, length);
+                envelope.processBlock(buffer, midi);
+                for (int i = 0; i < length; ++i) {
+                    const float value = buffer.getSample(0, i);
+                    ASSERT_TRUE(std::isfinite(value));
+                    ASSERT_GE(value, 0.0f);
+                    ASSERT_LE(value, 1.0f);
+                    output.push_back(value);
+                }
+                offset += length;
+            }
+            EXPECT_FALSE(envelope.isActive());
+            EXPECT_FLOAT_EQ(output.back(), 0.0f);
+            ASSERT_GT(output[noteOff - 1], 0.0f);
+            EXPECT_LE(output[noteOff], output[noteOff - 1]);
+            if (reference.empty())
+                reference = output;
+            else {
+                ASSERT_EQ(output.size(), reference.size());
+                for (size_t i = 0; i < output.size(); ++i)
+                    ASSERT_NEAR(output[i], reference[i], 1.0e-6f) << "sample=" << i;
+            }
+        }
+    }
+}
+
+TEST_F(EGProcessorTest, LifecycleClearsEnvelopeAndObservation)
+{
+    for (bool duringRelease : {false, true}) {
+        processor->prepareToPlay(48000.0, 64);
+        processor->startEnvelope();
+        juce::AudioBuffer<float> buffer(1, 64);
+        juce::MidiBuffer midi;
+        processor->processBlock(buffer, midi);
+        if (duringRelease) {
+            processor->releaseEnvelope();
+            processor->processBlock(buffer, midi);
+        }
+        ASSERT_TRUE(processor->isActive());
+        ASSERT_GT(processor->getLastOutputForTesting(), 0.0f);
+        processor->releaseResources();
+        EXPECT_FALSE(processor->isActive());
+        EXPECT_FLOAT_EQ(processor->getLastOutputForTesting(), 0.0f);
+        processor->prepareToPlay(96000.0, 64);
+        processor->processBlock(buffer, midi);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+            EXPECT_FLOAT_EQ(buffer.getSample(0, i), 0.0f);
+
+        processor->startEnvelope();
+        processor->processBlock(buffer, midi);
+        processor->prepareToPlay(44100.0, 64);
+        EXPECT_FALSE(processor->isActive());
+        EXPECT_FLOAT_EQ(processor->getLastOutputForTesting(), 0.0f);
+    }
+}
+
+TEST_F(EGProcessorTest, EarlyReleaseKeepsNoteOffRateWithZeroSustain)
+{
+    apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.0f);
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        SCOPED_TRACE(sampleRate);
+        EGProcessor envelope(*apvts);
+        envelope.prepareToPlay(sampleRate, 1);
+        envelope.startEnvelope();
+        juce::AudioBuffer<float> buffer(1, 1);
+        juce::MidiBuffer midi;
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.025); ++i)
+            envelope.processBlock(buffer, midi);
+        const float initial = buffer.getSample(0, 0);
+        ASSERT_GT(initial, 0.0f);
+        envelope.releaseEnvelope();
+        // The configured release is 0.5 s. A halfway observation must remain
+        // audible, even when the key was released before reaching sustain.
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.25); ++i)
+            envelope.processBlock(buffer, midi);
+        EXPECT_TRUE(envelope.isActive());
+        EXPECT_NEAR(buffer.getSample(0, 0), initial * 0.5f, initial * 0.002f);
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.26); ++i)
+            envelope.processBlock(buffer, midi);
+        EXPECT_FALSE(envelope.isActive());
+        EXPECT_FLOAT_EQ(buffer.getSample(0, 0), 0.0f);
+    }
+}
+
+TEST_F(EGProcessorTest, AttackAndDecayChangesDoNotAlterRunningRelease)
+{
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        const auto render = [&](bool change) {
+            for (const auto& id : {ParameterIds::attack, ParameterIds::decay}) {
+                auto* parameter = apvts->getParameter(id);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(0.1f));
+            }
+            EGProcessor envelope(*apvts);
+            envelope.prepareToPlay(sampleRate, 1);
+            envelope.startEnvelope();
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer midi;
+            for (int i = 0; i < static_cast<int>(sampleRate * 0.025); ++i)
+                envelope.processBlock(buffer, midi);
+            envelope.releaseEnvelope();
+            std::vector<float> result;
+            for (int i = 0; i < static_cast<int>(sampleRate * 0.6); ++i) {
+                if (change && i == static_cast<int>(sampleRate * 0.05)) {
+                    for (const auto& id : {ParameterIds::attack, ParameterIds::decay}) {
+                        auto* parameter = apvts->getParameter(id);
+                        parameter->setValueNotifyingHost(parameter->convertTo0to1(0.2f));
+                    }
+                }
+                envelope.processBlock(buffer, midi);
+                result.push_back(buffer.getSample(0, 0));
+            }
+            return result;
+        };
+        const auto reference = render(false);
+        const auto changed = render(true);
+        ASSERT_EQ(reference.size(), changed.size());
+        for (size_t i = 0; i < reference.size(); ++i)
+            ASSERT_FLOAT_EQ(reference[i], changed[i]) << "fs=" << sampleRate << ", sample=" << i;
+    }
+}
+
+TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain)
+{
+    // Model policy: a changed release duration starts at the current level.
+    // This is not a claim about the hardware's RC decay curve.
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        for (float duration : {0.05f, 0.2f}) {
+            SCOPED_TRACE(sampleRate);
+            SCOPED_TRACE(duration);
+            apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.0f);
+            auto* release = apvts->getParameter(ParameterIds::release);
+            release->setValueNotifyingHost(release->convertTo0to1(0.5f));
+            EGProcessor envelope(*apvts);
+            envelope.prepareToPlay(sampleRate, 1);
+            envelope.startEnvelope();
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer midi;
+            for (int i = 0; i < static_cast<int>(sampleRate * 0.025); ++i)
+                envelope.processBlock(buffer, midi);
+            envelope.releaseEnvelope();
+            for (int i = 0; i < static_cast<int>(sampleRate * 0.05); ++i)
+                envelope.processBlock(buffer, midi);
+            const float initial = buffer.getSample(0, 0);
+            ASSERT_GT(initial, 0.0f);
+            release->setValueNotifyingHost(release->convertTo0to1(duration));
+            envelope.processBlock(buffer, midi);
+            EXPECT_TRUE(envelope.isActive());
+            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - 1.0 / (duration * sampleRate)), 1.0e-5);
+            const int halfway = static_cast<int>(duration * sampleRate * 0.5);
+            for (int i = 1; i < halfway; ++i)
+                envelope.processBlock(buffer, midi);
+            EXPECT_NEAR(buffer.getSample(0, 0), initial * 0.5f, initial * 0.003f);
+            for (int i = 0; i < static_cast<int>(duration * sampleRate * 0.6); ++i)
+                envelope.processBlock(buffer, midi);
+            EXPECT_FALSE(envelope.isActive());
+            EXPECT_FLOAT_EQ(buffer.getSample(0, 0), 0.0f);
+        }
+    }
+}
+
+TEST_F(EGProcessorTest, RetriggerRestoresSustainAfterReleaseTimeChange)
+{
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        for (bool finishRelease : {false, true}) {
+            SCOPED_TRACE(sampleRate);
+            SCOPED_TRACE(finishRelease);
+            apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.6f);
+            auto* release = apvts->getParameter(ParameterIds::release);
+            release->setValueNotifyingHost(release->convertTo0to1(0.5f));
+            EGProcessor envelope(*apvts);
+            envelope.prepareToPlay(sampleRate, 1);
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer midi;
+            const auto advance = [&](double seconds) {
+                for (int i = 0; i < static_cast<int>(sampleRate * seconds); ++i) {
+                    envelope.processBlock(buffer, midi);
+                    ASSERT_TRUE(std::isfinite(buffer.getSample(0, 0)));
+                }
+            };
+            envelope.startEnvelope();
+            advance(0.025);
+            envelope.releaseEnvelope();
+            advance(0.05);
+            release->setValueNotifyingHost(release->convertTo0to1(0.2f));
+            advance(0.001);
+            ASSERT_TRUE(envelope.isActive());
+            if (finishRelease) {
+                advance(0.25);
+                ASSERT_FALSE(envelope.isActive());
+            }
+            // Also cover a sustain edit deferred while releasing.
+            apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.8f);
+            envelope.startEnvelope();
+            advance(0.5);
+            EXPECT_TRUE(envelope.isActive());
+            EXPECT_NEAR(buffer.getSample(0, 0), 0.8f, 1.0e-6f);
+            envelope.releaseEnvelope();
+            advance(0.1);
+            EXPECT_NEAR(buffer.getSample(0, 0), 0.4f, 0.002f);
+            advance(0.12);
+            EXPECT_FALSE(envelope.isActive());
+            EXPECT_FLOAT_EQ(buffer.getSample(0, 0), 0.0f);
+        }
+    }
+}
+
 TEST_F(EGProcessorTest, Initialization)
 {
     // Check that processor was created successfully
