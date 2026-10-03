@@ -59,6 +59,7 @@ target_sources(CheapSynth01Tests
         unit/OriginalVCFProcessorTest.cpp
         unit/VCAProcessorTest.cpp
         unit/EGProcessorTest.cpp
+        unit/RCEnvelopeModelTest.cpp
         unit/LFOProcessorTest.cpp
         unit/VCOProcessorTest.cpp
         unit/MidiProcessorTest.cpp
