@@ -21,6 +21,8 @@ class EGProcessor : public juce::AudioProcessor {
     bool isActive() const {
         return adsr.isActive();
     }
+    // Same-thread observation only; does not advance the envelope.
+    float getLastOutputForTesting() const { return lastOutput; }
 
     // Methods to control ADSR from outside
     void startEnvelope() {
@@ -79,6 +81,7 @@ class EGProcessor : public juce::AudioProcessor {
 
     juce::AudioProcessorValueTreeState& apvts;
     juce::ADSR adsr;
+    float lastOutput = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
 };

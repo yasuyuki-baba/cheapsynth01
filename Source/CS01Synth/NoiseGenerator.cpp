@@ -43,6 +43,7 @@ void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int start
 
 // INoteHandler implementation
 void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) {
+    lastNote = midiNoteNumber;
     currentlyPlayingNote = midiNoteNumber;
     pitchWheelValue = currentPitchWheelPosition;
     noteOn = true;
@@ -68,6 +69,7 @@ void NoiseGenerator::stopNote(bool allowTailOff) {
 }
 
 void NoiseGenerator::changeNote(int midiNoteNumber) {
+    lastNote = midiNoteNumber;
     currentlyPlayingNote = midiNoteNumber;
     // For noise, we don't need to change anything else when the note changes
 }
@@ -83,4 +85,23 @@ bool NoiseGenerator::isActive() const {
 
 int NoiseGenerator::getCurrentlyPlayingNote() const {
     return currentlyPlayingNote;
+}
+
+ISoundGenerator::PlaybackState NoiseGenerator::getPlaybackState() const {
+    return {noteOn && !tailOff, lastNote, pitchWheelValue,
+            tailOff ? std::max(0, tailOffDuration - tailOffCounter) / sampleRate : 0.0};
+}
+
+void NoiseGenerator::restorePlaybackState(const PlaybackState& state) {
+    stopNote(false);
+    if (!state.held && state.releaseSecondsRemaining <= 0.0)
+        return;
+    startNote(state.note, 1.0f, state.pitchWheel);
+    if (!state.held) {
+        noteOn = false;
+        tailOff = true;
+        tailOffCounter = 0;
+        tailOffDuration = static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
+        currentlyPlayingNote = 0;
+    }
 }

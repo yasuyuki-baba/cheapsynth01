@@ -42,6 +42,8 @@ void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffe
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         channelData[sample] = adsr.getNextSample();
     }
+    if (buffer.getNumSamples() > 0)
+        lastOutput = channelData[buffer.getNumSamples() - 1];
 }
 
 void EGProcessor::updateADSR() {
