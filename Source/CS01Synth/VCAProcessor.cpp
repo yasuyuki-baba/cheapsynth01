@@ -1,6 +1,17 @@
 #include "VCAProcessor.h"
 #include <cmath>
 
+namespace {
+juce::dsp::IIR::Coefficients<float>::Ptr makePreciseHighPass(double sampleRate, double frequency)
+{
+    const auto values = juce::dsp::IIR::ArrayCoefficients<double>::makeHighPass(sampleRate, frequency);
+    std::array<float, 6> rounded{};
+    for (size_t i = 0; i < rounded.size(); ++i)
+        rounded[i] = static_cast<float>(values[i]);
+    return new juce::dsp::IIR::Coefficients<float>(rounded);
+}
+}
+
 //==============================================================================
 VCAProcessor::VCAProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor(BusesProperties()
@@ -13,14 +24,17 @@ VCAProcessor::~VCAProcessor() {}
 
 //==============================================================================
 void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
+    bufferCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
+    outputCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.9995f), 44100.0 / sampleRate));
     // Initialize input stage high-pass filter (82K resistor and 1/50 capacitor ~40Hz)
     inputHighPass.coefficients =
-        juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 40.0f);
+        makePreciseHighPass(sampleRate, 40.0);
     inputHighPass.reset();
     inputHighPass.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
 
     // Initialize DC blocker
-    dcBlocker.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
+    dcBlocker.coefficients = makePreciseHighPass(sampleRate, 20.0);
     dcBlocker.reset();
     dcBlocker.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
 
@@ -136,7 +150,7 @@ float VCAProcessor::processVCA(float input, float controlVoltage, float volumeGa
 // Tr7 transistor buffer emulation
 float VCAProcessor::processTr7Buffer(float input) {
     // Output coupling capacitor (1/50) - high-pass characteristic
-    const float rc1 = 0.997f;  // Time constant based on component values
+    const float rc1 = bufferCouplingPole;
     capacitorState = capacitorState * rc1 + input * (1.0f - rc1);
     float hpOutput = input - capacitorState;
 
@@ -161,7 +175,7 @@ float VCAProcessor::processTr7Buffer(float input) {
 // Output coupling capacitor emulation (4.7/25)
 float VCAProcessor::processOutputCoupling(float input) {
     // Output coupling capacitor - high-pass characteristic (~7Hz)
-    const float rc3 = 0.9995f;  // Time constant based on component values
+    const float rc3 = outputCouplingPole;
     outCapacitorState = outCapacitorState * rc3 + input * (1.0f - rc3);
 
     return input - outCapacitorState;
