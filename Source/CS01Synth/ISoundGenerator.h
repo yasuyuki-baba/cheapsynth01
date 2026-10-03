@@ -19,6 +19,14 @@ class ISoundGenerator {
     virtual void pitchWheelMoved(int newPitchWheelValue) = 0;
     virtual bool isActive() const = 0;
     virtual int getCurrentlyPlayingNote() const = 0;
+    struct PlaybackState {
+        bool held = false;
+        int note = 0;
+        int pitchWheel = 8192;
+        double releaseSecondsRemaining = 0.0;
+    };
+    virtual PlaybackState getPlaybackState() const { return {}; }
+    virtual void restorePlaybackState(const PlaybackState&) {}
 
     // Sound generation methods
     virtual void prepare(const juce::dsp::ProcessSpec& spec) = 0;

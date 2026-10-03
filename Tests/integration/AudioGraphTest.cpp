@@ -2,6 +2,7 @@
 #include <JuceHeader.h>
 #include "../../Source/CS01AudioProcessor.h"
 #include "../../Source/Parameters.h"
+#include "../../Source/CS01Synth/EGProcessor.h"
 
 // Test fixture for AudioGraph integration tests
 class AudioGraphTest : public ::testing::Test
@@ -17,6 +18,71 @@ protected:
         // Test cleanup if needed
     }
 };
+
+TEST_F(AudioGraphTest, NoiseSwitchPreservesGraphEnvelope)
+{
+    for (int blockSize : {64, 256}) {
+        CS01AudioProcessor reference, switched;
+        for (auto* processor : {&reference, &switched}) {
+            auto& state = processor->getValueTreeState();
+            for (const auto& setting : std::vector<std::pair<juce::String, float>>{
+                     {ParameterIds::attack, 0.05f}, {ParameterIds::decay, 0.05f},
+                     {ParameterIds::sustain, 0.5f}, {ParameterIds::release, 0.1f}}) {
+                auto* parameter = state.getParameter(setting.first);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second));
+            }
+            processor->prepareToPlay(48000, blockSize);
+        }
+        const auto findEnvelope = [](CS01AudioProcessor& processor) -> EGProcessor* {
+            for (auto node : processor.getAudioGraphForTesting().getNodes())
+                if (auto* envelope = dynamic_cast<EGProcessor*>(node->getProcessor()))
+                    return envelope;
+            return nullptr;
+        };
+        auto* baseline = findEnvelope(reference);
+        auto* observed = findEnvelope(switched);
+        ASSERT_NE(baseline, nullptr);
+        ASSERT_NE(observed, nullptr);
+        juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
+        juce::MidiBuffer ma, mb;
+        const int releaseBlock = 9600 / blockSize;
+        bool sawAttack = false, sawSustain = false, sawRelease = false;
+        for (int block = 0; block < releaseBlock + 9600 / blockSize; ++block) {
+            // Switch in attack, sustain, and release; no key event accompanies it.
+            if (block == 2 || block == 3 || block == releaseBlock - 2
+                || block == releaseBlock - 1 || block == releaseBlock + 2
+                || block == releaseBlock + 3) {
+                auto* feet = switched.getValueTreeState().getParameter(ParameterIds::feet);
+                const bool noise = block == 2 || block == releaseBlock - 2
+                    || block == releaseBlock + 2;
+                feet->setValueNotifyingHost(feet->convertTo0to1(noise ? 4.0f : 2.0f));
+            }
+            a.clear(); b.clear(); ma.clear(); mb.clear();
+            if (block == 0 || block == releaseBlock) {
+                const auto message = block == 0
+                    ? juce::MidiMessage::noteOn(1, 69, 1.0f)
+                    : juce::MidiMessage::noteOff(1, 69);
+                ma.addEvent(message, blockSize / 2);
+                mb.addEvent(message, blockSize / 2);
+            }
+            reference.processBlock(a, ma);
+            switched.processBlock(b, mb);
+            SCOPED_TRACE(blockSize);
+            SCOPED_TRACE(block);
+            const float expected = baseline->getLastOutputForTesting();
+            EXPECT_NEAR(observed->getLastOutputForTesting(), expected, 1.0e-6f);
+            EXPECT_EQ(observed->isActive(), baseline->isActive());
+            sawAttack |= block < releaseBlock && expected > 0.0f && expected < 0.5f;
+            sawSustain |= block < releaseBlock && std::abs(expected - 0.5f) < 1.0e-5f;
+            sawRelease |= block > releaseBlock && expected > 0.0f && expected < 0.5f;
+        }
+        EXPECT_TRUE(sawAttack);
+        EXPECT_TRUE(sawSustain);
+        EXPECT_TRUE(sawRelease);
+        EXPECT_FALSE(observed->isActive());
+        EXPECT_FLOAT_EQ(observed->getLastOutputForTesting(), 0.0f);
+    }
+}
 
 TEST_F(AudioGraphTest, MidiOffsetsDoNotSoundEarly)
 {

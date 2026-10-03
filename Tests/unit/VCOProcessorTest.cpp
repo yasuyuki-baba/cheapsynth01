@@ -3,6 +3,7 @@
 #include "../../Source/CS01Synth/VCOProcessor.h"
 #include "../../Source/Parameters.h"
 #include "../mocks/MockToneGenerator.h"
+#include "../../Source/CS01Synth/MidiProcessor.h"
 
 // Test fixture for VCOProcessor tests
 class VCOProcessorTest : public ::testing::Test
@@ -87,6 +88,164 @@ protected:
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     std::unique_ptr<VCOProcessor> processor;
 };
+
+TEST_F(VCOProcessorTest, HeldNoteSurvivesNoiseRoundTrip)
+{
+    processor->prepareToPlay(48000, 256);
+    auto* original = processor->getSoundGenerator();
+    original->startNote(69, 1.0f, 8192);
+    int changes = 0;
+    processor->onGeneratorTypeChanged = [&]() { ++changes; };
+    juce::AudioBuffer<float> buffer(1, 256);
+    juce::MidiBuffer midi;
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    for (int selection : {4, 2, 4, 2}) {
+        feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+        auto* selected = processor->getSoundGenerator();
+        ASSERT_NE(selected, nullptr);
+        EXPECT_EQ(selected == original, selection == 2);
+        EXPECT_TRUE(selected->isActive());
+        EXPECT_EQ(selected->getCurrentlyPlayingNote(), 69);
+        buffer.clear();
+        processor->processBlock(buffer, midi);
+        double power = 0.0;
+        for (int i = 0; i < buffer.getNumSamples(); ++i) {
+            const double value = buffer.getSample(0, i);
+            ASSERT_TRUE(std::isfinite(value));
+            power += value * value;
+        }
+        EXPECT_GT(power, 0.0);
+    }
+    EXPECT_EQ(changes, 4);
+    processor->getSoundGenerator()->stopNote(false);
+    EXPECT_FALSE(processor->getSoundGenerator()->isActive());
+    processor->onGeneratorTypeChanged = nullptr;
+}
+
+TEST_F(VCOProcessorTest, IdleAndExpiredSourcesStaySilentAfterSwitching)
+{
+    processor->prepareToPlay(48000, 256);
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    juce::AudioBuffer<float> buffer(1, 256);
+    juce::MidiBuffer midi;
+    for (bool previouslyPlayed : {false, true}) {
+        if (previouslyPlayed) {
+            processor->getSoundGenerator()->startNote(69, 1.0f, 8192);
+            processor->getSoundGenerator()->stopNote(true);
+            for (int i = 0; i < 40; ++i) {
+                buffer.clear();
+                processor->processBlock(buffer, midi);
+            }
+        }
+        for (int selection : {4, 2, 4, 2}) {
+            feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+            EXPECT_FALSE(processor->getSoundGenerator()->isActive());
+            buffer.clear();
+            processor->processBlock(buffer, midi);
+            EXPECT_FLOAT_EQ(buffer.getMagnitude(0, 256), 0.0f);
+        }
+    }
+}
+
+TEST_F(VCOProcessorTest, NewNoteCancelsOldReleaseDeadline)
+{
+    processor->prepareToPlay(48000, 256);
+    juce::AudioBuffer<float> buffer(1, 256);
+    juce::MidiBuffer midi;
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    for (int selection : {2, 4}) {
+        feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+        auto* generator = processor->getSoundGenerator();
+        generator->startNote(60, 1.0f, 8192);
+        generator->stopNote(true);
+        buffer.clear();
+        processor->processBlock(buffer, midi);
+        generator->startNote(69, 1.0f, 8192);
+        for (int i = 0; i < 40; ++i) {
+            buffer.clear();
+            processor->processBlock(buffer, midi);
+        }
+        EXPECT_TRUE(generator->isActive());
+        EXPECT_EQ(generator->getCurrentlyPlayingNote(), 69);
+        EXPECT_TRUE(generator->getPlaybackState().held);
+        generator->stopNote(true);
+        for (int i = 0; i < 40; ++i) {
+            buffer.clear();
+            processor->processBlock(buffer, midi);
+        }
+        EXPECT_FALSE(generator->isActive());
+    }
+}
+
+TEST_F(VCOProcessorTest, UnrelatedNoteOffDoesNotRestartRelease)
+{
+    processor->prepareToPlay(48000, 256);
+    MidiProcessor midiProcessor(*apvts);
+    midiProcessor.setSoundGenerator(processor->getSoundGenerator());
+    juce::AudioBuffer<float> buffer(1, 256);
+    juce::MidiBuffer midi;
+    const auto send = [&](const juce::MidiMessage& message) {
+        midi.addEvent(message, 0);
+        midiProcessor.processBlock(buffer, midi);
+    };
+    send(juce::MidiMessage::noteOn(1, 69, 1.0f));
+    send(juce::MidiMessage::noteOff(1, 69));
+    buffer.clear();
+    processor->processBlock(buffer, midi);
+    const auto before = processor->getSoundGenerator()->getPlaybackState();
+    send(juce::MidiMessage::noteOff(1, 60));
+    const auto after = processor->getSoundGenerator()->getPlaybackState();
+    EXPECT_DOUBLE_EQ(after.releaseSecondsRemaining, before.releaseSecondsRemaining);
+    EXPECT_FALSE(after.held);
+}
+
+TEST_F(VCOProcessorTest, ReleaseSwitchDoesNotLeaveGeneratorRunning)
+{
+    processor->prepareToPlay(48000, 256);
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    for (int initial : {2, 4}) {
+        feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(initial)));
+        processor->getSoundGenerator()->startNote(69, 1.0f, 8192);
+        processor->getSoundGenerator()->stopNote(true);
+        ASSERT_TRUE(processor->getSoundGenerator()->isActive());
+        const int destination = initial == 2 ? 4 : 2;
+        feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(destination)));
+        juce::AudioBuffer<float> buffer(1, 256);
+        juce::MidiBuffer midi;
+        // One second is longer than the fixture's 0.1 second release.
+        for (int offset = 0; offset < 48000; offset += 256) {
+            buffer.clear();
+            processor->processBlock(buffer, midi);
+        }
+        EXPECT_FALSE(processor->getSoundGenerator()->isActive())
+            << "Switching a released source must not create an indefinitely held note";
+        processor->getSoundGenerator()->stopNote(false);
+    }
+}
+
+TEST_F(VCOProcessorTest, SwitchingPreservesBendAndRemainingReleaseTime)
+{
+    processor->prepareToPlay(48000, 256);
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    processor->getSoundGenerator()->startNote(69, 1.0f, 12000);
+    feet->setValueNotifyingHost(feet->convertTo0to1(4.0f));
+    EXPECT_EQ(processor->getSoundGenerator()->getPlaybackState().pitchWheel, 12000);
+    processor->getSoundGenerator()->pitchWheelMoved(15000);
+    processor->getSoundGenerator()->stopNote(true);
+    juce::AudioBuffer<float> buffer(1, 256);
+    juce::MidiBuffer midi;
+    buffer.clear();
+    processor->processBlock(buffer, midi);
+    const auto before = processor->getSoundGenerator()->getPlaybackState();
+    EXPECT_FALSE(before.held);
+    EXPECT_NEAR(before.releaseSecondsRemaining, 0.1 - 256.0 / 48000.0, 1.0 / 48000.0);
+    feet->setValueNotifyingHost(feet->convertTo0to1(2.0f));
+    const auto after = processor->getSoundGenerator()->getPlaybackState();
+    EXPECT_FALSE(after.held);
+    EXPECT_EQ(after.note, 69);
+    EXPECT_EQ(after.pitchWheel, 15000);
+    EXPECT_NEAR(after.releaseSecondsRemaining, before.releaseSecondsRemaining, 1.0 / 48000.0);
+}
 
 TEST_F(VCOProcessorTest, LfoIsIndependentOfBlockPartition)
 {

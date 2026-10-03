@@ -71,6 +71,51 @@ protected:
     std::unique_ptr<MidiProcessor> processor;
 };
 
+TEST_F(MidiProcessorTest, HeldKeysKeepEnvelopeGateOpen)
+{
+    // Test the existing single-gate model separately from pitch priority.
+    // This does not establish the internal YM10150 keyboard arbitration.
+    testing::MockToneGenerator generator(*apvts);
+    EGProcessor envelope(*apvts);
+    envelope.prepareToPlay(48000.0, 256);
+    processor->setSoundGenerator(&generator);
+    processor->setEGProcessor(&envelope);
+    juce::MidiBuffer midi;
+    const auto send = [&](const juce::MidiMessage& message) {
+        juce::AudioBuffer<float> unused(1, 1);
+        midi.addEvent(message, 0);
+        processor->processBlock(unused, midi);
+    };
+    const auto render = [&](int samples) {
+        juce::AudioBuffer<float> output(1, samples);
+        envelope.processBlock(output, midi);
+        return output.getSample(0, samples - 1);
+    };
+    send(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100));
+    // Allow attack and decay to finish before checking gate continuity.
+    EXPECT_NEAR(render(48000), 0.5f, 1.0e-5f);
+    send(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 64);
+    EXPECT_NEAR(render(256), 0.5f, 1.0e-5f);
+    send(juce::MidiMessage::noteOn(1, 67, (juce::uint8)100));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 67);
+    EXPECT_NEAR(render(256), 0.5f, 1.0e-5f);
+    send(juce::MidiMessage::noteOff(1, 67));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 64);
+    EXPECT_NEAR(render(256), 0.5f, 1.0e-5f);
+    send(juce::MidiMessage::noteOff(1, 64));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 60);
+    EXPECT_NEAR(render(256), 0.5f, 1.0e-5f);
+    send(juce::MidiMessage::noteOff(1, 60));
+    EXPECT_LT(render(256), 0.5f);
+    EXPECT_FLOAT_EQ(render(48000), 0.0f);
+    EXPECT_FALSE(envelope.isActive());
+    send(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));
+    EXPECT_GT(render(256), 0.0f);
+    processor->setEGProcessor(nullptr);
+    processor->setSoundGenerator(nullptr);
+}
+
 TEST_F(MidiProcessorTest, Initialization)
 {
     // Check that processor was created successfully

@@ -23,6 +23,8 @@ void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
 
 // INoteHandler interface implementation
 void ToneGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) {
+    lastNote = midiNoteNumber;
+    tailOff = false;
     currentlyPlayingNote = midiNoteNumber;
     setNote(midiNoteNumber, false);  // isLegato = false
     pitchWheelMoved(currentPitchWheelPosition);
@@ -50,6 +52,7 @@ void ToneGenerator::changeNote(int midiNoteNumber) {
 }
 
 void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
+    lastPitchWheel = newPitchWheelValue;
     auto upRange = apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load();
     auto downRange = apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load();
 
@@ -67,6 +70,25 @@ void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
 
 bool ToneGenerator::isActive() const {
     return noteOn || (tailOff && tailOffCounter < tailOffDuration);
+}
+
+ISoundGenerator::PlaybackState ToneGenerator::getPlaybackState() const {
+    return {noteOn, lastNote, lastPitchWheel,
+            tailOff ? std::max(0, tailOffDuration - tailOffCounter) / static_cast<double>(sampleRate) : 0.0};
+}
+
+void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
+    stopNote(false);
+    if (!state.held && state.releaseSecondsRemaining <= 0.0)
+        return;
+    startNote(state.note, 1.0f, state.pitchWheel);
+    if (!state.held) {
+        noteOn = false;
+        tailOff = true;
+        tailOffCounter = 0;
+        tailOffDuration = static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
+        currentlyPlayingNote = 0;
+    }
 }
 
 int ToneGenerator::getCurrentlyPlayingNote() const {
@@ -175,6 +197,7 @@ void ToneGenerator::reset() {
 }
 
 void ToneGenerator::setNote(int midiNoteNumber, bool isLegato) {
+    lastNote = midiNoteNumber;
     if (isLegato) {
         if (std::abs(midiNoteNumber - currentPitch) > 0.1f) {
             calculateSlideParameters(midiNoteNumber);

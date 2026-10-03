@@ -61,6 +61,9 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage) {
 }
 
 void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage) {
+    // An unmatched key release must not restart an already running release.
+    if (!activeNotes.contains(midiMessage.getNoteNumber()))
+        return;
     activeNotes.removeFirstMatchingValue(midiMessage.getNoteNumber());
 
     if (soundGenerator != nullptr) {

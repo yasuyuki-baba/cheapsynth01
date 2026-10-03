@@ -50,6 +50,35 @@ TEST(ToneGeneratorRealTest, RenderBlockPartitionIndependence)
     }
 }
 
+TEST(ToneGeneratorRealTest, PanelSwitchesPreserveHeldNoteAndBlockConsistency)
+{
+    // Panel switches are not key-gate events. Do not assert an undocumented
+    // hardware phase reset or require click-free switching.
+    ProductionVcoHarness scalar(0, 48000, 440), blocked(0, 48000, 440);
+    for (int wave : {0, 1, 2, 3, 4, 0, 4, 1, 0}) {
+        for (int feet : {2, 0, 3, 1, 2}) {
+            for (auto* harness : {&scalar, &blocked}) {
+                auto* waveParameter = harness->state.getParameter(ParameterIds::waveType);
+                waveParameter->setValueNotifyingHost(waveParameter->convertTo0to1(static_cast<float>(wave)));
+                auto* feetParameter = harness->state.getParameter(ParameterIds::feet);
+                feetParameter->setValueNotifyingHost(feetParameter->convertTo0to1(static_cast<float>(feet)));
+                harness->generator.updateBlockRateParameters();
+                EXPECT_TRUE(harness->generator.isActive());
+                EXPECT_EQ(harness->generator.getCurrentlyPlayingNote(), 69);
+            }
+            juce::AudioBuffer<float> output(1, 256);
+            output.clear();
+            blocked.generator.renderNextBlock(output, 0, 256);
+            for (int i = 0; i < 256; ++i) {
+                const float expected = scalar.generator.getNextSample();
+                ASSERT_TRUE(std::isfinite(expected));
+                ASSERT_TRUE(std::isfinite(output.getSample(0, i)));
+                EXPECT_NEAR(output.getSample(0, i), expected, 1.0e-6);
+            }
+        }
+    }
+}
+
 TEST(ToneGeneratorRealTest, ProductionProcessingCostObservation)
 {
     // Observation only: timing is machine/build dependent, not a correctness threshold.

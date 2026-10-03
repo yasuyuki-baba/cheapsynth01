@@ -52,15 +52,8 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
                 return;
 
             // Save current state before switching
-            bool wasActive = false;
-            int currentNote = 0;
-            float velocity = 1.0f;
-            int pitchWheel = 8192;  // center position
-
-            if (oldGenerator && oldGenerator->isActive()) {
-                wasActive = true;
-                currentNote = oldGenerator->getCurrentlyPlayingNote();
-            }
+            const auto state = oldGenerator ? oldGenerator->getPlaybackState()
+                                            : ISoundGenerator::PlaybackState{};
 
             // Switch generator
             currentGenerator = newGenerator;
@@ -70,8 +63,8 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
                 currentGenerator->prepare(lastSpec);
 
             // Transfer state to new generator if needed
-            if (wasActive && currentGenerator != nullptr)
-                currentGenerator->startNote(currentNote, velocity, pitchWheel);
+            if (currentGenerator != nullptr)
+                currentGenerator->restorePlaybackState(state);
 
             if (onGeneratorTypeChanged)
                 onGeneratorTypeChanged();
