@@ -19,13 +19,17 @@ class IFilter;
 class CS01LookAndFeel;
 
 //==============================================================================
-class CS01AudioProcessorEditor : public juce::AudioProcessorEditor {
+class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
+                                 private juce::KeyListener,
+                                 private juce::Timer {
    public:
     CS01AudioProcessorEditor(CS01AudioProcessor&);
     ~CS01AudioProcessorEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    using juce::AudioProcessorEditor::keyPressed;
+    using juce::AudioProcessorEditor::keyStateChanged;
 
     // フィルタータイプが変更されたときに呼び出される
     void filterTypeChanged(IFilter* newFilterProcessor);
@@ -38,6 +42,12 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor {
     }
 
    private:
+    bool keyPressed(const juce::KeyPress&, juce::Component*) override;
+    bool keyStateChanged(bool, juce::Component*) override;
+    void timerCallback() override;
+    void addPerformanceKeyListeners(juce::Component&);
+    bool isTextInputFocused() const;
+
     CS01AudioProcessor& audioProcessor;
 
     juce::MidiKeyboardComponent midiKeyboard;

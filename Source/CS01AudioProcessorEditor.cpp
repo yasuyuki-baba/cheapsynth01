@@ -21,6 +21,8 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
       audioVisualiser(p.getTotalNumOutputChannels()) {
     // Set keyboard range to match CS-01 (F2 - C5, 32 keys)
     midiKeyboard.setAvailableRange(41, 72);
+    // Lower PC keyboard playback by one octave from JUCE's default (6).
+    midiKeyboard.setKeyPressBaseOctave(5);
     midiKeyboard.setKeyWidth(25); // Mini keys look
     midiKeyboard.setBlackNoteWidthProportion(0.6f);
     midiKeyboard.setBlackNoteLengthProportion(0.6f);
@@ -77,10 +79,54 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     setResizable(true, true);
     setResizeLimits(1200, 620, 2400, 1240);
     setSize(1280, 680);
+    setWantsKeyboardFocus(true);
+    addPerformanceKeyListeners(*this);
+    startTimerHz(30);
 }
 
 CS01AudioProcessorEditor::~CS01AudioProcessorEditor() {
+    stopTimer();
+    midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
     setLookAndFeel(nullptr);
+}
+
+void CS01AudioProcessorEditor::addPerformanceKeyListeners(juce::Component& component) {
+    // The keyboard already handles its own events; do not process them twice.
+    if (&component == &midiKeyboard)
+        return;
+
+    component.addKeyListener(this);
+    for (auto* child : component.getChildren())
+        addPerformanceKeyListeners(*child);
+}
+
+bool CS01AudioProcessorEditor::isTextInputFocused() const {
+    for (auto* component = juce::Component::getCurrentlyFocusedComponent();
+         component != nullptr; component = component->getParentComponent()) {
+        if (dynamic_cast<juce::TextEditor*>(component) != nullptr)
+            return true;
+        if (component == this)
+            break;
+    }
+    return false;
+}
+
+bool CS01AudioProcessorEditor::keyPressed(const juce::KeyPress& key, juce::Component*) {
+    return !isTextInputFocused() && midiKeyboard.keyPressed(key);
+}
+
+bool CS01AudioProcessorEditor::keyStateChanged(bool isKeyDown, juce::Component*) {
+    if (isTextInputFocused()) {
+        midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
+        return false;
+    }
+    return midiKeyboard.keyStateChanged(isKeyDown);
+}
+
+void CS01AudioProcessorEditor::timerCallback() {
+    // Release only notes owned by the on-screen keyboard, not external MIDI.
+    if (!hasKeyboardFocus(true) || isTextInputFocused())
+        midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
 }
 
 //==============================================================================
