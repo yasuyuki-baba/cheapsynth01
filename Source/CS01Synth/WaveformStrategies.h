@@ -17,6 +17,27 @@ float poly_blep(float t, float dt) {
 }
 }  // namespace
 
+// Preserve empirical 44.1 kHz time constants, not hardware-calibrated values.
+class WaveformTimeConstants {
+public:
+    void update(float sampleRate) {
+        if (sampleRate == cachedSampleRate || sampleRate <= 0.0f)
+            return;
+        cachedSampleRate = sampleRate;
+        const double ratio = 44100.0 / sampleRate;
+        triangleLeak = static_cast<float>(std::pow(static_cast<double>(0.9999f), ratio));
+        triangleDcAmount = static_cast<float>(-std::expm1(std::log(1.0 - static_cast<double>(0.005f)) * ratio));
+        sawLeak = static_cast<float>(std::pow(static_cast<double>(0.998f), ratio));
+        pwmPole = static_cast<float>(std::pow(static_cast<double>(0.98f), ratio));
+    }
+    float triangleLeak = 0.9999f;
+    float triangleDcAmount = 0.005f;
+    float sawLeak = 0.998f;
+    float pwmPole = 0.98f;
+private:
+    float cachedSampleRate = 44100.0f;
+};
+
 /**
  * TriangleWaveformStrategy - Generates CS-01 style triangle wave
  */
@@ -25,14 +46,15 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
                    float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
         // Use internal state like other waveforms for independence
+        timeConstants.update(sampleRate);
         triangleIntegrator += masterSquare * phaseIncrement * 8.0f;
 
         // Apply gentle leaky integration
-        triangleIntegrator *= 0.9999f;
+        triangleIntegrator *= timeConstants.triangleLeak;
 
         // Simple DC blocker
         float output = triangleIntegrator - triangleDCBlocker;
-        triangleDCBlocker += (triangleIntegrator - triangleDCBlocker) * 0.005f;
+        triangleDCBlocker += (triangleIntegrator - triangleDCBlocker) * timeConstants.triangleDcAmount;
 
         // CS-01 triangle wave characteristics - proper amplitude
         float triangleWave = output * 1.2f;
@@ -50,6 +72,7 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
 
    private:
     float triangleIntegrator = 0.0f;
+    WaveformTimeConstants timeConstants;
     float triangleDCBlocker = 0.0f;
 };
 
@@ -61,8 +84,9 @@ class SawtoothWaveformStrategy : public IWaveformStrategy {
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
                    float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
         // Convert square to sawtooth using integration-like process
+        timeConstants.update(sampleRate);
         sawtoothState += (masterSquare > 0 ? phaseIncrement : -phaseIncrement) * 2.0f;
-        sawtoothState *= 0.998f;  // Decay to prevent buildup
+        sawtoothState *= timeConstants.sawLeak;  // Decay to prevent buildup
 
         // CS-01 sawtooth wave characteristics with downward slope
         float sawValue = 1.0f - (phase * 2.0f) + sawtoothState * 0.1f;
@@ -77,6 +101,7 @@ class SawtoothWaveformStrategy : public IWaveformStrategy {
 
    private:
     float sawtoothState = 0.0f;
+    WaveformTimeConstants timeConstants;
 };
 
 /**
@@ -135,7 +160,10 @@ class PWMWaveformStrategy : public IWaveformStrategy {
         value = std::tanh(value * 1.3f);
 
         // Subtle high-frequency roll-off
-        previousSample = previousSample * 0.98f + value * 0.02f;
+        timeConstants.update(sampleRate);
+        previousSample = previousSample * timeConstants.pwmPole + value * (1.0f - timeConstants.pwmPole);
         return value * 0.9f + previousSample * 0.1f;
     }
+private:
+    WaveformTimeConstants timeConstants;
 };

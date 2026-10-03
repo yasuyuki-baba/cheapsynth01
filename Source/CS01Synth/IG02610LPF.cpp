@@ -48,8 +48,7 @@ float IG02610LPF::accurateTanh(float x) {
 
 // Input stage processing - Clean DC blocking based on circuit diagram
 float IG02610LPF::processInputStage(float sample) {
-    // Model input capacitor (0.022μF) and resistor (22KΩ) from circuit diagram
-    // Clean DC blocking without distortion - actual circuit is linear
+    // Empirical 20 Hz, second-order DC blocker; not derived from the audio-input RC network.
     sample = inputStage.dcBlocker.processSample(sample);
 
     return sample;
@@ -57,9 +56,9 @@ float IG02610LPF::processInputStage(float sample) {
 
 // Output stage processing - Clean DC blocking based on circuit diagram
 float IG02610LPF::processOutputStage(float sample) {
-    // Model the output capacitor (1/50 = 0.02µF) and resistor (10KΩ) from circuit diagram
-    // Clean DC blocking without additional coloration - actual circuit is linear
-    const float cutoffFreq = 8.0f;  // Approximately 8Hz cutoff based on RC values
+    // Empirical coupling approximation. The schematic's 1/50 means 1 uF / 50 V,
+    // not 0.02 uF. Its effective load has not been established here.
+    const float cutoffFreq = 8.0f;  // Uncalibrated model value, not an RC-derived target.
     const float alpha =
         1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffFreq / outputStage.sampleRate);
 
@@ -121,18 +120,9 @@ float IG02610LPF::processSample(int channel, float sample) {
         // they will be updated when setCutoffFrequency is called next time
     }
 
-    // IG02610's unique characteristic: Mix lowpass with slight highpass for notch behavior
-    // Based on analysis showing "half lowpass, half highpass mixed to create notch"
+    // Use the lowpass output without an unverified dry-input/notch blend.
+    // The available CS-01 schematic does not establish such a bypass path.
     float y = output;
-
-    // Add subtle notch characteristic when cutoff is lowered (below ~500Hz)
-    if (cutoff < 500.0f && resonance > 0.5f) {
-        const float notchAmount = (500.0f - cutoff) / 500.0f;  // 0.0 to 1.0 as cutoff decreases
-        const float highpassComponent = input - output;        // Simple highpass approximation
-
-        // Mix slight highpass to create notch effect (very subtle)
-        y = output + highpassComponent * notchAmount * 0.1f;
-    }
 
     // Enhanced OTA-based nonlinear distortion characteristics
     // Apply across all resonance ranges with varying intensity

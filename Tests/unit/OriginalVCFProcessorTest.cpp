@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/OriginalVCFProcessor.h"
+#include "../../Source/CS01Synth/VCAProcessor.h"
 #include "../../Source/Parameters.h"
 
 // Test fixture for OriginalVCFProcessor tests
@@ -55,6 +56,12 @@ protected:
             ParameterIds::breathVcf, "Breath VCF", 
             juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
         
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            ParameterIds::vcaEgDepth, "VCA EG Depth", 0.0f, 1.0f, 1.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            ParameterIds::breathVca, "Breath VCA", 0.0f, 1.0f, 0.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            ParameterIds::volume, "Volume", 0.0f, 1.0f, 1.0f));
         return layout;
     }
     
@@ -62,6 +69,75 @@ protected:
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     std::unique_ptr<OriginalVCFProcessor> processor;
 };
+
+TEST_F(OriginalVCFProcessorTest, VcfVcaCascadeCharacterization)
+{
+    // Small-signal consistency check, not a hardware accuracy target.
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        for (bool high : {false, true}) {
+            for (double frequency : {20.0, 40.0, 80.0, 250.0, 1000.0, 4000.0}) {
+                SCOPED_TRACE(sampleRate);
+                SCOPED_TRACE(frequency);
+                SCOPED_TRACE(high);
+                auto* cutoff = apvts->getParameter(ParameterIds::cutoff);
+                cutoff->setValueNotifyingHost(cutoff->convertTo0to1(250.0f));
+                apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(high ? 1.0f : 0.0f);
+                apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(0.0f);
+                OriginalVCFProcessor vcf(*apvts);
+                VCAProcessor standaloneVca(*apvts), cascadeVca(*apvts);
+                vcf.prepareToPlay(sampleRate, 256);
+                standaloneVca.prepareToPlay(sampleRate, 256);
+                cascadeVca.prepareToPlay(sampleRate, 256);
+                juce::AudioBuffer<float> filtered(3, 256), alone(2, 256), cascade(2, 256);
+                juce::MidiBuffer midi;
+                double sine[3] = {}, cosine[3] = {};
+                int measured = 0;
+                const int count = static_cast<int>(sampleRate * 3.0);
+                for (int offset = 0; offset < count; offset += 256) {
+                    filtered.clear();
+                    for (int i = 0; i < 256; ++i) {
+                        const float input = static_cast<float>(0.001 * std::sin(
+                            juce::MathConstants<double>::twoPi * frequency * (offset + i) / sampleRate));
+                        filtered.setSample(0, i, input);
+                        alone.setSample(0, i, input);
+                        alone.setSample(1, i, 1.0f);
+                        cascade.setSample(1, i, 1.0f);
+                    }
+                    vcf.processBlock(filtered, midi);
+                    cascade.copyFrom(0, 0, filtered, 0, 0, 256);
+                    standaloneVca.processBlock(alone, midi);
+                    cascadeVca.processBlock(cascade, midi);
+                    for (int i = 0; i < 256; ++i) {
+                        if (offset + i < sampleRate * 2.0 || offset + i >= count)
+                            continue;
+                        const double phase = juce::MathConstants<double>::twoPi
+                            * frequency * (offset + i) / sampleRate;
+                        const double values[] = {filtered.getSample(0, i), alone.getSample(0, i), cascade.getSample(0, i)};
+                        for (int stage = 0; stage < 3; ++stage) {
+                            ASSERT_TRUE(std::isfinite(values[stage]));
+                            sine[stage] += values[stage] * std::sin(phase);
+                            cosine[stage] += values[stage] * std::cos(phase);
+                        }
+                        ++measured;
+                    }
+                }
+                ASSERT_EQ(measured, static_cast<int>(sampleRate));
+                double gain[3];
+                for (int stage = 0; stage < 3; ++stage) {
+                    const double amplitude = 2.0 * std::hypot(sine[stage], cosine[stage]) / measured;
+                    ASSERT_GT(amplitude, 0.0);
+                    gain[stage] = 20.0 * std::log10(amplitude / 0.001);
+                }
+                // Nonlinear processors need not obey exact linear cascade multiplication.
+                EXPECT_NEAR(gain[2], gain[0] + gain[1], 0.05);
+                std::cout << "VCF+VCA: fs=" << sampleRate << ", high=" << high
+                          << ", f=" << frequency << ", VCF=" << gain[0]
+                          << ", VCA=" << gain[1] << ", cascade=" << gain[2]
+                          << ", residual=" << gain[2] - gain[0] - gain[1] << " dB\n";
+            }
+        }
+    }
+}
 
 TEST_F(OriginalVCFProcessorTest, Initialization)
 {
@@ -82,6 +158,174 @@ TEST_F(OriginalVCFProcessorTest, Initialization)
     EXPECT_EQ(processor->getBus(true, 1)->getName(), juce::String("EGInput"));
     EXPECT_EQ(processor->getBus(true, 2)->getName(), juce::String("LFOInput"));
     EXPECT_EQ(processor->getBus(false, 0)->getName(), juce::String("Output"));
+}
+
+TEST_F(OriginalVCFProcessorTest, SteadyStateResponseCharacterization)
+{
+    // Observe the implementation, not a calibrated CS-01 hardware target.
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        for (bool high : {false, true}) {
+            for (double frequency : {100.0, 500.0, 800.0, 1000.0, 1200.0, 2000.0, 4000.0, 8000.0}) {
+                SCOPED_TRACE(sampleRate);
+                SCOPED_TRACE(frequency);
+                SCOPED_TRACE(high);
+                processor = std::make_unique<OriginalVCFProcessor>(*apvts);
+                auto* cutoff = apvts->getParameter(ParameterIds::cutoff);
+                cutoff->setValueNotifyingHost(cutoff->convertTo0to1(1000.0f));
+                apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(high ? 1.0f : 0.0f);
+                apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(0.0f);
+                processor->prepareToPlay(sampleRate, 256);
+                juce::AudioBuffer<float> buffer(3, 256);
+                ASSERT_EQ(processor->getTotalNumInputChannels(), 3);
+                ASSERT_EQ(processor->getBusBuffer(buffer, true, 0).getWritePointer(0), buffer.getWritePointer(0));
+                juce::MidiBuffer midi;
+                double sine = 0.0, cosine = 0.0, power = 0.0;
+                int measured = 0;
+                const int count = static_cast<int>(sampleRate * 2.0);
+                for (int offset = 0; offset < count; offset += 256) {
+                    buffer.clear(); // EG and LFO are zero, independently of defaults.
+                    for (int i = 0; i < 256; ++i)
+                        buffer.setSample(0, i, static_cast<float>(0.01 * std::sin(
+                            juce::MathConstants<double>::twoPi * frequency * (offset + i) / sampleRate)));
+                    processor->processBlock(buffer, midi);
+                    for (int i = 0; i < 256; ++i) {
+                        const double output = buffer.getSample(0, i);
+                        ASSERT_TRUE(std::isfinite(output));
+                        if (offset + i >= sampleRate && offset + i < count) {
+                            const double phase = juce::MathConstants<double>::twoPi
+                                * frequency * (offset + i) / sampleRate;
+                            sine += output * std::sin(phase);
+                            cosine += output * std::cos(phase);
+                            power += output * output;
+                            ++measured;
+                        }
+                    }
+                }
+                ASSERT_EQ(measured, static_cast<int>(sampleRate));
+                const double fundamental = 2.0 * std::hypot(sine, cosine) / measured / 0.01;
+                const double rmsGain = std::sqrt(power / measured) / (0.01 / std::sqrt(2.0));
+                ASSERT_GT(fundamental, 0.0);
+                std::cout << "VCF response: fs=" << sampleRate << ", mode=" << (high ? "High" : "Low")
+                          << ", f=" << frequency << ", fundamental=" << 20.0 * std::log10(fundamental)
+                          << " dB, RMS=" << 20.0 * std::log10(rmsGain) << " dB\n";
+            }
+        }
+    }
+}
+
+TEST_F(OriginalVCFProcessorTest, PeakAndLevelCharacterization)
+{
+    // Observe the implementation, not a calibrated CS-01 hardware target.
+    const double sampleRate = 48000.0;
+    for (double cutoffHz : {250.0, 1000.0}) {
+      for (double amplitude : {0.01, 0.1, 0.5}) {
+        for (bool high : {false, true}) {
+            for (int step = 12; step <= 24; ++step) {
+                const double frequency = cutoffHz * step / 20.0;
+                SCOPED_TRACE(sampleRate);
+                SCOPED_TRACE(frequency);
+                SCOPED_TRACE(high);
+                processor = std::make_unique<OriginalVCFProcessor>(*apvts);
+                auto* cutoff = apvts->getParameter(ParameterIds::cutoff);
+                cutoff->setValueNotifyingHost(cutoff->convertTo0to1(static_cast<float>(cutoffHz)));
+                apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(high ? 1.0f : 0.0f);
+                apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(0.0f);
+                processor->prepareToPlay(sampleRate, 256);
+                juce::AudioBuffer<float> buffer(3, 256);
+                ASSERT_EQ(processor->getTotalNumInputChannels(), 3);
+                ASSERT_EQ(processor->getBusBuffer(buffer, true, 0).getWritePointer(0), buffer.getWritePointer(0));
+                juce::MidiBuffer midi;
+                double sine = 0.0, cosine = 0.0, power = 0.0;
+                int measured = 0;
+                const int count = static_cast<int>(sampleRate * 3.0);
+                for (int offset = 0; offset < count; offset += 256) {
+                    buffer.clear(); // EG and LFO are zero, independently of defaults.
+                    for (int i = 0; i < 256; ++i)
+                        buffer.setSample(0, i, static_cast<float>(amplitude * std::sin(
+                            juce::MathConstants<double>::twoPi * frequency * (offset + i) / sampleRate)));
+                    processor->processBlock(buffer, midi);
+                    for (int i = 0; i < 256; ++i) {
+                        const double output = buffer.getSample(0, i);
+                        ASSERT_TRUE(std::isfinite(output));
+                        if (offset + i >= sampleRate && offset + i < count) {
+                            const double phase = juce::MathConstants<double>::twoPi
+                                * frequency * (offset + i) / sampleRate;
+                            sine += output * std::sin(phase);
+                            cosine += output * std::cos(phase);
+                            power += output * output;
+                            ++measured;
+                        }
+                    }
+                }
+                ASSERT_EQ(measured, static_cast<int>(sampleRate * 2.0));
+                const double fundamental = 2.0 * std::hypot(sine, cosine) / measured / amplitude;
+                const double rmsGain = std::sqrt(power / measured) / (amplitude / std::sqrt(2.0));
+                ASSERT_GT(fundamental, 0.0);
+                std::cout << "VCF response: fs=" << sampleRate << ", mode=" << (high ? "High" : "Low")
+                          << ", cutoff=" << cutoffHz << ", amplitude=" << amplitude << ", f=" << frequency << ", fundamental=" << 20.0 * std::log10(fundamental)
+                          << " dB, residual=" << 100.0 * std::sqrt(std::max(0.0, rmsGain * rmsGain - fundamental * fundamental)) / fundamental
+                          << " %, RMS=" << 20.0 * std::log10(rmsGain) << " dB\n";
+            }
+        }
+      }
+    }
+}
+
+TEST_F(OriginalVCFProcessorTest, HighFrequencyLeakageCharacterization)
+{
+    // Observe the implementation, not a calibrated CS-01 hardware target.
+    const double sampleRate = 48000.0;
+    for (double cutoffHz : {250.0, 1000.0}) {
+      for (double amplitude : {0.01}) {
+        for (bool high : {false, true}) {
+            for (double frequency : {500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0}) {
+                SCOPED_TRACE(sampleRate);
+                SCOPED_TRACE(frequency);
+                SCOPED_TRACE(high);
+                processor = std::make_unique<OriginalVCFProcessor>(*apvts);
+                auto* cutoff = apvts->getParameter(ParameterIds::cutoff);
+                cutoff->setValueNotifyingHost(cutoff->convertTo0to1(static_cast<float>(cutoffHz)));
+                apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(high ? 1.0f : 0.0f);
+                apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(0.0f);
+                processor->prepareToPlay(sampleRate, 256);
+                juce::AudioBuffer<float> buffer(3, 256);
+                ASSERT_EQ(processor->getTotalNumInputChannels(), 3);
+                ASSERT_EQ(processor->getBusBuffer(buffer, true, 0).getWritePointer(0), buffer.getWritePointer(0));
+                juce::MidiBuffer midi;
+                double sine = 0.0, cosine = 0.0, power = 0.0;
+                int measured = 0;
+                const int count = static_cast<int>(sampleRate * 3.0);
+                for (int offset = 0; offset < count; offset += 256) {
+                    buffer.clear(); // EG and LFO are zero, independently of defaults.
+                    for (int i = 0; i < 256; ++i)
+                        buffer.setSample(0, i, static_cast<float>(amplitude * std::sin(
+                            juce::MathConstants<double>::twoPi * frequency * (offset + i) / sampleRate)));
+                    processor->processBlock(buffer, midi);
+                    for (int i = 0; i < 256; ++i) {
+                        const double output = buffer.getSample(0, i);
+                        ASSERT_TRUE(std::isfinite(output));
+                        if (offset + i >= sampleRate && offset + i < count) {
+                            const double phase = juce::MathConstants<double>::twoPi
+                                * frequency * (offset + i) / sampleRate;
+                            sine += output * std::sin(phase);
+                            cosine += output * std::cos(phase);
+                            power += output * output;
+                            ++measured;
+                        }
+                    }
+                }
+                ASSERT_EQ(measured, static_cast<int>(sampleRate * 2.0));
+                const double fundamental = 2.0 * std::hypot(sine, cosine) / measured / amplitude;
+                const double rmsGain = std::sqrt(power / measured) / (amplitude / std::sqrt(2.0));
+                ASSERT_GT(fundamental, 0.0);
+                std::cout << "VCF response: fs=" << sampleRate << ", mode=" << (high ? "High" : "Low")
+                          << ", cutoff=" << cutoffHz << ", amplitude=" << amplitude << ", f=" << frequency << ", fundamental=" << 20.0 * std::log10(fundamental)
+                          << " dB, residual=" << 100.0 * std::sqrt(std::max(0.0, rmsGain * rmsGain - fundamental * fundamental)) / fundamental
+                          << " %, RMS=" << 20.0 * std::log10(rmsGain) << " dB\n";
+            }
+        }
+      }
+    }
 }
 
 TEST_F(OriginalVCFProcessorTest, ParameterSettings)
