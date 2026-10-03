@@ -49,3 +49,32 @@ TEST(RCEnvelopeModelTest, ChangingRateAndTargetPreservesCapacitorState)
         }
     }
 }
+
+TEST(RCEnvelopeModelTest, LoadedCapacitorMatchesIndependentCircuitSolution)
+{
+    // Hypothetical network, not identified CS-01 component values:
+    // Vs -- Rs -- capacitor node -- Rl -- ground.
+    const double sourceVoltage = 5.0;
+    const double sourceResistance = 100000.0;
+    const double loadResistance = 200000.0;
+    const double capacitance = 1.0e-6;
+    const double initialVoltage = 0.3;
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        RCSection section;
+        section.value = initialVoltage;
+        const double parallelResistance = 1.0 / (1.0 / sourceResistance + 1.0 / loadResistance);
+        const double target = sourceVoltage * loadResistance / (sourceResistance + loadResistance);
+        const double tau = parallelResistance * capacitance;
+        // Independent solution of C*dV/dt = Vs/Rs - V*(1/Rs + 1/Rl).
+        const double rate = (1.0 / sourceResistance + 1.0 / loadResistance) / capacitance;
+        const double equilibrium = (sourceVoltage / sourceResistance / capacitance) / rate;
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.5); ++i) {
+            const double time = (i + 1) / sampleRate;
+            const double expected = equilibrium + (initialVoltage - equilibrium) * std::exp(-rate * time);
+            EXPECT_NEAR(section.step(target, tau, sampleRate), expected, 1.0e-11);
+        }
+        // Loading changes both the asymptote and the time constant.
+        EXPECT_LT(target, sourceVoltage);
+        EXPECT_LT(tau, sourceResistance * capacitance);
+    }
+}

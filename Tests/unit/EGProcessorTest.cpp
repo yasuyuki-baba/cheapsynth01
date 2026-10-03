@@ -56,6 +56,73 @@ protected:
     std::unique_ptr<EGProcessor> processor;
 };
 
+TEST_F(EGProcessorTest, SustainAutomationRemainsBoundedAndReachesTarget)
+{
+    // Generic ADSR behavior, not a claim about CS-01 analog switching thresholds.
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        SCOPED_TRACE(rate);
+        auto set = [&](const juce::String& id, float value) {
+            auto* parameter = apvts->getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        };
+        set(ParameterIds::attack, 0.01f);
+        set(ParameterIds::decay, 0.05f);
+        set(ParameterIds::sustain, 0.5f);
+        processor->prepareToPlay(rate, 64);
+        processor->startEnvelope();
+        juce::MidiBuffer midi;
+        juce::AudioBuffer<float> sample(1, 1);
+        auto advance = [&](int count) {
+            for (int i = 0; i < count; ++i) {
+                processor->processBlock(sample, midi);
+                const float value = sample.getSample(0, 0);
+                EXPECT_TRUE(std::isfinite(value));
+                EXPECT_GE(value, 0.0f);
+                EXPECT_LE(value, 1.0f);
+            }
+        };
+        advance(static_cast<int>(rate * 0.1));
+        ASSERT_NEAR(sample.getSample(0, 0), 0.5f, 1.0e-5f);
+        for (float target : {0.8f, 0.2f, 1.0f, 0.0f, 0.5f}) {
+            set(ParameterIds::sustain, target);
+            advance(static_cast<int>(rate * 0.1));
+            EXPECT_NEAR(sample.getSample(0, 0), target, 1.0e-5f);
+        }
+        processor->releaseEnvelope();
+        advance(static_cast<int>(rate * 0.6));
+        EXPECT_FALSE(processor->isActive());
+        EXPECT_FLOAT_EQ(sample.getSample(0, 0), 0.0f);
+    }
+}
+
+TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        processor->prepareToPlay(rate, 256);
+        processor->startEnvelope();
+        juce::MidiBuffer midi;
+        juce::AudioBuffer<float> initial(1, static_cast<int>(rate * 0.02));
+        processor->processBlock(initial, midi);
+        const float before = processor->getLastOutputForTesting();
+        ASSERT_GT(before, 0.0f);
+        auto* attack = apvts->getParameter(ParameterIds::attack);
+        attack->setValueNotifyingHost(attack->convertTo0to1(0.5f));
+        juce::AudioBuffer<float> next(1, 256);
+        processor->processBlock(next, midi);
+        float previous = before;
+        for (int i = 0; i < next.getNumSamples(); ++i) {
+            const float value = next.getSample(0, i);
+            ASSERT_TRUE(std::isfinite(value));
+            EXPECT_GE(value, previous);
+            EXPECT_LE(value, 1.0f);
+            EXPECT_LT(value - previous, 0.001f);
+            previous = value;
+        }
+        EXPECT_TRUE(processor->isActive());
+        attack->setValueNotifyingHost(attack->convertTo0to1(0.1f));
+    }
+}
+
 TEST_F(EGProcessorTest, EarlyReleaseIsIndependentOfBlockPartition)
 {
     // Implementation invariant, not a hardware-calibrated envelope curve.
