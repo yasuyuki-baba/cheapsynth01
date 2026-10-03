@@ -19,6 +19,132 @@ protected:
     }
 };
 
+TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput)
+{
+    // MIDI transport/model consistency, not calibration of analog breath circuitry.
+    for (int blockSize : {64, 256}) {
+        for (bool enabled : {false, true}) {
+            CS01AudioProcessor reference, controlled;
+            for (auto* processor : {&reference, &controlled}) {
+                auto& state = processor->getValueTreeState();
+                for (const auto& setting : std::vector<std::pair<juce::String, float>>{
+                         {ParameterIds::attack, 0.001f}, {ParameterIds::decay, 0.001f},
+                         {ParameterIds::sustain, 1.0f}, {ParameterIds::volume, 1.0f},
+                         {ParameterIds::filterType, 0.0f},
+                         {ParameterIds::breathVca, enabled ? 1.0f : 0.0f},
+                         {ParameterIds::breathVcf, 0.0f}, {ParameterIds::breathInput, 1.0f}}) {
+                    auto* parameter = state.getParameter(setting.first);
+                    ASSERT_NE(parameter, nullptr);
+                    parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second));
+                }
+                processor->prepareToPlay(48000, blockSize);
+            }
+            juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
+            double baselinePower = 0.0, mutedPower = 0.0;
+            double recoveredPower = 0.0, recoveredReferencePower = 0.0;
+            for (int block = 0; block < 48000 / blockSize; ++block) {
+                juce::MidiBuffer ma, mb;
+                if (block == 0) {
+                    ma.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+                    mb.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+                }
+                if (block == 10) {
+                    // Both halves of the 14-bit value, at a nonzero event offset.
+                    mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, 0), blockSize / 2);
+                    mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, 0), blockSize / 2);
+                }
+                if (block == 36000 / blockSize) {
+                    mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, 127), blockSize / 2);
+                    mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, 127), blockSize / 2);
+                }
+                a.clear(); b.clear();
+                reference.processBlock(a, ma);
+                controlled.processBlock(b, mb);
+                for (int i = 0; i < blockSize; ++i) {
+                    ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
+                    if (!enabled)
+                        EXPECT_NEAR(b.getSample(0, i), a.getSample(0, i), 1.0e-6f);
+                    if (block * blockSize >= 24000 && block * blockSize < 35000) {
+                        baselinePower += std::pow(a.getSample(0, i), 2);
+                        mutedPower += std::pow(b.getSample(0, i), 2);
+                    }
+                    if (block * blockSize >= 44000) {
+                        recoveredReferencePower += std::pow(a.getSample(0, i), 2);
+                        recoveredPower += std::pow(b.getSample(0, i), 2);
+                    }
+                }
+            }
+            EXPECT_FLOAT_EQ(controlled.getValueTreeState()
+                .getRawParameterValue(ParameterIds::breathInput)->load(), 1.0f);
+            ASSERT_GT(baselinePower, 1.0e-8);
+            if (enabled)
+                EXPECT_LT(mutedPower, baselinePower * 1.0e-8);
+            ASSERT_GT(recoveredReferencePower, 1.0e-8);
+            // Allow output coupling transients to settle; compare power, not phase.
+            EXPECT_NEAR(recoveredPower / recoveredReferencePower, 1.0, 0.01);
+        }
+    }
+}
+
+TEST_F(AudioGraphTest, BreathMidiControlsOriginalFilterAndRecovers)
+{
+    // Isolate VCF control from VCA gain and envelope/LFO modulation.
+    for (int blockSize : {64, 256}) {
+        CS01AudioProcessor reference, controlled;
+        for (auto* processor : {&reference, &controlled}) {
+            auto& state = processor->getValueTreeState();
+            for (const auto& setting : std::vector<std::pair<juce::String, float>>{
+                     {ParameterIds::filterType, 0.0f}, {ParameterIds::cutoff, 250.0f},
+                     {ParameterIds::resonance, 0.0f}, {ParameterIds::vcfEgDepth, 0.0f},
+                     {ParameterIds::modDepth, 0.0f}, {ParameterIds::breathVca, 0.0f},
+                     {ParameterIds::breathVcf, 1.0f}, {ParameterIds::breathInput, 0.0f},
+                     {ParameterIds::attack, 0.001f}, {ParameterIds::decay, 0.001f},
+                     {ParameterIds::sustain, 1.0f}, {ParameterIds::volume, 0.5f},
+                     {ParameterIds::feet, 2.0f}}) {
+                auto* parameter = state.getParameter(setting.first);
+                ASSERT_NE(parameter, nullptr);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second));
+            }
+            processor->prepareToPlay(48000, blockSize);
+        }
+        juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
+        double baseline = 0.0, opened = 0.0, recovered = 0.0, referenceRecovered = 0.0;
+        for (int block = 0; block < 96000 / blockSize; ++block) {
+            juce::MidiBuffer ma, mb;
+            if (block == 0) {
+                ma.addEvent(juce::MidiMessage::noteOn(1, 93, 1.0f), 0);
+                mb.addEvent(juce::MidiMessage::noteOn(1, 93, 1.0f), 0);
+            }
+            if (block == 10 || block == 48000 / blockSize) {
+                const int value = block == 10 ? 127 : 0;
+                mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, value), blockSize / 2);
+                mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, value), blockSize / 2);
+            }
+            a.clear(); b.clear();
+            reference.processBlock(a, ma);
+            controlled.processBlock(b, mb);
+            for (int i = 0; i < blockSize; ++i) {
+                ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
+                const int sample = block * blockSize + i;
+                if (sample >= 24000 && sample < 44000) {
+                    baseline += std::pow(a.getSample(0, i), 2);
+                    opened += std::pow(b.getSample(0, i), 2);
+                }
+                if (sample >= 84000) {
+                    referenceRecovered += std::pow(a.getSample(0, i), 2);
+                    recovered += std::pow(b.getSample(0, i), 2);
+                }
+            }
+        }
+        ASSERT_GT(baseline, 1.0e-10);
+        EXPECT_GT(opened, baseline); // High note above cutoff; not a universal gain rule.
+        ASSERT_GT(referenceRecovered, 1.0e-10);
+        EXPECT_NEAR(recovered / referenceRecovered, 1.0, 0.01);
+        EXPECT_FLOAT_EQ(controlled.getValueTreeState()
+            .getRawParameterValue(ParameterIds::breathInput)->load(), 0.0f);
+    }
+}
+
 TEST_F(AudioGraphTest, NoiseSwitchPreservesGraphEnvelope)
 {
     for (int blockSize : {64, 256}) {

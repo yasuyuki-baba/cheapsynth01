@@ -298,6 +298,62 @@ TEST_F(VCAProcessorTest, PrepareToPlay)
     EXPECT_TRUE(true); // If we got here, no exception was thrown
 }
 
+TEST_F(VCAProcessorTest, BreathControlEndpoints)
+{
+    // Endpoint and monotonicity checks, not calibration of the hardware gain law.
+    const auto measure = [&](float eg, float depth, float breath, float egDepth = 1.0f) {
+        VCAProcessor vca(*apvts);
+        apvts->getParameter(ParameterIds::volume)->setValueNotifyingHost(1.0f);
+        apvts->getParameter(ParameterIds::vcaEgDepth)->setValueNotifyingHost(egDepth);
+        apvts->getParameter(ParameterIds::breathVca)->setValueNotifyingHost(depth);
+        apvts->getParameter(ParameterIds::breathInput)->setValueNotifyingHost(breath);
+        vca.prepareToPlay(48000.0, 256);
+        juce::AudioBuffer<float> buffer(2, 256);
+        juce::MidiBuffer midi;
+        double power = 0.0;
+        for (int offset = 0; offset < 96000; offset += 256) {
+            for (int i = 0; i < 256; ++i) {
+                buffer.setSample(0, i, static_cast<float>(0.001 * std::sin(
+                    juce::MathConstants<double>::twoPi * 1000.0 * (offset + i) / 48000.0)));
+                buffer.setSample(1, i, eg);
+            }
+            vca.processBlock(buffer, midi);
+            for (int i = 0; i < 256; ++i)
+                if (offset + i >= 48000 && offset + i < 96000) {
+                    const double value = buffer.getSample(0, i);
+                    power += value * value;
+                }
+        }
+        return std::sqrt(power / 48000.0);
+    };
+    const double bypass = measure(1.0f, 0.0f, 0.0f);
+    ASSERT_GT(bypass, 0.0);
+    EXPECT_NEAR(measure(1.0f, 0.0f, 1.0f), bypass, 1.0e-10);
+    EXPECT_EQ(measure(1.0f, 1.0f, 0.0f), 0.0);
+    EXPECT_NEAR(measure(1.0f, 1.0f, 1.0f), bypass, 1.0e-10);
+    EXPECT_EQ(measure(0.0f, 1.0f, 1.0f), 0.0);
+    double previous = 0.0;
+    for (float breath : {0.25f, 0.5f, 0.75f, 1.0f}) {
+        const double current = measure(1.0f, 1.0f, breath);
+        EXPECT_GT(current, previous);
+        previous = current;
+    }
+    // Independent controls: disabling EG depth must remove dependence on EG.
+    // These are model invariants, not proof of the chip's gain law.
+    for (float breath : {0.25f, 0.5f, 1.0f}) {
+        SCOPED_TRACE(breath);
+        const double egBypass = measure(0.0f, 1.0f, breath, 0.0f);
+        ASSERT_GT(egBypass, 0.0);
+        EXPECT_NEAR(measure(1.0f, 1.0f, breath, 0.0f), egBypass, 1.0e-10);
+        double previousEg = 0.0;
+        for (float eg : {0.25f, 0.5f, 0.75f, 1.0f}) {
+            const double current = measure(eg, 1.0f, breath);
+            EXPECT_GT(current, previousEg);
+            previousEg = current;
+        }
+    }
+}
+
 TEST_F(VCAProcessorTest, ProcessBlock)
 {
     // Simple test due to buffer handling complexity

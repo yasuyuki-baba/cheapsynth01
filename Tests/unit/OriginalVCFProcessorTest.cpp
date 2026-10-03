@@ -139,6 +139,50 @@ TEST_F(OriginalVCFProcessorTest, VcfVcaCascadeCharacterization)
     }
 }
 
+TEST_F(OriginalVCFProcessorTest, BreathDepthIndependenceAndControlDirection)
+{
+    // Test independence sample-by-sample and direction well above the resonance.
+    // Do not assume that gain at every frequency rises when cutoff rises.
+    const auto render = [&](float depth, float breath) {
+        apvts->getParameter(ParameterIds::vcfEgDepth)->setValueNotifyingHost(0.0f);
+        apvts->getParameter(ParameterIds::modDepth)->setValueNotifyingHost(0.0f);
+        apvts->getParameter(ParameterIds::resonance)->setValueNotifyingHost(0.0f);
+        apvts->getParameter(ParameterIds::breathVcf)->setValueNotifyingHost(depth);
+        apvts->getParameter(ParameterIds::breathInput)->setValueNotifyingHost(breath);
+        auto filter = std::make_unique<OriginalVCFProcessor>(*apvts);
+        filter->prepareToPlay(48000.0, 256);
+        juce::AudioBuffer<float> buffer(3, 256);
+        juce::MidiBuffer midi;
+        std::vector<float> samples;
+        samples.reserve(48000);
+        for (int offset = 0; offset < 96000; offset += 256) {
+            buffer.clear();
+            for (int i = 0; i < 256; ++i)
+                buffer.setSample(0, i, static_cast<float>(0.001 * std::sin(
+                    juce::MathConstants<double>::twoPi * 10000.0 * (offset + i) / 48000.0)));
+            filter->processBlock(buffer, midi);
+            for (int i = 0; i < 256 && offset + i < 96000; ++i) {
+                const float value = buffer.getSample(0, i);
+                EXPECT_TRUE(std::isfinite(value));
+                if (offset + i >= 48000)
+                    samples.push_back(value);
+            }
+        }
+        return samples;
+    };
+    const auto baseline = render(0.0f, 0.0f);
+    EXPECT_EQ(baseline, render(0.0f, 1.0f));
+    EXPECT_EQ(baseline, render(1.0f, 0.0f));
+    double previousPower = 0.0;
+    for (float breath : {0.0f, 0.25f, 0.5f, 0.75f, 1.0f}) {
+        double power = 0.0;
+        for (float value : render(1.0f, breath))
+            power += static_cast<double>(value) * value;
+        EXPECT_GT(power, previousPower);
+        previousPower = power;
+    }
+}
+
 TEST_F(OriginalVCFProcessorTest, Initialization)
 {
     // Check that processor was created successfully
