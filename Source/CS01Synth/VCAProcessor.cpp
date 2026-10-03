@@ -27,7 +27,8 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
     bufferCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
     outputCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.9995f), 44100.0 / sampleRate));
-    // Initialize input stage high-pass filter (82K resistor and 1/50 capacitor ~40Hz)
+    // Empirical second-order 40 Hz high-pass; not derived from the schematic's
+    // 1 uF / 50 V coupling capacitor and 82 kohm series resistor.
     inputHighPass.coefficients =
         makePreciseHighPass(sampleRate, 40.0);
     inputHighPass.reset();
@@ -174,7 +175,7 @@ float VCAProcessor::processTr7Buffer(float input) {
 
 // Output coupling capacitor emulation (4.7/25)
 float VCAProcessor::processOutputCoupling(float input) {
-    // Output coupling capacitor - high-pass characteristic (~7Hz)
+    // Empirical output coupling time constant, preserved from the 44.1 kHz model.
     const float rc3 = outputCouplingPole;
     outCapacitorState = outCapacitorState * rc3 + input * (1.0f - rc3);
 
