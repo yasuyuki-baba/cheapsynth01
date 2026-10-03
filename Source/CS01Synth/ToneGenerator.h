@@ -64,6 +64,10 @@ class ToneGenerator : public ISoundGenerator {
 
     // VCO
     float sampleRate = 44100.0f;
+    float internalSampleRate = 176400.0f;
+    juce::dsp::Oversampling<float> oversampling{1, Constants::oversamplingStages,
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR};
+    juce::AudioBuffer<float> oversamplingBuffer{1, 1};
     float phase = 0.0f;
     float phaseIncrement = 0.0f;
     float leakyIntegratorState = 0.0f;
