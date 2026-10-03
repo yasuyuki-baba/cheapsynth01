@@ -3,6 +3,125 @@
 #include "../../Source/CS01AudioProcessor.h"
 #include "../../Source/Parameters.h"
 #include "../../Source/CS01Synth/EGProcessor.h"
+#include "../../Source/CS01Synth/SynthConstants.h"
+#include <chrono>
+
+TEST(WholeGraphObservationTest, OutputSpectrumAndProcessingCost)
+{
+    // Observational benchmark: never assert platform-dependent execution time.
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+      for (int waveform : {1, 2}) {
+        CS01AudioProcessor processor;
+        auto& state = processor.getValueTreeState();
+        const auto set = [&](const juce::String& id, float value) {
+            auto* parameter = state.getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        };
+        set(ParameterIds::waveType, static_cast<float>(waveform));
+        set(ParameterIds::feet, 2.0f);
+        set(ParameterIds::pitch, 0.0f);
+        set(ParameterIds::filterType, 0.0f);
+        set(ParameterIds::cutoff, 15000.0f);
+        set(ParameterIds::resonance, 0.0f);
+        set(ParameterIds::attack, 0.001f);
+        set(ParameterIds::decay, 0.001f);
+        set(ParameterIds::sustain, 1.0f);
+        set(ParameterIds::volume, 1.0f);
+        set(ParameterIds::modDepth, 0.0f);
+        set(ParameterIds::vcfEgDepth, 0.0f);
+        set(ParameterIds::breathVca, 0.0f);
+        set(ParameterIds::breathVcf, 0.0f);
+        processor.prepareToPlay(rate, 256);
+        // A8 = 7040 Hz; pitch wheel center has a small quantization offset.
+        const double frequency = 7040.0;
+        std::vector<float> output;
+        double processingSeconds = 0.0;
+        const int count = static_cast<int>(rate * 2.0);
+        for (int offset = 0; offset < count;) {
+            const int length = std::min(256, count - offset);
+            juce::AudioBuffer<float> buffer(2, length);
+            buffer.clear();
+            juce::MidiBuffer midi;
+            if (offset == 0)
+                midi.addEvent(juce::MidiMessage::noteOn(1, 117, 1.0f), 0);
+            const auto begin = std::chrono::steady_clock::now();
+            processor.processBlock(buffer, midi);
+            processingSeconds += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - begin).count();
+            for (int i = 0; i < length; ++i) {
+                ASSERT_TRUE(std::isfinite(buffer.getSample(0, i)));
+                if (offset + i >= static_cast<int>(rate))
+                    output.push_back(buffer.getSample(0, i));
+            }
+            offset += length;
+        }
+        // Hann window reduces leakage from small tuning/phase errors.
+        const auto amplitude = [&](double f) {
+            double sine = 0.0, cosine = 0.0, weight = 0.0;
+            for (size_t i = 0; i < output.size(); ++i) {
+                const double w = 0.5 - 0.5 * std::cos(
+                    juce::MathConstants<double>::twoPi * i / (output.size() - 1));
+                const double phase = juce::MathConstants<double>::twoPi * f * i / rate;
+                sine += w * output[i] * std::sin(phase);
+                cosine += w * output[i] * std::cos(phase);
+                weight += w;
+            }
+            return 2.0 * std::hypot(sine, cosine) / weight;
+        };
+        const double fundamental = amplitude(frequency);
+        ASSERT_GT(fundamental, 1.0e-6);
+        double folded = std::fmod(frequency * 7.0, rate);
+        if (folded > rate * 0.5)
+            folded = rate - folded;
+        std::cout << "Whole graph: fs=" << rate << ", waveform=" << waveform
+                  << ", seventh-fold-bin=" << folded << ", relative="
+                  << 20.0 * std::log10(std::max(amplitude(folded), 1.0e-15) / fundamental)
+                  << " dBc, processing-ms-per-audio-second=" << processingSeconds * 500.0
+                  << "\n";
+      }
+    }
+}
+
+TEST(OutputConversionTest, DownsamplingImpulseAndReportedRoundTripLatency)
+{
+    // Production generates at the high rate: only the down path carries audio.
+    // JUCE's reported latency describes the full up/down path, so do not use
+    // it blindly as the generator's output-only latency.
+    for (int channels : {1, 2}) {
+        juce::dsp::Oversampling<float> converter(channels, Constants::oversamplingStages,
+            juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
+        converter.initProcessing(256);
+        converter.reset();
+        juce::AudioBuffer<float> buffer(channels, 256);
+        buffer.clear();
+        juce::dsp::AudioBlock<float> block(buffer);
+        auto high = converter.processSamplesUp(block);
+        high.clear();
+        for (int channel = 0; channel < channels; ++channel)
+            high.setSample(channel, 0, 1.0f);
+        converter.processSamplesDown(block);
+        double energy = 0.0, weightedEnergy = 0.0, sum = 0.0;
+        int peak = 0;
+        for (int i = 0; i < buffer.getNumSamples(); ++i) {
+            const double value = buffer.getSample(0, i);
+            ASSERT_TRUE(std::isfinite(value));
+            sum += value;
+            energy += value * value;
+            weightedEnergy += i * value * value;
+            if (std::abs(value) > std::abs(buffer.getSample(0, peak)))
+                peak = i;
+            if (channels == 2)
+                EXPECT_FLOAT_EQ(buffer.getSample(1, i), buffer.getSample(0, i));
+        }
+        ASSERT_GT(energy, 0.0);
+        EXPECT_NEAR(sum, 1.0 / Constants::oversamplingFactor, 1.0e-5);
+        EXPECT_GT(converter.getLatencyInSamples(), 0.0f);
+        std::cout << "Output conversion: channels=" << channels
+                  << ", impulse peak=" << peak << ", energy centroid="
+                  << weightedEnergy / energy << ", JUCE round-trip latency="
+                  << converter.getLatencyInSamples() << " host samples\n";
+    }
+}
 
 // Test fixture for AudioGraph integration tests
 class AudioGraphTest : public ::testing::Test
@@ -18,6 +137,54 @@ protected:
         // Test cleanup if needed
     }
 };
+
+TEST_F(AudioGraphTest, OversampledOutputIsIndependentOfPartitionAndReinitializes)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        std::vector<float> reference;
+        for (int size : {7, 64, 256}) {
+            CS01AudioProcessor processor;
+            // Prepare for 64: exercise calls exceeding the declared capacity too.
+            processor.prepareToPlay(rate, 64);
+            auto render = [&]() {
+                std::vector<float> result;
+                const int count = 4096;
+                for (int offset = 0; offset < count;) {
+                    const int length = std::min(size, count - offset);
+                    juce::AudioBuffer<float> buffer(2, length);
+                    buffer.clear();
+                    juce::MidiBuffer midi;
+                    for (const auto& event : std::vector<std::pair<int, juce::MidiMessage>>{
+                        {17, juce::MidiMessage::noteOn(1, 69, 1.0f)},
+                        {2053, juce::MidiMessage::noteOff(1, 69)}}) {
+                        if (event.first >= offset && event.first < offset + length)
+                            midi.addEvent(event.second, event.first - offset);
+                    }
+                    processor.processBlock(buffer, midi);
+                    for (int i = 0; i < length; ++i) {
+                        const float value = buffer.getSample(0, i);
+                        EXPECT_TRUE(std::isfinite(value));
+                        result.push_back(value);
+                    }
+                    offset += length;
+                }
+                return result;
+            };
+            auto output = render();
+            if (reference.empty())
+                reference = output;
+            else {
+                for (size_t i = 0; i < output.size(); ++i)
+                    ASSERT_NEAR(output[i], reference[i], 1.0e-5f) << "sample=" << i;
+            }
+            processor.releaseResources();
+            processor.prepareToPlay(rate, 64);
+            const auto repeated = render();
+            for (size_t i = 0; i < output.size(); ++i)
+                ASSERT_NEAR(repeated[i], output[i], 1.0e-6f) << "sample=" << i;
+        }
+    }
+}
 
 TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput)
 {

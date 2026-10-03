@@ -15,6 +15,7 @@
 class ToneGenerator : public ISoundGenerator {
    public:
     ToneGenerator(juce::AudioProcessorValueTreeState& apvts);
+    void setExternalOversampling(bool enabled) { externalOversampling = enabled; }
 
     // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
@@ -72,6 +73,7 @@ class ToneGenerator : public ISoundGenerator {
     juce::dsp::Oversampling<float> oversampling{1, Constants::oversamplingStages,
         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR};
     juce::AudioBuffer<float> oversamplingBuffer{1, 1};
+    bool externalOversampling = false;
     float phase = 0.0f;
     float phaseIncrement = 0.0f;
     float leakyIntegratorState = 0.0f;

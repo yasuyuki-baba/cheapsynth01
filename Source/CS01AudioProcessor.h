@@ -109,6 +109,9 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     juce::MidiKeyboardState keyboardState;
     juce::MidiMessageCollector midiMessageCollector;
     juce::AudioProcessorGraph audioGraph;
+    std::unique_ptr<juce::dsp::Oversampling<float>> outputOversampling;
+    juce::AudioBuffer<float> internalAudio;
+    int processingCapacity = 1;
     juce::AudioProcessorGraph::Node::Ptr midiInputNode;
     juce::AudioProcessorGraph::Node::Ptr midiProcessorNode;
     juce::AudioProcessorGraph::Node::Ptr audioOutputNode;

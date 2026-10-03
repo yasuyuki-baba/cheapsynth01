@@ -19,6 +19,7 @@ class VCOProcessor : public juce::AudioProcessor,
     ~VCOProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void setExternalOversampling(bool enabled) { toneGenerator->setExternalOversampling(enabled); }
     void releaseResources() override {}
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;

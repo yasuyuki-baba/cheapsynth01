@@ -25,6 +25,9 @@ void IG02610LPF::reset() {
 
 void IG02610LPF::prepare(double newSampleRate) {
     sampleRate = static_cast<float>(newSampleRate);
+    // Preserve the empirical 44.1 kHz follower time constant at internal rates too.
+    levelSmoothing = static_cast<float>(std::pow(static_cast<double>(LEVEL_SMOOTHING),
+                                                44100.0 / newSampleRate));
     updateCoefficients();
 
     // Prepare input and output stages
@@ -90,7 +93,7 @@ float IG02610LPF::processSample(int channel, float sample) {
     // Track input level with envelope follower for OTA input level dependency
     float inputLevel = std::abs(sample);
     inputLevelSmoothed =
-        inputLevelSmoothed * LEVEL_SMOOTHING + inputLevel * (1.0f - LEVEL_SMOOTHING);
+        inputLevelSmoothed * levelSmoothing + inputLevel * (1.0f - levelSmoothing);
 
     // Apply OTA input level dependent cutoff modulation
     // Large signals make cutoff slightly higher (brighter), small signals make it lower (darker)
