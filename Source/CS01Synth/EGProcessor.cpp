@@ -38,41 +38,9 @@ void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffe
     // Process mono output (channel 0) only
     auto* channelData = buffer.getWritePointer(0);
 
-    // Envelope shaping state is kept in the instance member prevSample (EGProcessor.h)
-
+    // Keep the control signal continuous. Circuit-calibrated shaping is a separate step.
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        // Get the raw envelope sample
-        float envSample = adsr.getNextSample();
-
-        // Apply FET non-linear characteristics (FET1 in the circuit)
-        // 1. Slight compression at low levels (FET threshold effect)
-        if (envSample < 0.1f)
-            envSample = envSample * 0.7f + 0.03f * std::sqrt(envSample);
-
-        // 2. Slight expansion at mid levels (FET's square-law region)
-        else if (envSample < 0.7f)
-            envSample = envSample * (1.0f + (envSample - 0.1f) * 0.15f);
-
-        // 3. Soft saturation at high levels (FET saturation region)
-        else
-            envSample = 0.7f + (1.0f - 0.7f) * std::tanh((envSample - 0.7f) / (1.0f - 0.7f) * 2.0f);
-
-        // 4. Apply transistor buffer effect (Tr14)
-        // - Slight high-pass characteristic due to coupling
-        // - Small time constant for fast transients
-        const float alpha = 0.99f;  // Time constant
-
-        // Simple first-order high-pass filter
-        float highPassComponent = (envSample - prevSample) * (1.0f - alpha);
-        prevSample = envSample * alpha + prevSample * (1.0f - alpha);
-
-        // Add a small amount of high-pass to enhance transients
-        envSample = envSample * 0.95f + highPassComponent * 2.0f;
-
-        // Ensure the output stays in valid range
-        envSample = juce::jlimit(0.0f, 1.0f, envSample);
-
-        channelData[sample] = envSample;
+        channelData[sample] = adsr.getNextSample();
     }
 }
 
