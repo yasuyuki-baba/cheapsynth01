@@ -3,6 +3,124 @@
 #include "../../Source/CS01Synth/ToneGenerator.h"
 #include "../mocks/MockToneGenerator.h"
 #include "../../Source/CS01Synth/WaveformStrategies.h"
+#include <chrono>
+
+namespace {
+struct ProductionVcoHarness {
+    juce::AudioProcessorGraph host;
+    juce::AudioProcessorValueTreeState state;
+    ToneGenerator generator;
+    static juce::AudioProcessorValueTreeState::ParameterLayout layout(int waveform) {
+        juce::AudioProcessorValueTreeState::ParameterLayout result;
+        const auto add = [&](const juce::String& id, float low, float high, float value) {
+            result.add(std::make_unique<juce::AudioParameterFloat>(id, id, low, high, value));
+        };
+        add(ParameterIds::feet, 0, 4, 2);
+        add(ParameterIds::waveType, 0, 4, static_cast<float>(waveform));
+        add(ParameterIds::pwmSpeed, 0, 60, 0);
+        add(ParameterIds::modDepth, 0, 1, 0);
+        add(ParameterIds::pitchBend, -12, 12, 0);
+        add(ParameterIds::pitch, -12, 12, 0);
+        add(ParameterIds::pitchBendUpRange, 0, 24, 2);
+        add(ParameterIds::pitchBendDownRange, 0, 24, 2);
+        add(ParameterIds::glissando, 0, 0.208f, 0);
+        return result;
+    }
+    ProductionVcoHarness(int waveform, double rate, double frequency)
+        : state(host, nullptr, "PARAMETERS", layout(waveform)), generator(state) {
+        generator.prepare({rate, 256, 1});
+        generator.startNote(69, 1, 8192);
+        generator.setPitchBend(static_cast<float>(12 * std::log2(frequency / 440.0)));
+        generator.updateBlockRateParameters();
+    }
+};
+}
+
+TEST(ToneGeneratorRealTest, RenderBlockPartitionIndependence)
+{
+    for (int waveform = 0; waveform < 5; ++waveform) {
+        ProductionVcoHarness scalar(waveform, 48000, 440), blocked(waveform, 48000, 440);
+        for (int size : {1, 7, 64, 255, 512}) {
+            juce::AudioBuffer<float> buffer(1, size);
+            buffer.clear();
+            blocked.generator.renderNextBlock(buffer, 0, size);
+            for (int i = 0; i < size; ++i)
+                EXPECT_NEAR(buffer.getSample(0, i), scalar.generator.getNextSample(), 1.0e-6);
+        }
+    }
+}
+
+TEST(ToneGeneratorRealTest, ProductionProcessingCostObservation)
+{
+    // Observation only: timing is machine/build dependent, not a correctness threshold.
+    for (int waveform = 0; waveform < 5; ++waveform) {
+        ProductionVcoHarness harness(waveform, 48000, 440);
+        double checksum = 0;
+        const auto begin = std::chrono::steady_clock::now();
+        for (int i = 0; i < 48000; ++i)
+            checksum += harness.generator.getNextSample();
+        const double seconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - begin).count();
+        EXPECT_TRUE(std::isfinite(checksum));
+        std::cout << "VCO cost: waveform=" << waveform << ", secondsPerAudioSecond=" << seconds << '\n';
+    }
+}
+
+TEST(ToneGeneratorRealTest, GlissandoUsesHostSampleTime)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        ProductionVcoHarness sliding(2, rate, 440), reference(2, rate, 440);
+        auto* parameter = sliding.state.getParameter(ParameterIds::glissando);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(0.02f));
+        sliding.generator.changeNote(72);
+        const int step = static_cast<int>(0.02f * static_cast<float>(rate));
+        double error = 0;
+        for (int i = 0; i < step * 4; ++i) {
+            // Independent schedule: one semitone per configured host-time interval.
+            if ((i + 1) % step == 0 && (i + 1) / step <= 3)
+                reference.generator.setNote(69 + (i + 1) / step, false);
+            error = std::max(error, std::abs(static_cast<double>(sliding.generator.getNextSample())
+                - reference.generator.getNextSample()));
+        }
+        EXPECT_NEAR(error, 0, 1.0e-6);
+    }
+}
+
+TEST(ToneGeneratorRealTest, PwmPeriodUsesSecondsNotInternalSamples)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        ProductionVcoHarness harness(4, rate, 480);
+        auto* speed = harness.state.getParameter(ParameterIds::pwmSpeed);
+        speed->setValueNotifyingHost(speed->convertTo0to1(2.0f));
+        harness.generator.prepare({rate, 256, 1});
+        harness.generator.startNote(69, 1, 8192);
+        harness.generator.setPitchBend(static_cast<float>(12 * std::log2(480.0 / 440.0)));
+        harness.generator.updateBlockRateParameters();
+        const int count = static_cast<int>(rate);
+        std::vector<float> samples(count);
+        for (int i = 0; i < count * 2; ++i)
+            harness.generator.getNextSample();
+        for (auto& value : samples)
+            value = harness.generator.getNextSample();
+        // Average each carrier cycle to isolate duty modulation from carrier phase.
+        std::vector<double> means(480);
+        for (int cycle = 0; cycle < 480; ++cycle) {
+            const int begin = static_cast<int>(cycle * rate / 480.0);
+            const int end = static_cast<int>((cycle + 1) * rate / 480.0);
+            for (int i = begin; i < end; ++i)
+                means[cycle] += samples[i];
+            means[cycle] /= end - begin;
+        }
+        double repeatPower = 0, quarterPower = 0;
+        for (int i = 0; i < 240; ++i) {
+            repeatPower += std::pow(means[i] - means[i + 240], 2);
+            quarterPower += std::pow(means[i] - means[i + 120], 2);
+        }
+        // 2 Hz repeats at 0.5 s; a quarter-second shift must not be equivalent.
+        EXPECT_LT(repeatPower / 240, 0.001);
+        EXPECT_GT(quarterPower / 240, 0.01);
+    }
+}
 
 namespace {
 struct SpectrumObservation {
@@ -94,6 +212,44 @@ TEST(VcoSpectrumTest, AliasProbeWithKnownSignals)
     EXPECT_NEAR(measureSpectralAmplitude(48000.0, 5000.0, signal), 0.5, 1.0e-9);
     EXPECT_NEAR(measureSpectralAmplitude(48000.0, 23000.0, signal), 0.1, 1.0e-9);
     EXPECT_NEAR(measureSpectralAmplitude(48000.0, 3000.0, signal), 0.0, 1.0e-9);
+}
+
+TEST(ToneGeneratorRealTest, ProductionAliasAndOnsetObservation)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (double frequency : {3000.0, 5000.0}) {
+            for (int waveform = 0; waveform < 5; ++waveform) {
+                ProductionVcoHarness harness(waveform, rate, frequency);
+                std::vector<float> output(static_cast<size_t>(rate * 3));
+                int onset = -1;
+                for (size_t i = 0; i < output.size(); ++i) {
+                    output[i] = harness.generator.getNextSample();
+                    ASSERT_TRUE(std::isfinite(output[i]));
+                    if (onset < 0 && std::abs(output[i]) > 1.0e-5f)
+                        onset = static_cast<int>(i);
+                }
+                ASSERT_GE(onset, 0);
+                EXPECT_LT(onset, static_cast<int>(rate / frequency));
+                const double fundamental = measureSpectralAmplitude(rate, frequency,
+                    [&](int i) { return output[i]; });
+                ASSERT_GT(fundamental, 0.0);
+                for (int harmonic : {9, 17, 33}) {
+                    if (frequency * harmonic <= rate * 0.5)
+                        continue;
+                    const double wrapped = std::fmod(frequency * harmonic, rate);
+                    const double bin = std::min(wrapped, rate - wrapped);
+                    if (bin == 0 || std::abs(bin / frequency - std::round(bin / frequency)) < 1.0e-8)
+                        continue; // Cannot distinguish aliases that coincide with true harmonics.
+                    const double amplitude = measureSpectralAmplitude(rate, bin,
+                        [&](int i) { return output[i]; });
+                    std::cout << "Production VCO: fs=" << rate << ", f=" << frequency
+                              << ", waveform=" << waveform << ", onset=" << onset
+                              << ", bin=" << bin << ", dBc="
+                              << 20 * std::log10(std::max(amplitude, 1.0e-15) / fundamental) << '\n';
+                }
+            }
+        }
+    }
 }
 
 TEST(VcoSpectrumTest, HighFrequencyAliasCharacterization)

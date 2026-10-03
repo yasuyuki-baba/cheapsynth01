@@ -153,7 +153,32 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     midiMessageCollector.removeNextBlockOfMessages(midiMessages, buffer.getNumSamples());
 
     keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
-    audioGraph.processBlock(buffer, midiMessages);
+    // MidiProcessor applies events immediately. Render the graph in segments
+    // so those events are applied at their actual host-sample positions.
+    juce::MidiBuffer segmentMidi;
+    int position = 0;
+    const auto renderUntil = [&](int end) {
+        if (end <= position)
+            return;
+        juce::AudioBuffer<float> segment(buffer.getArrayOfWritePointers(),
+            buffer.getNumChannels(), position, end - position);
+        if (!segmentMidi.isEmpty() && midiProcessorNode != nullptr) {
+            // The MIDI node controls generators through direct references, not
+            // audio connections: explicitly order it before audio rendering.
+            juce::AudioBuffer<float> noAudio;
+            midiProcessorNode->getProcessor()->processBlock(noAudio, segmentMidi);
+        }
+        audioGraph.processBlock(segment, segmentMidi);
+        segmentMidi.clear();
+        position = end;
+    };
+    for (const auto metadata : midiMessages) {
+        const int eventPosition = juce::jlimit(0, buffer.getNumSamples(), metadata.samplePosition);
+        renderUntil(eventPosition);
+        segmentMidi.addEvent(metadata.getMessage(), 0);
+    }
+    renderUntil(buffer.getNumSamples());
+    midiMessages.clear();
 
     if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
         // Forward a copy of the audio buffer to the UI thread to avoid touching UI from the audio thread.

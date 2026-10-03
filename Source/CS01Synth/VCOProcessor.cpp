@@ -119,14 +119,19 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     if (currentGenerator == toneGenerator.get()) {
         // LFO input is always mono (channel 0)
         auto lfoInput = getBusBuffer(buffer, true, 0);
-        lfoValue = lfoInput.getNumSamples() > 0 ? lfoInput.getSample(0, 0) : 0.0f;
-
         auto modDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
         const float lfoModRangeSemitones = 1.0f;
-        float finalLfoValue = lfoValue * modDepth * lfoModRangeSemitones;
-
-        // Set LFO value directly to the tone generator
-        toneGenerator->setLfoValue(finalLfoValue);
+        toneGenerator->updateBlockRateParameters();
+        auto* output = buffer.getWritePointer(0);
+        // Input and output alias: consume each modulation sample before replacing it.
+        const auto* modulation = lfoInput.getReadPointer(0);
+        for (int i = 0; i < buffer.getNumSamples(); ++i) {
+            toneGenerator->setLfoValue(modulation[i] * modDepth * lfoModRangeSemitones);
+            output[i] = 0.0f;
+            if (toneGenerator->isActive())
+                toneGenerator->renderNextBlock(buffer, i, 1);
+        }
+        return;
     }
 
     // Clear the buffer

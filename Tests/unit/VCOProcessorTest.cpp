@@ -50,6 +50,8 @@ protected:
             
         // Add parameters required by ToneGenerator
         layout.add(std::make_unique<juce::AudioParameterFloat>(
+            ParameterIds::pitchBend, "Pitch Bend", -12.0f, 12.0f, 0.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::release, "Release", 
             juce::NormalisableRange<float>(0.01f, 5.0f), 0.1f));
             
@@ -85,6 +87,37 @@ protected:
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     std::unique_ptr<VCOProcessor> processor;
 };
+
+TEST_F(VCOProcessorTest, LfoIsIndependentOfBlockPartition)
+{
+    apvts->getParameter(ParameterIds::modDepth)->setValueNotifyingHost(1.0f);
+    const auto render = [&](int blockSize) {
+        VCOProcessor vco(*apvts);
+        vco.prepareToPlay(48000, blockSize);
+        vco.getSoundGenerator()->startNote(69, 1, 8192);
+        std::vector<float> result;
+        juce::MidiBuffer midi;
+        for (int offset = 0; offset < 4096; offset += blockSize) {
+            const int size = std::min(blockSize, 4096 - offset);
+            juce::AudioBuffer<float> buffer(1, size);
+            for (int i = 0; i < size; ++i)
+                buffer.setSample(0, i, static_cast<float>(std::sin(
+                    juce::MathConstants<double>::twoPi * 30 * (offset + i) / 48000.0)));
+            vco.processBlock(buffer, midi);
+            for (int i = 0; i < size; ++i)
+                result.push_back(buffer.getSample(0, i));
+        }
+        return result;
+    };
+    const auto reference = render(1);
+    for (int size : {7, 64, 256}) {
+        const auto output = render(size);
+        double error = 0;
+        for (size_t i = 0; i < reference.size(); ++i)
+            error = std::max(error, std::abs(static_cast<double>(output[i]) - reference[i]));
+        EXPECT_NEAR(error, 0.0, 1.0e-6);
+    }
+}
 
 TEST_F(VCOProcessorTest, Initialization)
 {
