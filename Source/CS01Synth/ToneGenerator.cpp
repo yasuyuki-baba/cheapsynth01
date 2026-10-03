@@ -8,7 +8,12 @@ ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(
 
 void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
     sampleRate = spec.sampleRate;
-    pwmLfo.prepare(spec);
+    internalSampleRate = static_cast<float>(spec.sampleRate * Constants::oversamplingFactor);
+    auto internalSpec = spec;
+    internalSpec.sampleRate = internalSampleRate;
+    internalSpec.maximumBlockSize *= Constants::oversamplingFactor;
+    pwmLfo.prepare(internalSpec);
+    oversampling.initProcessing(1);
     pwmLfo.initialise(
         [](float x) { return std::asin(std::sin(x)) * (2.0f / juce::MathConstants<float>::pi); },
         128);
@@ -154,6 +159,12 @@ void ToneGenerator::reset() {
 
     // Reset base square wave state
     previousBaseSquare = 0.0f;
+    oversampling.reset();
+    oversamplingBuffer.clear();
+    for (auto& entry : waveformStrategies)
+        entry.second->reset();
+    pwmLfo.reset();
+    pwmLfo.setFrequency(apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load(), true);
 
     // Reset note state
     noteOn = false;
@@ -248,11 +259,17 @@ float ToneGenerator::getNextSample() {
     }
     finalPitch += octaveOffset;
 
-    // Generate master square wave with continuous pitch calculation
-    float masterSquare = generateMasterSquareWave(finalPitch);
-
-    // Convert to desired waveform
-    return generateVcoSampleFromMaster(masterSquare);
+    // Generate directly at the shared internal rate; only the final signal is
+    // downsampled. Glide and external modulation still advance at the host rate.
+    juce::dsp::AudioBlock<float> block(oversamplingBuffer);
+    auto internalBlock = oversampling.processSamplesUp(block);
+    auto* data = internalBlock.getChannelPointer(0);
+    for (size_t i = 0; i < internalBlock.getNumSamples(); ++i) {
+        const float masterSquare = generateMasterSquareWave(finalPitch);
+        data[i] = generateVcoSampleFromMaster(masterSquare);
+    }
+    oversampling.processSamplesDown(block);
+    return oversamplingBuffer.getSample(0, 0);
 }
 
 void ToneGenerator::initializeWaveformStrategies() {
@@ -292,7 +309,7 @@ float ToneGenerator::generateMasterSquareWave(float finalPitch) {
     // Calculate frequency directly from finalPitch using continuous calculation
     // This ensures smooth pitch bend and pitch slider operation
     float frequency = 440.0f * static_cast<float>(std::exp2(static_cast<double>((finalPitch - 69.0f) / 12.0f)));
-    phaseIncrement = frequency / sampleRate;  // Update global phaseIncrement!
+    phaseIncrement = frequency / internalSampleRate;
 
     // Generate master clock square wave (50% duty cycle)
     float t = phase;
@@ -316,7 +333,7 @@ float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
         return masterSquare;
 
     // Use Strategy pattern to generate waveform
-    float value = currentWaveformStrategy->generate(masterSquare, phase, phaseIncrement, sampleRate,
+    float value = currentWaveformStrategy->generate(masterSquare, phase, phaseIncrement, internalSampleRate,
                                                     previousBaseSquare, pwmLfo);
 
     // Standard analog circuit output stage for all waveforms

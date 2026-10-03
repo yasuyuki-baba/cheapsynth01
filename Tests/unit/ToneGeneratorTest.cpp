@@ -65,6 +65,205 @@ TEST(VcoSpectrumTest, TimeConstantsPreserveDecayPerSecond)
     EXPECT_FLOAT_EQ(constants.pwmPole, 0.98f);
 }
 
+namespace {
+template <typename Generate>
+double measureSpectralAmplitude(double rate, double frequency, Generate generate)
+{
+    double sine = 0.0, cosine = 0.0;
+    const int count = static_cast<int>(rate);
+    for (int i = 0; i < count * 3; ++i) {
+        const double value = generate(i);
+        if (i < count * 2)
+            continue;
+        const double phase = juce::MathConstants<double>::twoPi * frequency * i / rate;
+        sine += value * std::sin(phase);
+        cosine += value * std::cos(phase);
+    }
+    return 2.0 * std::hypot(sine, cosine) / count;
+}
+}
+
+TEST(VcoSpectrumTest, AliasProbeWithKnownSignals)
+{
+    // At 48 kHz, 25 kHz samples fold to 23 kHz. Integer-Hz bins over
+    // a one-second window prevent ordinary spectral leakage in this control.
+    const auto signal = [](int i) {
+        return 0.5 * std::sin(juce::MathConstants<double>::twoPi * 5000.0 * i / 48000.0)
+             + 0.1 * std::sin(juce::MathConstants<double>::twoPi * 25000.0 * i / 48000.0);
+    };
+    EXPECT_NEAR(measureSpectralAmplitude(48000.0, 5000.0, signal), 0.5, 1.0e-9);
+    EXPECT_NEAR(measureSpectralAmplitude(48000.0, 23000.0, signal), 0.1, 1.0e-9);
+    EXPECT_NEAR(measureSpectralAmplitude(48000.0, 3000.0, signal), 0.0, 1.0e-9);
+}
+
+TEST(VcoSpectrumTest, HighFrequencyAliasCharacterization)
+{
+    // Probe one non-harmonic bin only, not total alias power or a hardware target.
+    for (double rate : {44100.0, 48000.0}) {
+        const double aliasFrequency = rate - 25000.0;
+        for (int waveform = 0; waveform < 4; ++waveform) {
+            double amplitudes[2]{};
+            for (int bin = 0; bin < 2; ++bin) {
+                std::unique_ptr<IWaveformStrategy> strategy;
+                switch (waveform) {
+                    case 0: strategy = std::make_unique<TriangleWaveformStrategy>(); break;
+                    case 1: strategy = std::make_unique<SawtoothWaveformStrategy>(); break;
+                    case 2: strategy = std::make_unique<SquareWaveformStrategy>(); break;
+                    default: strategy = std::make_unique<PulseWaveformStrategy>(); break;
+                }
+                juce::dsp::Oscillator<float> pwm;
+                float previous = 0.0f;
+                const float increment = static_cast<float>(5000.0 / rate);
+                amplitudes[bin] = measureSpectralAmplitude(rate,
+                    bin == 0 ? 5000.0 : aliasFrequency, [&](int i) {
+                        const float phase = static_cast<float>(std::fmod(i * 5000.0 / rate, 1.0));
+                        float master = phase < 0.5f ? 1.0f : -1.0f;
+                        master += poly_blep(phase, increment);
+                        master -= poly_blep(std::fmod(phase + 0.5f, 1.0f), increment);
+                        master = std::tanh(master * 1.2f);
+                        return std::tanh(strategy->generate(master, phase, increment,
+                            static_cast<float>(rate), previous, pwm) * 1.2f);
+                    });
+            }
+            ASSERT_GT(amplitudes[0], 0.0);
+            ASSERT_TRUE(std::isfinite(amplitudes[1]));
+            std::cout << "VCO alias probe: fs=" << rate << ", waveform=" << waveform
+                      << ", bin=" << aliasFrequency << ", dBc="
+                      << 20.0 * std::log10(std::max(amplitudes[1], 1.0e-15) / amplitudes[0]) << '\n';
+        }
+    }
+}
+
+TEST(VcoSpectrumTest, SquareAliasProcessingStageCharacterization)
+{
+    for (double rate : {44100.0, 48000.0}) {
+        for (int stage = 0; stage < 4; ++stage) {
+            const auto generate = [&](int i) {
+                const float phase = static_cast<float>(std::fmod(i * 5000.0 / rate, 1.0));
+                const float increment = static_cast<float>(5000.0 / rate);
+                float value = phase < 0.5f ? 1.0f : -1.0f;
+                // Stage 0 is the raw square control; stage 1 adds BLEP.
+                if (stage >= 1) {
+                    value += poly_blep(phase, increment);
+                    value -= poly_blep(std::fmod(phase + 0.5f, 1.0f), increment);
+                }
+                if (stage >= 2)
+                    value = std::tanh(value * 1.2f);
+                if (stage >= 3)
+                    value = std::tanh(value * 1.2f);
+                return value;
+            };
+            const double fundamental = measureSpectralAmplitude(rate, 5000.0, generate);
+            ASSERT_GT(fundamental, 0.0);
+            for (int harmonic : {5, 7, 9}) {
+                const double wrapped = std::fmod(5000.0 * harmonic, rate);
+                const double bin = std::min(wrapped, rate - wrapped);
+                const double amplitude = measureSpectralAmplitude(rate, bin, generate);
+                ASSERT_TRUE(std::isfinite(amplitude));
+                std::cout << "VCO alias stage: fs=" << rate << ", stage=" << stage
+                          << ", harmonic=" << harmonic << ", bin=" << bin
+                          << ", amplitude=" << amplitude << ", dBc="
+                          << 20.0 * std::log10(std::max(amplitude, 1.0e-15) / fundamental) << '\n';
+            }
+        }
+    }
+}
+
+TEST(VcoSpectrumTest, FourTimesNonlinearOversamplingComparison)
+{
+    for (double rate : {44100.0, 48000.0}) {
+        for (bool sineControl : {true, false}) {
+            std::vector<float> outputs[3];
+            for (int mode = 0; mode < 3; ++mode) {
+                juce::dsp::Oversampling<float> oversampling(1, 2,
+                    juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple);
+                oversampling.initProcessing(256);
+                juce::AudioBuffer<float> buffer(1, 256);
+                const int count = static_cast<int>(rate * 3.0);
+                outputs[mode].reserve(count);
+                for (int offset = 0; offset < count; offset += 256) {
+                    for (int i = 0; i < 256; ++i) {
+                        const double position = (offset + i) * 5000.0 / rate;
+                        float value;
+                        if (sineControl) {
+                            value = static_cast<float>(0.5 * std::sin(
+                                juce::MathConstants<double>::twoPi * position));
+                        } else {
+                            const float phase = static_cast<float>(std::fmod(position, 1.0));
+                            const float increment = static_cast<float>(5000.0 / rate);
+                            value = phase < 0.5f ? 1.0f : -1.0f;
+                            value += poly_blep(phase, increment);
+                            value -= poly_blep(std::fmod(phase + 0.5f, 1.0f), increment);
+                        }
+                        buffer.setSample(0, i, value);
+                    }
+                    juce::dsp::AudioBlock<float> block(buffer);
+                    const auto saturate = [&](float value) {
+                        return sineControl ? value : std::tanh(std::tanh(value * 1.2f) * 1.2f);
+                    };
+                    if (mode >= 1) {
+                        auto up = oversampling.processSamplesUp(block);
+                        auto* data = up.getChannelPointer(0);
+                        for (size_t i = 0; i < up.getNumSamples(); ++i) {
+                            if (mode == 2) {
+                                // Replace the interpolated input with direct 4x generation.
+                                // The upsampling call only obtains JUCE's internal buffer;
+                                // its contents are overwritten before downsampling.
+                                const double position = (offset * 4.0 + i) * 5000.0 / (rate * 4.0);
+                                if (sineControl) {
+                                    data[i] = static_cast<float>(0.5 * std::sin(
+                                        juce::MathConstants<double>::twoPi * position));
+                                } else {
+                                    const float phase = static_cast<float>(std::fmod(position, 1.0));
+                                    const float increment = static_cast<float>(5000.0 / (rate * 4.0));
+                                    data[i] = phase < 0.5f ? 1.0f : -1.0f;
+                                    data[i] += poly_blep(phase, increment);
+                                    data[i] -= poly_blep(std::fmod(phase + 0.5f, 1.0f), increment);
+                                }
+                            }
+                            data[i] = saturate(data[i]);
+                        }
+                        oversampling.processSamplesDown(block);
+                    } else {
+                        for (int i = 0; i < 256; ++i)
+                            buffer.setSample(0, i, saturate(buffer.getSample(0, i)));
+                    }
+                    for (int i = 0; i < 256 && offset + i < count; ++i)
+                        outputs[mode].push_back(buffer.getSample(0, i));
+                }
+            }
+            double fundamental[3]{};
+            for (int mode = 0; mode < 3; ++mode) {
+                fundamental[mode] = measureSpectralAmplitude(rate, 5000.0,
+                    [&](int i) { return outputs[mode][i]; });
+                ASSERT_GT(fundamental[mode], 0.0);
+                if (sineControl)
+                    EXPECT_NEAR(fundamental[mode], 0.5, 0.001);
+            }
+            for (int harmonic : {5, 7, 9}) {
+                const double wrapped = std::fmod(5000.0 * harmonic, rate);
+                const double bin = std::min(wrapped, rate - wrapped);
+                double amplitude[3]{};
+                for (int mode = 0; mode < 3; ++mode)
+                    amplitude[mode] = measureSpectralAmplitude(rate, bin,
+                        [&](int i) { return outputs[mode][i]; });
+                if (sineControl) {
+                    EXPECT_LT(amplitude[1], 1.0e-5);
+                    EXPECT_LT(amplitude[2], 1.0e-5);
+                } else {
+                    std::cout << "VCO nonlinear oversampling: fs=" << rate << ", bin=" << bin
+                              << ", 1x=" << 20.0 * std::log10(amplitude[0] / fundamental[0])
+                              << ", 4x=" << 20.0 * std::log10(amplitude[1] / fundamental[1])
+                              << ", generated4x=" << 20.0 * std::log10(std::max(amplitude[2], 1.0e-15) / fundamental[2])
+                              << " dBc, fundamentalChange="
+                              << 20.0 * std::log10(fundamental[1] / fundamental[0])
+                              << ", generatedChange=" << 20.0 * std::log10(fundamental[2] / fundamental[0]) << " dB\n";
+                }
+            }
+        }
+    }
+}
+
 TEST(VcoSpectrumTest, WaveformStrategySampleRateCharacterization)
 {
     // Isolate strategies using a controlled master; this is not a full-VCO test.
@@ -112,13 +311,15 @@ TEST(ToneGeneratorRealTest, PitchAndFeetFromMeasuredPeriods)
     // Exercise the production generator, not MockToneGenerator.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         for (int feet = 0; feet < 4; ++feet) {
+          for (int waveform = 0; waveform < 5; ++waveform) {
+           for (int note : {45, 69, 93}) {
             juce::AudioProcessorGraph host;
             juce::AudioProcessorValueTreeState::ParameterLayout layout;
             const auto add = [&](const juce::String& id, float low, float high, float value) {
                 layout.add(std::make_unique<juce::AudioParameterFloat>(id, id, low, high, value));
             };
             add(ParameterIds::feet, 0.0f, 4.0f, static_cast<float>(feet));
-            add(ParameterIds::waveType, 0.0f, 4.0f, 2.0f);
+            add(ParameterIds::waveType, 0.0f, 4.0f, static_cast<float>(waveform));
             add(ParameterIds::pwmSpeed, 0.0f, 60.0f, 0.0f);
             add(ParameterIds::modDepth, 0.0f, 1.0f, 0.0f);
             add(ParameterIds::pitchBend, -12.0f, 12.0f, 0.0f);
@@ -128,7 +329,7 @@ TEST(ToneGeneratorRealTest, PitchAndFeetFromMeasuredPeriods)
             juce::AudioProcessorValueTreeState state(host, nullptr, "PARAMETERS", std::move(layout));
             ToneGenerator generator(state);
             generator.prepare({sampleRate, 256, 1});
-            generator.startNote(69, 1.0f, 8192);
+            generator.startNote(note, 1.0f, 8192);
             generator.setPitchBend(0.0f); // Isolate tuning from MIDI wheel quantization.
             generator.updateBlockRateParameters();
             double first = 0.0, last = 0.0;
@@ -148,13 +349,55 @@ TEST(ToneGeneratorRealTest, PitchAndFeetFromMeasuredPeriods)
             }
             ASSERT_GT(crossings, 2);
             const double measured = (crossings - 1) * sampleRate / (last - first);
-            const double expected = 440.0 * std::pow(2.0, feet - 2);
+            const double expected = 440.0 * std::pow(2.0, (note - 69) / 12.0 + feet - 2);
             SCOPED_TRACE(sampleRate);
             SCOPED_TRACE(feet);
+            SCOPED_TRACE(waveform);
+            SCOPED_TRACE(note);
             EXPECT_NEAR(measured, expected, expected * 0.001);
             std::cout << "VCO pitch: fs=" << sampleRate << ", feetIndex=" << feet
                       << ", measured=" << measured << ", expected=" << expected << " Hz\n";
+           }
+          }
         }
+    }
+}
+
+TEST(ToneGeneratorRealTest, ResetReproducesFreshWaveform)
+{
+    for (int waveform = 0; waveform < 5; ++waveform) {
+        juce::AudioProcessorGraph host;
+        juce::AudioProcessorValueTreeState::ParameterLayout layout;
+        const auto add = [&](const juce::String& id, float low, float high, float value) {
+            layout.add(std::make_unique<juce::AudioParameterFloat>(id, id, low, high, value));
+        };
+        add(ParameterIds::feet, 0.0f, 4.0f, 2.0f);
+        add(ParameterIds::waveType, 0.0f, 4.0f, static_cast<float>(waveform));
+        add(ParameterIds::pwmSpeed, 0.0f, 60.0f, 0.0f);
+        add(ParameterIds::modDepth, 0.0f, 1.0f, 0.0f);
+        add(ParameterIds::pitchBend, -12.0f, 12.0f, 0.0f);
+        add(ParameterIds::pitch, -12.0f, 12.0f, 0.0f);
+        add(ParameterIds::pitchBendUpRange, 0.0f, 24.0f, 2.0f);
+        add(ParameterIds::pitchBendDownRange, 0.0f, 24.0f, 2.0f);
+        juce::AudioProcessorValueTreeState state(host, nullptr, "PARAMETERS", std::move(layout));
+        ToneGenerator reference(state), reused(state);
+        const auto start = [](ToneGenerator& generator) {
+            generator.prepare({48000.0, 256, 1});
+            generator.startNote(69, 1.0f, 8192);
+            generator.setPitchBend(0.0f);
+            generator.updateBlockRateParameters();
+        };
+        start(reference);
+        start(reused);
+        for (int i = 0; i < 12345; ++i)
+            reused.getNextSample();
+        start(reused);
+        double maximumError = 0.0;
+        for (int i = 0; i < 4096; ++i)
+            maximumError = std::max(maximumError,
+                std::abs(static_cast<double>(reference.getNextSample()) - reused.getNextSample()));
+        SCOPED_TRACE(waveform);
+        EXPECT_NEAR(maximumError, 0.0, 1.0e-6);
     }
 }
 
