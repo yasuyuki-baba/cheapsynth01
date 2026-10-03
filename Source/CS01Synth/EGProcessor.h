@@ -26,10 +26,13 @@ class EGProcessor : public juce::AudioProcessor {
 
     // Methods to control ADSR from outside
     void startEnvelope() {
+        releasing = false;
+        updateADSR();
         adsr.noteOn();
     }
     void releaseEnvelope() {
         adsr.noteOff();
+        releasing = adsr.isActive();
     }
 
     //==============================================================================
@@ -81,6 +84,8 @@ class EGProcessor : public juce::AudioProcessor {
 
     juce::AudioProcessorValueTreeState& apvts;
     juce::ADSR adsr;
+    bool parametersInitialized = false;
+    bool releasing = false;
     float lastOutput = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
