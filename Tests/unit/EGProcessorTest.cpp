@@ -218,6 +218,48 @@ TEST_F(EGProcessorTest, EnvelopeGeneration)
     EXPECT_FALSE(processor->isActive());
 }
 
+TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease)
+{
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        SCOPED_TRACE(sampleRate);
+        processor = std::make_unique<EGProcessor>(*apvts);
+        processor->prepareToPlay(sampleRate, 1);
+        juce::AudioBuffer<float> buffer(1, 1);
+        juce::MidiBuffer midi;
+        processor->startEnvelope();
+        float previous = 0.0f;
+        bool reachedPeak = false;
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.5); ++i) {
+            processor->processBlock(buffer, midi);
+            const float value = buffer.getSample(0, 0);
+            ASSERT_TRUE(std::isfinite(value));
+            ASSERT_GE(value, 0.0f);
+            ASSERT_LE(value, 1.0f);
+            ASSERT_LE(std::abs(value - previous), 1.0 / (0.1 * sampleRate) + 0.00001);
+            if (!reachedPeak) {
+                ASSERT_GE(value + 0.000001f, previous);
+                reachedPeak = value == 1.0f;
+            } else {
+                ASSERT_LE(value, previous + 0.000001f);
+            }
+            previous = value;
+        }
+        EXPECT_TRUE(reachedPeak);
+        EXPECT_NEAR(previous, 0.5f, 0.00001f);
+        processor->releaseEnvelope();
+        for (int i = 0; i < static_cast<int>(sampleRate * 0.6); ++i) {
+            processor->processBlock(buffer, midi);
+            const float value = buffer.getSample(0, 0);
+            ASSERT_GE(value, 0.0f);
+            ASSERT_LE(value, previous + 0.000001f);
+            ASSERT_LE(std::abs(value - previous), 0.5 / (0.5 * sampleRate) + 0.00001);
+            previous = value;
+        }
+        EXPECT_FLOAT_EQ(previous, 0.0f);
+        EXPECT_FALSE(processor->isActive());
+    }
+}
+
 TEST_F(EGProcessorTest, NoteOnOff)
 {
     // Prepare processor

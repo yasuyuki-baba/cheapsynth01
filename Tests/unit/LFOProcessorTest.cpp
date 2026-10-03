@@ -151,45 +151,8 @@ TEST_F(LFOProcessorTest, WaveformGeneration)
     
     EXPECT_TRUE(isDifferent) << "Different LFO speeds should produce different outputs";
     
-    // Check that the LFO output is approximately a triangle wave
-    // Triangle wave characteristics:
-    // 1. Monotonic sections (increasing or decreasing)
-    // 2. Direction changes at peaks and troughs
-    // 3. Roughly linear slopes between direction changes
-    
-    // Count direction changes (peaks and troughs)
-    int directionChanges = 0;
-    bool wasIncreasing = false;
-    bool directionEstablished = false;
-    
-    for (int i = 1; i < slowLfoBuffer.getNumSamples() - 1; ++i)
-    {
-        float prev = slowLfoBuffer.getSample(0, i - 1);
-        float curr = slowLfoBuffer.getSample(0, i);
-        float next = slowLfoBuffer.getSample(0, i + 1);
-        
-        bool isIncreasing = (next > curr) && (curr > prev);
-        bool isDecreasing = (next < curr) && (curr < prev);
-        
-        if (isIncreasing || isDecreasing)
-        {
-            if (!directionEstablished)
-            {
-                wasIncreasing = isIncreasing;
-                directionEstablished = true;
-            }
-            else if (wasIncreasing != isIncreasing)
-            {
-                directionChanges++;
-                wasIncreasing = isIncreasing;
-            }
-        }
-    }
-    
-    // For a 1 Hz triangle wave over 512 samples at 44100 Hz sample rate,
-    // we expect at least one direction change (peak or trough)
-    EXPECT_GE(directionChanges, 1) << "Triangle wave should have direction changes (peaks/troughs)";
-    
+    // Period and triangle continuity are checked after warm-up in the test below.
+
     // Also verify that there is significant variation in the output
     float minVal = slowLfoBuffer.getSample(0, 0);
     float maxVal = slowLfoBuffer.getSample(0, 0);
@@ -202,5 +165,51 @@ TEST_F(LFOProcessorTest, WaveformGeneration)
     }
     
     float range = maxVal - minVal;
-    EXPECT_GT(range, 0.1f) << "LFO should produce significant amplitude variation";
+    EXPECT_GT(range, 0.01f) << "LFO should vary even over a short observation window";
+}
+
+TEST_F(LFOProcessorTest, PeriodAmplitudeAndContinuity)
+{
+    for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
+        for (float frequency : {1.0f, 5.0f}) {
+            SCOPED_TRACE(sampleRate);
+            SCOPED_TRACE(frequency);
+            processor = std::make_unique<LFOProcessor>(*apvts);
+            apvts->getParameter(ParameterIds::lfoSpeed)->setValueNotifyingHost(
+                apvts->getParameter(ParameterIds::lfoSpeed)->convertTo0to1(frequency));
+            processor->prepareToPlay(sampleRate, 256);
+            juce::AudioBuffer<float> buffer(1, 256);
+            juce::MidiBuffer midi;
+            // Discard the oscillator's frequency smoothing interval.
+            for (int i = 0; i < static_cast<int>(sampleRate / 256); ++i)
+                processor->processBlock(buffer, midi);
+            float previous = 0.0f;
+            float minimum = 1.0f, maximum = -1.0f;
+            int lastCrossing = -1, periods = 0, index = 0;
+            const int count = static_cast<int>(sampleRate * 3.0 / frequency);
+            while (index < count) {
+                processor->processBlock(buffer, midi);
+                for (int i = 0; i < 256 && index < count; ++i, ++index) {
+                    const float value = buffer.getSample(0, i);
+                    ASSERT_TRUE(std::isfinite(value));
+                    minimum = std::min(minimum, value);
+                    maximum = std::max(maximum, value);
+                    if (index > 0) {
+                        ASSERT_LE(std::abs(value - previous), 4.0 * frequency / sampleRate + 0.00001);
+                        if (previous < 0.0f && value >= 0.0f) {
+                            if (lastCrossing >= 0) {
+                                EXPECT_NEAR(index - lastCrossing, sampleRate / frequency, sampleRate / frequency * 0.001 + 2.0);
+                                ++periods;
+                            }
+                            lastCrossing = index;
+                        }
+                    }
+                    previous = value;
+                }
+            }
+            EXPECT_GE(periods, 2);
+            EXPECT_NEAR(minimum, -1.0f, 0.001f);
+            EXPECT_NEAR(maximum, 1.0f, 0.001f);
+        }
+    }
 }

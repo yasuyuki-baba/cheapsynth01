@@ -5,14 +5,10 @@ LFOProcessor::LFOProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::mono(), true)),
       apvts(apvts),
       lfo() {
-    // Initialize triangle wave (standard implementation based on JUCE tutorial)
-    lfo.initialise(
-        [](float x) -> float {
-            // x is in [0, 1), normalized by the Oscillator class
-            // Standard triangle wave implementation
-            return 1.0f - 4.0f * std::abs(std::round(x - 0.25f) - (x - 0.25f));
-        },
-        128);
+    // JUCE supplies phase in [-pi, pi], not a normalized [0, 1) phase.
+    lfo.initialise([](float phase) -> float {
+        return 1.0f - 2.0f * std::abs(phase) / juce::MathConstants<float>::pi;
+    });
 }
 
 LFOProcessor::~LFOProcessor() {}
