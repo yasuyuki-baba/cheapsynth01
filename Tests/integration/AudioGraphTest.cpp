@@ -18,6 +18,71 @@ protected:
     }
 };
 
+TEST_F(AudioGraphTest, MidiOffsetsDoNotSoundEarly)
+{
+    for (int blockSize : {64, 256}) {
+        CS01AudioProcessor processor;
+        processor.prepareToPlay(48000, blockSize);
+        juce::MidiBuffer midi;
+        juce::AudioBuffer<float> buffer(2, blockSize);
+        buffer.clear();
+        midi.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), blockSize / 2);
+        processor.processBlock(buffer, midi);
+        double before = 0;
+        for (int i = 0; i < blockSize / 2; ++i)
+            before += std::abs(buffer.getSample(0, i));
+        EXPECT_NEAR(before, 0.0, 1.0e-9);
+        double after = 0;
+        for (int block = 0; block < 20; ++block) {
+            buffer.clear();
+            midi.clear();
+            processor.processBlock(buffer, midi);
+            after += buffer.getMagnitude(0, blockSize);
+        }
+        EXPECT_GT(after, 0.001);
+    }
+}
+
+TEST_F(AudioGraphTest, MidBlockNoteOffDoesNotReleaseEarly)
+{
+    CS01AudioProcessor reference, released;
+    for (auto* processor : {&reference, &released}) {
+        auto& state = processor->getValueTreeState();
+        for (const auto& setting : std::vector<std::pair<juce::String, float>>{
+                 {ParameterIds::volume, 1.0f}, {ParameterIds::vcaEgDepth, 1.0f},
+                 {ParameterIds::sustain, 1.0f}, {ParameterIds::attack, 0.01f},
+                 {ParameterIds::release, 0.05f}, {ParameterIds::breathVca, 0.0f}}) {
+            auto* parameter = state.getParameter(setting.first);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second));
+        }
+    }
+    reference.prepareToPlay(48000, 256);
+    released.prepareToPlay(48000, 256);
+    juce::AudioBuffer<float> a(2, 256), b(2, 256);
+    juce::MidiBuffer ma, mb;
+    for (int block = 0; block < 30; ++block) {
+        a.clear(); b.clear(); ma.clear(); mb.clear();
+        if (block == 0) {
+            ma.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+            mb.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+        }
+        reference.processBlock(a, ma);
+        released.processBlock(b, mb);
+    }
+    a.clear(); b.clear(); ma.clear(); mb.clear();
+    mb.addEvent(juce::MidiMessage::noteOff(1, 69), 128);
+    reference.processBlock(a, ma);
+    released.processBlock(b, mb);
+    double before = 0, after = 0;
+    for (int i = 0; i < 256; ++i) {
+        const double error = std::abs(a.getSample(0, i) - b.getSample(0, i));
+        if (i < 128) before = std::max(before, error);
+        else after += error;
+    }
+    EXPECT_NEAR(before, 0, 1.0e-6);
+    EXPECT_GT(after, 1.0e-6);
+}
+
 TEST_F(AudioGraphTest, ProcessorCreation)
 {
     // Create processor with unique_ptr to ensure proper cleanup
