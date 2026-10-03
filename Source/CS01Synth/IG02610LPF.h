@@ -44,6 +44,7 @@ class IG02610LPF {
     // OTA input level dependency parameters
     static constexpr float INPUT_LEVEL_INFLUENCE = 0.02f;  // ±2% cutoff modulation
     static constexpr float LEVEL_SMOOTHING = 0.99f;        // Envelope follower coefficient
+    float levelSmoothing = LEVEL_SMOOTHING;
 
     // Input stage model
     struct InputStage {

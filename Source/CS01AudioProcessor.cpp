@@ -25,6 +25,14 @@ CS01AudioProcessor::~CS01AudioProcessor() {
 //==============================================================================
 void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
+    processingCapacity = juce::jmax(1, samplesPerBlock);
+    outputOversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        getMainBusNumOutputChannels(), Constants::oversamplingStages,
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
+    outputOversampling->initProcessing(processingCapacity);
+    outputOversampling->reset();
+    internalAudio.setSize(getMainBusNumOutputChannels(),
+                          processingCapacity * Constants::oversamplingFactor);
 
     audioGraph.clear();
 
@@ -38,6 +46,7 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     midiProcessorNode = audioGraph.addNode(std::make_unique<MidiProcessor>(apvts));
     vcoNode =
         audioGraph.addNode(std::make_unique<VCOProcessor>(apvts));  // Default is ToneGenerator
+    static_cast<VCOProcessor*>(vcoNode->getProcessor())->setExternalOversampling(true);
     egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
     lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
     vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
@@ -88,8 +97,10 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     }
     // 4. Set graph's main bus layout and prepare
     audioGraph.setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(),
-                                    sampleRate, samplesPerBlock);
-    audioGraph.prepareToPlay(sampleRate, samplesPerBlock);
+                                    sampleRate * Constants::oversamplingFactor,
+                                    processingCapacity * Constants::oversamplingFactor);
+    audioGraph.prepareToPlay(sampleRate * Constants::oversamplingFactor,
+                             processingCapacity * Constants::oversamplingFactor);
 
     requestedFilterType.store(static_cast<int>(
         apvts.getRawParameterValue(ParameterIds::filterType)->load()));
@@ -160,15 +171,31 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto renderUntil = [&](int end) {
         if (end <= position)
             return;
-        juce::AudioBuffer<float> segment(buffer.getArrayOfWritePointers(),
-            buffer.getNumChannels(), position, end - position);
         if (!segmentMidi.isEmpty() && midiProcessorNode != nullptr) {
             // The MIDI node controls generators through direct references, not
             // audio connections: explicitly order it before audio rendering.
             juce::AudioBuffer<float> noAudio;
             midiProcessorNode->getProcessor()->processBlock(noAudio, segmentMidi);
         }
-        audioGraph.processBlock(segment, segmentMidi);
+        for (int offset = position; offset < end;) {
+            const int length = juce::jmin(processingCapacity, end - offset);
+            juce::AudioBuffer<float> host(buffer.getArrayOfWritePointers(),
+                buffer.getNumChannels(), offset, length);
+            host.clear();
+            juce::dsp::AudioBlock<float> hostBlock(host);
+            auto high = outputOversampling->processSamplesUp(hostBlock);
+            const int highLength = static_cast<int>(high.getNumSamples());
+            juce::AudioBuffer<float> internal(internalAudio.getArrayOfWritePointers(),
+                internalAudio.getNumChannels(), highLength);
+            internal.clear();
+            audioGraph.processBlock(internal, segmentMidi);
+            segmentMidi.clear();
+            for (int channel = 0; channel < internal.getNumChannels(); ++channel)
+                juce::FloatVectorOperations::copy(high.getChannelPointer(channel),
+                    internal.getReadPointer(channel), highLength);
+            outputOversampling->processSamplesDown(hostBlock);
+            offset += length;
+        }
         segmentMidi.clear();
         position = end;
     };

@@ -8,10 +8,10 @@ ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(
 
 void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
     sampleRate = spec.sampleRate;
-    internalSampleRate = static_cast<float>(spec.sampleRate * Constants::oversamplingFactor);
+    internalSampleRate = static_cast<float>(spec.sampleRate * (externalOversampling ? 1 : Constants::oversamplingFactor));
     auto internalSpec = spec;
     internalSpec.sampleRate = internalSampleRate;
-    internalSpec.maximumBlockSize *= Constants::oversamplingFactor;
+    internalSpec.maximumBlockSize *= externalOversampling ? 1 : Constants::oversamplingFactor;
     pwmLfo.prepare(internalSpec);
     oversampling.initProcessing(1);
     pwmLfo.initialise(
@@ -284,6 +284,8 @@ float ToneGenerator::getNextSample() {
 
     // Generate directly at the shared internal rate; only the final signal is
     // downsampled. Glide and external modulation still advance at the host rate.
+    if (externalOversampling)
+        return generateVcoSampleFromMaster(generateMasterSquareWave(finalPitch));
     juce::dsp::AudioBlock<float> block(oversamplingBuffer);
     auto internalBlock = oversampling.processSamplesUp(block);
     auto* data = internalBlock.getChannelPointer(0);
