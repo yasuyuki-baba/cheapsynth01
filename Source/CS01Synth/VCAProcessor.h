@@ -87,6 +87,8 @@ class VCAProcessor : public juce::AudioProcessor {
     float capacitorState = 0.0f;
     float prevOutput = 0.0f;
     float outCapacitorState = 0.0f;
+    float bufferCouplingPole = 0.997f;
+    float outputCouplingPole = 0.9995f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VCAProcessor)
 };
