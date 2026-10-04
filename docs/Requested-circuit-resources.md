@@ -1,38 +1,43 @@
-# 探していただきたい資料
+# Requested Circuit Resources
 
-未確定部分と現在の近似実装の一覧は `Circuit-model-unknowns.md` を参照。
-TC7476BP資料は `docs/tech/TC7476BP.pdf` に提供済みです。
-以下のTC7476BP項目は、資料未入手ではなく解析・配線対応づけの未完了事項です。
+See [Circuit model unknowns](Circuit-model-unknowns.md) for unresolved details and
+current approximations. TC7476BP documentation has already been provided locally
+as `docs/tech/TC7476BP.pdf`. The items below require analysis and wiring mapping,
+not acquisition of a missing document. Local PDFs are not necessarily tracked.
 
-## 優先度1：EGの段階切り替え
+## Priority 1: EG stage switching
 
-- 東芝 **TC7476BP** のメーカー・データシート（別型番の7476ではなく、可能なら正確な型番）。
-  ピン配置、非同期Set/Resetの極性、同時入力時の真理値表、電源範囲、
-  入力しきい値が必要です。蓄積コンデンサからIC4へのフィードバックが
-  AttackからDecayへの切り替えをどう決めるかを解析するためです。
-- Yamaha CS-01のEG調整・検査手順、TP4の電圧／時間条件。
-  現在のマニュアル以外の補足資料があれば有用です。
+- Analyze the Toshiba **TC7476BP** manufacturer datasheet (prefer the exact part
+  over another 7476 variant): pinout, asynchronous Set/Reset polarity,
+  simultaneous-input truth table, supply range, and input thresholds. These are
+  needed to determine how storage-capacitor feedback to IC4 controls the
+  Attack-to-Decay transition.
+- Yamaha CS-01 EG adjustment/inspection procedures and TP4 voltage/timing
+  conditions. Supplements to the existing manual would be useful.
 
-## 優先度2：アナログ音声・制御特性
+## Priority 2: Analog audio and control characteristics
 
-- **IG02610**：VCFの内部構成、制御電流とカットオフの関係、
-  入力インピーダンス、High/Lowレゾナンスの測定条件。
-- **IG02600**：VCAの制御端子とゲインの関係、EGとブレスの合成方式。
-- **YM10150**：鍵盤優先順位、ゲート、再トリガー、波形出力の仕様。
+- **IG02610**: VCF internal topology, control-current-to-cutoff relationship,
+  input impedance, and High/Low resonance measurement conditions.
+- **IG02600**: control-input-to-gain relationship and EG/breath input combination.
+- **YM10150**: keyboard priority, gate, retrigger, and waveform output specifications.
 
-## 優先度3：素子と操作子
+## Priority 3: Devices and controls
 
-- 2SK30AのYランク特性、2SC1815／2SA1015の使用条件。
-- パネル可変抵抗のAカーブの仕様、スライダー位置と時間の検査値。
+- Y-rank characteristics of 2SK30A and operating conditions of 2SC1815/2SA1015.
+- Panel potentiometer A-taper specifications and slider-position-to-time inspection values.
 
-資料は `/Users/baba/git/cheapsynth01/docs` に置いてください。
-出典・版・ページが分かれば併記してください。メーカー資料を優先し、
-他機種や互換部品の資料は同一特性と決めつけず参考として扱います。
+Place materials in the repository's `docs/` directory. Record source, revision,
+and page numbers where available. Prefer manufacturer material; treat documents
+for other instruments or compatible parts as references, not proof of identical
+characteristics.
 
-## 資料が揃うまでの実装方針
+## Implementation policy until evidence is sufficient
 
-本番EGは、秒単位の時間を持つ直線ADSRを暫定モデルとして維持します。
-RC充放電の計算は検証済みですが、CS-01の切り替え条件は未確定です。
-推測で回路再現を名乗らず、連続性、単調性、再押鍵、設定変更、
-サンプルレートとブロック分割の独立性を優先します。
-音色を変える指数EGへの移行は、時間の定義と終端条件を明記した別変更にします。
+Keep the production EG as a provisional linear ADSR with durations in seconds.
+RC charging/discharging calculations have been tested, but CS-01 switching
+conditions remain unresolved. Prioritize continuity, monotonicity, retriggering,
+parameter changes, and independence from sample rate and block partitioning,
+rather than claiming circuit accuracy based on speculation.
+A timbre-changing exponential EG migration should be a separate change with
+explicit timing definitions and endpoint conditions.
