@@ -110,7 +110,7 @@ float IG02610LPF::processSample(int channel, float sample) {
 
     // Standard 2nd order filter processing (direct form II transposed)
     const float input = sample;
-    const float output = b0 * input + z1;
+    const double output = b0 * input + z1;
 
     // Update filter state variables
     z1 = b1 * input - a1 * output + z2;
@@ -198,21 +198,23 @@ void IG02610LPF::updateCoefficients() {
     resonance = juce::jlimit(0.1f, 0.8f, resonance);
 
     // Use standard biquad lowpass filter design
-    const float frequency = cutoff / sampleRate;
-    const float omega = 2.0f * juce::MathConstants<float>::pi * frequency;
-    const float sin_omega = std::sin(omega);
-    const float cos_omega = std::cos(omega);
+    // Keep coefficients and recursive state in double precision: low cutoffs
+    // at the shared internal rate otherwise suffer severe cancellation.
+    const double frequency = static_cast<double>(cutoff) / sampleRate;
+    const double omega = 2.0 * juce::MathConstants<double>::pi * frequency;
+    const double sin_omega = std::sin(omega);
+    const double cos_omega = std::cos(omega);
 
     // Q factor - more reasonable range
-    const float Q = 0.5f + resonance * 4.5f;  // Range from 0.5 to 5.0
+    const double Q = 0.5 + static_cast<double>(resonance) * 4.5;
 
-    const float alpha = sin_omega / (2.0f * Q);
+    const double alpha = sin_omega / (2.0 * Q);
 
     // Standard lowpass biquad coefficients
-    const float norm = 1.0f / (1.0f + alpha);
+    const double norm = 1.0 / (1.0 + alpha);
 
-    b0 = ((1.0f - cos_omega) * 0.5f) * norm;
-    b1 = (1.0f - cos_omega) * norm;
+    b0 = std::pow(std::sin(omega * 0.5), 2.0) * norm;
+    b1 = 2.0 * b0;
     b2 = b0;
     a1 = (-2.0f * cos_omega) * norm;
     a2 = (1.0f - alpha) * norm;

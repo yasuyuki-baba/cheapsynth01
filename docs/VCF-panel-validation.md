@@ -23,3 +23,43 @@ not a hardware specification or a guarantee of click-free switching.
 No production coefficients were changed. Outstanding: internal-rate peak and
 gain sweep at actual panel positions, and comparison with circuit information
 if IC control characteristics become available.
+
+## Internal-rate panel observations
+
+An additional test uses the production cutoff parameter conversion at positions
+0, 0.5 and 1 (20, 2002 and 20000 Hz), with Low/High at each shared internal
+rate. Integer-Hz sine probes use one second of settling and one second of
+measurement, so the analysis window contains whole cycles. Probe frequencies
+above 45% of the host rate are omitted. These are filter-core observations,
+not final-output measurements including the decimator or VCA.
+
+At a 48 kHz host and midpoint cutoff, Low measured +2.339 dB at 1802 Hz;
+High measured +7.464 dB at 2002 Hz. These are maxima among the chosen probes,
+not precise resonance peak locations. At minimum cutoff the coupling high-pass
+stages also affect the response. Float coefficient precision at very low
+cutoffs/high internal rates requires separate analysis before interpreting
+sample-rate differences as analog behavior. No calibration change was made.
+
+The new observation test and live-control test pass in Debug and Release.
+Full-suite results from before this observation addition were 144/144;
+the complete suite has not yet been rerun after this addition.
+
+## Precision improvement and final validation
+
+At 20 Hz the old float calculation of 1-cos(omega) has approximately -6.0%,
++11.3% and +11.3% relative numerator error at 176.4/192/384 kHz respectively.
+These are coefficient-construction errors, not directly output gain errors.
+An independent identity, 2*sin(omega/2)^2, confirms the cancellation source.
+
+The production low-pass coefficients and recursive states now use double;
+b0 uses sin(omega/2)^2 and b1 is twice b0. Audio interfaces and nonlinear
+stages remain float. This changes numerical precision, not the intended
+cutoff/Q design or provisional panel ranges. Midpoint gains at 48 kHz remain
+about +1.721 dB (Low) and +7.464 dB (High) at 2002 Hz.
+
+Debug and Release complete suites pass 146/146 after this change. The
+coefficient diagnosis is an isolated mathematical check; it does not yet
+assert the production core's low-frequency error against an independent
+complete transfer function. Input coupling still uses a float high-pass.
+Consequently neither full low-frequency calibration nor all precision
+effects are claimed resolved. Standalone rebuild/listening remains pending.
