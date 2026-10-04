@@ -3,6 +3,41 @@
 #include "../../Source/CS01Synth/IG02610LPF.h"
 #include "../../Source/CS01Synth/SynthConstants.h"
 
+TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded)
+{
+    for (double hostRate : {44100.0, 48000.0, 96000.0}) {
+        const double rate = hostRate * Constants::oversamplingFactor;
+        IG02610LPF filter;
+        filter.prepare(rate);
+        double phase = 0.0;
+        // Exercise abrupt panel changes without resetting filter state.
+        for (float cutoff : {20.0f, 20000.0f, 2000.0f, 250.0f, 20000.0f, 20.0f}) {
+            for (float resonance : {0.2f, 0.7f}) {
+                filter.setCutoffFrequency(cutoff);
+                filter.setResonance(resonance);
+                double energy = 0.0;
+                for (int i = 0; i < static_cast<int>(rate * 0.02); ++i) {
+                    const float input = static_cast<float>(0.1 * std::sin(phase));
+                    phase += juce::MathConstants<double>::twoPi * 440.0 / rate;
+                    const float output = filter.processSample(0, input);
+                    ASSERT_TRUE(std::isfinite(output));
+                    // Safety bound, not a calibrated amplitude or a click criterion.
+                    ASSERT_LT(std::abs(output), 4.0f);
+                    energy += static_cast<double>(output) * output;
+                }
+                EXPECT_GT(energy, 0.0);
+            }
+        }
+        double tail = 0.0;
+        for (int i = 0; i < static_cast<int>(rate * 2.0); ++i) {
+            const float output = filter.processSample(0, 0.0f);
+            ASSERT_TRUE(std::isfinite(output));
+            if (i >= static_cast<int>(rate * 1.9)) tail = std::max(tail, std::abs(static_cast<double>(output)));
+        }
+        EXPECT_LT(tail, 1.0e-4);
+    }
+}
+
 TEST(IG02610OversamplingTest, CharacterizeInternalRateProcessing)
 {
     for (double rate : {44100.0, 48000.0}) {
