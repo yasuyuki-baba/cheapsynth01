@@ -127,8 +127,9 @@ bash scripts/check-format.sh --fix
 
 If the matching formatter is already installed, set `CLANG_FORMAT` to its
 executable path instead. Keep formatting-only changes separate from functional
-changes. The formatting workflow runs on pushes to `main`, all pull requests,
-and manual dispatches; it does not run clang-tidy static analysis.
+changes. The unified CI workflow runs on pushes to `main`, tags, all pull requests,
+and manual dispatches. Formatting runs once before the OS build/test matrix;
+it does not run clang-tidy static analysis.
 
 ### JUCE Best Practices
 

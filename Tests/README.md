@@ -81,7 +81,12 @@ This script performs the following:
 
 ### Continuous Integration
 
-Tests are automatically run via GitHub Actions whenever code is pushed to any branch in the repository or a pull request is created. The workflow:
+The unified `ci.yml` workflow runs on pushes to `main`, tags, pull requests,
+and manual dispatches. After formatting passes, independent Linux, macOS, and
+Windows jobs configure one build directory with all product formats and tests
+enabled. Linux GUI tests run under Xvfb. A failed OS job does not cancel the others.
+Tag builds use Release and create a GitHub release only after all OS jobs pass.
+The workflow:
 
 1. Builds and runs tests on multiple platforms (Windows, macOS, Linux)
 2. Generates XML test reports
