@@ -34,8 +34,16 @@
 | 75 | Decay | 7-bit | 0-127 | |
 | 76 | LFO Speed | 7-bit | 0-127 | |
 | 79 | Release | 7-bit | 0-127 | |
+| 120 | All Sound Off | — | — | Immediately stops generators/EG and clears residual output state |
+| 123 | All Notes Off | — | — | Clears held notes and starts normal release; repeated messages do not restart release |
 
 ## Notes
 - Monophonic voice management (highest note priority)
 - 14-bit CC uses MSB/LSB pair for high precision control
 - All parameters update in real-time
+
+## Panic and lifecycle behavior
+- Channel messages currently control the single shared monophonic voice; there is no per-channel voice allocation.
+- CC120/123 follow MIDI event positions. Events at the same position retain their input order.
+- Preparing/releasing the audio processor clears held-note state. Transport stop alone does not trigger panic, allowing live playing while stopped.
+- Sustain pedal (CC64) is not implemented; CC123 releases the shared gate directly.

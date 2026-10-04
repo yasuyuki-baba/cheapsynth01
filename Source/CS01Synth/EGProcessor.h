@@ -30,6 +30,11 @@ class EGProcessor : public juce::AudioProcessor {
         updateADSR();
         adsr.noteOn();
     }
+    void stopEnvelopeImmediately() {
+        adsr.reset();
+        releasing = false;
+        lastOutput = 0.0f;
+    }
     void releaseEnvelope() {
         adsr.noteOff();
         releasing = adsr.isActive();

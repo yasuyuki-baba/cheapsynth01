@@ -53,6 +53,7 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
 }
 
 void VCAProcessor::releaseResources() {
+    capacitorState = prevOutput = outCapacitorState = 0.0f;
     inputHighPass.reset();
     dcBlocker.reset();
     highFreqRolloff.reset();

@@ -7,8 +7,14 @@ MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
 
 MidiProcessor::~MidiProcessor() = default;
 
-void MidiProcessor::prepareToPlay(double, int) {}
-void MidiProcessor::releaseResources() {}
+void MidiProcessor::prepareToPlay(double, int) {
+    releaseResources();
+}
+void MidiProcessor::releaseResources() {
+    activeNotes.clear();
+    if (soundGenerator != nullptr) soundGenerator->stopNote(false);
+    if (egProcessor != nullptr) egProcessor->stopEnvelopeImmediately();
+}
 
 void MidiProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     // This processor does not process audio, so we must clear the buffer
@@ -26,7 +32,15 @@ void MidiProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
 }
 
 void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&) {
-    if (midiMessage.isNoteOn()) {
+    if (midiMessage.isAllSoundOff()) {
+        releaseResources();
+    } else if (midiMessage.isAllNotesOff()) {
+        if (!activeNotes.isEmpty()) {
+            activeNotes.clear();
+            if (soundGenerator != nullptr) soundGenerator->stopNote(true);
+            if (egProcessor != nullptr) egProcessor->releaseEnvelope();
+        }
+    } else if (midiMessage.isNoteOn()) {
         handleNoteOn(midiMessage);
     } else if (midiMessage.isNoteOff()) {
         handleNoteOff(midiMessage);
