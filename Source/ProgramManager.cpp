@@ -5,7 +5,6 @@ ProgramManager::ProgramManager(juce::AudioProcessorValueTreeState& apvts) : apvt
     initializePresets();
     createUserPresetsDirectory();
     refreshUserPresets();
-    rebuildAllPresetsList();
 }
 
 ProgramManager::~ProgramManager() {}
@@ -61,6 +60,17 @@ bool ProgramManager::isUserPreset(int index) const {
     return getPresetType(index) == PresetType::User;
 }
 
+int ProgramManager::findProgram(const juce::String& filename, PresetType type) const {
+    for (int i = 0; i < getNumPrograms(); ++i)
+        if (allPresets[i].filename == filename && allPresets[i].type == type)
+            return i;
+    return -1;
+}
+
+juce::String ProgramManager::getProgramFilename(int index) const {
+    return index >= 0 && index < getNumPrograms() ? allPresets[index].filename : juce::String{};
+}
+
 void ProgramManager::loadFactoryPreset(int index) {
     if (index >= 0 && index < static_cast<int>(factoryPresets.size())) {
         loadPresetFromBinaryData(factoryPresets[index].filename);
@@ -75,6 +85,8 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
     if (xml != nullptr) {
         // Add program number
         xml->setAttribute("program", currentProgram);
+        xml->setAttribute("programFilename", getProgramFilename(currentProgram));
+        xml->setAttribute("programIsUser", isUserPreset(currentProgram));
 
         // Get parameter elements
         {
@@ -118,6 +130,14 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
 
             // Restore state
             currentProgram = xmlState->getIntAttribute("program", 0);
+            if (xmlState->hasAttribute("programFilename")) {
+                const int identified =
+                    findProgram(xmlState->getStringAttribute("programFilename"),
+                                xmlState->getBoolAttribute("programIsUser") ? PresetType::User
+                                                                            : PresetType::Factory);
+                currentProgram = identified >= 0 ? identified : 0;
+            }
+            currentProgram = juce::jlimit(0, getNumPrograms() - 1, currentProgram);
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 
             // Restore values of parameters excluded from DAW session state
@@ -208,7 +228,6 @@ void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
         if (xml->writeTo(presetFile)) {
             // Add to user presets list and rebuild
             refreshUserPresets();
-            rebuildAllPresetsList();
         }
     }
 }
@@ -225,12 +244,6 @@ bool ProgramManager::deleteUserPreset(int index) {
     if (presetFile.exists() && presetFile.deleteFile()) {
         // Refresh presets and rebuild list
         refreshUserPresets();
-        rebuildAllPresetsList();
-
-        // Adjust current program if necessary
-        if (currentProgram >= static_cast<int>(allPresets.size())) {
-            currentProgram = allPresets.empty() ? 0 : static_cast<int>(allPresets.size()) - 1;
-        }
 
         return true;
     }
@@ -257,8 +270,9 @@ bool ProgramManager::renameUserPreset(int index, const juce::String& newName) {
     auto newFile = userPresetsDir.getChildFile(newFilename);
 
     if (oldFile.moveFileTo(newFile)) {
+        // Update the identity before rebuilding so a selected renamed preset is retained.
+        allPresets[index].filename = newFilename;
         refreshUserPresets();
-        rebuildAllPresetsList();
         return true;
     }
 
@@ -280,6 +294,7 @@ void ProgramManager::refreshUserPresets() {
         std::sort(userPresets.begin(), userPresets.end(),
                   [](const Program& a, const Program& b) { return a.name < b.name; });
     }
+    rebuildAllPresetsList();
 }
 
 juce::File ProgramManager::getUserPresetsDirectory() const {
@@ -294,6 +309,8 @@ bool ProgramManager::createUserPresetsDirectory() {
 }
 
 void ProgramManager::rebuildAllPresetsList() {
+    const auto selectedFilename = getProgramFilename(currentProgram);
+    const auto selectedType = getPresetType(currentProgram);
     allPresets.clear();
 
     // Add factory presets first
@@ -304,6 +321,14 @@ void ProgramManager::rebuildAllPresetsList() {
     // Add user presets
     for (const auto& preset : userPresets) {
         allPresets.push_back(preset);
+    }
+    const int selected = findProgram(selectedFilename, selectedType);
+    if (selected >= 0) {
+        currentProgram = selected;  // Do not reload: preserve edits to the current sound.
+    } else if (selectedFilename.isNotEmpty()) {
+        setCurrentProgram(0);  // A removed selected preset falls back to Default and its sound.
+    } else {
+        currentProgram = 0;
     }
 }
 

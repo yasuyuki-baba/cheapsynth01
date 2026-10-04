@@ -4,6 +4,7 @@
 #include "../../Source/Parameters.h"
 #include "../mocks/MockToneGenerator.h"
 #include "../../Source/CS01Synth/MidiProcessor.h"
+#include <thread>
 
 // Test fixture for VCOProcessor tests
 class VCOProcessorTest : public ::testing::Test {
@@ -91,6 +92,7 @@ TEST_F(VCOProcessorTest, HeldNoteSurvivesNoiseRoundTrip) {
     auto* feet = apvts->getParameter(ParameterIds::feet);
     for (int selection : {4, 2, 4, 2}) {
         feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+        processor->applyPendingGeneratorChange();
         auto* selected = processor->getSoundGenerator();
         ASSERT_NE(selected, nullptr);
         EXPECT_EQ(selected == original, selection == 2);
@@ -128,6 +130,7 @@ TEST_F(VCOProcessorTest, IdleAndExpiredSourcesStaySilentAfterSwitching) {
         }
         for (int selection : {4, 2, 4, 2}) {
             feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+            processor->applyPendingGeneratorChange();
             EXPECT_FALSE(processor->getSoundGenerator()->isActive());
             buffer.clear();
             processor->processBlock(buffer, midi);
@@ -143,6 +146,7 @@ TEST_F(VCOProcessorTest, NewNoteCancelsOldReleaseDeadline) {
     auto* feet = apvts->getParameter(ParameterIds::feet);
     for (int selection : {2, 4}) {
         feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(selection)));
+        processor->applyPendingGeneratorChange();
         auto* generator = processor->getSoundGenerator();
         generator->startNote(60, 1.0f, 8192);
         generator->stopNote(true);
@@ -191,6 +195,7 @@ TEST_F(VCOProcessorTest, ReleaseSwitchDoesNotLeaveGeneratorRunning) {
     auto* feet = apvts->getParameter(ParameterIds::feet);
     for (int initial : {2, 4}) {
         feet->setValueNotifyingHost(feet->convertTo0to1(static_cast<float>(initial)));
+        processor->applyPendingGeneratorChange();
         processor->getSoundGenerator()->startNote(69, 1.0f, 8192);
         processor->getSoundGenerator()->stopNote(true);
         ASSERT_TRUE(processor->getSoundGenerator()->isActive());
@@ -214,6 +219,7 @@ TEST_F(VCOProcessorTest, SwitchingPreservesBendAndRemainingReleaseTime) {
     auto* feet = apvts->getParameter(ParameterIds::feet);
     processor->getSoundGenerator()->startNote(69, 1.0f, 12000);
     feet->setValueNotifyingHost(feet->convertTo0to1(4.0f));
+    processor->applyPendingGeneratorChange();
     EXPECT_EQ(processor->getSoundGenerator()->getPlaybackState().pitchWheel, 12000);
     processor->getSoundGenerator()->pitchWheelMoved(15000);
     processor->getSoundGenerator()->stopNote(true);
@@ -225,11 +231,71 @@ TEST_F(VCOProcessorTest, SwitchingPreservesBendAndRemainingReleaseTime) {
     EXPECT_FALSE(before.held);
     EXPECT_NEAR(before.releaseSecondsRemaining, 0.1 - 256.0 / 48000.0, 1.0 / 48000.0);
     feet->setValueNotifyingHost(feet->convertTo0to1(2.0f));
+    processor->applyPendingGeneratorChange();
     const auto after = processor->getSoundGenerator()->getPlaybackState();
     EXPECT_FALSE(after.held);
     EXPECT_EQ(after.note, 69);
     EXPECT_EQ(after.pitchWheel, 15000);
     EXPECT_NEAR(after.releaseSecondsRemaining, before.releaseSecondsRemaining, 1.0 / 48000.0);
+}
+
+TEST_F(VCOProcessorTest, ParameterNotificationDefersSwitchAndCallbackUntilRendering) {
+    processor->prepareToPlay(48000, 64);
+    auto* original = processor->getSoundGenerator();
+    original->startNote(69, 1.0f, 12000);
+    int changes = 0;
+    const auto audioThread = std::this_thread::get_id();
+    processor->onGeneratorTypeChanged = [&] {
+        EXPECT_EQ(std::this_thread::get_id(), audioThread);
+        ++changes;
+    };
+    auto* feet = apvts->getParameter(ParameterIds::feet);
+    std::thread notifier([&] { feet->setValueNotifyingHost(feet->convertTo0to1(4.0f)); });
+    notifier.join();
+    EXPECT_EQ(processor->getSoundGenerator(), original);
+    EXPECT_EQ(changes, 0);
+    EXPECT_TRUE(original->isActive());
+
+    juce::AudioBuffer<float> buffer(1, 64);
+    buffer.clear();
+    juce::MidiBuffer midi;
+    processor->processBlock(buffer, midi);
+    EXPECT_TRUE(processor->isNoiseMode());
+    EXPECT_EQ(changes, 1);
+    EXPECT_FALSE(original->isActive());
+    const auto state = processor->getSoundGenerator()->getPlaybackState();
+    EXPECT_TRUE(state.held);
+    EXPECT_EQ(state.note, 69);
+    EXPECT_EQ(state.pitchWheel, 12000);
+}
+
+TEST_F(VCOProcessorTest, ConcurrentSwitchRequestsOnlyMutateSourcesOnAudioThread) {
+    processor->prepareToPlay(48000, 64);
+    processor->getSoundGenerator()->startNote(69, 1.0f, 12000);
+    const auto audioThread = std::this_thread::get_id();
+    processor->onGeneratorTypeChanged = [&] { EXPECT_EQ(std::this_thread::get_id(), audioThread); };
+    std::atomic<bool> started{false};
+    std::thread notifier([&] {
+        while (!started.load())
+            std::this_thread::yield();
+        for (int i = 0; i < 10000; ++i)
+            processor->parameterChanged(ParameterIds::feet, i % 2 == 0 ? 4.0f : 2.0f);
+        processor->parameterChanged(ParameterIds::feet, 4.0f);
+    });
+    juce::AudioBuffer<float> buffer(1, 64);
+    juce::MidiBuffer midi;
+    started.store(true);
+    for (int i = 0; i < 1000; ++i) {
+        buffer.clear();
+        processor->processBlock(buffer, midi);
+        EXPECT_TRUE(processor->getSoundGenerator()->getPlaybackState().held);
+        for (int sample = 0; sample < 64; ++sample)
+            EXPECT_TRUE(std::isfinite(buffer.getSample(0, sample)));
+    }
+    notifier.join();
+    processor->applyPendingGeneratorChange();
+    EXPECT_TRUE(processor->isNoiseMode());
+    EXPECT_EQ(processor->getSoundGenerator()->getCurrentlyPlayingNote(), 69);
 }
 
 TEST_F(VCOProcessorTest, LfoIsIndependentOfBlockPartition) {

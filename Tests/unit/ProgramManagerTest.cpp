@@ -95,6 +95,112 @@ TEST(ProductionStateTest, SessionRestoresSoundSettingsButPreservesLiveInputs) {
     EXPECT_EQ(restored.getValueTreeState().copyState().toXmlString(), before);
 }
 
+class PresetSelectionTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        prefix = "Selection-" + juce::Uuid().toString() + "-";
+    }
+    void TearDown() override {
+        for (const auto& file : files)
+            file.deleteFile();
+    }
+    juce::String save(const juce::String& suffix, float cutoff) {
+        const auto name = prefix + suffix;
+        auto* parameter = host.getValueTreeState().getParameter(ParameterIds::cutoff);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(cutoff));
+        auto& manager = host.getPresetManager();
+        files.push_back(manager.getUserPresetsDirectory().getChildFile(name + ".xml"));
+        manager.saveCurrentStateAsPreset(name);
+        return name;
+    }
+    int index(const juce::String& name) {
+        return host.getPresetManager().findProgram(name + ".xml", PresetType::User);
+    }
+    float cutoff() {
+        return host.getValueTreeState().getRawParameterValue(ParameterIds::cutoff)->load();
+    }
+    CS01AudioProcessor host;
+    juce::String prefix;
+    std::vector<juce::File> files;
+};
+
+TEST_F(PresetSelectionTest, InsertionDeletionAndRefreshPreserveSelectedSound) {
+    auto& manager = host.getPresetManager();
+    const auto selected = save("B", 2345);
+    manager.setCurrentProgram(index(selected));
+    const auto inserted = save("A", 3456);
+    EXPECT_EQ(manager.getProgramName(manager.getCurrentProgram()), selected);
+    EXPECT_FLOAT_EQ(cutoff(), 3456);  // List changes must not erase current edits.
+    ASSERT_TRUE(manager.deleteUserPreset(index(inserted)));
+    EXPECT_EQ(manager.getProgramName(manager.getCurrentProgram()), selected);
+    EXPECT_FLOAT_EQ(cutoff(), 3456);
+    manager.refreshUserPresets();
+    EXPECT_EQ(manager.getProgramName(manager.getCurrentProgram()), selected);
+    EXPECT_FLOAT_EQ(cutoff(), 3456);
+}
+
+TEST_F(PresetSelectionTest, RenameMovesSelectionWithFileWithoutReloadingSound) {
+    auto& manager = host.getPresetManager();
+    const auto selected = save("A", 2345);
+    save("B", 4567);
+    manager.setCurrentProgram(index(selected));
+    const auto renamed = prefix + "Z";
+    files.push_back(manager.getUserPresetsDirectory().getChildFile(renamed + ".xml"));
+    ASSERT_TRUE(manager.renameUserPreset(index(selected), renamed));
+    EXPECT_EQ(manager.getProgramName(manager.getCurrentProgram()), renamed);
+    EXPECT_EQ(manager.getCurrentProgram(), index(renamed));
+    EXPECT_FLOAT_EQ(cutoff(), 2345);
+    ASSERT_TRUE(manager.deleteUserPreset(manager.getCurrentProgram()));
+    EXPECT_FALSE(files.back().exists());
+    EXPECT_EQ(manager.getCurrentProgram(), 0);
+    EXPECT_EQ(manager.getProgramName(0), "Default");
+    const float fallbackCutoff = cutoff();
+    manager.setCurrentProgram(0);
+    EXPECT_FLOAT_EQ(cutoff(), fallbackCutoff);
+}
+
+TEST_F(PresetSelectionTest, RemovingSelectedFileDuringRefreshLoadsDefault) {
+    auto& manager = host.getPresetManager();
+    const auto selected = save("A", 2345);
+    manager.setCurrentProgram(index(selected));
+    ASSERT_TRUE(files.back().deleteFile());
+    manager.refreshUserPresets();
+    EXPECT_EQ(manager.getCurrentProgram(), 0);
+    const float fallbackCutoff = cutoff();
+    manager.setCurrentProgram(0);
+    EXPECT_FLOAT_EQ(cutoff(), fallbackCutoff);
+}
+
+TEST_F(PresetSelectionTest, SessionIdentitySurvivesInsertionAndKeepsSavedSound) {
+    auto& manager = host.getPresetManager();
+    const auto selected = save("B", 2345);
+    manager.setCurrentProgram(index(selected));
+    juce::MemoryBlock state;
+    manager.getStateInformation(state);
+    save("A", 4567);
+    manager.setCurrentProgram(0);
+    manager.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+    EXPECT_EQ(manager.getCurrentProgram(), index(selected));
+    EXPECT_FLOAT_EQ(cutoff(), 2345);
+}
+
+TEST_F(PresetSelectionTest, LegacySessionNumberIsSupportedAndClamped) {
+    auto& manager = host.getPresetManager();
+    auto xml = host.getValueTreeState().copyState().createXml();
+    juce::MemoryBlock state;
+    xml->setAttribute("program", 2);
+    juce::AudioProcessor::copyXmlToBinary(*xml, state);
+    manager.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+    EXPECT_EQ(manager.getCurrentProgram(), 2);
+    for (int invalid : {-1, 999999}) {
+        xml->setAttribute("program", invalid);
+        juce::AudioProcessor::copyXmlToBinary(*xml, state);
+        manager.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+        EXPECT_GE(manager.getCurrentProgram(), 0);
+        EXPECT_LT(manager.getCurrentProgram(), manager.getNumPrograms());
+    }
+}
+
 // Test fixture for ProgramManager tests
 class ProgramManagerTest : public ::testing::Test {
    protected:

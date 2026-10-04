@@ -125,11 +125,12 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     filter.setCutoffFrequency(blockCutoffHz);
     filter.setResonance(resonance);
 
-    // Process the whole block using JUCE DSP block API (SIMD-friendly)
+    // Process only the current segment, not the full preallocated capacity.
+    // Processing the unused tail would advance filter state between segments.
     {
-        // Use the AudioBlock constructor that accepts an AudioBuffer reference.
         juce::dsp::AudioBlock<float> audioBlock(processingBuffer);
-        juce::dsp::ProcessContextReplacing<float> context(audioBlock);
+        auto activeBlock = audioBlock.getSubBlock(0, static_cast<size_t>(numSamples));
+        juce::dsp::ProcessContextReplacing<float> context(activeBlock);
         filter.process(context);
     }
 

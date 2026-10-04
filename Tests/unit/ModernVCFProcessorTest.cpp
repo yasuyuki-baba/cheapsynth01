@@ -168,6 +168,46 @@ TEST_F(ModernVCFProcessorTest, ProcessBlock) {
     EXPECT_TRUE(true);
 }
 
+TEST_F(ModernVCFProcessorTest, ShortBlocksPreserveFilterStateAcrossPartitions) {
+    constexpr int capacity = 512;
+    constexpr int totalSamples = 1024;
+    auto* depth = apvts->getParameter(ParameterIds::vcfEgDepth);
+    depth->setValueNotifyingHost(0.0f);
+
+    // Constant coefficients isolate state advancement from block-averaged modulation.
+    const auto render = [&](int partitionSize) {
+        ModernVCFProcessor filter(*apvts);
+        filter.prepareToPlay(48000.0, capacity);
+        juce::AudioBuffer<float> output(1, totalSamples);
+        juce::MidiBuffer midi;
+        for (int offset = 0; offset < totalSamples;) {
+            const int length = juce::jmin(partitionSize, totalSamples - offset);
+            juce::AudioBuffer<float> block(3, length);
+            block.clear();
+            // The impulse tail must survive each processing boundary unchanged.
+            if (offset == 0)
+                block.setSample(0, 0, 1.0f);
+            filter.processBlock(block, midi);
+            output.copyFrom(0, offset, block, 0, 0, length);
+            offset += length;
+        }
+        return output;
+    };
+
+    const auto reference = render(capacity);
+    ASSERT_GT(reference.getMagnitude(0, totalSamples), 0.001f);
+    for (int partitionSize : {1, 7, 64, 127, 511}) {
+        SCOPED_TRACE(partitionSize);
+        const auto actual = render(partitionSize);
+        float maximumDifference = 0.0f;
+        for (int sample = 0; sample < totalSamples; ++sample)
+            maximumDifference =
+                juce::jmax(maximumDifference,
+                           std::abs(actual.getSample(0, sample) - reference.getSample(0, sample)));
+        EXPECT_LT(maximumDifference, 1.0e-6f);
+    }
+}
+
 TEST_F(ModernVCFProcessorTest, CutoffParameter) {
     // Prepare processor
     const double sampleRate = 44100.0;

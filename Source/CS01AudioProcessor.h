@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <atomic>
+#include "UI/AudioDisplayFifo.h"
 #include "ProgramManager.h"
 #include "CS01Synth/IFilter.h"
 #include "CS01Synth/VCOProcessor.h"
@@ -87,6 +88,10 @@ class CS01AudioProcessor : public juce::AudioProcessor,
         return externalBendRevision.load();
     }
 
+    AudioDisplayFifo& getAudioDisplayFifo() {
+        return audioDisplayFifo;
+    }
+
     const juce::AudioProcessorGraph& getAudioGraphForTesting() const {
         return audioGraph;
     }
@@ -128,6 +133,7 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     std::unique_ptr<juce::dsp::Oversampling<float>> outputOversampling;
     juce::AudioBuffer<float> internalAudio;
     int processingCapacity = 1;
+    AudioDisplayFifo audioDisplayFifo;
     juce::AudioProcessorGraph::Node::Ptr midiInputNode;
     juce::AudioProcessorGraph::Node::Ptr midiProcessorNode;
     juce::AudioProcessorGraph::Node::Ptr audioOutputNode;

@@ -17,6 +17,10 @@ class NoiseGenerator : public ISoundGenerator {
 
     // ISoundGenerator implementation - sound generation methods
     void prepare(const juce::dsp::ProcessSpec& spec) override;
+    void reset() {
+        noiseFilter.reset();
+        stopNote(false);
+    }
     void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
                          int numSamples) override;
 

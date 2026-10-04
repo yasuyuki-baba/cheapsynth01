@@ -104,6 +104,11 @@ void ProgramPanel::resized() {
 }
 
 void ProgramPanel::timerCallback() {
+    bool menuChanged = programMenu.getNumItems() != audioProcessor.getNumPrograms();
+    for (int i = 0; !menuChanged && i < audioProcessor.getNumPrograms(); ++i)
+        menuChanged = programMenu.getItemText(i) != audioProcessor.getProgramName(i);
+    if (menuChanged)
+        populateProgramMenu();
     const int currentProgram = audioProcessor.getCurrentProgram();
     if (currentProgram + 1 != programMenu.getSelectedId()) {
         programMenu.setSelectedId(currentProgram + 1, juce::dontSendNotification);
@@ -164,16 +169,19 @@ void ProgramPanel::deletePresetButtonClicked() {
     }
 
     auto presetName = audioProcessor.getProgramName(currentProgram);
+    const auto filename = programManager->getProgramFilename(currentProgram);
+    const juce::Component::SafePointer<ProgramPanel> safePanel(this);
 
     juce::AlertWindow::showOkCancelBox(
         juce::AlertWindow::QuestionIcon, "Delete Preset",
         "Are you sure you want to delete preset \"" + presetName + "\"?", "Delete", "Cancel", this,
-        juce::ModalCallbackFunction::create([this, programManager, currentProgram](int result) {
-            if (result == 1) {  // OK was clicked
-                if (programManager->deleteUserPreset(currentProgram)) {
-                    populateProgramMenu();
-                }
-            }
+        juce::ModalCallbackFunction::create([safePanel, filename](int result) {
+            auto* panel = safePanel.getComponent();
+            if (result != 1 || panel == nullptr)
+                return;
+            if (auto* manager = panel->getProgramManager())
+                if (manager->deleteUserPreset(manager->findProgram(filename, PresetType::User)))
+                    panel->populateProgramMenu();
         }));
 }
 
@@ -259,32 +267,39 @@ void ProgramPanel::showRenamePresetDialog() {
     const int currentProgram = audioProcessor.getCurrentProgram();
     auto currentName = audioProcessor.getProgramName(currentProgram);
 
-    auto alertWindow = std::make_unique<juce::AlertWindow>(
+    if (renameDialog != nullptr)
+        return;
+
+    renameDialog = std::make_unique<juce::AlertWindow>(
         "Rename Preset", "Enter a new name for the preset:", juce::AlertWindow::NoIcon);
+    auto* alertWindow = renameDialog.get();
     alertWindow->addTextEditor("presetName", currentName, "Preset Name:");
     alertWindow->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
     alertWindow->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
+    const juce::Component::SafePointer<ProgramPanel> safePanel(this);
+    const juce::Component::SafePointer<juce::AlertWindow> safeDialog(alertWindow);
+    const auto filename = programManager->getProgramFilename(currentProgram);
     alertWindow->enterModalState(
         true,
-        juce::ModalCallbackFunction::create([this, programManager, currentProgram,
-                                             currentName](int result) {
-            if (result == 1) {
-                auto* alertWindow =
-                    dynamic_cast<juce::AlertWindow*>(juce::Component::getCurrentlyModalComponent());
-                if (alertWindow) {
-                    auto newName = alertWindow->getTextEditorContents("presetName");
-                    if (newName.isNotEmpty() && newName != currentName) {
-                        if (programManager->renameUserPreset(currentProgram, newName)) {
-                            populateProgramMenu();
-                        }
-                    }
-                }
-            }
-        }),
-        true);
+        juce::ModalCallbackFunction::create(
+            [safePanel, safeDialog, filename, currentName](int result) {
+                auto* panel = safePanel.getComponent();
+                auto* dialog = safeDialog.getComponent();
+                if (panel == nullptr || dialog == nullptr)
+                    return;
 
-    alertWindow.release();  // AlertWindow will be deleted automatically
+                if (result == 1) {
+                    const auto newName = dialog->getTextEditorContents("presetName");
+                    auto* manager = panel->getProgramManager();
+                    if (manager != nullptr && newName.isNotEmpty() && newName != currentName &&
+                        manager->renameUserPreset(manager->findProgram(filename, PresetType::User),
+                                                  newName))
+                        panel->populateProgramMenu();
+                }
+                panel->renameDialog.reset();
+            }),
+        false);  // Owned by the panel, including while the completion callback is pending.
 }
 
 void ProgramPanel::savePresetWithName(ProgramManager* programManager,
@@ -292,12 +307,9 @@ void ProgramPanel::savePresetWithName(ProgramManager* programManager,
     programManager->saveCurrentStateAsPreset(presetName);
 
     // Find and select the saved preset BEFORE repopulating the menu
-    for (int i = 0; i < audioProcessor.getNumPrograms(); ++i) {
-        if (audioProcessor.getProgramName(i) == presetName) {
-            audioProcessor.setCurrentProgram(i);
-            break;
-        }
-    }
+    const int saved = programManager->findProgram(presetName + ".xml", PresetType::User);
+    if (saved >= 0)
+        audioProcessor.setCurrentProgram(saved);
 
     // Now populate the menu - this will use the updated current program
     populateProgramMenu();
