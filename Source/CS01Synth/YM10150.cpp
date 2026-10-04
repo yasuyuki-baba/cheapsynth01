@@ -2,11 +2,12 @@
 #include "WaveformStrategies.h"
 #include <cmath>
 
-float YM10150::generateMasterSquareWave(float finalPitch, float sampleRate,
-                                       float& phase, float& phaseIncrement) const {
+float YM10150::generateMasterSquareWave(float finalPitch, float sampleRate, float& phase,
+                                        float& phaseIncrement) const {
     // Calculate frequency directly from finalPitch using continuous calculation
     // This ensures smooth pitch bend and pitch slider operation
-    float frequency = 440.0f * static_cast<float>(std::exp2(static_cast<double>((finalPitch - 69.0f) / 12.0f)));
+    float frequency =
+        440.0f * static_cast<float>(std::exp2(static_cast<double>((finalPitch - 69.0f) / 12.0f)));
     phaseIncrement = frequency / sampleRate;
 
     // Generate master clock square wave (50% duty cycle)
@@ -53,10 +54,10 @@ void YM10150::reset() {
     for (auto& entry : strategies)
         entry.second->reset();
 }
-float YM10150::generateWaveform(float masterSquare, float phase, float increment,
-                               float sampleRate, juce::dsp::Oscillator<double>& pwmLfo) {
+float YM10150::generateWaveform(float masterSquare, float phase, float increment, float sampleRate,
+                                juce::dsp::Oscillator<double>& pwmLfo) {
     if (selected == nullptr)
         return masterSquare;
-    return shapeOutput(selected->generate(masterSquare, phase, increment, sampleRate,
-                                          previousSample, pwmLfo));
+    return shapeOutput(
+        selected->generate(masterSquare, phase, increment, sampleRate, previousSample, pwmLfo));
 }

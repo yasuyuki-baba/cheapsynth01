@@ -12,8 +12,10 @@ void MidiProcessor::prepareToPlay(double, int) {
 }
 void MidiProcessor::releaseResources() {
     activeNotes.clear();
-    if (soundGenerator != nullptr) soundGenerator->stopNote(false);
-    if (egProcessor != nullptr) egProcessor->stopEnvelopeImmediately();
+    if (soundGenerator != nullptr)
+        soundGenerator->stopNote(false);
+    if (egProcessor != nullptr)
+        egProcessor->stopEnvelopeImmediately();
 }
 
 void MidiProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
@@ -37,8 +39,10 @@ void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::
     } else if (midiMessage.isAllNotesOff()) {
         if (!activeNotes.isEmpty()) {
             activeNotes.clear();
-            if (soundGenerator != nullptr) soundGenerator->stopNote(true);
-            if (egProcessor != nullptr) egProcessor->releaseEnvelope();
+            if (soundGenerator != nullptr)
+                soundGenerator->stopNote(true);
+            if (egProcessor != nullptr)
+                egProcessor->releaseEnvelope();
         }
     } else if (midiMessage.isNoteOn()) {
         handleNoteOn(midiMessage);
@@ -154,71 +158,59 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
     }
 
     // 14bit CC MSB processing
-    if (controller == 1) {          // CC #1: Modulation MSB
+    if (controller == 1) {  // CC #1: Modulation MSB
         modulationMSB = value;
         updateModulationParameter();
-    }
-    else if (controller == 2) {     // CC #2: Breath MSB
+    } else if (controller == 2) {  // CC #2: Breath MSB
         breathMSB = value;
         updateBreathParameter();
-    }
-    else if (controller == 7) {     // CC #7: Volume MSB
+    } else if (controller == 7) {  // CC #7: Volume MSB
         volumeMSB = value;
         updateVolumeParameter();
-    }
-    else if (controller == 5) {     // CC #5: Portamento Time MSB (discrete glissando)
+    } else if (controller == 5) {  // CC #5: Portamento Time MSB (discrete glissando)
         glissandoMSB = value;
         updateGlissandoParameter();
     }
     // 14bit CC LSB processing
-    else if (controller == 33) {    // CC #33: Modulation LSB
+    else if (controller == 33) {  // CC #33: Modulation LSB
         modulationLSB = value;
         updateModulationParameter();
-    }
-    else if (controller == 34) {    // CC #34: Breath LSB
+    } else if (controller == 34) {  // CC #34: Breath LSB
         breathLSB = value;
         updateBreathParameter();
-    }
-    else if (controller == 37) {    // CC #37: Glissando LSB
+    } else if (controller == 37) {  // CC #37: Glissando LSB
         glissandoLSB = value;
         updateGlissandoParameter();
-    }
-    else if (controller == 39) {    // CC #39: Volume LSB
+    } else if (controller == 39) {  // CC #39: Volume LSB
         volumeLSB = value;
         updateVolumeParameter();
     }
     // 7bit CC processing
-    else if (controller == 70) {    // CC #70: Sustain Level (Sound Variation)
+    else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::sustain))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 71) {    // CC #71: Filter Resonance
+    } else if (controller == 71) {  // CC #71: Filter Resonance
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::resonance))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 73) {    // CC #73: Attack Time
+    } else if (controller == 73) {  // CC #73: Attack Time
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::attack))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 74) {    // CC #74: Filter Cutoff
+    } else if (controller == 74) {  // CC #74: Filter Cutoff
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::cutoff))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 75) {    // CC #75: Decay Time
+    } else if (controller == 75) {  // CC #75: Decay Time
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::decay))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 76) {    // CC #76: LFO Speed (Vibrato Rate)
+    } else if (controller == 76) {  // CC #76: LFO Speed (Vibrato Rate)
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::lfoSpeed))
             param->setValueNotifyingHost(floatValue);
-    }
-    else if (controller == 79) {    // CC #79: Release Time
+    } else if (controller == 79) {  // CC #79: Release Time
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::release))
             param->setValueNotifyingHost(floatValue);

@@ -75,5 +75,4 @@ class CS01VCFCircuit {
 
     // Output stage processing
     float processOutputStage(float sample);
-
 };

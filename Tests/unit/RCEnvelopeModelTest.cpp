@@ -4,18 +4,16 @@
 namespace {
 // Experimental ideal RC section only. Not a calibrated CS-01 envelope.
 class RCSection {
-public:
-    double step(double target, double timeConstant, double sampleRate)
-    {
+   public:
+    double step(double target, double timeConstant, double sampleRate) {
         value += (target - value) * -std::expm1(-1.0 / (timeConstant * sampleRate));
         return value;
     }
     double value = 0.0;
 };
-}
+}  // namespace
 
-TEST(RCEnvelopeModelTest, MatchesAnalyticalChargeAndDischarge)
-{
+TEST(RCEnvelopeModelTest, MatchesAnalyticalChargeAndDischarge) {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         RCSection section;
         const double tau = 0.2;
@@ -32,8 +30,7 @@ TEST(RCEnvelopeModelTest, MatchesAnalyticalChargeAndDischarge)
     }
 }
 
-TEST(RCEnvelopeModelTest, ChangingRateAndTargetPreservesCapacitorState)
-{
+TEST(RCEnvelopeModelTest, ChangingRateAndTargetPreservesCapacitorState) {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         RCSection section;
         const int count = static_cast<int>(sampleRate * 0.1);
@@ -50,8 +47,7 @@ TEST(RCEnvelopeModelTest, ChangingRateAndTargetPreservesCapacitorState)
     }
 }
 
-TEST(RCEnvelopeModelTest, LoadedCapacitorMatchesIndependentCircuitSolution)
-{
+TEST(RCEnvelopeModelTest, LoadedCapacitorMatchesIndependentCircuitSolution) {
     // Hypothetical network, not identified CS-01 component values:
     // Vs -- Rs -- capacitor node -- Rl -- ground.
     const double sourceVoltage = 5.0;
@@ -70,7 +66,8 @@ TEST(RCEnvelopeModelTest, LoadedCapacitorMatchesIndependentCircuitSolution)
         const double equilibrium = (sourceVoltage / sourceResistance / capacitance) / rate;
         for (int i = 0; i < static_cast<int>(sampleRate * 0.5); ++i) {
             const double time = (i + 1) / sampleRate;
-            const double expected = equilibrium + (initialVoltage - equilibrium) * std::exp(-rate * time);
+            const double expected =
+                equilibrium + (initialVoltage - equilibrium) * std::exp(-rate * time);
             EXPECT_NEAR(section.step(target, tau, sampleRate), expected, 1.0e-11);
         }
         // Loading changes both the asymptote and the time constant.

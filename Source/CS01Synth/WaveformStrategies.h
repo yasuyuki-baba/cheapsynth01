@@ -19,14 +19,15 @@ float poly_blep(float t, float dt) {
 
 // Preserve empirical 44.1 kHz time constants, not hardware-calibrated values.
 class WaveformTimeConstants {
-public:
+   public:
     void update(float sampleRate) {
         if (sampleRate == cachedSampleRate || sampleRate <= 0.0f)
             return;
         cachedSampleRate = sampleRate;
         const double ratio = 44100.0 / sampleRate;
         triangleLeak = static_cast<float>(std::pow(static_cast<double>(0.9999f), ratio));
-        triangleDcAmount = static_cast<float>(-std::expm1(std::log(1.0 - static_cast<double>(0.005f)) * ratio));
+        triangleDcAmount =
+            static_cast<float>(-std::expm1(std::log(1.0 - static_cast<double>(0.005f)) * ratio));
         sawLeak = static_cast<float>(std::pow(static_cast<double>(0.998f), ratio));
         pwmPole = static_cast<float>(std::pow(static_cast<double>(0.98f), ratio));
     }
@@ -34,7 +35,8 @@ public:
     float triangleDcAmount = 0.005f;
     float sawLeak = 0.998f;
     float pwmPole = 0.98f;
-private:
+
+   private:
     float cachedSampleRate = 44100.0f;
 };
 
@@ -54,7 +56,8 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
 
         // Simple DC blocker
         float output = triangleIntegrator - triangleDCBlocker;
-        triangleDCBlocker += (triangleIntegrator - triangleDCBlocker) * timeConstants.triangleDcAmount;
+        triangleDCBlocker +=
+            (triangleIntegrator - triangleDCBlocker) * timeConstants.triangleDcAmount;
 
         // CS-01 triangle wave characteristics - proper amplitude
         float triangleWave = output * 1.2f;
@@ -161,9 +164,11 @@ class PWMWaveformStrategy : public IWaveformStrategy {
 
         // Subtle high-frequency roll-off
         timeConstants.update(sampleRate);
-        previousSample = previousSample * timeConstants.pwmPole + value * (1.0f - timeConstants.pwmPole);
+        previousSample =
+            previousSample * timeConstants.pwmPole + value * (1.0f - timeConstants.pwmPole);
         return value * 0.9f + previousSample * 0.1f;
     }
-private:
+
+   private:
     WaveformTimeConstants timeConstants;
 };

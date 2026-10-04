@@ -2,13 +2,12 @@
 #include "WaveformStrategies.h"
 #include <cmath>
 
-ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
-
-}
+ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
 
 void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
     sampleRate = spec.sampleRate;
-    internalSampleRate = static_cast<float>(spec.sampleRate * (externalOversampling ? 1 : Constants::oversamplingFactor));
+    internalSampleRate = static_cast<float>(
+        spec.sampleRate * (externalOversampling ? 1 : Constants::oversamplingFactor));
     auto internalSpec = spec;
     internalSpec.sampleRate = internalSampleRate;
     internalSpec.maximumBlockSize *= externalOversampling ? 1 : Constants::oversamplingFactor;
@@ -75,7 +74,9 @@ bool ToneGenerator::isActive() const {
 
 ISoundGenerator::PlaybackState ToneGenerator::getPlaybackState() const {
     return {noteOn, lastNote, lastPitchWheel,
-            tailOff ? std::max(0, tailOffDuration - tailOffCounter) / static_cast<double>(sampleRate) : 0.0};
+            tailOff
+                ? std::max(0, tailOffDuration - tailOffCounter) / static_cast<double>(sampleRate)
+                : 0.0};
 }
 
 void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
@@ -87,7 +88,8 @@ void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
         noteOn = false;
         tailOff = true;
         tailOffCounter = 0;
-        tailOffDuration = static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
+        tailOffDuration =
+            static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
         currentlyPlayingNote = 0;
     }
 }
@@ -110,7 +112,7 @@ void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int 
     float* ch0 = outputBuffer.getWritePointer(0, startSample);
     for (int i = 0; i < numSamples; ++i) {
         float currentSample = getNextSample();
-        ch0[i] += currentSample; // preserve additive behavior
+        ch0[i] += currentSample;  // preserve additive behavior
     }
 
     // Duplicate channel 0 into other channels efficiently
@@ -151,9 +153,10 @@ void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& con
 
 // Existing methods from ToneGenerator
 void ToneGenerator::updateBlockRateParameters() {
-    if (appliedBendUpRange >= 0.0f
-        && (apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load() != appliedBendUpRange
-            || apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load() != appliedBendDownRange))
+    if (appliedBendUpRange >= 0.0f &&
+        (apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load() != appliedBendUpRange ||
+         apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load() !=
+             appliedBendDownRange))
         pitchWheelMoved(lastPitchWheel);
     currentFeet =
         static_cast<Feet>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::feet)));
@@ -251,8 +254,8 @@ float ToneGenerator::getNextSample() {
         } else {
             const int updatedSamples = juce::jmax(1, static_cast<int>(duration * sampleRate));
             if (updatedSamples != samplesPerStep) {
-                stepCounter = static_cast<int>(static_cast<double>(stepCounter)
-                    * updatedSamples / samplesPerStep);
+                stepCounter = static_cast<int>(static_cast<double>(stepCounter) * updatedSamples /
+                                               samplesPerStep);
                 samplesPerStep = updatedSamples;
             }
         }
@@ -326,11 +329,11 @@ void ToneGenerator::setPitchBend(float bendInSemitones) {
 }
 
 float ToneGenerator::generateMasterSquareWave(float finalPitch) {
-    return waveformModel.generateMasterSquareWave(finalPitch, internalSampleRate,
-                                                  phase, phaseIncrement);
+    return waveformModel.generateMasterSquareWave(finalPitch, internalSampleRate, phase,
+                                                  phaseIncrement);
 }
 
 float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
-    return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement,
-                                          internalSampleRate, pwmLfo);
+    return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement, internalSampleRate,
+                                          pwmLfo);
 }

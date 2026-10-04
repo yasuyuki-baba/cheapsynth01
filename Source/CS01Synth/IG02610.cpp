@@ -1,8 +1,12 @@
 #include "IG02610.h"
-void IG02610::reset() { z1 = z2 = 0; inputLevelSmoothed = 0; }
+void IG02610::reset() {
+    z1 = z2 = 0;
+    inputLevelSmoothed = 0;
+}
 void IG02610::prepare(double rate) {
     sampleRate = static_cast<float>(rate);
-    levelSmoothing = static_cast<float>(std::pow(static_cast<double>(LEVEL_SMOOTHING), 44100.0 / rate));
+    levelSmoothing =
+        static_cast<float>(std::pow(static_cast<double>(LEVEL_SMOOTHING), 44100.0 / rate));
     updateCoefficients();
 }
 float IG02610::accurateTanh(float x) {
@@ -35,8 +39,7 @@ float IG02610::processSample(float sample) {
 
     // Track input level with envelope follower for OTA input level dependency
     float inputLevel = std::abs(sample);
-    inputLevelSmoothed =
-        inputLevelSmoothed * levelSmoothing + inputLevel * (1.0f - levelSmoothing);
+    inputLevelSmoothed = inputLevelSmoothed * levelSmoothing + inputLevel * (1.0f - levelSmoothing);
 
     // Apply OTA input level dependent cutoff modulation
     // Large signals make cutoff slightly higher (brighter), small signals make it lower (darker)

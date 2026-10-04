@@ -51,7 +51,7 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
     CS01AudioProcessor& audioProcessor;
 
     juce::MidiKeyboardComponent midiKeyboard;
-    juce::TextButton monitorButton { "MONITOR" };
+    juce::TextButton monitorButton{"MONITOR"};
 
     std::unique_ptr<ModulationComponent> modulationComponent;
     std::unique_ptr<VCOComponent> vcoComponent;

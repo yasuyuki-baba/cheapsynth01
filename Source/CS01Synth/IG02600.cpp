@@ -1,8 +1,8 @@
 #include "IG02600.h"
 #include <cmath>
 
-float IG02600::processSample(float input, float egValue, float egDepth,
-                            float breathInput, float breathDepth, float volumeGain) const {
+float IG02600::processSample(float input, float egValue, float egDepth, float breathInput,
+                             float breathDepth, float volumeGain) const {
     // Uncalibrated control composition retained from the existing implementation.
     float controlVoltage = (1.0f - egDepth) + (egValue * egDepth);
     controlVoltage *= (1.0f - breathDepth) + (breathInput * breathDepth);

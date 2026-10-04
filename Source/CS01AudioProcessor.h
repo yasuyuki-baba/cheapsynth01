@@ -80,13 +80,25 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     juce::MidiMessageCollector& getMidiMessageCollector() {
         return midiMessageCollector;
     }
-    juce::MidiMessageCollector& getPanelBendCollector() { return panelBendCollector; }
-    unsigned getExternalBendRevision() const { return externalBendRevision.load(); }
+    juce::MidiMessageCollector& getPanelBendCollector() {
+        return panelBendCollector;
+    }
+    unsigned getExternalBendRevision() const {
+        return externalBendRevision.load();
+    }
 
-    const juce::AudioProcessorGraph& getAudioGraphForTesting() const { return audioGraph; }
-    juce::AudioProcessorGraph::NodeID getVcoNodeIdForTesting() const { return vcoNode->nodeID; }
-    juce::AudioProcessorGraph::NodeID getLfoNodeIdForTesting() const { return lfoNode->nodeID; }
-    juce::AudioProcessorGraph::NodeID getVcaNodeIdForTesting() const { return vcaNode->nodeID; }
+    const juce::AudioProcessorGraph& getAudioGraphForTesting() const {
+        return audioGraph;
+    }
+    juce::AudioProcessorGraph::NodeID getVcoNodeIdForTesting() const {
+        return vcoNode->nodeID;
+    }
+    juce::AudioProcessorGraph::NodeID getLfoNodeIdForTesting() const {
+        return lfoNode->nodeID;
+    }
+    juce::AudioProcessorGraph::NodeID getVcaNodeIdForTesting() const {
+        return vcaNode->nodeID;
+    }
     juce::AudioProcessorGraph::NodeID getOriginalFilterNodeIdForTesting() const {
         return vcfNode->nodeID;
     }

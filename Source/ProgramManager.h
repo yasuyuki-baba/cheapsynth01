@@ -4,16 +4,13 @@
 #include "Parameters.h"
 
 //==============================================================================
-enum class PresetType {
-    Factory,
-    User
-};
+enum class PresetType { Factory, User };
 
 struct Program {
     juce::String name;
     juce::String filename;
     PresetType type;
-    
+
     Program(const juce::String& n, const juce::String& f, PresetType t = PresetType::Factory)
         : name(n), filename(f), type(t) {}
 };
@@ -38,7 +35,7 @@ class ProgramManager {
     PresetType getPresetType(int index) const;
     bool isUserPreset(int index) const;
 
-    // ユーザープリセット管理  
+    // ユーザープリセット管理
     void refreshUserPresets();
     juce::File getUserPresetsDirectory() const;
     bool createUserPresetsDirectory();
@@ -51,7 +48,7 @@ class ProgramManager {
     juce::AudioProcessorValueTreeState& apvts;
     std::vector<Program> factoryPresets;
     std::vector<Program> userPresets;
-    std::vector<Program> allPresets; // Combined list for easy access
+    std::vector<Program> allPresets;  // Combined list for easy access
     int currentProgram = 0;
 
     // プリセット読み込み時に除外するパラメータ（音量変化を防ぐため）

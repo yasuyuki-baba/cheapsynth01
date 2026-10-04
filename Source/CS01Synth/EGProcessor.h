@@ -22,7 +22,9 @@ class EGProcessor : public juce::AudioProcessor {
         return adsr.isActive();
     }
     // Same-thread observation only; does not advance the envelope.
-    float getLastOutputForTesting() const { return lastOutput; }
+    float getLastOutputForTesting() const {
+        return lastOutput;
+    }
 
     // Methods to control ADSR from outside
     void startEnvelope() {
