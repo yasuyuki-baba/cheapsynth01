@@ -4,6 +4,59 @@
 #include "../../Source/Parameters.h"
 #include "../../Source/CS01AudioProcessor.h"
 
+TEST(ProductionStateTest, UserPresetFileRoundTrip)
+{
+    CS01AudioProcessor host;
+    auto& state = host.getValueTreeState();
+    ProgramManager manager(state);
+    const auto name = "Test-" + juce::Uuid().toString();
+    const auto file = manager.getUserPresetsDirectory().getChildFile(name + ".xml");
+    struct Cleanup {
+        juce::File file;
+        ~Cleanup() { file.deleteFile(); }
+    } cleanup{file};
+    ASSERT_FALSE(file.exists());
+    auto set = [&](const juce::String& id, float value) {
+        auto* parameter = state.getParameter(id);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+    };
+    set(ParameterIds::cutoff, 2345);
+    set(ParameterIds::pitchBendUpRange, 7);
+    set(ParameterIds::pitchBendDownRange, 3);
+    manager.saveCurrentStateAsPreset(name);
+    ASSERT_TRUE(file.existsAsFile());
+    auto xml = juce::XmlDocument::parse(file);
+    ASSERT_NE(xml, nullptr);
+    for (auto* child : xml->getChildIterator()) {
+        const auto id = child->getStringAttribute("id");
+        for (const auto& excluded : {ParameterIds::volume, ParameterIds::breathInput,
+                                    ParameterIds::pitchBend, ParameterIds::modDepth})
+            EXPECT_NE(id, excluded);
+    }
+    int index = -1;
+    for (int i = 0; i < manager.getNumPrograms(); ++i)
+        if (manager.getProgramName(i) == name) index = i;
+    ASSERT_GE(index, 0);
+    ASSERT_TRUE(manager.isUserPreset(index));
+    set(ParameterIds::cutoff, 500);
+    set(ParameterIds::pitchBendUpRange, 12);
+    set(ParameterIds::pitchBendDownRange, 0);
+    set(ParameterIds::volume, 0.3f);
+    set(ParameterIds::breathInput, 0.2f);
+    set(ParameterIds::pitchBend, -0.5f);
+    set(ParameterIds::modDepth, 0.4f);
+    manager.setCurrentProgram(index);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::cutoff)->load(), 2345);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBendUpRange)->load(), 7);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBendDownRange)->load(), 3);
+    EXPECT_NEAR(state.getRawParameterValue(ParameterIds::volume)->load(), 0.3f, 0.001f);
+    EXPECT_NEAR(state.getRawParameterValue(ParameterIds::breathInput)->load(), 0.2f, 0.001f);
+    EXPECT_NEAR(state.getRawParameterValue(ParameterIds::pitchBend)->load(), -0.5f, 0.001f);
+    EXPECT_NEAR(state.getRawParameterValue(ParameterIds::modDepth)->load(), 0.4f, 0.001f);
+    EXPECT_TRUE(manager.deleteUserPreset(index));
+    EXPECT_FALSE(file.exists());
+}
+
 TEST(ProductionStateTest, SessionRestoresSoundSettingsButPreservesLiveInputs)
 {
     CS01AudioProcessor source, restored;
