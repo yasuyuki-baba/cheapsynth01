@@ -8,8 +8,7 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
       apvts(vts),
       toneGenerator(std::make_unique<ToneGenerator>(apvts)),
       noiseGenerator(std::make_unique<NoiseGenerator>(apvts)),
-      currentGenerator(nullptr)  // Will be set in parameterChanged
-{
+      currentGenerator(nullptr) {
     // Register as listener for feet parameter
     apvts.addParameterListener(ParameterIds::feet, this);
 
@@ -17,16 +16,11 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
     auto* feetParam =
         dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet));
     if (feetParam != nullptr) {
-        // Trigger the parameter changed handler to setup the current generator
-        float paramValue = feetParam->getIndex();  // Get current index as float
-        parameterChanged(ParameterIds::feet, paramValue);
-    } else {
-        // Fallback to constructor parameter if parameter not found
-        if (isNoiseMode)
-            currentGenerator = static_cast<ISoundGenerator*>(noiseGenerator.get());
-        else
-            currentGenerator = static_cast<ISoundGenerator*>(toneGenerator.get());
+        isNoiseMode = feetParam->getIndex() == static_cast<int>(Feet::WhiteNoise);
     }
+    requestedNoiseMode.store(isNoiseMode);
+    currentGenerator = isNoiseMode ? static_cast<ISoundGenerator*>(noiseGenerator.get())
+                                   : static_cast<ISoundGenerator*>(toneGenerator.get());
 }
 
 VCOProcessor::~VCOProcessor() {
@@ -35,55 +29,43 @@ VCOProcessor::~VCOProcessor() {
 }
 
 void VCOProcessor::parameterChanged(const juce::String& parameterID, float newValue) {
-    if (parameterID == ParameterIds::feet) {
-        auto* feetParam =
-            dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet));
-        if (feetParam != nullptr) {
-            bool isNoiseMode = (feetParam->getIndex() == static_cast<int>(Feet::WhiteNoise));
-            ISoundGenerator* oldGenerator = currentGenerator;
-            ISoundGenerator* newGenerator = nullptr;
+    if (parameterID == ParameterIds::feet)
+        requestedNoiseMode.store(static_cast<int>(newValue) == static_cast<int>(Feet::WhiteNoise));
+}
 
-            if (isNoiseMode)
-                newGenerator = static_cast<ISoundGenerator*>(noiseGenerator.get());
-            else
-                newGenerator = static_cast<ISoundGenerator*>(toneGenerator.get());
+void VCOProcessor::applyPendingGeneratorChange() {
+    ISoundGenerator* next = requestedNoiseMode.load()
+                                ? static_cast<ISoundGenerator*>(noiseGenerator.get())
+                                : static_cast<ISoundGenerator*>(toneGenerator.get());
+    if (next == currentGenerator)
+        return;
 
-            if (oldGenerator == newGenerator)
-                return;
-
-            // Save current state before switching
-            const auto state =
-                oldGenerator ? oldGenerator->getPlaybackState() : ISoundGenerator::PlaybackState{};
-
-            // Switch generator
-            currentGenerator = newGenerator;
-
-            // Initialize if already prepared
-            if (isPrepared && currentGenerator)
-                currentGenerator->prepare(lastSpec);
-
-            // Transfer state to new generator if needed
-            if (currentGenerator != nullptr)
-                currentGenerator->restorePlaybackState(state);
-
-            if (onGeneratorTypeChanged)
-                onGeneratorTypeChanged();
-        }
-    }
+    const auto state = currentGenerator->getPlaybackState();
+    currentGenerator->stopNote(false);
+    // Both sources are prepared in advance. Reset DSP state without reallocating.
+    if (next == toneGenerator.get())
+        toneGenerator->reset();
+    else
+        noiseGenerator->reset();
+    currentGenerator = next;
+    currentGenerator->restorePlaybackState(state);
+    if (onGeneratorTypeChanged)
+        onGeneratorTypeChanged();
 }
 
 void VCOProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
-    lastSpec = {sampleRate, (juce::uint32)samplesPerBlock,
-                (juce::uint32)getTotalNumOutputChannels()};
+    const juce::dsp::ProcessSpec spec{sampleRate, (juce::uint32)samplesPerBlock,
+                                      (juce::uint32)getTotalNumOutputChannels()};
 
     // Prepare both generators
     if (toneGenerator)
-        toneGenerator->prepare(lastSpec);
+        toneGenerator->prepare(spec);
 
     if (noiseGenerator)
-        noiseGenerator->prepare(lastSpec);
+        noiseGenerator->prepare(spec);
 
-    isPrepared = true;
+    noiseGenerator->reset();
+    applyPendingGeneratorChange();
 }
 
 bool VCOProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -102,6 +84,7 @@ bool VCOProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
 }
 
 void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) {
+    applyPendingGeneratorChange();
     if (!currentGenerator) {
         return;
     }

@@ -34,6 +34,8 @@ class ProgramManager {
     juce::String getProgramName(int index) const;
     PresetType getPresetType(int index) const;
     bool isUserPreset(int index) const;
+    int findProgram(const juce::String& filename, PresetType type) const;
+    juce::String getProgramFilename(int index) const;
 
     // ユーザープリセット管理
     void refreshUserPresets();

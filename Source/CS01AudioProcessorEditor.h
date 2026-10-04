@@ -66,6 +66,7 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
     std::unique_ptr<CS01LookAndFeel> lookAndFeel;
     OscilloscopeComponent oscilloscopeComponent;
     juce::AudioVisualiserComponent audioVisualiser;
+    juce::AudioBuffer<float> displayAudio{2, 512};
 
     juce::FlexBox upperFlex;
     juce::FlexBox lowerFlex;

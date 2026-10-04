@@ -67,6 +67,8 @@ target_sources(CheapSynth01Tests
         unit/NoiseGeneratorTest.cpp
         unit/ProgramManagerTest.cpp
         unit/EditorVisibilityTest.cpp
+        unit/ProgramPanelTest.cpp
+        unit/AudioDisplayFifoTest.cpp
         integration/AudioGraphTest.cpp
 )
 
@@ -161,6 +163,7 @@ target_compile_definitions(CheapSynth01Tests
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
     JUCE_DISABLE_WEBKIT=1
+    JUCE_MODAL_LOOPS_PERMITTED=1
 )
 
 message(STATUS "CheapSynth01Tests configuration complete!")

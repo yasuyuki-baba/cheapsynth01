@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include <atomic>
 #include "ToneGenerator.h"
 #include "NoiseGenerator.h"
 #include "ISoundGenerator.h"
@@ -64,7 +65,10 @@ class VCOProcessor : public juce::AudioProcessor,
     // AudioProcessorValueTreeState::Listener implementation
     void parameterChanged(const juce::String& parameterID, float newValue) override;
 
-    // Accessor for sound generator interface
+    // Call on the audio thread before MIDI events or rendering; never from the UI.
+    void applyPendingGeneratorChange();
+
+    // Audio-thread access only while processing is active.
     ISoundGenerator* getSoundGenerator() {
         return currentGenerator;
     }
@@ -82,7 +86,5 @@ class VCOProcessor : public juce::AudioProcessor,
     std::unique_ptr<ToneGenerator> toneGenerator;
     std::unique_ptr<NoiseGenerator> noiseGenerator;
     ISoundGenerator* currentGenerator;  // Pointer to the currently selected generator
-    juce::dsp::ProcessSpec lastSpec;
-    bool isPrepared = false;
-    float lfoValue = 0.0f;
+    std::atomic<bool> requestedNoiseMode{false};
 };

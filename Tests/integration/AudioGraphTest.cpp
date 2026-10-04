@@ -1117,6 +1117,43 @@ TEST(MidiPanicGraphTest, StopsAtEventBoundaryAndCanRestart) {
     }
 }
 
+TEST(MidiPanicGraphTest, SourceSwitchUpdatesMidiReferenceBeforeNoteOff) {
+    for (int initial : {2, 4}) {
+        SCOPED_TRACE(initial);
+        CS01AudioProcessor processor;
+        const auto set = [&](const juce::String& id, float value) {
+            auto* parameter = processor.getValueTreeState().getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        };
+        set(ParameterIds::feet, static_cast<float>(initial));
+        set(ParameterIds::volume, 1);
+        set(ParameterIds::attack, 0.001f);
+        set(ParameterIds::release, 0.01f);
+        processor.prepareToPlay(48000, 64);
+        juce::AudioBuffer<float> audio(2, 64);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
+        float peak = 0.0f;
+        for (int block = 0; block < 20; ++block) {
+            processor.processBlock(audio, midi);
+            peak = juce::jmax(peak, audio.getMagnitude(0, 64));
+        }
+        EXPECT_GT(peak, 1.0e-4f);
+        set(ParameterIds::feet, initial == 2 ? 4.0f : 2.0f);
+        midi.addEvent(juce::MidiMessage::noteOff(1, 69), 0);
+        // Allow the VCA's output coupling tail to decay as well as the envelope.
+        for (int block = 0; block < 400; ++block)
+            processor.processBlock(audio, midi);
+        EXPECT_LT(audio.getMagnitude(0, 64), 1.0e-5f);
+        // Switching back must not resurrect a source missed by the note-off.
+        set(ParameterIds::feet, static_cast<float>(initial));
+        for (int block = 0; block < 20; ++block)
+            processor.processBlock(audio, midi);
+        EXPECT_LT(audio.getMagnitude(0, 64), 1.0e-5f);
+        processor.releaseResources();
+    }
+}
+
 TEST(MidiPanicGraphTest, SourceSwitchLifecycleAndSameTimestampOrdering) {
     CS01AudioProcessor processor;
     const auto set = [&](const juce::String& id, float value) {

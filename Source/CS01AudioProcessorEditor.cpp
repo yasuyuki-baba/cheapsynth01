@@ -19,6 +19,8 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
                    juce::MidiKeyboardComponent::Orientation::horizontalKeyboard),
       oscilloscopeComponent(p.getTotalNumOutputChannels()),
       audioVisualiser(p.getTotalNumOutputChannels()) {
+    audioProcessor.getAudioDisplayFifo().setEnabled(false);
+    audioProcessor.getAudioDisplayFifo().readLatest(displayAudio);
     // Set keyboard range to match CS-01 (F2 - C5, 32 keys)
     midiKeyboard.setAvailableRange(41, 72);
     // Lower PC keyboard playback by one octave from JUCE's default (6).
@@ -43,6 +45,10 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     addAndMakeVisible(displayButton);
     displayButton.setClickingTogglesState(true);
     displayButton.onClick = [this] {
+        auto& fifo = audioProcessor.getAudioDisplayFifo();
+        fifo.setEnabled(false);
+        fifo.readLatest(displayAudio);
+        fifo.setEnabled(displayButton.getToggleState());
         if (!displayButton.getToggleState())
             midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
         midiKeyboard.setVisible(displayButton.getToggleState());
@@ -87,6 +93,7 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
 
 CS01AudioProcessorEditor::~CS01AudioProcessorEditor() {
     stopTimer();
+    audioProcessor.getAudioDisplayFifo().setEnabled(false);
     midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
     setLookAndFeel(nullptr);
 }
@@ -125,6 +132,14 @@ bool CS01AudioProcessorEditor::keyStateChanged(bool isKeyDown, juce::Component*)
 }
 
 void CS01AudioProcessorEditor::timerCallback() {
+    const int count = audioProcessor.getAudioDisplayFifo().readLatest(displayAudio);
+    if (displayButton.getToggleState() && count > 0) {
+        const int channels = juce::jmin(2, audioProcessor.getTotalNumOutputChannels());
+        oscilloscopeComponent.setNumChannels(channels);
+        juce::AudioBuffer<float> view(displayAudio.getArrayOfWritePointers(), channels, count);
+        oscilloscopeComponent.pushBuffer(view);
+        audioVisualiser.pushBuffer(view);
+    }
     // Release only notes owned by the on-screen keyboard, not external MIDI.
     if (!midiKeyboard.isVisible() || !hasKeyboardFocus(true) || isTextInputFocused())
         midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
@@ -161,8 +176,8 @@ void CS01AudioProcessorEditor::resized() {
     modulationComponent->setBounds(panel.removeFromLeft(204));
     panel.removeFromLeft(12);
     // Every sound control occupies one common column, including across sections.
-    juce::Component* sections[] = {lfoComponent.get(), vcoComponent.get(),
-                                   vcfComponent.get(), vcaComponent.get(), egComponent.get()};
+    juce::Component* sections[] = {lfoComponent.get(), vcoComponent.get(), vcfComponent.get(),
+                                   vcaComponent.get(), egComponent.get()};
     const int columns[] = {1, 5, 3, 1, 4};
     const int origin = panel.getX();
     const int totalWidth = panel.getWidth();

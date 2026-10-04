@@ -180,6 +180,8 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto renderUntil = [&](int end) {
         if (end <= position)
             return;
+        if (vcoNode != nullptr)
+            static_cast<VCOProcessor*>(vcoNode->getProcessor())->applyPendingGeneratorChange();
         if (!segmentMidi.isEmpty() && midiProcessorNode != nullptr) {
             // The MIDI node controls generators through direct references, not
             // audio connections: explicitly order it before audio rendering.
@@ -227,18 +229,7 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     renderUntil(buffer.getNumSamples());
     midiMessages.clear();
 
-    if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
-        // Forward a copy of the audio buffer to the UI thread to avoid touching UI from the audio
-        // thread.
-        juce::Component::SafePointer<CS01AudioProcessorEditor> safeEditor(editor);
-        juce::AudioBuffer<float> uiBuffer(buffer);
-        juce::MessageManager::callAsync([safeEditor, uiBuffer = std::move(uiBuffer)]() mutable {
-            if (auto* ed = safeEditor.getComponent()) {
-                ed->getOscilloscope().pushBuffer(uiBuffer);
-                ed->getAudioVisualiser().pushBuffer(uiBuffer);
-            }
-        });
-    }
+    audioDisplayFifo.push(buffer);
 }
 
 //==============================================================================
