@@ -19,7 +19,7 @@ Tests the functionality of individual components. Each class has a dedicated tes
 - **LFOProcessorTest** - Tests for the LFO processor
 - **MidiProcessorTest** - Tests for MIDI processing
 - **NoiseProcessorTest** - Tests for the noise generator
-- **IG02610LPFTest** - Tests for the IG02610 filter
+- **CS01VCFCircuitTest** - Tests for the IG02610 filter
 
 ### Integration Tests (`integration/`)
 

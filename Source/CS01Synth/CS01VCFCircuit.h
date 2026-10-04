@@ -4,12 +4,13 @@
 #include "IG02610.h"
 
 //==============================================================================
-// IG02610 2-pole lowpass filter implementation
-class IG02610LPF {
+// CS-01 VCF signal path: provisional IG02610 model plus external coupling.
+// Includes uncalibrated approximations; not a complete component-level reconstruction.
+class CS01VCFCircuit {
    public:
-    IG02610LPF();                   // Default constructor (safe initial values)
-    IG02610LPF(double sampleRate);  // Constructor with sample rate specification
-    ~IG02610LPF() = default;
+    CS01VCFCircuit();                   // Default constructor (safe initial values)
+    CS01VCFCircuit(double sampleRate);  // Constructor with sample rate specification
+    ~CS01VCFCircuit() = default;
 
     void reset();
     void prepare(double sampleRate);

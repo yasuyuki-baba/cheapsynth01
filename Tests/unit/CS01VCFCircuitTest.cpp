@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/IG02610LPF.h"
+#include "../../Source/CS01Synth/CS01VCFCircuit.h"
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include "../../Source/CS01AudioProcessor.h"
 
@@ -39,7 +39,7 @@ TEST(IG02610ControlTest, ProductionPanelResponseObservation)
                     // maximum setting, whose resonance is near the band edge.
                     const double frequency = std::round(cutoff * ratio);
                     if (frequency >= hostRate * 0.45) continue;
-                    IG02610LPF filter;
+                    CS01VCFCircuit filter;
                     filter.prepare(rate);
                     filter.setCutoffFrequency(cutoff);
                     filter.setResonance(resonance);
@@ -69,7 +69,7 @@ TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded)
 {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double rate = hostRate * Constants::oversamplingFactor;
-        IG02610LPF filter;
+        CS01VCFCircuit filter;
         filter.prepare(rate);
         double phase = 0.0;
         // Exercise abrupt panel changes without resetting filter state.
@@ -109,7 +109,7 @@ TEST(IG02610OversamplingTest, CharacterizeInternalRateProcessing)
                     juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
                 converter.initProcessing(1);
                 converter.reset();
-                IG02610LPF filter;
+                CS01VCFCircuit filter;
                 const double internalRate = rate * Constants::oversamplingFactor;
                 filter.prepare(internalRate);
                 filter.setCutoffFrequency(5000.0f);
@@ -199,7 +199,7 @@ TEST(IG02610OversamplingTest, CompareInterpolatedInputResponse)
                 juce::dsp::Oversampling<float> converter(1, Constants::oversamplingStages,
                     juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
                 converter.initProcessing(1);
-                IG02610LPF filter;
+                CS01VCFCircuit filter;
                 filter.prepare(rate * (mode ? Constants::oversamplingFactor : 1));
                 filter.setCutoffFrequency(cutoff);
                 filter.setResonance(resonance);
@@ -242,7 +242,7 @@ TEST(IG02610SpectrumTest, CharacterizeDrivenFilterHarmonicsAndFoldedComponents)
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         for (float resonance : {0.2f, 0.7f, 0.8f}) {
             for (float amplitude : {0.01f, 0.5f, 2.0f}) {
-                IG02610LPF filter;
+                CS01VCFCircuit filter;
                 filter.prepare(rate);
                 filter.setCutoffFrequency(5000.0f);
                 filter.setResonance(resonance);
@@ -283,7 +283,7 @@ TEST(IG02610NonlinearSafetyTest, DrivenSignalAndSilenceRemainFinite)
                     SCOPED_TRACE(resonance);
                     SCOPED_TRACE(cutoff);
                     SCOPED_TRACE(amplitude);
-                    IG02610LPF filter;
+                    CS01VCFCircuit filter;
                     filter.prepare(rate);
                     filter.setCutoffFrequency(cutoff);
                     filter.setResonance(resonance);
@@ -309,14 +309,14 @@ TEST(IG02610NonlinearSafetyTest, DrivenSignalAndSilenceRemainFinite)
     }
 }
 
-// Test fixture for IG02610LPF tests
-class IG02610LPFTest : public ::testing::Test
+// Test fixture for CS01VCFCircuit tests
+class CS01VCFCircuitTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
         // Set up test environment
-        filter = std::make_unique<IG02610LPF>();
+        filter = std::make_unique<CS01VCFCircuit>();
     }
     
     void TearDown() override
@@ -324,10 +324,10 @@ protected:
         filter.reset();
     }
     
-    std::unique_ptr<IG02610LPF> filter;
+    std::unique_ptr<CS01VCFCircuit> filter;
 };
 
-TEST_F(IG02610LPFTest, Initialization)
+TEST_F(CS01VCFCircuitTest, Initialization)
 {
     // Just check that the filter can be created without crashing
     EXPECT_TRUE(true);
@@ -337,7 +337,7 @@ TEST_F(IG02610LPFTest, Initialization)
     EXPECT_TRUE(std::isfinite(sample));
 }
 
-TEST_F(IG02610LPFTest, NonlinearDistortionLowResonance)
+TEST_F(CS01VCFCircuitTest, NonlinearDistortionLowResonance)
 {
     filter->prepare(44100.0);
     filter->setCutoffFrequency(1000.0f);
@@ -359,7 +359,7 @@ TEST_F(IG02610LPFTest, NonlinearDistortionLowResonance)
     }
 }
 
-TEST_F(IG02610LPFTest, NonlinearDistortionMediumResonance)
+TEST_F(CS01VCFCircuitTest, NonlinearDistortionMediumResonance)
 {
     filter->prepare(44100.0);
     filter->setCutoffFrequency(1000.0f);
@@ -377,7 +377,7 @@ TEST_F(IG02610LPFTest, NonlinearDistortionMediumResonance)
     EXPECT_LT(distortionRatio, 0.1f); // But not extreme for single sample
 }
 
-TEST_F(IG02610LPFTest, NonlinearDistortionHighResonance)
+TEST_F(CS01VCFCircuitTest, NonlinearDistortionHighResonance)
 {
     filter->prepare(44100.0);
     filter->setCutoffFrequency(1000.0f);
@@ -395,7 +395,7 @@ TEST_F(IG02610LPFTest, NonlinearDistortionHighResonance)
     EXPECT_LT(distortionRatio, 0.1f); // But not extreme for single sample
 }
 
-TEST_F(IG02610LPFTest, FrequencyDependentDistortion)
+TEST_F(CS01VCFCircuitTest, FrequencyDependentDistortion)
 {
     filter->prepare(44100.0);
     filter->setResonance(0.6f);
@@ -420,7 +420,7 @@ TEST_F(IG02610LPFTest, FrequencyDependentDistortion)
     EXPECT_LE(std::abs(highFreqOutput), 2.0f);
 }
 
-TEST_F(IG02610LPFTest, InputLevelDependentDistortion)
+TEST_F(CS01VCFCircuitTest, InputLevelDependentDistortion)
 {
     filter->prepare(44100.0);
     filter->setCutoffFrequency(1000.0f);
@@ -451,7 +451,7 @@ TEST_F(IG02610LPFTest, InputLevelDependentDistortion)
     EXPECT_LT(largeRatio, 0.1f);
 }
 
-TEST_F(IG02610LPFTest, AsymmetricClippingBehavior)
+TEST_F(CS01VCFCircuitTest, AsymmetricClippingBehavior)
 {
     filter->prepare(44100.0);
     filter->setCutoffFrequency(1000.0f);
