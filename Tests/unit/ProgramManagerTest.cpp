@@ -2,6 +2,41 @@
 #include <JuceHeader.h>
 #include "../../Source/ProgramManager.h"
 #include "../../Source/Parameters.h"
+#include "../../Source/CS01AudioProcessor.h"
+
+TEST(ProductionStateTest, SessionRestoresSoundSettingsButPreservesLiveInputs)
+{
+    CS01AudioProcessor source, restored;
+    auto set = [](CS01AudioProcessor& processor, const juce::String& id, float value) {
+        auto* parameter = processor.getValueTreeState().getParameter(id);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+    };
+    const std::vector<std::pair<juce::String, float>> settings{
+        {ParameterIds::waveType, 4}, {ParameterIds::feet, 1},
+        {ParameterIds::filterType, 1}, {ParameterIds::cutoff, 3210},
+        {ParameterIds::attack, 0.35f}, {ParameterIds::release, 0.75f},
+        {ParameterIds::pitchBendUpRange, 7}, {ParameterIds::pitchBendDownRange, 5},
+        {ParameterIds::volume, 0.4f}};
+    for (const auto& [id, value] : settings) set(source, id, value);
+    for (const auto& id : {ParameterIds::breathInput, ParameterIds::modDepth, ParameterIds::pitchBend}) {
+        set(source, id, 0.8f);
+        set(restored, id, 0.2f);
+    }
+    juce::MemoryBlock data;
+    source.getStateInformation(data);
+    restored.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+    for (const auto& [id, value] : settings) {
+        SCOPED_TRACE(id.toStdString());
+        EXPECT_FLOAT_EQ(restored.getValueTreeState().getRawParameterValue(id)->load(),
+                        source.getValueTreeState().getRawParameterValue(id)->load());
+    }
+    for (const auto& id : {ParameterIds::breathInput, ParameterIds::modDepth, ParameterIds::pitchBend})
+        EXPECT_NEAR(restored.getValueTreeState().getRawParameterValue(id)->load(), 0.2f, 0.001f);
+    const auto before = restored.getValueTreeState().copyState().toXmlString();
+    const char invalid[] = "not a saved session";
+    restored.setStateInformation(invalid, sizeof(invalid));
+    EXPECT_EQ(restored.getValueTreeState().copyState().toXmlString(), before);
+}
 
 // Test fixture for ProgramManager tests
 class ProgramManagerTest : public ::testing::Test
