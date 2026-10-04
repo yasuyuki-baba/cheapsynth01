@@ -55,8 +55,8 @@ void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
     auto upRange = apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load();
     auto downRange = apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load();
 
-    auto bendValue =
-        juce::jmap(static_cast<float>(newPitchWheelValue), 0.0f, 16383.0f, -1.0f, 1.0f);
+    const float displacement = static_cast<float>(newPitchWheelValue - 8192);
+    const float bendValue = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
 
     float bendOffset = 0.0f;
     if (bendValue > 0)
@@ -161,7 +161,8 @@ void ToneGenerator::updateBlockRateParameters() {
     currentModDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
 
     // Cache pitch-related parameters to avoid per-sample parameter access
-    pitchBendOffset = apvts.getRawParameterValue(ParameterIds::pitchBend)->load();
+    // MIDI (including queued panel gestures) applies bend once via pitchWheelMoved.
+    pitchBendOffset = 0.0f;
     pitchOffset = apvts.getRawParameterValue(ParameterIds::pitch)->load();
 
     // Update waveform strategy based on current waveform

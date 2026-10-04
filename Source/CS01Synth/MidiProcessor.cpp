@@ -91,10 +91,10 @@ void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage) {
         soundGenerator->pitchWheelMoved(lastPitchWheelValue);
     }
 
-    // Also set pitch bend value to parameter
-    const float bend = (lastPitchWheelValue - 8192) / 8192.0f;
-    if (auto* param = apvts.getParameter(ParameterIds::pitchBend))
-        param->setValueNotifyingHost(bend);
+    const float displacement = static_cast<float>(lastPitchWheelValue - 8192);
+    const float position = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
+    if (auto* parameter = apvts.getParameter(ParameterIds::pitchBend))
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(position));
 }
 
 void MidiProcessor::updateModulationParameter() {

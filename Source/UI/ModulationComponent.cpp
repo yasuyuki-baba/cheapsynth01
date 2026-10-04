@@ -7,7 +7,7 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     // Pitch Bend Slider
     pitchBendSlider.setSliderStyle(juce::Slider::LinearVertical);
     pitchBendSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    pitchBendSlider.setRange(0.0, 1.0, 0.001);
+    pitchBendSlider.setRange(-1.0, 1.0, 0.001);
     pitchBendSlider.setValue(0.0);
     pitchBendSlider.getProperties().set("performanceWheel", true);
     pitchBendSlider.setSliderSnapsToMousePosition(false);
@@ -18,6 +18,34 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     pitchBendLabel.setText("BEND", juce::dontSendNotification);
     pitchBendLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(pitchBendLabel);
+    pitchBendSlider.onDragStart = [this] {
+        draggingBend = true;
+        returningBend = false;
+        bendRevision = processor.getExternalBendRevision();
+    };
+    pitchBendSlider.onDragEnd = [this] {
+        draggingBend = false;
+        if (bendRevision == processor.getExternalBendRevision()) {
+            returningBend = true;
+            returnStarted = juce::Time::getMillisecondCounterHiRes();
+            returnPosition = pitchBendSlider.getValue();
+        }
+    };
+    for (auto* slider : {&bendUpSlider, &bendDownSlider}) {
+        slider->setSliderStyle(juce::Slider::IncDecButtons);
+        slider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 32, 20);
+        slider->setRange(0, 12, 1);
+        slider->setTooltip("Pitch bend range in semitones");
+        addAndMakeVisible(slider);
+    }
+    bendUpLabel.setText("UP", juce::dontSendNotification);
+    bendDownLabel.setText("DOWN", juce::dontSendNotification);
+    addAndMakeVisible(bendUpLabel);
+    addAndMakeVisible(bendDownLabel);
+    bendUpAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.getValueTreeState(), ParameterIds::pitchBendUpRange, bendUpSlider);
+    bendDownAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.getValueTreeState(), ParameterIds::pitchBendDownRange, bendDownSlider);
 
     // Mod Depth Slider
     modDepthSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -54,6 +82,28 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
 
     // Initial update
     parameterValueChanged(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
+    bendRevision = processor.getExternalBendRevision();
+    startTimerHz(120);
+}
+
+void ModulationComponent::timerCallback() {
+    const auto revision = processor.getExternalBendRevision();
+    if (revision != bendRevision) {
+        bendRevision = revision;
+        returningBend = false;
+    }
+    if (draggingBend)
+        return;
+    if (returningBend) {
+        const double progress = juce::jlimit(0.0, 1.0,
+            (juce::Time::getMillisecondCounterHiRes() - returnStarted) / 60.0);
+        pitchBendSlider.setValue(returnPosition * (1.0 - progress), juce::dontSendNotification);
+        sliderValueChanged(&pitchBendSlider);
+        returningBend = progress < 1.0;
+        return;
+    }
+    pitchBendSlider.setValue(processor.getValueTreeState()
+        .getRawParameterValue(ParameterIds::pitchBend)->load(), juce::dontSendNotification);
 }
 
 ModulationComponent::~ModulationComponent() {
@@ -69,12 +119,11 @@ void ModulationComponent::paint(juce::Graphics& g) {
 
 void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
     if (slider == &pitchBendSlider) {
-        // Pitch bend value is from 0.0 to 1.0. MIDI pitch wheel is 14-bit (0-16383).
-        // We map our range to the upper half of the MIDI pitch wheel range (8192-16383).
-        int pitchWheelValue = static_cast<int>(8192 + slider->getValue() * 8191.0);
+        const double position = slider->getValue();
+        int pitchWheelValue = juce::roundToInt(8192 + position * (position >= 0 ? 8191 : 8192));
         auto message = juce::MidiMessage::pitchWheel(1, pitchWheelValue);
         message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
-        processor.getMidiMessageCollector().addMessageToQueue(message);
+        processor.getPanelBendCollector().addMessageToQueue(message);
     } else if (slider == &modDepthSlider) {
         // Mod depth is 0.0 to 1.0. MIDI CC is 0-127.
         int controllerValue = static_cast<int>(slider->getValue() * 127);
@@ -90,6 +139,10 @@ void ModulationComponent::resized() {
     lfoTargetLabel.setBounds(targets.removeFromTop(22));
     for (auto* button : lfoTargetButtons)
         button->setBounds(targets.removeFromTop(28));
+    bendUpLabel.setBounds(targets.removeFromTop(18));
+    bendUpSlider.setBounds(targets.removeFromTop(22));
+    bendDownLabel.setBounds(targets.removeFromTop(18));
+    bendDownSlider.setBounds(targets.removeFromTop(22));
 
     bounds.removeFromRight(6);
     auto bend = bounds.removeFromLeft(bounds.getWidth() / 2);

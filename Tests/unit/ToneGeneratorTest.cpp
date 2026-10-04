@@ -4,6 +4,59 @@
 #include "../mocks/MockToneGenerator.h"
 #include "../../Source/CS01Synth/WaveformStrategies.h"
 #include <chrono>
+#include "../../Source/CS01Synth/MidiProcessor.h"
+#include "../../Source/CS01AudioProcessor.h"
+
+TEST(ManualPitchTest, MeasuredPitchAndMidiBend)
+{
+    CS01AudioProcessor host;
+    auto& state = host.getValueTreeState();
+    auto set = [&](const juce::String& id, float value) {
+        auto* p = state.getParameter(id);
+        p->setValueNotifyingHost(p->convertTo0to1(value));
+    };
+    set(ParameterIds::waveType, 2);
+    set(ParameterIds::feet, 2);
+    set(ParameterIds::pitchBendUpRange, 12);
+    set(ParameterIds::pitchBendDownRange, 12);
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+      for (float pitch : {-1.0f, 0.0f, 1.0f}) {
+        for (int wheel : {0, 8192, 16383}) {
+            set(ParameterIds::pitch, pitch);
+            set(ParameterIds::pitchBend, 0);
+            ToneGenerator generator(state);
+            generator.prepare({rate, 256, 1});
+            MidiProcessor midi(state);
+            midi.setSoundGenerator(&generator);
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer events;
+            events.addEvent(juce::MidiMessage::pitchWheel(1, wheel), 0);
+            events.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
+            midi.processBlock(buffer, events);
+            generator.updateBlockRateParameters();
+            EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(),
+                wheel == 0 ? -1.0f : (wheel == 16383 ? 1.0f : 0.0f));
+            for (int i = 0; i < static_cast<int>(rate * 0.1); ++i)
+                generator.getNextSample();
+            std::vector<double> crossings;
+            double previous = generator.getNextSample();
+            for (int i = 0; i < static_cast<int>(rate * 0.5); ++i) {
+                const double value = generator.getNextSample();
+                ASSERT_TRUE(std::isfinite(value));
+                if (previous < 0 && value >= 0)
+                    crossings.push_back(i - previous / (value - previous));
+                previous = value;
+            }
+            ASSERT_GE(crossings.size(), 3u);
+            const double measured = rate * (crossings.size() - 1)
+                / (crossings.back() - crossings.front());
+            const double bend = wheel == 0 ? -12.0 : (wheel == 16383 ? 12.0 : 0.0);
+            const double expected = 440.0 * std::exp2((pitch + bend) / 12.0);
+            EXPECT_NEAR(measured, expected, expected * 0.001);
+        }
+      }
+    }
+}
 
 namespace {
 struct ProductionVcoHarness {

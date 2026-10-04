@@ -80,6 +80,8 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     juce::MidiMessageCollector& getMidiMessageCollector() {
         return midiMessageCollector;
     }
+    juce::MidiMessageCollector& getPanelBendCollector() { return panelBendCollector; }
+    unsigned getExternalBendRevision() const { return externalBendRevision.load(); }
 
     const juce::AudioProcessorGraph& getAudioGraphForTesting() const { return audioGraph; }
     juce::AudioProcessorGraph::NodeID getVcoNodeIdForTesting() const { return vcoNode->nodeID; }
@@ -108,6 +110,8 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     void handleGeneratorTypeChanged();
     juce::MidiKeyboardState keyboardState;
     juce::MidiMessageCollector midiMessageCollector;
+    juce::MidiMessageCollector panelBendCollector;
+    std::atomic<unsigned> externalBendRevision{0};
     juce::AudioProcessorGraph audioGraph;
     std::unique_ptr<juce::dsp::Oversampling<float>> outputOversampling;
     juce::AudioBuffer<float> internalAudio;

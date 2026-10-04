@@ -202,8 +202,7 @@ TEST_F(MidiProcessorTest, PitchWheel)
     // Process MIDI buffer
     processor->processBlock(buffer, midiBuffer);
     
-    // Check that pitch bend parameter was updated (with tolerance for floating point precision)
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 1.0f, 0.01f);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 1.0f);
 }
 
 TEST_F(MidiProcessorTest, ControllerMessages)

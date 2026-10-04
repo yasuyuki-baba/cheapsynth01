@@ -6,6 +6,46 @@
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include <chrono>
 
+TEST(BendInputTest, ExternalInputWinsAndDoesNotAutoReturn)
+{
+    CS01AudioProcessor processor;
+    processor.prepareToPlay(48000.0, 64);
+    processor.flushPendingGraphChangesForTesting();
+    auto& state = processor.getValueTreeState();
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBendUpRange)->load(), 12);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBendDownRange)->load(), 0);
+    juce::AudioBuffer<float> audio(2, 64);
+    juce::MidiBuffer midi;
+    const auto queuePanel = [&](int value) {
+        auto message = juce::MidiMessage::pitchWheel(1, value);
+        message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
+        processor.getPanelBendCollector().addMessageToQueue(message);
+    };
+    queuePanel(16383);
+    processor.processBlock(audio, midi);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), 1);
+    const auto revision = processor.getExternalBendRevision();
+    EXPECT_EQ(revision, 0u);
+
+    midi.clear();
+    queuePanel(8192); // An in-flight panel return must not override external input.
+    midi.addEvent(juce::MidiMessage::pitchWheel(1, 0), 17);
+    processor.processBlock(audio, midi);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), -1);
+    EXPECT_EQ(processor.getExternalBendRevision(), revision + 1);
+    for (int block = 0; block < 100; ++block) {
+        midi.clear();
+        processor.processBlock(audio, midi);
+    }
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), -1);
+    EXPECT_EQ(processor.getExternalBendRevision(), revision + 1);
+    midi.clear();
+    midi.addEvent(juce::MidiMessage::pitchWheel(1, 8192), 0);
+    processor.processBlock(audio, midi);
+    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), 0);
+    processor.releaseResources();
+}
+
 TEST(ModulationRangeTest, ManualEndpointsAndSavedStateCompatibility)
 {
     CS01AudioProcessor processor;
