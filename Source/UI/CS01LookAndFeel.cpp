@@ -120,7 +120,7 @@ void CS01LookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int widt
 }
 
 juce::Font CS01LookAndFeel::getLabelFont(juce::Label& label) {
-    return juce::Font("Helvetica", 14.0f, juce::Font::bold);  // Larger font
+    return juce::Font("Helvetica", 12.0f, juce::Font::bold);
 }
 
 void CS01LookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
@@ -138,7 +138,7 @@ void CS01LookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& bu
         g.fillRect(button.getLocalBounds());
     }
     g.setColour(button.isEnabled() ? Palette::text : Palette::textDim);
-    g.setFont(12.0f);
+    g.setFont(11.0f);
     g.drawFittedText(button.getButtonText(), area.reduced(3.0f, 0.0f).toNearestInt(),
                      juce::Justification::centredLeft, 1);
 }
@@ -149,7 +149,7 @@ void CS01LookAndFeel::drawSectionBackground(juce::Graphics& g, juce::Rectangle<i
     // Just a white line and title.
 
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font("Helvetica", 16.0f, juce::Font::bold));
+    g.setFont(juce::Font("Helvetica", 15.0f, juce::Font::bold));
 
     auto titleWidth = juce::GlyphArrangement::getStringWidthInt(g.getCurrentFont(), title);
 

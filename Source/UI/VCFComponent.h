@@ -20,7 +20,6 @@ class VCFComponent : public juce::Component, public juce::AudioProcessorParamete
     // Filter Type Selector (Integrated)
     juce::RangedAudioParameter* filterTypeParam = nullptr;
     juce::OwnedArray<juce::ToggleButton> filterTypeButtons;
-    juce::Label filterTypeLabel;
 
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;

@@ -66,6 +66,7 @@ target_sources(CheapSynth01Tests
         unit/ModernVCFProcessorTest.cpp
         unit/NoiseGeneratorTest.cpp
         unit/ProgramManagerTest.cpp
+        unit/EditorVisibilityTest.cpp
         integration/AudioGraphTest.cpp
 )
 

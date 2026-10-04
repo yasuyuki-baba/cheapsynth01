@@ -25,7 +25,7 @@ void VolumeComponent::resized() {
     auto labelHeight = 15;
     auto knobArea = bounds.withTrimmedBottom(labelHeight);
 
-    float knobSize = juce::jmin(knobArea.getWidth(), knobArea.getHeight()) * 0.9f;
+    float knobSize = juce::jmin(80.0f, juce::jmin(knobArea.getWidth(), knobArea.getHeight()) * 0.9f);
     volumeSlider.setBounds(knobArea.withSizeKeepingCentre(knobSize, knobSize));
     volumeLabel.setBounds(knobArea.getX(), volumeSlider.getBottom(), knobArea.getWidth(),
                           labelHeight);

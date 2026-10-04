@@ -36,5 +36,5 @@ void VCAComponent::resized() {
 
     grid.items = {juce::GridItem(vcaEgDepthSlider), juce::GridItem(vcaEgDepthLabel)};
 
-    grid.performLayout(getLocalBounds().reduced(10).withTrimmedTop(20));
+    grid.performLayout(getLocalBounds().withTrimmedTop(30).withTrimmedBottom(10));
 }

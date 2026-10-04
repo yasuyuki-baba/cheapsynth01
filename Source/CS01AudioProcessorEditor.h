@@ -47,11 +47,12 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
     void timerCallback() override;
     void addPerformanceKeyListeners(juce::Component&);
     bool isTextInputFocused() const;
+    void updateDisplayLayout();
 
     CS01AudioProcessor& audioProcessor;
 
     juce::MidiKeyboardComponent midiKeyboard;
-    juce::TextButton monitorButton{"MONITOR"};
+    juce::TextButton displayButton{"KEYBOARD + MONITOR"};
 
     std::unique_ptr<ModulationComponent> modulationComponent;
     std::unique_ptr<VCOComponent> vcoComponent;

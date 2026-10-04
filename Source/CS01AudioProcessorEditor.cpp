@@ -38,15 +38,16 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     oscilloscopeComponent.setBufferSize(512);
 
     // Create and make all components visible
-    addAndMakeVisible(midiKeyboard);
-    // addAndMakeVisible(audioVisualiser); // Hide spectrum analyzer for vintage look
-    addAndMakeVisible(oscilloscopeComponent);
-    oscilloscopeComponent.setVisible(false);
-    addAndMakeVisible(monitorButton);
-    monitorButton.setClickingTogglesState(true);
-    monitorButton.onClick = [this] {
-        oscilloscopeComponent.setVisible(monitorButton.getToggleState());
-        resized();
+    addChildComponent(midiKeyboard);
+    addChildComponent(oscilloscopeComponent);
+    addAndMakeVisible(displayButton);
+    displayButton.setClickingTogglesState(true);
+    displayButton.onClick = [this] {
+        if (!displayButton.getToggleState())
+            midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
+        midiKeyboard.setVisible(displayButton.getToggleState());
+        oscilloscopeComponent.setVisible(displayButton.getToggleState());
+        updateDisplayLayout();
     };
 
     modulationComponent.reset(new ModulationComponent(audioProcessor));
@@ -77,8 +78,8 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     addAndMakeVisible(programPanel.get());
 
     setResizable(true, true);
-    setResizeLimits(1200, 620, 2400, 1240);
-    setSize(1280, 680);
+    setResizeLimits(1240, 400, 2400, 1240);
+    setSize(1240, 400);
     setWantsKeyboardFocus(true);
     addPerformanceKeyListeners(*this);
     startTimerHz(30);
@@ -112,11 +113,11 @@ bool CS01AudioProcessorEditor::isTextInputFocused() const {
 }
 
 bool CS01AudioProcessorEditor::keyPressed(const juce::KeyPress& key, juce::Component*) {
-    return !isTextInputFocused() && midiKeyboard.keyPressed(key);
+    return midiKeyboard.isVisible() && !isTextInputFocused() && midiKeyboard.keyPressed(key);
 }
 
 bool CS01AudioProcessorEditor::keyStateChanged(bool isKeyDown, juce::Component*) {
-    if (isTextInputFocused()) {
+    if (!midiKeyboard.isVisible() || isTextInputFocused()) {
         midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
         return false;
     }
@@ -125,7 +126,7 @@ bool CS01AudioProcessorEditor::keyStateChanged(bool isKeyDown, juce::Component*)
 
 void CS01AudioProcessorEditor::timerCallback() {
     // Release only notes owned by the on-screen keyboard, not external MIDI.
-    if (!hasKeyboardFocus(true) || isTextInputFocused())
+    if (!midiKeyboard.isVisible() || !hasKeyboardFocus(true) || isTextInputFocused())
         midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
 }
 
@@ -134,37 +135,51 @@ void CS01AudioProcessorEditor::paint(juce::Graphics& g) {
     g.fillAll(CS01LookAndFeel::Palette::background);
 }
 
+void CS01AudioProcessorEditor::updateDisplayLayout() {
+    const bool expanded = displayButton.getToggleState();
+    const int extraHeight = 240;
+    const int height = getHeight() + (expanded ? extraHeight : -extraHeight);
+    setResizeLimits(1240, expanded ? 640 : 400, 2400, expanded ? 1480 : 1240);
+    setSize(getWidth(), height);
+    resized();
+}
+
 void CS01AudioProcessorEditor::resized() {
     auto bounds = getLocalBounds().reduced(20);
     auto header = bounds.removeFromTop(44);
-    monitorButton.setBounds(header.removeFromRight(100));
+    displayButton.setBounds(header.removeFromRight(220));
     programPanel->setBounds(header.withSizeKeepingCentre(560, 44));
     bounds.removeFromTop(18);
 
-    auto panel = bounds.removeFromTop(bounds.getHeight() * 3 / 5);
-    juce::FlexBox soundPanel;
-    soundPanel.flexDirection = juce::FlexBox::Direction::row;
-    const auto margin = juce::FlexItem::Margin(0, 6, 0, 6);
-    soundPanel.items.add(juce::FlexItem(*lfoComponent).withFlex(1).withMargin(margin));
-    soundPanel.items.add(juce::FlexItem(*vcoComponent).withFlex(5).withMargin(margin));
-    soundPanel.items.add(juce::FlexItem(*vcfComponent).withFlex(4).withMargin(margin));
-    soundPanel.items.add(juce::FlexItem(*vcaComponent).withFlex(1.2f).withMargin(margin));
-    soundPanel.items.add(juce::FlexItem(*egComponent).withFlex(3).withMargin(margin));
-    soundPanel.performLayout(panel);
-
-    bounds.removeFromTop(20);
-    auto performance = bounds.removeFromLeft(180);
+    const bool expanded = displayButton.getToggleState();
+    auto lowerPanel = expanded ? bounds.removeFromBottom(240) : juce::Rectangle<int>();
+    auto panel = bounds;
+    auto performance = panel.removeFromLeft(124);
     breathControlComponent->setBounds(performance.removeFromTop(performance.getHeight() / 2));
     volumeComponent->setBounds(performance);
-    bounds.removeFromLeft(12);
-    modulationComponent->setBounds(bounds.removeFromLeft(204));
-    bounds.removeFromLeft(12);
-
-    if (monitorButton.getToggleState()) {
-        oscilloscopeComponent.setBounds(bounds.removeFromBottom(85));
-        bounds.removeFromBottom(10);
+    panel.removeFromLeft(12);
+    modulationComponent->setBounds(panel.removeFromLeft(204));
+    panel.removeFromLeft(12);
+    // Every sound control occupies one common column, including across sections.
+    juce::Component* sections[] = {lfoComponent.get(), vcoComponent.get(),
+                                   vcfComponent.get(), vcaComponent.get(), egComponent.get()};
+    const int columns[] = {1, 5, 3, 1, 4};
+    const int origin = panel.getX();
+    const int totalWidth = panel.getWidth();
+    int column = 0;
+    for (int i = 0; i < 5; ++i) {
+        const int left = origin + totalWidth * column / 14;
+        column += columns[i];
+        const int right = origin + totalWidth * column / 14;
+        sections[i]->setBounds(left, panel.getY(), right - left, panel.getHeight());
     }
-    midiKeyboard.setBounds(bounds);
-    // Keep the entire playable range visible when the editor is resized.
-    midiKeyboard.setKeyWidth(static_cast<float>(bounds.getWidth()) / 19.0f);
+
+    if (expanded) {
+        lowerPanel.removeFromTop(20);
+        oscilloscopeComponent.setBounds(lowerPanel.removeFromRight(lowerPanel.getWidth() / 3));
+        lowerPanel.removeFromRight(12);
+        midiKeyboard.setBounds(lowerPanel);
+        // Keep the entire playable range visible when the editor is resized.
+        midiKeyboard.setKeyWidth(static_cast<float>(lowerPanel.getWidth()) / 19.0f);
+    }
 }
