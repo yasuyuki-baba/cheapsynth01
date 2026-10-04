@@ -209,7 +209,7 @@ TEST(ModulationRangeTest, ManualEndpointsAndSavedStateCompatibility) {
     }
 }
 
-TEST(WholeGraphObservationTest, OutputSpectrumAndProcessingCost) {
+TEST(WholeGraphObservationTest, Observation_OutputSpectrumAndProcessingCost) {
     // Observational benchmark: never assert platform-dependent execution time.
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         for (int waveform : {1, 2}) {
@@ -410,7 +410,14 @@ TEST(EnvelopeRangeTest, GraphStagesFollowConfiguredSeconds) {
                 if (auto* eg = dynamic_cast<EGProcessor*>(node->getProcessor()))
                     envelope = eg;
             ASSERT_NE(envelope, nullptr);
-            juce::AudioBuffer<float> buffer(2, 1);
+            const double attack = state.getRawParameterValue(ParameterIds::attack)->load();
+            const double decay = state.getRawParameterValue(ParameterIds::decay)->load();
+            const double release = state.getRawParameterValue(ParameterIds::release)->load();
+            // Keep at least 16 observations across the shortest stage, capped at
+            // the prepared block size. Short envelopes still get fine resolution.
+            const int observationBlockSize = juce::jlimit(
+                1, 64, static_cast<int>(std::min({attack, decay, release}) * rate / 16.0));
+            juce::AudioBuffer<float> buffer(2, observationBlockSize);
             auto next = [&](int event) {
                 buffer.clear();
                 juce::MidiBuffer midi;
@@ -423,22 +430,21 @@ TEST(EnvelopeRangeTest, GraphStagesFollowConfiguredSeconds) {
             };
             auto elapsed = [&](auto reached, int event) {
                 const int limit = static_cast<int>(rate * 3.0);
-                for (int n = 1; n <= limit; ++n)
-                    if (reached(next(n == 1 ? event : 0)))
+                for (int n = observationBlockSize; n <= limit; n += observationBlockSize)
+                    if (reached(next(n == observationBlockSize ? event : 0)))
                         return n / rate;
                 return 4.0;
             };
-            const double attack = state.getRawParameterValue(ParameterIds::attack)->load();
-            const double decay = state.getRawParameterValue(ParameterIds::decay)->load();
-            const double release = state.getRawParameterValue(ParameterIds::release)->load();
-            // Allow one host sample for observation plus float accumulation error.
-            const float peakThreshold = static_cast<float>(1.0 - 1.0 / (attack * rate));
+            // The peak may fall between observations. Detailed sample-accurate timing
+            // is covered by EGTimingTest; here verify MIDI routing and graph timing.
+            const float peakThreshold =
+                static_cast<float>(1.0 - observationBlockSize / (std::min(attack, decay) * rate));
             EXPECT_NEAR(elapsed([&](float v) { return v >= peakThreshold; }, 1), attack,
-                        attack * 0.01 + 2.0 / rate);
+                        attack * 0.01 + 2.0 * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([](float v) { return v <= 0.5f; }, 0), decay,
-                        decay * 0.01 + 2.0 / rate);
+                        decay * 0.01 + 2.0 * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([](float v) { return v == 0.0f; }, 2), release,
-                        release * 0.01 + 2.0 / rate);
+                        release * 0.01 + 2.0 * observationBlockSize / rate);
         }
     }
 }

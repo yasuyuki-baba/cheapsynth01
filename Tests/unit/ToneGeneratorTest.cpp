@@ -173,7 +173,7 @@ TEST(ToneGeneratorRealTest, PanelSwitchesPreserveHeldNoteAndBlockConsistency) {
     }
 }
 
-TEST(ToneGeneratorRealTest, ProductionProcessingCostObservation) {
+TEST(ToneGeneratorRealTest, Observation_ProductionProcessingCost) {
     // Observation only: timing is machine/build dependent, not a correctness threshold.
     for (int waveform = 0; waveform < 5; ++waveform) {
         ProductionVcoHarness harness(waveform, 48000, 440);
@@ -471,7 +471,7 @@ TEST(VcoSpectrumTest, AliasProbeWithKnownSignals) {
     EXPECT_NEAR(measureSpectralAmplitude(48000.0, 3000.0, signal), 0.0, 1.0e-9);
 }
 
-TEST(ToneGeneratorRealTest, ProductionAliasAndOnsetObservation) {
+TEST(ToneGeneratorRealTest, Observation_ProductionAliasAndOnset) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         for (double frequency : {3000.0, 5000.0}) {
             for (int waveform = 0; waveform < 5; ++waveform) {
@@ -772,29 +772,35 @@ TEST(ToneGeneratorRealTest, PitchAndFeetFromMeasuredPeriods) {
                     generator.startNote(note, 1.0f, 8192);
                     generator.setPitchBend(0.0f);  // Isolate tuning from MIDI wheel quantization.
                     generator.updateBlockRateParameters();
+                    SCOPED_TRACE(sampleRate);
+                    SCOPED_TRACE(feet);
+                    SCOPED_TRACE(waveform);
+                    SCOPED_TRACE(note);
+                    const double expected = 440.0 * std::pow(2.0, (note - 69) / 12.0 + feet - 2);
+                    // Allow output coupling to settle, then measure 64 complete periods.
+                    // Retain a bounded timeout for silent or incorrectly tuned output.
+                    const int settlingSamples = static_cast<int>(sampleRate * 0.1);
+                    constexpr int requiredCrossings = 65;
                     double first = 0.0, last = 0.0;
                     int crossings = 0;
                     float previous = generator.getNextSample();
-                    for (int i = 1; i < static_cast<int>(sampleRate * 2.0); ++i) {
+                    for (int i = 1; i < static_cast<int>(sampleRate * 4.0); ++i) {
                         const float value = generator.getNextSample();
                         ASSERT_TRUE(std::isfinite(value));
-                        if (i >= sampleRate && previous <= 0.0f && value > 0.0f) {
+                        if (i >= settlingSamples && previous <= 0.0f && value > 0.0f) {
                             const double position =
                                 i - 1 + (-previous / static_cast<double>(value - previous));
                             if (crossings == 0)
                                 first = position;
                             last = position;
                             ++crossings;
+                            if (crossings == requiredCrossings)
+                                break;
                         }
                         previous = value;
                     }
-                    ASSERT_GT(crossings, 2);
+                    ASSERT_EQ(crossings, requiredCrossings);
                     const double measured = (crossings - 1) * sampleRate / (last - first);
-                    const double expected = 440.0 * std::pow(2.0, (note - 69) / 12.0 + feet - 2);
-                    SCOPED_TRACE(sampleRate);
-                    SCOPED_TRACE(feet);
-                    SCOPED_TRACE(waveform);
-                    SCOPED_TRACE(note);
                     EXPECT_NEAR(measured, expected, expected * 0.001);
                     std::cout << "VCO pitch: fs=" << sampleRate << ", feetIndex=" << feet
                               << ", measured=" << measured << ", expected=" << expected << " Hz\n";

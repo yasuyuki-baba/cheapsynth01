@@ -23,7 +23,7 @@ TEST(IG02610ControlTest, LowCutoffNumeratorPrecisionDiagnosis) {
     }
 }
 
-TEST(IG02610ControlTest, ProductionPanelResponseObservation) {
+TEST(IG02610ControlTest, Observation_ProductionPanelResponse) {
     CS01AudioProcessor host;
     auto* parameter = host.getValueTreeState().getParameter(ParameterIds::cutoff);
     ASSERT_NE(parameter, nullptr);
@@ -102,7 +102,7 @@ TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded) {
     }
 }
 
-TEST(IG02610OversamplingTest, CharacterizeInternalRateProcessing) {
+TEST(IG02610OversamplingTest, Observation_CharacterizeInternalRateProcessing) {
     for (double rate : {44100.0, 48000.0}) {
         for (float resonance : {0.7f, 0.8f}) {
             for (bool bypassFilter : {true, false}) {
@@ -186,7 +186,7 @@ TEST(IG02610SpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
     }
 }
 
-TEST(IG02610OversamplingTest, CompareInterpolatedInputResponse) {
+TEST(IG02610OversamplingTest, Observation_CompareInterpolatedInputResponse) {
     // Realistic resampling path, not direct generation at the internal rate.
     for (double rate : {44100.0, 48000.0}) {
         for (float cutoff : {250.0f, 1000.0f, 5000.0f}) {
@@ -243,7 +243,7 @@ TEST(IG02610OversamplingTest, CompareInterpolatedInputResponse) {
     }
 }
 
-TEST(IG02610SpectrumTest, CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
+TEST(IG02610SpectrumTest, Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
     // One-second coherent window after one-second settling. Observations only:
     // folded bins can contain multiple harmonics, not exclusively harmonic five.
     for (double rate : {44100.0, 48000.0, 96000.0}) {

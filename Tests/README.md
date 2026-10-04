@@ -1,6 +1,6 @@
 # CheapSynth01 Test Framework
 
-This directory contains the test code. Tests are implemented using JUCE's built-in unit testing framework.
+This directory contains Google Test tests with a custom JUCE initialization environment.
 
 ## Test Structure
 
@@ -42,6 +42,33 @@ To run the tests, execute the following command from the project's root director
 ```bash
 ./run_tests.sh
 ```
+
+By default, the runner executes regression tests and excludes detailed DSP
+observations named `Observation_*`. No tests are deleted or disabled.
+
+```bash
+./run_tests.sh --observations  # Detailed DSP observations only
+./run_tests.sh --all           # Regression tests and observations
+./run_tests.sh '--gtest_filter=EGTimingTest.*:EnvelopeRangeTest.*'
+```
+
+The same options can be passed directly to the test executable. An explicit
+`--gtest_filter` overrides the category default. `--gtest_output` is also respected.
+Normal CI runs the regression category; run `--all` when changing DSP behavior or
+when a complete characterization is needed. Observation tests still check basic
+sanity (such as finite, non-silent output), but their printed spectral and timing
+measurements are not hardware-calibrated regression thresholds. Nonlinear safety,
+pitch, PWM timing, and graph consistency tests remain in the default category.
+
+Detailed envelope duration checks remain sample-accurate in
+`EGTimingTest.ProductionRangeStageDurations`. The graph integration check observes
+the envelope in adaptive blocks of 1 to 64 host samples, preserving at least
+16 observations across the shortest configured stage (subject to sample resolution).
+Timing tolerances account for that observation interval.
+
+The pitch/feet test retains all 180 combinations and its 0.1% frequency tolerance.
+After 100 ms of settling, it stops once 64 complete periods have been measured,
+with a four-second total limit to detect missing or incorrectly tuned output.
 
 This script performs the following:
 

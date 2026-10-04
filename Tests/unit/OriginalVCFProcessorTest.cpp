@@ -66,7 +66,7 @@ class OriginalVCFProcessorTest : public ::testing::Test {
     std::unique_ptr<OriginalVCFProcessor> processor;
 };
 
-TEST_F(OriginalVCFProcessorTest, VcfVcaCascadeCharacterization) {
+TEST_F(OriginalVCFProcessorTest, Observation_VcfVcaCascadeCharacterization) {
     // Small-signal consistency check, not a hardware accuracy target.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         for (bool high : {false, true}) {
@@ -249,7 +249,7 @@ TEST_F(OriginalVCFProcessorTest, Initialization) {
     EXPECT_EQ(processor->getBus(false, 0)->getName(), juce::String("Output"));
 }
 
-TEST_F(OriginalVCFProcessorTest, SteadyStateResponseCharacterization) {
+TEST_F(OriginalVCFProcessorTest, Observation_SteadyStateResponseCharacterization) {
     // Observe the implementation, not a calibrated CS-01 hardware target.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         for (bool high : {false, true}) {
@@ -307,7 +307,7 @@ TEST_F(OriginalVCFProcessorTest, SteadyStateResponseCharacterization) {
     }
 }
 
-TEST_F(OriginalVCFProcessorTest, PeakAndLevelCharacterization) {
+TEST_F(OriginalVCFProcessorTest, Observation_PeakAndLevelCharacterization) {
     // Observe the implementation, not a calibrated CS-01 hardware target.
     const double sampleRate = 48000.0;
     for (double cutoffHz : {250.0, 1000.0}) {
@@ -378,7 +378,7 @@ TEST_F(OriginalVCFProcessorTest, PeakAndLevelCharacterization) {
     }
 }
 
-TEST_F(OriginalVCFProcessorTest, HighFrequencyLeakageCharacterization) {
+TEST_F(OriginalVCFProcessorTest, Observation_HighFrequencyLeakageCharacterization) {
     // Observe the implementation, not a calibrated CS-01 hardware target.
     const double sampleRate = 48000.0;
     for (double cutoffHz : {250.0, 1000.0}) {

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Script to build and run tests
+cd "$(dirname "$0")" || exit 1
 
 # Color definitions
 GREEN='\033[0;32m'
@@ -36,7 +37,7 @@ fi
 # Run tests and generate JUnit XML report
 echo -e "${YELLOW}Running tests...${NC}"
 echo "========================================"
-./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests test_results.xml
+./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests "$@"
 TEST_RESULT=$?
 
 # Display test summary
