@@ -160,7 +160,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/MidiProcessor.cpp
         Source/CS01Synth/ModernVCFProcessor.cpp
         Source/CS01Synth/NoiseGenerator.cpp
-        Source/CS01Synth/IG02610LPF.cpp
+        Source/CS01Synth/CS01VCFCircuit.cpp
         Source/CS01Synth/IG02610.cpp
         Source/UI/FilterTypeComponent.cpp
 )

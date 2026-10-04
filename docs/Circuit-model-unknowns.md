@@ -11,7 +11,7 @@
 | YM10150：波形生成 | 波形・フィートの選択と発音部への接続 | 各波形の生成方式、振幅、倍音、出力インピーダンス | BLEP、積分、独自の波形補正・tanh。波形と音色に影響 | `Source/CS01Synth/ToneGenerator.cpp`, `WaveformStrategies.h` |
 | YM10150：鍵盤・ゲート | 鍵盤入力とEGへのゲート経路 | 複数押鍵の優先順位、再トリガー条件、切り替え時の内部状態 | 最高音優先とレガート時のゲート維持。動作整合性は検証済みだが実機仕様の証明ではない | `Source/CS01Synth/MidiProcessor.cpp` |
 | YM10150：グリッサンド | GLS端子、22 kohm、A1M、0.022 uFの接続を転記済み | 発振しきい値、分周、抵抗と半音周期の関係、操作中の発振位相 | 最大208 ms／半音と暫定操作カーブ。途中変更はステップ進行割合を維持 | `Source/CS01Synth/ToneGenerator.cpp` |
-| IG02610：VCF | 外部の制御・音声経路、High/Low切り替え | 内部構成、制御量とカットオフの関係、入力負荷、共振・歪み特性 | biquad＋独自非線形処理。Low/High内部値0.2/0.7、変調幅も未校正 | `Source/CS01Synth/IG02610LPF.cpp`, `OriginalVCFProcessor.cpp/.h` |
+| IG02610：VCF | 外部の制御・音声経路、High/Low切り替え | 内部構成、制御量とカットオフの関係、入力負荷、共振・歪み特性 | biquad＋独自非線形処理。Low/High内部値0.2/0.7、変調幅も未校正 | `Source/CS01Synth/IG02610.cpp`, `CS01VCFCircuit.cpp`, `OriginalVCFProcessor.cpp/.h` |
 | IG02600：VCA | 音声・EG・ブレスの外部制御経路 | 制御電圧とゲイン、各制御入力の合成、飽和、入力負荷 | EGとブレスのゲインを乗算し、独自の飽和を適用。中間カーブは未確定 | `Source/CS01Synth/VCAProcessor.cpp` |
 
 上の実装パスはすべて `/Users/baba/git/cheapsynth01/` を基準とします。

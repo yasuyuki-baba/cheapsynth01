@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
-#include "IG02610LPF.h"  // Include the IG02610LPF filter
+#include "CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
 #include "IFilter.h"     // Updated interface
 
 //==============================================================================
@@ -71,7 +71,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
    private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
-    IG02610LPF filter;                        // Using IG02610LPF instead of StateVariableTPTFilter
+    CS01VCFCircuit filter;                        // Using CS01VCFCircuit instead of StateVariableTPTFilter
     juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse
     int modulationBufferCapacity = 0;         // Capacity (in samples) of allocated modulationBuffer
 
@@ -92,7 +92,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
         // For original filter, use threshold to binarize the value
         // Treat as High Resonance if value is 0.5 or higher
         if (resonanceParam >= 0.5f) {
-            // High resonance setting - IG02610LPF has max resonance of 0.8f
+            // High resonance setting - CS01VCFCircuit has max resonance of 0.8f
             return 0.7f;
         } else {
             // Low resonance setting

@@ -1,6 +1,6 @@
-#include "IG02610LPF.h"
+#include "CS01VCFCircuit.h"
 
-IG02610LPF::IG02610LPF()
+CS01VCFCircuit::CS01VCFCircuit()
     : cutoff(1000.0f),
       resonance(0.1f),
       sampleRate(0.0f)  // Unset state, will be set by prepare()
@@ -8,14 +8,14 @@ IG02610LPF::IG02610LPF()
     reset();
 }
 
-IG02610LPF::IG02610LPF(double sampleRate)
+CS01VCFCircuit::CS01VCFCircuit(double sampleRate)
     : cutoff(1000.0f), resonance(0.1f), sampleRate(static_cast<float>(sampleRate)) {
     reset();
     model.setCutoffFrequency(cutoff);
     model.setResonance(resonance);
 }
 
-void IG02610LPF::reset() {
+void CS01VCFCircuit::reset() {
     model.reset();
 
     // Reset input and output stages
@@ -23,7 +23,7 @@ void IG02610LPF::reset() {
     outputStage.reset();
 }
 
-void IG02610LPF::prepare(double newSampleRate) {
+void CS01VCFCircuit::prepare(double newSampleRate) {
     sampleRate = static_cast<float>(newSampleRate);
     model.prepare(newSampleRate);
 
@@ -34,7 +34,7 @@ void IG02610LPF::prepare(double newSampleRate) {
 
 // More accurate tanh approximation
 // Input stage processing - Clean DC blocking based on circuit diagram
-float IG02610LPF::processInputStage(float sample) {
+float CS01VCFCircuit::processInputStage(float sample) {
     // Empirical 20 Hz, second-order DC blocker; not derived from the audio-input RC network.
     sample = inputStage.dcBlocker.processSample(sample);
 
@@ -42,7 +42,7 @@ float IG02610LPF::processInputStage(float sample) {
 }
 
 // Output stage processing - Clean DC blocking based on circuit diagram
-float IG02610LPF::processOutputStage(float sample) {
+float CS01VCFCircuit::processOutputStage(float sample) {
     // Empirical coupling approximation. The schematic's 1/50 means 1 uF / 50 V,
     // not 0.02 uF. Its effective load has not been established here.
     const float cutoffFreq = 8.0f;  // Uncalibrated model value, not an RC-derived target.
@@ -56,31 +56,31 @@ float IG02610LPF::processOutputStage(float sample) {
     return outputStage.prevOutput;
 }
 
-void IG02610LPF::setCutoffFrequency(float newCutoff) {
+void CS01VCFCircuit::setCutoffFrequency(float newCutoff) {
     cutoff = juce::jlimit(20.0f, 20000.0f, newCutoff);
     model.setCutoffFrequency(cutoff);
     model.setResonance(resonance);
 }
 
-void IG02610LPF::setResonance(float newResonance) {
+void CS01VCFCircuit::setResonance(float newResonance) {
     // IG02610 resonance range (limit max to 0.8f)
     resonance = juce::jlimit(0.1f, 0.8f, newResonance);
     model.setCutoffFrequency(cutoff);
     model.setResonance(resonance);
 }
 
-float IG02610LPF::processSample(int channel, float sample) {
+float CS01VCFCircuit::processSample(int channel, float sample) {
     return processOutputStage(model.processSample(processInputStage(sample)));
 }
 
-void IG02610LPF::processBlock(float* samples, int numSamples) {
+void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
     // Process a block of mono samples
     for (int i = 0; i < numSamples; ++i) {
         samples[i] = processSample(0, samples[i]);
     }
 }
 
-void IG02610LPF::processBlock(float** channelData, int numChannels, int numSamples) {
+void CS01VCFCircuit::processBlock(float** channelData, int numChannels, int numSamples) {
     // Process each channel separately
     // Note: For true stereo processing, we would need separate state variables per channel
     for (int ch = 0; ch < numChannels; ++ch) {
@@ -93,7 +93,7 @@ void IG02610LPF::processBlock(float** channelData, int numChannels, int numSampl
     }
 }
 
-void IG02610LPF::processBlock(float* samples, int numSamples, const float* cutoffModulation,
+void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* cutoffModulation,
                               float baseResonance) {
     // Store original cutoff and resonance to restore later
     const float originalCutoff = cutoff;

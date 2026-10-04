@@ -54,7 +54,7 @@ target_sources(CheapSynth01Tests
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h
-        unit/IG02610LPFTest.cpp
+        unit/CS01VCFCircuitTest.cpp
         unit/ToneGeneratorTest.cpp
         unit/OriginalVCFProcessorTest.cpp
         unit/VCAProcessorTest.cpp
@@ -73,7 +73,7 @@ target_sources(CheapSynth01Tests
 target_sources(CheapSynth01Tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/ProgramManager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610LPF.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01VCFCircuit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ToneGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/YM10150.cpp
