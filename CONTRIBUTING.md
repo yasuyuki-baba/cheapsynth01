@@ -104,6 +104,32 @@ To run the tests:
 - Begin function names with verbs in camelCase
 - Write all comments in English
 
+### Formatting checks
+
+CI checks all tracked `.cpp` and `.h` files under `Source` and `Tests` using
+clang-format **21.1.7** and the repository's `.clang-format`. Dependencies and
+generated build files are excluded. Formatting violations fail the CI job.
+
+Install the pinned formatter in a virtual environment:
+
+```bash
+python3 -m venv /tmp/cheapsynth01-format
+/tmp/cheapsynth01-format/bin/python -m pip install clang-format==21.1.7
+export CLANG_FORMAT=/tmp/cheapsynth01-format/bin/clang-format
+```
+
+Run the same check as CI, or explicitly apply formatting fixes:
+
+```bash
+bash scripts/check-format.sh
+bash scripts/check-format.sh --fix
+```
+
+If the matching formatter is already installed, set `CLANG_FORMAT` to its
+executable path instead. Keep formatting-only changes separate from functional
+changes. The formatting workflow runs on pushes to `main`, all pull requests,
+and manual dispatches; it does not run clang-tidy static analysis.
+
 ### JUCE Best Practices
 
 - Follow JUCE design patterns
