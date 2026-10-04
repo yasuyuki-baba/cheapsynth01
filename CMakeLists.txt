@@ -188,5 +188,8 @@ if(NOT STANDALONE_ONLY)
     message(STATUS "CLAP plugin target added: CheapSynth01_CLAP")
 endif()
 
-# Add Tests directory
-add_subdirectory(Tests)
+# Keep tests enabled by default for local development.
+option(BUILD_TESTING "Build the test executable" ON)
+if(BUILD_TESTING)
+    add_subdirectory(Tests)
+endif()

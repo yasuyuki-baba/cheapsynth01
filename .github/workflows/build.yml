@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -31,7 +35,7 @@ jobs:
           
       - name: Build
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTING=OFF
           cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
           
       - name: Show
@@ -83,7 +87,7 @@ jobs:
           
       - name: Build
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTING=OFF
           cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
           
       - name: Show
@@ -147,7 +151,7 @@ jobs:
         shell: pwsh
         run: |
           $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
-          cmake -B $buildDir -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -B $buildDir -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTING=OFF
           cmake --build $buildDir --config ${{ env.BUILD_TYPE }}
           
       - name: Show

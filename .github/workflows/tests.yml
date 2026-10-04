@@ -7,6 +7,10 @@ on:
   pull_request:
     # Run on all pull requests
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
@@ -37,24 +41,16 @@ jobs:
         run: |
           mkdir -p build_tests
           cd build_tests
-          cmake .. -DSTANDALONE_ONLY=ON
+          cmake .. -DSTANDALONE_ONLY=ON -DBUILD_TESTING=ON
           cmake --build . --target CheapSynth01Tests --config Debug
       
       - name: Run tests and generate XML report
-        id: run_tests
         run: |
           cd build_tests
           if [ "$RUNNER_OS" == "Windows" ]; then
             ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests.exe --gtest_output=xml:test_results.xml
           else
             ./Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests --gtest_output=xml:test_results.xml
-          fi
-          TEST_EXIT_CODE=$?
-          echo "Test exit code: $TEST_EXIT_CODE"
-          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
-          if [ $TEST_EXIT_CODE -ne 0 ]; then
-            echo "Tests failed with exit code $TEST_EXIT_CODE"
-            exit $TEST_EXIT_CODE
           fi
         shell: bash
         
@@ -71,7 +67,3 @@ jobs:
         if: runner.os == 'Linux' && always()
         with:
           files: build_tests/test_results.xml
-          
-      - name: Check test status
-        if: steps.run_tests.outputs.test_exit_code != '0'
-        run: exit 1
