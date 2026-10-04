@@ -54,6 +54,8 @@ void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
     lastPitchWheel = newPitchWheelValue;
     auto upRange = apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load();
     auto downRange = apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load();
+    appliedBendUpRange = upRange;
+    appliedBendDownRange = downRange;
 
     const float displacement = static_cast<float>(newPitchWheelValue - 8192);
     const float bendValue = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
@@ -149,6 +151,10 @@ void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& con
 
 // Existing methods from ToneGenerator
 void ToneGenerator::updateBlockRateParameters() {
+    if (appliedBendUpRange >= 0.0f
+        && (apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load() != appliedBendUpRange
+            || apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load() != appliedBendDownRange))
+        pitchWheelMoved(lastPitchWheel);
     currentFeet =
         static_cast<Feet>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::feet)));
     currentWaveform = static_cast<Waveform>(

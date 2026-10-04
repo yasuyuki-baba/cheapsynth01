@@ -63,6 +63,8 @@ class ToneGenerator : public ISoundGenerator {
     float currentPitch = 60.0f;
     float targetPitch = 60.0f;
     float pitchBend = 0.0f;
+    float appliedBendUpRange = -1.0f;
+    float appliedBendDownRange = -1.0f;
     bool isSliding = false;
     int samplesPerStep = 0;
     int stepCounter = 0;

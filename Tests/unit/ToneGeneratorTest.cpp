@@ -7,6 +7,47 @@
 #include "../../Source/CS01Synth/MidiProcessor.h"
 #include "../../Source/CS01AudioProcessor.h"
 
+TEST(ManualPitchTest, HeldWheelUsesUpdatedRange)
+{
+    CS01AudioProcessor host;
+    auto& state = host.getValueTreeState();
+    auto set = [&](const juce::String& id, float value) {
+        auto* p = state.getParameter(id);
+        p->setValueNotifyingHost(p->convertTo0to1(value));
+    };
+    set(ParameterIds::waveType, 2);
+    set(ParameterIds::feet, 2);
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (int wheel : {0, 16383}) {
+            set(ParameterIds::pitchBendUpRange, 12);
+            set(ParameterIds::pitchBendDownRange, 12);
+            ToneGenerator generator(state);
+            generator.prepare({rate, 256, 1});
+            generator.startNote(69, 1.0f, wheel);
+            generator.updateBlockRateParameters();
+            for (float range : {7.0f, 0.0f, 12.0f}) {
+                set(wheel == 0 ? ParameterIds::pitchBendDownRange : ParameterIds::pitchBendUpRange, range);
+                generator.updateBlockRateParameters();
+                for (int i = 0; i < static_cast<int>(rate * 0.02); ++i) generator.getNextSample();
+                std::vector<double> crossings;
+                double previous = generator.getNextSample();
+                for (int i = 0; i < static_cast<int>(rate * 0.1); ++i) {
+                    const double value = generator.getNextSample();
+                    if (previous < 0 && value >= 0)
+                        crossings.push_back(i - 1.0 - previous / (value - previous));
+                    previous = value;
+                }
+                ASSERT_GT(crossings.size(), 2u);
+                const double measured = rate * (crossings.size() - 1)
+                    / (crossings.back() - crossings.front());
+                const double expected = 440.0 * std::exp2((wheel == 0 ? -range : range) / 12.0);
+                EXPECT_NEAR(measured, expected, expected * 0.001);
+                EXPECT_EQ(generator.getPlaybackState().pitchWheel, wheel);
+            }
+        }
+    }
+}
+
 TEST(ManualPitchTest, MeasuredPitchAndMidiBend)
 {
     CS01AudioProcessor host;
