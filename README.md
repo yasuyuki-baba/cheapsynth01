@@ -5,11 +5,11 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![JUCE](https://img.shields.io/badge/JUCE-Framework-orange.svg)](https://juce.com/)
 
-CheapSynth01 is a software emulation of an early 80's compact monophonic synthesizer. Developed using the JUCE framework, it recreates classic analog sounds with precision.
+CheapSynth01 is a JUCE-based software emulation of an early 80's compact monophonic synthesizer. It combines circuit-informed modeling with provisional DSP approximations where hardware characteristics remain unresolved.
 
 ## Features
 
-- Faithful circuit emulation
+- Circuit-informed synthesis with documented modeling limitations
 - Two filter types with different resonance control modes:
   - Original VCF with toggle resonance (High/Low)
   - Modern VCF with continuous resonance control
@@ -94,6 +94,11 @@ The architecture supports real-time parameter changes, allowing for expressive p
 For build instructions and development setup, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Usage
+
+See also the [MIDI implementation](docs/MIDI-Implementation.md),
+[test guide](Tests/README.md), [circuit-model limitations](docs/Circuit-model-unknowns.md),
+and [requested circuit resources](docs/Requested-circuit-resources.md).
+Regression tests verify software behavior, not calibration against original hardware.
 
 Load the plugin in your DAW or launch the standalone application.
 

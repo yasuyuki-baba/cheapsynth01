@@ -12,13 +12,13 @@ Tests the functionality of individual components. Each class has a dedicated tes
 
 - **VCOProcessorTest** - Tests for the VCO processor functionality
 - **ToneGeneratorTest** - Tests for sound generation functionality
-- **CS01VCFProcessorTest** - Tests for the CS-01 filter
+- **OriginalVCFProcessorTest** - Tests for the CS-01 filter
 - **ModernVCFProcessorTest** - Tests for the modern filter
 - **VCAProcessorTest** - Tests for the VCA processor
 - **EGProcessorTest** - Tests for the envelope generator
 - **LFOProcessorTest** - Tests for the LFO processor
 - **MidiProcessorTest** - Tests for MIDI processing
-- **NoiseProcessorTest** - Tests for the noise generator
+- **NoiseGeneratorTest** - Tests for the noise generator
 - **CS01VCFCircuitTest** - Tests for the IG02610 filter
 
 ### Integration Tests (`integration/`)
@@ -93,7 +93,7 @@ The workflow:
 1. Builds and runs tests on multiple platforms (Windows, macOS, Linux)
 2. Generates XML test reports
 3. Uploads test results as artifacts
-4. Publishes test results to the GitHub Actions interface
+4. Uploads product artifacts; successful tag builds also publish release packages
 
 The current test status can be seen in the repository README badge or in the Actions tab on GitHub.
 
@@ -107,69 +107,35 @@ Test results are saved in JUnit compatible XML format to `build_tests/test_resul
 - Error messages for failed tests
 - Test execution time
 
-#### XML Output Feature for Test Results
+#### XML output
 
-Test results are automatically output in JUnit compatible XML format:
-
-1. The TestRunner.cpp code processes test results from UnitTestRunner
-2. After test completion, this information is saved in JUnit XML format as `test_results.xml`
-3. This XML file is uploaded to GitHub Actions for test result visualization
-
-This approach allows JUCE test results to be integrated with GitHub test results API without relying on external scripts.
-
-#### JUnit XML Report Structure
-
-The generated XML has the following structure:
-
-```xml
-<?xml version="1.0" ?>
-<testsuites name="CheapSynth01Tests" timestamp="...">
-  <testsuite name="TestSuiteName" tests="numberOfTests" failures="numberOfFailures" errors="0">
-    <testcase name="TestName" classname="TestSuiteName" time="0"/>
-    <testcase name="FailedTest" classname="TestSuiteName" time="0">
-      <failure message="ErrorMessage"/>
-    </testcase>
-  </testsuite>
-</testsuites>
-```
-
-This structure complies with the standards of common CI/CD platforms such as Jenkins and GitHub Actions.
+`Tests/TestRunner.cpp` initializes Google Test and a JUCE GUI environment.
+Google Test generates the XML report directly; there is no JUCE UnitTestRunner
+conversion or custom report publisher. The default is `xml:test_results.xml`
+in the current working directory. Override it with `--gtest_output=xml:PATH`.
+CI runs from `build/` and uploads `build/test_results.xml` as an artifact.
 
 ## Test Implementation Guidelines
 
 Follow these guidelines when adding new tests:
 
-### 1. Test Class Structure
+### 1. Test structure
+
+Use Google Test's `TEST` for independent cases or `TEST_F` with a
+`::testing::Test` fixture for shared setup and teardown. For example:
 
 ```cpp
-class MyComponentTest : public juce::UnitTest
-{
-public:
-    MyComponentTest() : juce::UnitTest("MyComponent Tests") {}
-    
-    void runTest() override
-    {
-        testInitialization();
-        testFeature1();
-        testFeature2();
-        // Other test methods
-    }
-    
-private:
-    void testInitialization()
-    {
-        beginTest("Initialization Test");
-        
-        // Test code
-        
-        expect(condition, "Error message");
-    }
-    
-    // Other test methods
-};
+#include <gtest/gtest.h>
+#include "../../Source/CS01Synth/SynthConstants.h"
 
-static MyComponentTest myComponentTest;
+TEST(SynthConstantsTest, OversamplingFactorMatchesStages) {
+    EXPECT_EQ(Constants::oversamplingFactor,
+              std::size_t{1} << Constants::oversamplingStages);
+}
 ```
+
+Add each new test source to `Tests/CMakeLists.txt`. The shared runner already
+initializes JUCE; do not add another `main()` or a static JUCE UnitTest instance.
 
 ### 2. Test Categories
 
@@ -182,14 +148,13 @@ Each test method should test a specific functional category:
 
 ### 3. Assertions
 
-JUCE's unit testing framework provides the following assertions:
+Use Google Test assertions:
 
-- `expect(condition, message)` - Verify that a condition is true
-- `expectEquals(a, b, message)` - Verify that two values are equal
-- `expectNotEquals(a, b, message)` - Verify that two values are not equal
-- `expectLessThan(a, b, message)` - Verify that a is less than b
-- `expectGreaterThan(a, b, message)` - Verify that a is greater than b
-- `expectWithinAbsoluteError(a, b, error, message)` - Verify that the difference between a and b is less than or equal to error
+- `EXPECT_TRUE` / `EXPECT_FALSE` for conditions
+- `EXPECT_EQ` / `EXPECT_NE` for equality
+- `EXPECT_LT` / `EXPECT_GT` for ordering
+- `EXPECT_NEAR` for an absolute floating-point tolerance
+- `ASSERT_*` when failure must stop the current test before continuing
 
 ### 4. Using Mock Objects
 

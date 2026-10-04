@@ -73,11 +73,13 @@ To build all plugin formats including CLAP:
 
 ```bash
 # Create and configure build directory (all formats)
-cmake -B build -DSTANDALONE_ONLY=OFF
+cmake -B build -DSTANDALONE_ONLY=OFF -DCMAKE_BUILD_TYPE=Release
 
 # Build the project
 cmake --build build
 ```
+
+For multi-configuration generators, build with `cmake --build build --config Release`.
 
 This builds all supported plugin formats:
 - Standalone application
@@ -93,6 +95,13 @@ To run the tests:
 ```bash
 ./run_tests.sh
 ```
+
+The test script assumes Bash, Unix Makefiles, and a Debug executable. For other
+generators, configure with `-DBUILD_TESTING=ON` and build using
+`cmake --build build --target CheapSynth01Tests --config Debug`.
+Run `build/Tests/CheapSynth01Tests_artefacts/Debug/CheapSynth01Tests`
+(append `.exe` on Windows). See [Tests/README.md](Tests/README.md) for details.
+Tests are enabled by default; use `-DBUILD_TESTING=OFF` for product-only builds.
 
 ## Coding Guidelines
 
@@ -171,11 +180,13 @@ When implementing a new feature:
 
 ## Continuous Integration
 
-This project uses GitHub Actions for continuous integration. On each push and pull request to any branch, the following actions are performed:
+This project uses GitHub Actions for continuous integration. Pushes to `main`,
+tag pushes, all pull requests, and manual dispatches run the workflow:
 
 - Building the project on multiple platforms (Windows, macOS, Linux)
 - Running all tests
-- Generating and publishing test reports
+- Checking C++ formatting before platform builds
+- Generating XML test reports and uploading them as artifacts
 
 You can view the latest test results in the Actions tab of the GitHub repository.
 
