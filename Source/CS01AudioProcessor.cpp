@@ -25,6 +25,7 @@ CS01AudioProcessor::~CS01AudioProcessor() {
 //==============================================================================
 void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
+    panelBendCollector.reset(sampleRate);
     processingCapacity = juce::jmax(1, samplesPerBlock);
     outputOversampling = std::make_unique<juce::dsp::Oversampling<float>>(
         getMainBusNumOutputChannels(), Constants::oversamplingStages,
@@ -162,6 +163,15 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
     // Graph topology changes are queued on the message thread by handleAsyncUpdate().
     midiMessageCollector.removeNextBlockOfMessages(midiMessages, buffer.getNumSamples());
+    bool externalBend = false;
+    for (const auto metadata : midiMessages)
+        externalBend = externalBend || metadata.getMessage().isPitchWheel();
+    juce::MidiBuffer panelBend;
+    panelBendCollector.removeNextBlockOfMessages(panelBend, buffer.getNumSamples());
+    if (externalBend)
+        externalBendRevision.fetch_add(1);
+    else
+        midiMessages.addEvents(panelBend, 0, buffer.getNumSamples(), 0);
 
     keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
     // MidiProcessor applies events immediately. Render the graph in segments
@@ -335,7 +345,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
     auto modGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "mod", "Modulation", "|",
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::pitchBend, "Pitch Bend", juce::NormalisableRange<float>(0.0f, 12.0f),
+            ParameterIds::pitchBend, "Pitch Bend", juce::NormalisableRange<float>(-1.0f, 1.0f),
             0.0f, juce::AudioParameterFloatAttributes().withAutomatable(false)),
         std::make_unique<juce::AudioParameterFloat>(ParameterIds::breathVcf, "Breath VCF",
                                                     juce::NormalisableRange<float>(0.0f, 1.0f),
@@ -346,7 +356,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
         std::make_unique<juce::AudioParameterInt>(ParameterIds::pitchBendUpRange, "Pitch Bend Up",
                                                   0, 12, 12),
         std::make_unique<juce::AudioParameterInt>(ParameterIds::pitchBendDownRange,
-                                                  "Pitch Bend Down", 0, 12, 12));
+                                                  "Pitch Bend Down", 0, 12, 0));
     layout.add(std::move(modGroup));
 
     auto globalGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
