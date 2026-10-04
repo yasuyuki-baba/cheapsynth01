@@ -22,8 +22,9 @@ TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
             if (button->getButtonText() == "II")
                 modern = button;
         }
-        if (auto* slider = dynamic_cast<juce::Slider*>(child))
+        if (auto* slider = dynamic_cast<juce::Slider*>(child)) {
             EXPECT_GE(slider->getY(), 30);
+        }
     }
     ASSERT_NE(original, nullptr);
     ASSERT_NE(modern, nullptr);

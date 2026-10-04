@@ -24,6 +24,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Google Test 1.14 uses an implicit char8_t conversion in its own printer.
+# Keep the workaround scoped to the dependency, not project code.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(gtest PRIVATE -Wno-character-conversion)
+endif()
+
 # Create test executable
 juce_add_console_app(CheapSynth01Tests
     PRODUCT_NAME "CheapSynth01Tests"

@@ -662,8 +662,9 @@ TEST(VcoSpectrumTest, FourTimesNonlinearOversamplingComparison) {
                 fundamental[mode] =
                     measureSpectralAmplitude(rate, 5000.0, [&](int i) { return outputs[mode][i]; });
                 ASSERT_GT(fundamental[mode], 0.0);
-                if (sineControl)
+                if (sineControl) {
                     EXPECT_NEAR(fundamental[mode], 0.5, 0.001);
+                }
             }
             for (int harmonic : {5, 7, 9}) {
                 const double wrapped = std::fmod(5000.0 * harmonic, rate);
