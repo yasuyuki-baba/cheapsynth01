@@ -2,6 +2,68 @@
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/IG02610LPF.h"
 #include "../../Source/CS01Synth/SynthConstants.h"
+#include "../../Source/CS01AudioProcessor.h"
+
+TEST(IG02610ControlTest, LowCutoffNumeratorPrecisionDiagnosis)
+{
+    // Isolate coefficient construction from nonlinear and coupling stages.
+    for (double rate : {176400.0, 192000.0, 384000.0}) {
+        const double angle = juce::MathConstants<double>::twoPi * 20.0 / rate;
+        // Independent, cancellation-resistant trigonometric identity.
+        const double expected = 2.0 * std::pow(std::sin(angle * 0.5), 2.0);
+        const double doubleNumerator = 1.0 - std::cos(angle);
+        EXPECT_NEAR(doubleNumerator, expected, expected * 1.0e-8);
+        const float floatAngle = (20.0f / static_cast<float>(rate))
+            * (2.0f * juce::MathConstants<float>::pi);
+        const float floatNumerator = 1.0f - std::cos(floatAngle);
+        std::cout << "VCF numerator precision: rate=" << rate
+                  << ", relative-error=" << floatNumerator / expected - 1.0 << '\n';
+        // Diagnostic only: deliberately do not require the observed float error.
+        // An implementation improvement must not make this test fail.
+        EXPECT_GT(expected, 0.0);
+    }
+}
+
+TEST(IG02610ControlTest, ProductionPanelResponseObservation)
+{
+    CS01AudioProcessor host;
+    auto* parameter = host.getValueTreeState().getParameter(ParameterIds::cutoff);
+    ASSERT_NE(parameter, nullptr);
+    for (double hostRate : {44100.0, 48000.0, 96000.0}) {
+        const double rate = hostRate * Constants::oversamplingFactor;
+        for (float position : {0.0f, 0.5f, 1.0f}) {
+            const float cutoff = parameter->convertFrom0to1(position);
+            for (float resonance : {0.2f, 0.7f}) {
+                for (double ratio : {0.5, 0.75, 0.9, 1.0, 1.1, 1.5, 2.0}) {
+                    // Observe only the host-audible band. No peak claim at the
+                    // maximum setting, whose resonance is near the band edge.
+                    const double frequency = std::round(cutoff * ratio);
+                    if (frequency >= hostRate * 0.45) continue;
+                    IG02610LPF filter;
+                    filter.prepare(rate);
+                    filter.setCutoffFrequency(cutoff);
+                    filter.setResonance(resonance);
+                    double sine = 0.0, cosine = 0.0;
+                    const int count = static_cast<int>(rate);
+                    for (int i = 0; i < count * 2; ++i) {
+                        const double phase = juce::MathConstants<double>::twoPi * frequency * i / rate;
+                        const double output = filter.processSample(0, static_cast<float>(0.01 * std::sin(phase)));
+                        ASSERT_TRUE(std::isfinite(output));
+                        if (i >= count) {
+                            sine += output * std::sin(phase);
+                            cosine += output * std::cos(phase);
+                        }
+                    }
+                    const double gain = 2.0 * std::hypot(sine, cosine) / count / 0.01;
+                    ASSERT_GT(gain, 0.0);
+                    std::cout << "VCF panel: host=" << hostRate << ", position=" << position
+                              << ", cutoff=" << cutoff << ", resonance=" << resonance
+                              << ", frequency=" << frequency << ", gain=" << 20.0 * std::log10(gain) << " dB\n";
+                }
+            }
+        }
+    }
+}
 
 TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded)
 {

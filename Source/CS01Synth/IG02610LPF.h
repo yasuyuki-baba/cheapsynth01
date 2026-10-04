@@ -30,8 +30,8 @@ class IG02610LPF {
 
    private:
     float cutoff, resonance, sampleRate;
-    float a1, a2, b0, b1, b2;
-    float z1, z2;
+    double a1, a2, b0, b1, b2;
+    double z1, z2;
 
     // Input level tracking for OTA input level dependency characteristic
     float inputLevelSmoothed = 0.0f;
