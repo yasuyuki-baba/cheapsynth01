@@ -55,10 +55,11 @@ TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope) {
             EXPECT_NEAR(observed->getLastOutputForTesting(), expected->getLastOutputForTesting(),
                         1.0e-6f);
             EXPECT_EQ(observed->isActive(), expected->isActive());
-            if (block >= 3)
+            if (block >= 3) {
                 EXPECT_FLOAT_EQ(
                     reset.getValueTreeState().getRawParameterValue(ParameterIds::pitchBend)->load(),
                     0.0f);
+            }
             if (block >= 150) {
                 for (int i = 0; i < blockSize; ++i) {
                     ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
@@ -379,8 +380,9 @@ TEST(OutputConversionTest, DownsamplingImpulseAndReportedRoundTripLatency) {
             weightedEnergy += i * value * value;
             if (std::abs(value) > std::abs(buffer.getSample(0, peak)))
                 peak = i;
-            if (channels == 2)
+            if (channels == 2) {
                 EXPECT_FLOAT_EQ(buffer.getSample(1, i), buffer.getSample(0, i));
+            }
         }
         ASSERT_GT(energy, 0.0);
         EXPECT_NEAR(sum, 1.0 / Constants::oversamplingFactor, 1.0e-5);
@@ -553,8 +555,9 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
                 controlled.processBlock(b, mb);
                 for (int i = 0; i < blockSize; ++i) {
                     ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
-                    if (!enabled)
+                    if (!enabled) {
                         EXPECT_NEAR(b.getSample(0, i), a.getSample(0, i), 1.0e-6f);
+                    }
                     if (block * blockSize >= 24000 && block * blockSize < 35000) {
                         baselinePower += std::pow(a.getSample(0, i), 2);
                         mutedPower += std::pow(b.getSample(0, i), 2);
@@ -570,8 +573,9 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
                                 ->load(),
                             1.0f);
             ASSERT_GT(baselinePower, 1.0e-8);
-            if (enabled)
+            if (enabled) {
                 EXPECT_LT(mutedPower, baselinePower * 1.0e-8);
+            }
             ASSERT_GT(recoveredReferencePower, 1.0e-8);
             // Allow output coupling transients to settle; compare power, not phase.
             EXPECT_NEAR(recoveredPower / recoveredReferencePower, 1.0, 0.01);

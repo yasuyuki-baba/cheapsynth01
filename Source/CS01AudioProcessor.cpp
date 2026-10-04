@@ -276,19 +276,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
     auto vcoGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "vco", "VCO", "|",
         std::make_unique<juce::AudioParameterChoice>(
-            ParameterIds::waveType, "Wave Type",
+            juce::ParameterID{ParameterIds::waveType, 1}, "Wave Type",
             juce::StringArray{"Triangle", "Sawtooth", "Square", "Pulse", "PWM"}, 1),
         std::make_unique<juce::AudioParameterChoice>(
-            ParameterIds::feet, "Feet", juce::StringArray{"32'", "16'", "8'", "4'", "WN"}, 2),
+            juce::ParameterID{ParameterIds::feet, 1}, "Feet",
+            juce::StringArray{"32'", "16'", "8'", "4'", "WN"}, 2),
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::pwmSpeed, "PWM Speed",
+            juce::ParameterID{ParameterIds::pwmSpeed, 1}, "PWM Speed",
             // CS01J owner's manual, printed page 24. Taper remains approximate.
             juce::NormalisableRange<float>(0.6f, 12.0f, 0.01f, 0.25f), 2.0f),
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::pitch, "Pitch", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.001f),
-            0.0f),
+            juce::ParameterID{ParameterIds::pitch, 1}, "Pitch",
+            juce::NormalisableRange<float>(-1.0f, 1.0f, 0.001f), 0.0f),
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::glissando, "Glissando",
+            juce::ParameterID{ParameterIds::glissando, 1}, "Glissando",
             juce::NormalisableRange<float>(0.0f, Constants::maxGlissandoPerSemitoneSeconds, 0.001f,
                                            0.5f),
             0.0f));
@@ -297,20 +298,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
     auto vcfGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "vcf", "VCF", "|",
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::cutoff, "Cutoff",
+            juce::ParameterID{ParameterIds::cutoff, 1}, "Cutoff",
             juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.3f), 20000.0f),
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::resonance, "Resonance", juce::NormalisableRange<float>(0.0f, 1.0f), 0.2f),
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::vcfEgDepth, "VCF EG Depth",
-                                                    juce::NormalisableRange<float>(0.0f, 1.0f),
-                                                    0.0f));
+            juce::ParameterID{ParameterIds::resonance, 1}, "Resonance",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.2f),
+        std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ParameterIds::vcfEgDepth, 1}, "VCF EG Depth",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
     layout.add(std::move(vcfGroup));
 
     auto vcaGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "vca", "VCA", "|",
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::vcaEgDepth, "VCA EG Depth",
-                                                    juce::NormalisableRange<float>(0.0f, 1.0f),
-                                                    1.0f));
+        std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ParameterIds::vcaEgDepth, 1}, "VCA EG Depth",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 1.0f));
     layout.add(std::move(vcaGroup));
 
     auto egGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
@@ -318,58 +320,64 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
         // Uncalibrated seconds range. Owner's manual specifies only S-L;
         // skew is a UI mapping, not a measured A2M potentiometer taper.
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::attack, "Attack",
+            juce::ParameterID{ParameterIds::attack, 1}, "Attack",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f),
         // Uncalibrated decay duration; not derived from the circuit's RC constant.
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::decay, "Decay",
+            juce::ParameterID{ParameterIds::decay, 1}, "Decay",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f),
         // Normalized sustain level. Circuit audit identifies a B10K potentiometer.
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::sustain, "Sustain", juce::NormalisableRange<float>(0.0f, 1.0f), 0.8f),
+            juce::ParameterID{ParameterIds::sustain, 1}, "Sustain",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.8f),
         // Uncalibrated release duration; retain independently of envelope shape.
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::release, "Release",
+            juce::ParameterID{ParameterIds::release, 1}, "Release",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f));
     layout.add(std::move(egGroup));
 
     auto lfoGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "lfo", "LFO", "|",
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::lfoSpeed, "LFO Speed",
+            juce::ParameterID{ParameterIds::lfoSpeed, 1}, "LFO Speed",
             juce::NormalisableRange<float>(0.8f, 21.0f, 0.01f, 0.3f), 5.0f),
-        std::make_unique<juce::AudioParameterChoice>(ParameterIds::lfoTarget, "LFO Target",
-                                                     juce::StringArray{"VCO", "VCF"}, 0),
+        std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{ParameterIds::lfoTarget, 1},
+                                                     "LFO Target", juce::StringArray{"VCO", "VCF"},
+                                                     0),
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::modDepth, "Mod Depth", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f,
+            juce::ParameterID{ParameterIds::modDepth, 1}, "Mod Depth",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f,
             juce::AudioParameterFloatAttributes().withAutomatable(false)));
     layout.add(std::move(lfoGroup));
 
     auto modGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "mod", "Modulation", "|",
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::pitchBend, "Pitch Bend", juce::NormalisableRange<float>(-1.0f, 1.0f),
-            0.0f, juce::AudioParameterFloatAttributes().withAutomatable(false)),
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::breathVcf, "Breath VCF",
-                                                    juce::NormalisableRange<float>(0.0f, 1.0f),
-                                                    0.0f),
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::breathVca, "Breath VCA",
-                                                    juce::NormalisableRange<float>(0.0f, 1.0f),
-                                                    0.0f),
-        std::make_unique<juce::AudioParameterInt>(ParameterIds::pitchBendUpRange, "Pitch Bend Up",
-                                                  0, 12, 12),
-        std::make_unique<juce::AudioParameterInt>(ParameterIds::pitchBendDownRange,
-                                                  "Pitch Bend Down", 0, 12, 0));
+            juce::ParameterID{ParameterIds::pitchBend, 1}, "Pitch Bend",
+            juce::NormalisableRange<float>(-1.0f, 1.0f), 0.0f,
+            juce::AudioParameterFloatAttributes().withAutomatable(false)),
+        std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ParameterIds::breathVcf, 1}, "Breath VCF",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ParameterIds::breathVca, 1}, "Breath VCA",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID{ParameterIds::pitchBendUpRange, 1}, "Pitch Bend Up", 0, 12, 12),
+        std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID{ParameterIds::pitchBendDownRange, 1}, "Pitch Bend Down", 0, 12, 0));
     layout.add(std::move(modGroup));
 
     auto globalGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "global", "Global", "|",
         std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::volume, "Volume", juce::NormalisableRange<float>(0.0f, 1.0f), 0.7f),
-        std::make_unique<juce::AudioParameterFloat>(ParameterIds::breathInput, "Breath Input",
-                                                    juce::NormalisableRange<float>(0.0f, 1.0f),
-                                                    0.0f),
-        std::make_unique<juce::AudioParameterChoice>(ParameterIds::filterType, "Filter Type",
+            juce::ParameterID{ParameterIds::volume, 1}, "Volume",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.7f),
+        std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ParameterIds::breathInput, 1}, "Breath Input",
+            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
+        std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{ParameterIds::filterType, 1},
+                                                     "Filter Type",
                                                      juce::StringArray{"Original", "Modern"}, 0));
     layout.add(std::move(globalGroup));
 

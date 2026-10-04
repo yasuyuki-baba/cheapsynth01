@@ -22,8 +22,8 @@ jobs:
     name: C++ formatting
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install clang-format
@@ -49,7 +49,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Install dependencies (Linux)
@@ -58,7 +58,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype6-dev libx11-dev libxi-dev libxext-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev libxrender-dev libfontconfig1-dev libgtk-3-dev lv2-dev xvfb xauth openbox x11-utils
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install -y ninja-build
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            command -v ninja >/dev/null || brew install ninja
+          fi
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+          else
+            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+          fi
       - name: Build
         run: cmake --build build --config "$BUILD_TYPE" --parallel 2
       - name: Run tests
@@ -74,12 +84,12 @@ jobs:
           fi
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ runner.os }}
           path: build/test_results.xml
       - name: Upload products
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cheapsynth01-${{ matrix.platform }}
           path: |
@@ -114,7 +124,7 @@ jobs:
           Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
       - name: Upload release packages
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cheapsynth01-${{ matrix.platform }}-packages
           path: release-packages/*.zip
@@ -129,7 +139,7 @@ jobs:
       contents: write
     steps:
       - name: Download release packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: cheapsynth01-*-packages
           path: release-packages

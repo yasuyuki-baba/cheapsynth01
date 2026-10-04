@@ -4,6 +4,14 @@
 #include "../../Source/Parameters.h"
 #include "../../Source/CS01AudioProcessor.h"
 
+TEST(ParameterVersionTest, ProductionParametersHaveStableVersionHints) {
+    CS01AudioProcessor processor;
+    ASSERT_EQ(processor.getParameters().size(), 24);
+    for (auto* parameter : processor.getParameters()) {
+        EXPECT_EQ(parameter->getVersionHint(), 1);
+    }
+}
+
 TEST(ProductionStateTest, UserPresetFileRoundTrip) {
     CS01AudioProcessor host;
     auto& state = host.getValueTreeState();
