@@ -313,18 +313,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
 
     auto egGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
         "eg", "EG", "|",
-        // Attack time: Range based on A2M potentiometer (0-2MΩ) with exponential curve
+        // Uncalibrated seconds range. Owner's manual specifies only S-L;
+        // skew is a UI mapping, not a measured A2M potentiometer taper.
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::attack, "Attack",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f),
-        // Decay time: Range based on A2M potentiometer (0-2MΩ) with exponential curve
+        // Uncalibrated decay duration; not derived from the circuit's RC constant.
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::decay, "Decay",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f),
-        // Sustain level: Range based on B1M potentiometer (0-1MΩ) with linear response
+        // Normalized sustain level. Circuit audit identifies a B10K potentiometer.
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::sustain, "Sustain", juce::NormalisableRange<float>(0.0f, 1.0f), 0.8f),
-        // Release time: Range based on A2M potentiometer (0-2MΩ) with exponential curve
+        // Uncalibrated release duration; retain independently of envelope shape.
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::release, "Release",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.1f));

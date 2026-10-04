@@ -2,6 +2,53 @@
 #include <JuceHeader.h>
 #include "../../Source/CS01Synth/EGProcessor.h"
 #include "../../Source/Parameters.h"
+#include "../../Source/CS01AudioProcessor.h"
+
+TEST(EGTimingTest, ProductionRangeStageDurations)
+{
+    // Use production parameter ranges, not the different ranges in the unit fixture.
+    CS01AudioProcessor owner;
+    auto& state = owner.apvts;
+    for (double rate : {44100.0, 48000.0, 96000.0, 192000.0, 384000.0}) {
+        for (float position : {0.0f, 0.5f, 1.0f}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(position);
+            for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release})
+                state.getParameter(id)->setValueNotifyingHost(position);
+            state.getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.5f);
+            EGProcessor eg(state);
+            eg.prepareToPlay(rate, 256);
+            juce::AudioBuffer<float> buffer(1, 256);
+            juce::MidiBuffer midi;
+            int index = 256;
+            auto next = [&]() {
+                if (index == 256) {
+                    eg.processBlock(buffer, midi);
+                    index = 0;
+                }
+                return buffer.getSample(0, index++);
+            };
+            auto duration = [&](auto done) {
+                const int limit = static_cast<int>(rate * 3.0);
+                for (int n = 1; n <= limit; ++n)
+                    if (done(next())) return n;
+                return limit + 1;
+            };
+            auto check = [&](const auto& id, int samples) {
+                const double expected = state.getRawParameterValue(id)->load();
+                // Explicit numerical timing target, not a CS-01 hardware tolerance.
+                EXPECT_NEAR(samples / rate, expected, expected * 0.01 + 2.0 / rate);
+            };
+            eg.startEnvelope();
+            check(ParameterIds::attack, duration([](float v) { return v >= 1.0f; }));
+            check(ParameterIds::decay, duration([](float v) { return v <= 0.5f; }));
+            // Drain the pre-rendered block before applying the note-off event.
+            while (index < 256) next();
+            eg.releaseEnvelope();
+            check(ParameterIds::release, duration([](float v) { return v == 0.0f; }));
+        }
+    }
+}
 
 // Test fixture for EGProcessor tests
 class EGProcessorTest : public ::testing::Test
