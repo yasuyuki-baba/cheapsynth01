@@ -270,7 +270,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
             ParameterIds::feet, "Feet", juce::StringArray{"32'", "16'", "8'", "4'", "WN"}, 2),
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::pwmSpeed, "PWM Speed",
-            juce::NormalisableRange<float>(0.0f, 60.0f, 0.01f, 0.25f), 2.0f),
+            // CS01J owner's manual, printed page 24. Taper remains approximate.
+            juce::NormalisableRange<float>(0.6f, 12.0f, 0.01f, 0.25f), 2.0f),
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::pitch, "Pitch", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.001f),
             0.0f),
@@ -323,7 +324,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createPa
         "lfo", "LFO", "|",
         std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::lfoSpeed, "LFO Speed",
-            juce::NormalisableRange<float>(0.0f, 21.0f, 0.01f, 0.3f), 5.0f),
+            juce::NormalisableRange<float>(0.8f, 21.0f, 0.01f, 0.3f), 5.0f),
         std::make_unique<juce::AudioParameterChoice>(ParameterIds::lfoTarget, "LFO Target",
                                                      juce::StringArray{"VCO", "VCF"}, 0),
         std::make_unique<juce::AudioParameterFloat>(

@@ -26,7 +26,7 @@ class IWaveformStrategy {
      * @return Generated waveform sample
      */
     virtual float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                           float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) = 0;
+                           float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) = 0;
 
     /**
      * Reset the strategy's internal state

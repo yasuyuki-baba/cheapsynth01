@@ -34,7 +34,7 @@ protected:
         // Add parameters needed for LFOProcessor
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::lfoSpeed, "LFO Speed", 
-            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 0.5f), 1.0f));
+            juce::NormalisableRange<float>(0.1f, 21.0f, 0.01f, 0.5f), 1.0f));
         
         return layout;
     }
@@ -171,9 +171,11 @@ TEST_F(LFOProcessorTest, WaveformGeneration)
 TEST_F(LFOProcessorTest, PeriodAmplitudeAndContinuity)
 {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
-        for (float frequency : {1.0f, 5.0f}) {
+        for (float frequency : {0.8f, 10.9f, 21.0f}) {
             SCOPED_TRACE(sampleRate);
             SCOPED_TRACE(frequency);
+            // Physical Hz probes; the public parameter endpoints are tested
+            // separately in ModulationRangeTest.
             processor = std::make_unique<LFOProcessor>(*apvts);
             apvts->getParameter(ParameterIds::lfoSpeed)->setValueNotifyingHost(
                 apvts->getParameter(ParameterIds::lfoSpeed)->convertTo0to1(frequency));

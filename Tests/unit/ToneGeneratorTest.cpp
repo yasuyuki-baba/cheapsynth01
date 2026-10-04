@@ -115,6 +115,95 @@ TEST(ToneGeneratorRealTest, GlissandoUsesHostSampleTime)
     }
 }
 
+TEST(ToneGeneratorRealTest, LiveGlissandoSpeedPreservesStepProgress)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (float newDuration : {0.0078125f, 0.03125f, 0.0f}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(newDuration);
+            ProductionVcoHarness sliding(2, rate, 440), reference(2, rate, 440);
+            auto* parameter = sliding.state.getParameter(ParameterIds::glissando);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(0.015625f));
+            sliding.generator.changeNote(72);
+            const int oldStep = static_cast<int>(sliding.state.getRawParameterValue(ParameterIds::glissando)->load() * static_cast<float>(rate));
+            const int changeAt = oldStep / 2;
+            // Change halfway through a step: half the new duration remains.
+            const float mappedDuration = parameter->convertFrom0to1(parameter->convertTo0to1(newDuration));
+            const int newStep = static_cast<int>(mappedDuration * static_cast<float>(rate));
+            const int remaining = newStep - static_cast<int>(static_cast<double>(changeAt) * newStep / oldStep);
+            const int firstStep = changeAt + remaining - 1;
+            double maximumError = 0.0;
+            for (int i = 0; i < static_cast<int>(rate * 0.2); ++i) {
+                if (i == changeAt)
+                    parameter->setValueNotifyingHost(parameter->convertTo0to1(newDuration));
+                if (newDuration == 0.0f) {
+                    if (i == changeAt)
+                        reference.generator.setNote(72, false);
+                } else {
+                    for (int step = 0; step < 3; ++step)
+                        if (i == firstStep + step * newStep)
+                            reference.generator.setNote(70 + step, false);
+                }
+                const float actual = sliding.generator.getNextSample();
+                ASSERT_TRUE(std::isfinite(actual));
+                maximumError = std::max(maximumError,
+                    std::abs(static_cast<double>(actual) - reference.generator.getNextSample()));
+            }
+            EXPECT_NEAR(maximumError, 0.0, 1.0e-6);
+        }
+    }
+}
+
+TEST(ToneGeneratorRealTest, RepeatedLiveGlissandoUpdatesArePartitionIndependent)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (int blockSize : {1, 7, 64, 256}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(blockSize);
+            ProductionVcoHarness scalar(2, rate, 440), blocked(2, rate, 440);
+            const auto setDuration = [](ProductionVcoHarness& harness, float duration) {
+                auto* parameter = harness.state.getParameter(ParameterIds::glissando);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(duration));
+            };
+            for (auto* harness : {&scalar, &blocked}) {
+                setDuration(*harness, 0.1f);
+                harness->generator.changeNote(72);
+            }
+            // Several changes occur before the initial step could complete.
+            const float durations[] = {0.08f, 0.12f, 0.04f, 0.0f};
+            int offset = 0;
+            for (float duration : durations) {
+                const int end = offset + static_cast<int>(rate * 0.005);
+                while (offset < end) {
+                    const int count = juce::jmin(blockSize, end - offset);
+                    juce::AudioBuffer<float> output(1, count);
+                    output.clear();
+                    blocked.generator.renderNextBlock(output, 0, count);
+                    for (int i = 0; i < count; ++i) {
+                        const float expected = scalar.generator.getNextSample();
+                        ASSERT_TRUE(std::isfinite(output.getSample(0, i)));
+                        EXPECT_NEAR(output.getSample(0, i), expected, 1.0e-6);
+                    }
+                    offset += count;
+                }
+                setDuration(scalar, duration);
+                setDuration(blocked, duration);
+            }
+            // Compare periods after the zero-duration update, not absolute phase.
+            int crossings = 0;
+            float previous = 0.0f;
+            for (int i = 0; i < static_cast<int>(rate); ++i) {
+                const float sample = blocked.generator.getNextSample();
+                EXPECT_NEAR(sample, scalar.generator.getNextSample(), 1.0e-6);
+                if (i > static_cast<int>(rate * 0.1) && previous <= 0.0f && sample > 0.0f)
+                    ++crossings;
+                previous = sample;
+            }
+            EXPECT_NEAR(crossings / 0.9, 440.0 * std::exp2(3.0 / 12.0), 2.0);
+        }
+    }
+}
+
 TEST(ToneGeneratorRealTest, PwmPeriodUsesSecondsNotInternalSamples)
 {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
@@ -148,6 +237,56 @@ TEST(ToneGeneratorRealTest, PwmPeriodUsesSecondsNotInternalSamples)
         // 2 Hz repeats at 0.5 s; a quarter-second shift must not be equivalent.
         EXPECT_LT(repeatPower / 240, 0.001);
         EXPECT_GT(quarterPower / 240, 0.01);
+    }
+}
+
+TEST(ToneGeneratorRealTest, PwmManualRangePeriods)
+{
+    for (double hostRate : {44100.0, 48000.0, 96000.0}) {
+      for (double multiplier : {1.0, static_cast<double>(Constants::oversamplingFactor)}) {
+        const double rate = hostRate * multiplier;
+        for (float frequency : {0.6f, 6.3f, 12.0f}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(frequency);
+            ProductionVcoHarness harness(4, rate, 480.0);
+            auto* speed = harness.state.getParameter(ParameterIds::pwmSpeed);
+            speed->setValueNotifyingHost(speed->convertTo0to1(frequency));
+            harness.generator.prepare({rate, 256, 1});
+            harness.generator.startNote(69, 1, 8192);
+            harness.generator.setPitchBend(static_cast<float>(12 * std::log2(480.0 / 440.0)));
+            harness.generator.updateBlockRateParameters();
+            for (int i = 0; i < static_cast<int>(rate); ++i)
+                harness.generator.getNextSample();
+            std::vector<double> crossings;
+            double previous = 0.0;
+            bool armed = false;
+            int sampleIndex = 0;
+            const int cycles = static_cast<int>(480.0 * 4.0 / frequency);
+            for (int cycle = 0; cycle < cycles; ++cycle) {
+                const int end = static_cast<int>((cycle + 1) * rate / 480.0);
+                double mean = 0.0;
+                const int count = end - sampleIndex;
+                while (sampleIndex < end) {
+                    mean += harness.generator.getNextSample();
+                    ++sampleIndex;
+                }
+                mean /= count;
+                ASSERT_TRUE(std::isfinite(mean));
+                if (mean < -0.1)
+                    armed = true;
+                if (armed && cycle > 0 && previous < 0.0 && mean >= 0.0) {
+                    crossings.push_back(cycle - 1 + (-previous / (mean - previous)));
+                    armed = false;
+                }
+                previous = mean;
+            }
+            ASSERT_GE(crossings.size(), 3u);
+            const double measured = 480.0 * (crossings.size() - 1)
+                / (crossings.back() - crossings.front());
+            // Carrier-cycle averaging limits temporal resolution; verify 0.5%.
+            EXPECT_NEAR(measured, frequency, frequency * 0.005);
+        }
+      }
     }
 }
 
@@ -296,7 +435,7 @@ TEST(VcoSpectrumTest, HighFrequencyAliasCharacterization)
                     case 2: strategy = std::make_unique<SquareWaveformStrategy>(); break;
                     default: strategy = std::make_unique<PulseWaveformStrategy>(); break;
                 }
-                juce::dsp::Oscillator<float> pwm;
+                juce::dsp::Oscillator<double> pwm;
                 float previous = 0.0f;
                 const float increment = static_cast<float>(5000.0 / rate);
                 amplitudes[bin] = measureSpectralAmplitude(rate,
@@ -463,7 +602,7 @@ TEST(VcoSpectrumTest, WaveformStrategySampleRateCharacterization)
                     case 3: strategy = std::make_unique<PulseWaveformStrategy>(); break;
                     default: strategy = std::make_unique<PWMWaveformStrategy>(); break;
                 }
-                juce::dsp::Oscillator<float> pwm;
+                juce::dsp::Oscillator<double> pwm;
                 pwm.initialise([](float x) { return std::asin(std::sin(x))
                     * 2.0f / juce::MathConstants<float>::pi; });
                 pwm.prepare({rate, 256, 1});

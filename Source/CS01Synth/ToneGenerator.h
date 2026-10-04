@@ -90,7 +90,7 @@ class ToneGenerator : public ISoundGenerator {
     Feet currentFeet = Feet::Feet8;
 
     // LFOs
-    juce::dsp::Oscillator<float> pwmLfo;
+    juce::dsp::Oscillator<double> pwmLfo;
     float lfoValue = 0.0f;
 
     // Waveform Strategy Pattern - simplified with direct mapping

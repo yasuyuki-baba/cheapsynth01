@@ -6,6 +6,36 @@
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include <chrono>
 
+TEST(ModulationRangeTest, ManualEndpointsAndSavedStateCompatibility)
+{
+    CS01AudioProcessor processor;
+    auto& state = processor.getValueTreeState();
+    for (const auto& id : {ParameterIds::lfoSpeed, ParameterIds::pwmSpeed}) {
+        const bool lfo = id == ParameterIds::lfoSpeed;
+        auto* parameter = state.getParameter(id);
+        ASSERT_NE(parameter, nullptr);
+        const float minimum = lfo ? 0.8f : 0.6f;
+        const float maximum = lfo ? 21.0f : 12.0f;
+        EXPECT_NEAR(parameter->convertFrom0to1(0.0f), minimum, 1.0e-5f);
+        EXPECT_NEAR(parameter->convertFrom0to1(1.0f), maximum, 1.0e-5f);
+
+        // Persist physical Hz, not a normalized slider position. Include legacy
+        // values outside the newly documented hardware range.
+        for (float value : {0.0f, 2.0f, 5.0f, 60.0f}) {
+            auto saved = state.copyState();
+            auto child = saved.getChildWithProperty("id", id);
+            ASSERT_TRUE(child.isValid());
+            child.setProperty("value", value, nullptr);
+            auto xml = saved.createXml();
+            juce::MemoryBlock data;
+            juce::AudioProcessor::copyXmlToBinary(*xml, data);
+            processor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+            EXPECT_NEAR(state.getRawParameterValue(id)->load(),
+                        juce::jlimit(minimum, maximum, value), 1.0e-4f);
+        }
+    }
+}
+
 TEST(WholeGraphObservationTest, OutputSpectrumAndProcessingCost)
 {
     // Observational benchmark: never assert platform-dependent execution time.
@@ -79,6 +109,68 @@ TEST(WholeGraphObservationTest, OutputSpectrumAndProcessingCost)
                   << " dBc, processing-ms-per-audio-second=" << processingSeconds * 500.0
                   << "\n";
       }
+    }
+}
+
+TEST(WholeGraphObservationTest, LiveGlissandoAutomationPartitionConsistency)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        const auto render = [&](int blockSize) {
+            CS01AudioProcessor processor;
+            auto& state = processor.getValueTreeState();
+            const auto set = [&](const juce::String& id, float value) {
+                auto* parameter = state.getParameter(id);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+            };
+            set(ParameterIds::waveType, 2);
+            set(ParameterIds::filterType, 0);
+            set(ParameterIds::attack, 0.001f);
+            set(ParameterIds::decay, 0.001f);
+            set(ParameterIds::sustain, 1);
+            set(ParameterIds::volume, 1);
+            set(ParameterIds::modDepth, 0);
+            set(ParameterIds::vcfEgDepth, 0);
+            set(ParameterIds::breathVca, 0);
+            set(ParameterIds::breathVcf, 0);
+            set(ParameterIds::glissando, 0.1f);
+            processor.prepareToPlay(rate, 256);
+            const int interval = static_cast<int>(rate * 0.02);
+            std::vector<float> output;
+            // Exact event boundaries, independent of render partition.
+            for (int segment = 0; segment < 8; ++segment) {
+                if (segment == 2) set(ParameterIds::glissando, 0.05f);
+                if (segment == 3) set(ParameterIds::glissando, 0.15f);
+                if (segment == 4) set(ParameterIds::glissando, 0.01f);
+                if (segment == 5) set(ParameterIds::glissando, 0);
+                for (int offset = 0; offset < interval;) {
+                    const int count = std::min(blockSize, interval - offset);
+                    juce::AudioBuffer<float> buffer(2, count);
+                    buffer.clear();
+                    juce::MidiBuffer midi;
+                    if (offset == 0 && (segment == 0 || segment == 1))
+                        midi.addEvent(juce::MidiMessage::noteOn(1, segment == 0 ? 69 : 76, 1.0f), 0);
+                    processor.processBlock(buffer, midi);
+                    for (int i = 0; i < count; ++i)
+                        output.push_back(buffer.getSample(0, i));
+                    offset += count;
+                }
+            }
+            return output;
+        };
+        const auto expected = render(7);
+        double energy = 0;
+        for (float sample : expected) energy += sample * sample;
+        ASSERT_GT(energy, 1.0e-6); // Avoid passing with two silent graphs.
+        for (int blockSize : {64, 256}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(blockSize);
+            const auto actual = render(blockSize);
+            ASSERT_EQ(actual.size(), expected.size());
+            for (size_t i = 0; i < actual.size(); ++i) {
+                ASSERT_TRUE(std::isfinite(actual[i]));
+                ASSERT_NEAR(actual[i], expected[i], 1.0e-5) << "sample=" << i;
+            }
+        }
     }
 }
 
