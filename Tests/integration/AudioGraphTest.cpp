@@ -6,6 +6,60 @@
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include <chrono>
 
+TEST(SessionGraphTest, RestoresRoutingWithoutRestoringHeldNotes)
+{
+    for (int filter : {0, 1}) {
+        CS01AudioProcessor source, restored;
+        auto set = [](CS01AudioProcessor& processor, const juce::String& id, float value) {
+            auto* parameter = processor.getValueTreeState().getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        };
+        set(source, ParameterIds::filterType, static_cast<float>(filter));
+        set(source, ParameterIds::lfoTarget, 1);
+        set(source, ParameterIds::vcaEgDepth, 1);
+        set(source, ParameterIds::volume, 1);
+        set(source, ParameterIds::breathVca, 0);
+        source.prepareToPlay(48000, 256);
+        juce::AudioBuffer<float> buffer(2, 256);
+        buffer.clear();
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+        source.processBlock(buffer, midi);
+        juce::MemoryBlock saved;
+        source.getStateInformation(saved);
+        set(restored, ParameterIds::filterType, static_cast<float>(1 - filter));
+        restored.prepareToPlay(48000, 256);
+        restored.setStateInformation(saved.getData(), static_cast<int>(saved.getSize()));
+        restored.flushPendingGraphChangesForTesting();
+        const auto selected = filter == 0 ? restored.getOriginalFilterNodeIdForTesting()
+                                         : restored.getModernFilterNodeIdForTesting();
+        const auto unselected = filter == 0 ? restored.getModernFilterNodeIdForTesting()
+                                           : restored.getOriginalFilterNodeIdForTesting();
+        const auto& graph = restored.getAudioGraphForTesting();
+        EXPECT_TRUE(graph.isConnected({{restored.getVcoNodeIdForTesting(), 0}, {selected, 0}}));
+        EXPECT_TRUE(graph.isConnected({{selected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_FALSE(graph.isConnected({{unselected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_TRUE(graph.isConnected({{restored.getLfoNodeIdForTesting(), 0}, {selected, 2}}));
+        midi.clear();
+        buffer.clear();
+        restored.processBlock(buffer, midi);
+        EXPECT_EQ(buffer.getMagnitude(0, 256), 0.0f);
+        double energy = 0.0;
+        for (int block = 0; block < 40; ++block) {
+            buffer.clear();
+            midi.clear();
+            if (block == 0) midi.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 37);
+            restored.processBlock(buffer, midi);
+            for (int i = 0; i < 256; ++i) {
+                const double value = buffer.getSample(0, i);
+                ASSERT_TRUE(std::isfinite(value));
+                energy += value * value;
+            }
+        }
+        EXPECT_GT(energy, 1.0e-6);
+    }
+}
+
 TEST(EnvelopeRangeTest, ProvisionalSecondsMapping)
 {
     CS01AudioProcessor processor;
