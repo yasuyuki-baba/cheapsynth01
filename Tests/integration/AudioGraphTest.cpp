@@ -6,6 +6,23 @@
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include <chrono>
 
+TEST(EnvelopeRangeTest, ProvisionalSecondsMapping)
+{
+    CS01AudioProcessor processor;
+    auto& state = processor.getValueTreeState();
+    for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release}) {
+        SCOPED_TRACE(id.toStdString());
+        auto* parameter = state.getParameter(id);
+        ASSERT_NE(parameter, nullptr);
+        for (float position : {0.0f, 0.25f, 0.5f, 0.75f, 1.0f}) {
+            const double raw = 0.001 + 1.999 * std::pow(position, 1.0 / 0.3);
+            EXPECT_NEAR(parameter->convertFrom0to1(position), raw, 0.0011);
+        }
+        EXPECT_NEAR(parameter->convertFrom0to1(0), 0.001, 1.0e-6);
+        EXPECT_NEAR(parameter->convertFrom0to1(1), 2.0, 1.0e-6);
+    }
+}
+
 TEST(BendInputTest, ExternalInputWinsAndDoesNotAutoReturn)
 {
     CS01AudioProcessor processor;
