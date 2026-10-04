@@ -5,6 +5,6 @@
 // External coupling, output buffer and panel volume mapping belong to VCAProcessor.
 class IG02600 {
    public:
-    float processSample(float input, float egValue, float egDepth,
-                        float breathInput, float breathDepth, float volumeGain) const;
+    float processSample(float input, float egValue, float egDepth, float breathInput,
+                        float breathDepth, float volumeGain) const;
 };

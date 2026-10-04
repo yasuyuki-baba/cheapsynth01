@@ -14,10 +14,10 @@ LFOComponent::LFOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     // Match the VCO faders without changing parameter ranges or values.
     lfoSpeedSlider.setPopupDisplayEnabled(true, true, this);
     lfoSpeedSlider.setSliderSnapsToMousePosition(false);
-    lfoSpeedSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::lfoSpeed)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::lfoSpeed)->getDefaultValue()));
-
+    lfoSpeedSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::lfoSpeed)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::lfoSpeed)->getDefaultValue()));
 }
 
 LFOComponent::~LFOComponent() {}

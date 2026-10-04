@@ -1,13 +1,19 @@
 #include "CS01LookAndFeel.h"
 
 // Color Palette Definitions (CS-01 Black Model Style)
-const juce::Colour CS01LookAndFeel::Palette::background = juce::Colour::fromString("FF2b2b2b"); // Uniform Dark Grey (Charcoal)
-const juce::Colour CS01LookAndFeel::Palette::panelBackground = juce::Colour::fromString("FF2b2b2b"); // Same as background
-const juce::Colour CS01LookAndFeel::Palette::accentCyan = juce::Colour::fromString("FF00ffff"); // Cyan
-const juce::Colour CS01LookAndFeel::Palette::accentMagenta = juce::Colour::fromString("FF00ffff"); // Cyan (Unified)
-const juce::Colour CS01LookAndFeel::Palette::text = juce::Colour::fromString("FFffffff"); // White Text
+const juce::Colour CS01LookAndFeel::Palette::background =
+    juce::Colour::fromString("FF2b2b2b");  // Uniform Dark Grey (Charcoal)
+const juce::Colour CS01LookAndFeel::Palette::panelBackground =
+    juce::Colour::fromString("FF2b2b2b");  // Same as background
+const juce::Colour CS01LookAndFeel::Palette::accentCyan =
+    juce::Colour::fromString("FF00ffff");  // Cyan
+const juce::Colour CS01LookAndFeel::Palette::accentMagenta =
+    juce::Colour::fromString("FF00ffff");  // Cyan (Unified)
+const juce::Colour CS01LookAndFeel::Palette::text =
+    juce::Colour::fromString("FFffffff");  // White Text
 const juce::Colour CS01LookAndFeel::Palette::textDim = juce::Colour::fromString("FF888888");
-const juce::Colour CS01LookAndFeel::Palette::knobBase = juce::Colour::fromString("FF111111"); // Black Plastic
+const juce::Colour CS01LookAndFeel::Palette::knobBase =
+    juce::Colour::fromString("FF111111");  // Black Plastic
 
 CS01LookAndFeel::CS01LookAndFeel() {
     setColour(juce::Label::textColourId, Palette::text);
@@ -30,7 +36,8 @@ void CS01LookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int widt
         g.setColour(juce::Colours::black);
         g.fillRoundedRectangle(wheel.expanded(3.0f), 5.0f);
         juce::ColourGradient shading(juce::Colour(0xff171717), wheel.getX(), wheel.getY(),
-                                     juce::Colour(0xff171717), wheel.getRight(), wheel.getY(), false);
+                                     juce::Colour(0xff171717), wheel.getRight(), wheel.getY(),
+                                     false);
         shading.addColour(0.5, juce::Colour(0xff666666));
         g.setGradientFill(shading);
         g.fillRoundedRectangle(wheel, 4.0f);
@@ -39,8 +46,8 @@ void CS01LookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int widt
             g.drawHorizontalLine(juce::roundToInt(rib), wheel.getX() + 3.0f,
                                  wheel.getRight() - 3.0f);
         g.setColour(Palette::accentCyan);
-        const auto indicatorY = juce::jlimit(wheel.getY() + 2.0f, wheel.getBottom() - 2.0f,
-                                             sliderPos);
+        const auto indicatorY =
+            juce::jlimit(wheel.getY() + 2.0f, wheel.getBottom() - 2.0f, sliderPos);
         g.fillRect(wheel.getX() + 2.0f, indicatorY - 1.0f, wheel.getWidth() - 4.0f, 2.0f);
         return;
     }
@@ -48,8 +55,8 @@ void CS01LookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int widt
     auto trackWidth = 4.0f;
     // JUCE already reserves space for the thumb in the supplied slider bounds.
     // Use those same endpoints so the cap stays on the slot at minimum/maximum.
-    juce::Rectangle<float> track(x + (float)width * 0.5f - trackWidth * 0.5f,
-                                 (float)y, trackWidth, (float)height);
+    juce::Rectangle<float> track(x + (float)width * 0.5f - trackWidth * 0.5f, (float)y, trackWidth,
+                                 (float)height);
 
     // Track (Black Slot)
     g.setColour(juce::Colours::black);
@@ -88,7 +95,8 @@ void CS01LookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int widt
     auto centre = knobRect.getCentre();
     auto numTicks = 10;
     for (int i = 0; i <= numTicks; ++i) {
-        float angle = rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * (float)i / (float)numTicks;
+        float angle =
+            rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * (float)i / (float)numTicks;
         float tickLen = 5.0f;
         juce::Line<float> tick(centre.getPointOnCircumference(radius + 4.0f, angle),
                                centre.getPointOnCircumference(radius + 4.0f + tickLen, angle));
@@ -112,7 +120,7 @@ void CS01LookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int widt
 }
 
 juce::Font CS01LookAndFeel::getLabelFont(juce::Label& label) {
-    return juce::Font("Helvetica", 14.0f, juce::Font::bold); // Larger font
+    return juce::Font("Helvetica", 14.0f, juce::Font::bold);  // Larger font
 }
 
 void CS01LookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
@@ -133,7 +141,6 @@ void CS01LookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& bu
     g.setFont(12.0f);
     g.drawFittedText(button.getButtonText(), area.reduced(3.0f, 0.0f).toNearestInt(),
                      juce::Justification::centredLeft, 1);
-
 }
 
 void CS01LookAndFeel::drawSectionBackground(juce::Graphics& g, juce::Rectangle<int> bounds,
@@ -147,10 +154,12 @@ void CS01LookAndFeel::drawSectionBackground(juce::Graphics& g, juce::Rectangle<i
     auto titleWidth = g.getCurrentFont().getStringWidth(title);
 
     // Draw Title
-    g.drawText(title, bounds.getX(), bounds.getY(), titleWidth + 10, 20, juce::Justification::centredLeft, false);
+    g.drawText(title, bounds.getX(), bounds.getY(), titleWidth + 10, 20,
+               juce::Justification::centredLeft, false);
 
     // Draw Line after title
-    g.drawLine(bounds.getX() + titleWidth + 10.0f, bounds.getY() + 10.0f, bounds.getRight() - 10.0f, bounds.getY() + 10.0f, 2.0f);
+    g.drawLine(bounds.getX() + titleWidth + 10.0f, bounds.getY() + 10.0f, bounds.getRight() - 10.0f,
+               bounds.getY() + 10.0f, 2.0f);
 
     // Vertical Divider (Right side)
     g.setColour(juce::Colours::white.withAlpha(0.3f));

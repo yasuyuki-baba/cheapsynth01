@@ -17,7 +17,8 @@ void ModernVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // Initialize filter for mono processing
     filter.reset();
     filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
-    filter.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});  // Always 1 channel (mono)
+    filter.prepare(
+        {sampleRate, static_cast<uint32>(samplesPerBlock), 1});  // Always 1 channel (mono)
 
     // Pre-allocate temporary buffer to avoid reallocations per block
     if (samplesPerBlock > processingBufferCapacity) {
@@ -81,7 +82,8 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const auto* egData = egInput.getReadPointer(0);
     const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
 
-    // Expect processingBuffer to be preallocated in prepareToPlay; avoid reallocating on audio thread
+    // Expect processingBuffer to be preallocated in prepareToPlay; avoid reallocating on audio
+    // thread
     jassert(buffer.getNumSamples() <= processingBufferCapacity);
     if (processingBufferCapacity > 0) {
         processingBuffer.clear();

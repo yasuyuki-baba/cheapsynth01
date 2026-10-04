@@ -8,16 +8,17 @@
 // Waveform strategies supply empirical shaping; MIDI state and oversampling
 // remain outside this model. Phase is explicit to preserve existing behavior.
 class YM10150 {
-public:
+   public:
     YM10150();
     void reset();
     void selectWaveform(Waveform waveform);
-    float generateWaveform(float masterSquare, float phase, float increment,
-                           float sampleRate, juce::dsp::Oscillator<double>& pwmLfo);
-    float generateMasterSquareWave(float pitch, float sampleRate,
-                                   float& phase, float& increment) const;
+    float generateWaveform(float masterSquare, float phase, float increment, float sampleRate,
+                           juce::dsp::Oscillator<double>& pwmLfo);
+    float generateMasterSquareWave(float pitch, float sampleRate, float& phase,
+                                   float& increment) const;
     float shapeOutput(float value) const;
-private:
+
+   private:
     std::map<Waveform, std::unique_ptr<IWaveformStrategy>> strategies;
     IWaveformStrategy* selected = nullptr;
     Waveform previous = Waveform::Sawtooth;

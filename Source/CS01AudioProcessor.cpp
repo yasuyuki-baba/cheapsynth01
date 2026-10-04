@@ -103,16 +103,16 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     audioGraph.prepareToPlay(sampleRate * Constants::oversamplingFactor,
                              processingCapacity * Constants::oversamplingFactor);
 
-    requestedFilterType.store(static_cast<int>(
-        apvts.getRawParameterValue(ParameterIds::filterType)->load()));
-    requestedLfoTarget.store(static_cast<int>(
-        apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()));
+    requestedFilterType.store(
+        static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load()));
+    requestedLfoTarget.store(
+        static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()));
     applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
                        juce::AudioProcessorGraph::UpdateKind::sync);
 }
 
-void CS01AudioProcessor::applyFilterRouting(
-    int filterType, int lfoTarget, juce::AudioProcessorGraph::UpdateKind updateKind) {
+void CS01AudioProcessor::applyFilterRouting(int filterType, int lfoTarget,
+                                            juce::AudioProcessorGraph::UpdateKind updateKind) {
     if (vcoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr ||
         vcaNode == nullptr || lfoNode == nullptr)
         return;
@@ -137,8 +137,7 @@ void CS01AudioProcessor::applyFilterRouting(
     updateConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}}, useModernFilter);
 
     updateConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}}, targetVco);
-    updateConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}},
-                     !targetVco && !useModernFilter);
+    updateConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}}, !targetVco && !useModernFilter);
     updateConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}},
                      !targetVco && useModernFilter);
 }
@@ -200,20 +199,20 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         }
         for (int offset = position; offset < end;) {
             const int length = juce::jmin(processingCapacity, end - offset);
-            juce::AudioBuffer<float> host(buffer.getArrayOfWritePointers(),
-                buffer.getNumChannels(), offset, length);
+            juce::AudioBuffer<float> host(buffer.getArrayOfWritePointers(), buffer.getNumChannels(),
+                                          offset, length);
             host.clear();
             juce::dsp::AudioBlock<float> hostBlock(host);
             auto high = outputOversampling->processSamplesUp(hostBlock);
             const int highLength = static_cast<int>(high.getNumSamples());
             juce::AudioBuffer<float> internal(internalAudio.getArrayOfWritePointers(),
-                internalAudio.getNumChannels(), highLength);
+                                              internalAudio.getNumChannels(), highLength);
             internal.clear();
             audioGraph.processBlock(internal, segmentMidi);
             segmentMidi.clear();
             for (int channel = 0; channel < internal.getNumChannels(); ++channel)
                 juce::FloatVectorOperations::copy(high.getChannelPointer(channel),
-                    internal.getReadPointer(channel), highLength);
+                                                  internal.getReadPointer(channel), highLength);
             outputOversampling->processSamplesDown(hostBlock);
             offset += length;
         }
@@ -229,7 +228,8 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     midiMessages.clear();
 
     if (auto* editor = dynamic_cast<CS01AudioProcessorEditor*>(getActiveEditor())) {
-        // Forward a copy of the audio buffer to the UI thread to avoid touching UI from the audio thread.
+        // Forward a copy of the audio buffer to the UI thread to avoid touching UI from the audio
+        // thread.
         juce::Component::SafePointer<CS01AudioProcessorEditor> safeEditor(editor);
         juce::AudioBuffer<float> uiBuffer(buffer);
         juce::MessageManager::callAsync([safeEditor, uiBuffer = std::move(uiBuffer)]() mutable {

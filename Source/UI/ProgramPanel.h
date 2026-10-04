@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-class ProgramManager; // Forward declaration
+class ProgramManager;  // Forward declaration
 
 class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, private juce::Timer {
    public:
@@ -17,7 +17,7 @@ class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, p
     void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
     void populateProgramMenu();
     void loadProgram(int programIndex);
-    
+
     // User preset management
     void savePresetButtonClicked();
     void deletePresetButtonClicked();
@@ -25,7 +25,7 @@ class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, p
     void showSavePresetDialog();
     void showRenamePresetDialog();
     void savePresetWithName(ProgramManager* programManager, const juce::String& presetName);
-    
+
     ProgramManager* getProgramManager();
 
     juce::AudioProcessor& audioProcessor;
@@ -36,7 +36,7 @@ class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, p
     juce::TextButton saveButton{"Save"};
     juce::TextButton deleteButton{"Delete"};
     juce::TextButton renameButton{"Rename"};
-    
+
     // Add a label to show preset type
     juce::Label presetTypeLabel;
 };

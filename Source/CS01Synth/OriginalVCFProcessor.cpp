@@ -85,7 +85,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto* outputData = buffer.getWritePointer(0);
 
     int numSamples = buffer.getNumSamples();
-    // Expect modulationBuffer to be preallocated in prepareToPlay; avoid reallocating on audio thread
+    // Expect modulationBuffer to be preallocated in prepareToPlay; avoid reallocating on audio
+    // thread
     jassert(numSamples <= modulationBufferCapacity);
     if (modulationBufferCapacity > 0) {
         modulationBuffer.clear(numSamples);
@@ -114,7 +115,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
+        float breathModFreqRatio =
+            static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
 
         // Apply all modulations
         float modulatedCutoffHz =

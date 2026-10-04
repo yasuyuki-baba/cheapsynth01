@@ -14,10 +14,10 @@ VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     // Match the VCO faders without changing parameter ranges or values.
     vcaEgDepthSlider.setPopupDisplayEnabled(true, true, this);
     vcaEgDepthSlider.setSliderSnapsToMousePosition(false);
-    vcaEgDepthSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::vcaEgDepth)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::vcaEgDepth)->getDefaultValue()));
-
+    vcaEgDepthSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::vcaEgDepth)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::vcaEgDepth)->getDefaultValue()));
 }
 
 VCAComponent::~VCAComponent() {}

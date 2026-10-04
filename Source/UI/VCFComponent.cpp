@@ -33,16 +33,17 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
 
     resonanceSlider.setSliderStyle(juce::Slider::LinearVertical);
     resonanceSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    addChildComponent(resonanceSlider); // Initially hidden, shown in Modern mode
+    addChildComponent(resonanceSlider);  // Initially hidden, shown in Modern mode
     resonanceLabel.setText("RES", juce::dontSendNotification);
     addAndMakeVisible(resonanceLabel);
     resonanceAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::resonance), resonanceSlider);
 
     resonanceButton.setButtonText("HIGH");
-    addChildComponent(resonanceButton); // Initially hidden, shown in Original mode
-    resonanceButtonAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        valueTreeState, ParameterIds::resonance, resonanceButton);
+    addChildComponent(resonanceButton);  // Initially hidden, shown in Original mode
+    resonanceButtonAttachment =
+        std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            valueTreeState, ParameterIds::resonance, resonanceButton);
 
     egDepthSlider.setSliderStyle(juce::Slider::LinearVertical);
     egDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -57,20 +58,22 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     // Match the VCO faders without changing parameter ranges or values.
     cutoffSlider.setPopupDisplayEnabled(true, true, this);
     cutoffSlider.setSliderSnapsToMousePosition(false);
-    cutoffSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::cutoff)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::cutoff)->getDefaultValue()));
+    cutoffSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::cutoff)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::cutoff)->getDefaultValue()));
     resonanceSlider.setPopupDisplayEnabled(true, true, this);
     resonanceSlider.setSliderSnapsToMousePosition(false);
-    resonanceSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::resonance)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::resonance)->getDefaultValue()));
+    resonanceSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::resonance)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::resonance)->getDefaultValue()));
     egDepthSlider.setPopupDisplayEnabled(true, true, this);
     egDepthSlider.setSliderSnapsToMousePosition(false);
-    egDepthSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::vcfEgDepth)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::vcfEgDepth)->getDefaultValue()));
-
+    egDepthSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::vcfEgDepth)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::vcfEgDepth)->getDefaultValue()));
 }
 
 VCFComponent::~VCFComponent() {
@@ -95,10 +98,11 @@ void VCFComponent::resized() {
     cutoffSlider.setBounds(bounds.removeFromLeft(columnWidth));
     auto resonanceColumn = bounds.removeFromLeft(columnWidth);
     resonanceSlider.setBounds(resonanceColumn);
-    resonanceButton.setBounds(resonanceColumn.withSizeKeepingCentre(resonanceColumn.getWidth(), 36));
+    resonanceButton.setBounds(
+        resonanceColumn.withSizeKeepingCentre(resonanceColumn.getWidth(), 36));
     egDepthSlider.setBounds(bounds);
 
-    for (auto* label : { &filterTypeLabel, &cutoffLabel, &resonanceLabel }) {
+    for (auto* label : {&filterTypeLabel, &cutoffLabel, &resonanceLabel}) {
         label->setBounds(labels.removeFromLeft(columnWidth));
         label->setJustificationType(juce::Justification::centred);
     }
@@ -109,14 +113,14 @@ void VCFComponent::resized() {
 void VCFComponent::parameterValueChanged(int parameterIndex, float newValue) {
     if (parameterIndex == filterTypeParam->getParameterIndex()) {
         // Update UI state
-        bool isModern = (newValue >= 0.5f); // Assuming 0=Original, 1=Modern
+        bool isModern = (newValue >= 0.5f);  // Assuming 0=Original, 1=Modern
 
         // Update Buttons State
         if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(filterTypeParam)) {
-             int index = choiceParam->getIndex();
-             if (index >= 0 && index < filterTypeButtons.size()) {
-                 filterTypeButtons[index]->setToggleState(true, juce::dontSendNotification);
-             }
+            int index = choiceParam->getIndex();
+            if (index >= 0 && index < filterTypeButtons.size()) {
+                filterTypeButtons[index]->setToggleState(true, juce::dontSendNotification);
+            }
         }
 
         // Toggle Resonance Control
@@ -127,7 +131,7 @@ void VCFComponent::parameterValueChanged(int parameterIndex, float newValue) {
             resonanceSlider.setVisible(false);
             resonanceButton.setVisible(true);
         }
-        resized(); // Re-layout
+        resized();  // Re-layout
     }
 }
 

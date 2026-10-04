@@ -37,25 +37,28 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     // Match the VCO faders without changing parameter ranges or values.
     attackSlider.setPopupDisplayEnabled(true, true, this);
     attackSlider.setSliderSnapsToMousePosition(false);
-    attackSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::attack)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::attack)->getDefaultValue()));
+    attackSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::attack)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::attack)->getDefaultValue()));
     decaySlider.setPopupDisplayEnabled(true, true, this);
     decaySlider.setSliderSnapsToMousePosition(false);
-    decaySlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::decay)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::decay)->getDefaultValue()));
+    decaySlider.setDoubleClickReturnValue(
+        true,
+        valueTreeState.getParameter(ParameterIds::decay)
+            ->convertFrom0to1(valueTreeState.getParameter(ParameterIds::decay)->getDefaultValue()));
     sustainSlider.setPopupDisplayEnabled(true, true, this);
     sustainSlider.setSliderSnapsToMousePosition(false);
-    sustainSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::sustain)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::sustain)->getDefaultValue()));
+    sustainSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::sustain)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::sustain)->getDefaultValue()));
     releaseSlider.setPopupDisplayEnabled(true, true, this);
     releaseSlider.setSliderSnapsToMousePosition(false);
-    releaseSlider.setDoubleClickReturnValue(true,
-        valueTreeState.getParameter(ParameterIds::release)->convertFrom0to1(
-            valueTreeState.getParameter(ParameterIds::release)->getDefaultValue()));
-
+    releaseSlider.setDoubleClickReturnValue(
+        true, valueTreeState.getParameter(ParameterIds::release)
+                  ->convertFrom0to1(
+                      valueTreeState.getParameter(ParameterIds::release)->getDefaultValue()));
 }
 
 EGComponent::~EGComponent() {}

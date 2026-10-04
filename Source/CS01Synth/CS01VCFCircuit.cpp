@@ -94,7 +94,7 @@ void CS01VCFCircuit::processBlock(float** channelData, int numChannels, int numS
 }
 
 void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* cutoffModulation,
-                              float baseResonance) {
+                                  float baseResonance) {
     // Store original cutoff and resonance to restore later
     const float originalCutoff = cutoff;
     const float originalResonance = resonance;

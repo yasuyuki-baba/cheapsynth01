@@ -97,10 +97,10 @@ class MidiProcessor : public juce::AudioProcessor {
     int lastPitchWheelValue = 8192;  // Center value
 
     // 14bit CC values storage
-    int modulationMSB = 0, modulationLSB = 0;     // CC #1/#33
-    int breathMSB = 0, breathLSB = 0;             // CC #2/#34  
-    int volumeMSB = 0, volumeLSB = 0;             // CC #7/#39
-    int glissandoMSB = 0, glissandoLSB = 0;       // CC #5/#37
+    int modulationMSB = 0, modulationLSB = 0;  // CC #1/#33
+    int breathMSB = 0, breathLSB = 0;          // CC #2/#34
+    int volumeMSB = 0, volumeLSB = 0;          // CC #7/#39
+    int glissandoMSB = 0, glissandoLSB = 0;    // CC #5/#37
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiProcessor)
 };

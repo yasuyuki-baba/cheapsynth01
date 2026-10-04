@@ -79,9 +79,9 @@ void EGProcessor::updateADSR() {
     }
     // Unchanged settings must not overwrite the rate calculated by noteOff()
     // from the actual envelope level (which may differ from sustain).
-    if (!parametersInitialized || adsrParams.attack != current.attack
-        || adsrParams.decay != current.decay || adsrParams.sustain != current.sustain
-        || adsrParams.release != current.release) {
+    if (!parametersInitialized || adsrParams.attack != current.attack ||
+        adsrParams.decay != current.decay || adsrParams.sustain != current.sustain ||
+        adsrParams.release != current.release) {
         adsr.setParameters(adsrParams);
         parametersInitialized = true;
     }

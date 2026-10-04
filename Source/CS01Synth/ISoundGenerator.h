@@ -25,7 +25,9 @@ class ISoundGenerator {
         int pitchWheel = 8192;
         double releaseSecondsRemaining = 0.0;
     };
-    virtual PlaybackState getPlaybackState() const { return {}; }
+    virtual PlaybackState getPlaybackState() const {
+        return {};
+    }
     virtual void restorePlaybackState(const PlaybackState&) {}
 
     // Sound generation methods

@@ -4,8 +4,7 @@
 #include "../../Source/Parameters.h"
 #include "../../Source/CS01AudioProcessor.h"
 
-TEST(EGTimingTest, ProductionRangeStageDurations)
-{
+TEST(EGTimingTest, ProductionRangeStageDurations) {
     // Use production parameter ranges, not the different ranges in the unit fixture.
     CS01AudioProcessor owner;
     auto& state = owner.apvts;
@@ -13,7 +12,8 @@ TEST(EGTimingTest, ProductionRangeStageDurations)
         for (float position : {0.0f, 0.5f, 1.0f}) {
             SCOPED_TRACE(rate);
             SCOPED_TRACE(position);
-            for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release})
+            for (const auto& id :
+                 {ParameterIds::attack, ParameterIds::decay, ParameterIds::release})
                 state.getParameter(id)->setValueNotifyingHost(position);
             state.getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.5f);
             EGProcessor eg(state);
@@ -31,7 +31,8 @@ TEST(EGTimingTest, ProductionRangeStageDurations)
             auto duration = [&](auto done) {
                 const int limit = static_cast<int>(rate * 3.0);
                 for (int n = 1; n <= limit; ++n)
-                    if (done(next())) return n;
+                    if (done(next()))
+                        return n;
                 return limit + 1;
             };
             auto check = [&](const auto& id, int samples) {
@@ -43,7 +44,8 @@ TEST(EGTimingTest, ProductionRangeStageDurations)
             check(ParameterIds::attack, duration([](float v) { return v >= 1.0f; }));
             check(ParameterIds::decay, duration([](float v) { return v <= 0.5f; }));
             // Drain the pre-rendered block before applying the note-off event.
-            while (index < 256) next();
+            while (index < 256)
+                next();
             eg.releaseEnvelope();
             check(ParameterIds::release, duration([](float v) { return v == 0.0f; }));
         }
@@ -51,60 +53,55 @@ TEST(EGTimingTest, ProductionRangeStageDurations)
 }
 
 // Test fixture for EGProcessor tests
-class EGProcessorTest : public ::testing::Test
-{
-protected:
-    void SetUp() override
-    {
+class EGProcessorTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
         // Create a dummy processor for APVTS
         dummyProcessor = std::make_unique<juce::AudioProcessorGraph>();
-        
+
         auto parameterLayout = createParameterLayout();
-        apvts = std::make_unique<juce::AudioProcessorValueTreeState>(*dummyProcessor, nullptr, "PARAMETERS", std::move(parameterLayout));
-        
+        apvts = std::make_unique<juce::AudioProcessorValueTreeState>(
+            *dummyProcessor, nullptr, "PARAMETERS", std::move(parameterLayout));
+
         // Create EGProcessor
         processor = std::make_unique<EGProcessor>(*apvts);
     }
-    
-    void TearDown() override
-    {
+
+    void TearDown() override {
         processor.reset();
         apvts.reset();
         dummyProcessor.reset();
     }
-    
+
     // Create a parameter layout for testing
-    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
-    {
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout() {
         juce::AudioProcessorValueTreeState::ParameterLayout layout;
-        
+
         // Add parameters needed for EGProcessor
         layout.add(std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::attack, "Attack", 
+            ParameterIds::attack, "Attack",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.5f), 0.1f));
-        
+
         layout.add(std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::decay, "Decay", 
+            ParameterIds::decay, "Decay",
             juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.5f), 0.3f));
-        
+
         layout.add(std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::sustain, "Sustain", 
-            juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f));
-        
+            ParameterIds::sustain, "Sustain", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f));
+
         layout.add(std::make_unique<juce::AudioParameterFloat>(
-            ParameterIds::release, "Release", 
+            ParameterIds::release, "Release",
             juce::NormalisableRange<float>(0.001f, 5.0f, 0.001f, 0.5f), 0.5f));
-        
+
         return layout;
     }
-    
+
     std::unique_ptr<juce::AudioProcessorGraph> dummyProcessor;
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     std::unique_ptr<EGProcessor> processor;
 };
 
-TEST_F(EGProcessorTest, SustainAutomationRemainsBoundedAndReachesTarget)
-{
+TEST_F(EGProcessorTest, SustainAutomationRemainsBoundedAndReachesTarget) {
     // Generic ADSR behavior, not a claim about CS-01 analog switching thresholds.
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         SCOPED_TRACE(rate);
@@ -142,8 +139,7 @@ TEST_F(EGProcessorTest, SustainAutomationRemainsBoundedAndReachesTarget)
     }
 }
 
-TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress)
-{
+TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         processor->prepareToPlay(rate, 256);
         processor->startEnvelope();
@@ -170,8 +166,7 @@ TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress)
     }
 }
 
-TEST_F(EGProcessorTest, EarlyReleaseIsIndependentOfBlockPartition)
-{
+TEST_F(EGProcessorTest, EarlyReleaseIsIndependentOfBlockPartition) {
     // Implementation invariant, not a hardware-calibrated envelope curve.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         const int noteOff = static_cast<int>(sampleRate * 0.037);
@@ -216,8 +211,7 @@ TEST_F(EGProcessorTest, EarlyReleaseIsIndependentOfBlockPartition)
     }
 }
 
-TEST_F(EGProcessorTest, LifecycleClearsEnvelopeAndObservation)
-{
+TEST_F(EGProcessorTest, LifecycleClearsEnvelopeAndObservation) {
     for (bool duringRelease : {false, true}) {
         processor->prepareToPlay(48000.0, 64);
         processor->startEnvelope();
@@ -246,8 +240,7 @@ TEST_F(EGProcessorTest, LifecycleClearsEnvelopeAndObservation)
     }
 }
 
-TEST_F(EGProcessorTest, EarlyReleaseKeepsNoteOffRateWithZeroSustain)
-{
+TEST_F(EGProcessorTest, EarlyReleaseKeepsNoteOffRateWithZeroSustain) {
     apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.0f);
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         SCOPED_TRACE(sampleRate);
@@ -274,8 +267,7 @@ TEST_F(EGProcessorTest, EarlyReleaseKeepsNoteOffRateWithZeroSustain)
     }
 }
 
-TEST_F(EGProcessorTest, AttackAndDecayChangesDoNotAlterRunningRelease)
-{
+TEST_F(EGProcessorTest, AttackAndDecayChangesDoNotAlterRunningRelease) {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         const auto render = [&](bool change) {
             for (const auto& id : {ParameterIds::attack, ParameterIds::decay}) {
@@ -311,8 +303,7 @@ TEST_F(EGProcessorTest, AttackAndDecayChangesDoNotAlterRunningRelease)
     }
 }
 
-TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain)
-{
+TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
     // Model policy: a changed release duration starts at the current level.
     // This is not a claim about the hardware's RC decay curve.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
@@ -337,7 +328,8 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain)
             release->setValueNotifyingHost(release->convertTo0to1(duration));
             envelope.processBlock(buffer, midi);
             EXPECT_TRUE(envelope.isActive());
-            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - 1.0 / (duration * sampleRate)), 1.0e-5);
+            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - 1.0 / (duration * sampleRate)),
+                        1.0e-5);
             const int halfway = static_cast<int>(duration * sampleRate * 0.5);
             for (int i = 1; i < halfway; ++i)
                 envelope.processBlock(buffer, midi);
@@ -350,8 +342,7 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain)
     }
 }
 
-TEST_F(EGProcessorTest, RetriggerRestoresSustainAfterReleaseTimeChange)
-{
+TEST_F(EGProcessorTest, RetriggerRestoresSustainAfterReleaseTimeChange) {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         for (bool finishRelease : {false, true}) {
             SCOPED_TRACE(sampleRate);
@@ -396,170 +387,166 @@ TEST_F(EGProcessorTest, RetriggerRestoresSustainAfterReleaseTimeChange)
     }
 }
 
-TEST_F(EGProcessorTest, Initialization)
-{
+TEST_F(EGProcessorTest, Initialization) {
     // Check that processor was created successfully
     EXPECT_NE(processor.get(), nullptr);
-    
+
     // Check that processor has expected properties
     EXPECT_EQ(processor->getName(), juce::String("EG"));
     EXPECT_FALSE(processor->acceptsMidi());
     EXPECT_FALSE(processor->producesMidi());
     EXPECT_FALSE(processor->isMidiEffect());
-    
+
     // Check bus configuration
-    EXPECT_EQ(processor->getBusCount(true), 0); // No input buses
-    EXPECT_EQ(processor->getBusCount(false), 1); // 1 output bus
-    
+    EXPECT_EQ(processor->getBusCount(true), 0);   // No input buses
+    EXPECT_EQ(processor->getBusCount(false), 1);  // 1 output bus
+
     EXPECT_EQ(processor->getBus(false, 0)->getName(), juce::String("Output"));
-    
+
     // Check initial state
     EXPECT_FALSE(processor->isActive());
 }
 
-TEST_F(EGProcessorTest, ParameterSettings)
-{
+TEST_F(EGProcessorTest, ParameterSettings) {
     // Test attack parameter
     auto* attackParam = apvts->getParameter(ParameterIds::attack);
     EXPECT_NE(attackParam, nullptr);
-    
+
     // Set attack to different values
-    attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.05f)); // 50ms
+    attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.05f));  // 50ms
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.05f, 0.001f);
-    
-    attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.5f)); // 500ms
+
+    attackParam->setValueNotifyingHost(attackParam->convertTo0to1(0.5f));  // 500ms
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::attack)->load(), 0.5f, 0.001f);
-    
+
     // Test decay parameter
     auto* decayParam = apvts->getParameter(ParameterIds::decay);
     EXPECT_NE(decayParam, nullptr);
-    
+
     // Set decay to different values
-    decayParam->setValueNotifyingHost(decayParam->convertTo0to1(0.1f)); // 100ms
+    decayParam->setValueNotifyingHost(decayParam->convertTo0to1(0.1f));  // 100ms
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::decay)->load(), 0.1f, 0.001f);
-    
-    decayParam->setValueNotifyingHost(decayParam->convertTo0to1(1.0f)); // 1s
+
+    decayParam->setValueNotifyingHost(decayParam->convertTo0to1(1.0f));  // 1s
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::decay)->load(), 1.0f, 0.001f);
-    
+
     // Test sustain parameter
     auto* sustainParam = apvts->getParameter(ParameterIds::sustain);
     EXPECT_NE(sustainParam, nullptr);
-    
+
     // Set sustain to different values
-    sustainParam->setValueNotifyingHost(0.25f); // 25%
+    sustainParam->setValueNotifyingHost(0.25f);  // 25%
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.25f, 0.001f);
-    
-    sustainParam->setValueNotifyingHost(0.75f); // 75%
+
+    sustainParam->setValueNotifyingHost(0.75f);  // 75%
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::sustain)->load(), 0.75f, 0.001f);
-    
+
     // Test release parameter
     auto* releaseParam = apvts->getParameter(ParameterIds::release);
     EXPECT_NE(releaseParam, nullptr);
-    
+
     // Set release to different values
-    releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(0.2f)); // 200ms
+    releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(0.2f));  // 200ms
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::release)->load(), 0.2f, 0.001f);
-    
-    releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(2.0f)); // 2s
+
+    releaseParam->setValueNotifyingHost(releaseParam->convertTo0to1(2.0f));  // 2s
     EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::release)->load(), 2.0f, 0.001f);
 }
 
-TEST_F(EGProcessorTest, BusesLayout)
-{
+TEST_F(EGProcessorTest, BusesLayout) {
     // Test supported buses layout
     juce::AudioProcessor::BusesLayout supportedLayout;
-    supportedLayout.inputBuses.clear(); // No input buses
-    supportedLayout.outputBuses.add(juce::AudioChannelSet::mono()); // Mono output
-    
+    supportedLayout.inputBuses.clear();                              // No input buses
+    supportedLayout.outputBuses.add(juce::AudioChannelSet::mono());  // Mono output
+
     EXPECT_TRUE(processor->isBusesLayoutSupported(supportedLayout));
-    
+
     // Test unsupported buses layout (with input)
     juce::AudioProcessor::BusesLayout unsupportedLayout1;
-    unsupportedLayout1.inputBuses.add(juce::AudioChannelSet::mono()); // Input bus (not supported)
-    unsupportedLayout1.outputBuses.add(juce::AudioChannelSet::mono()); // Mono output
-    
+    unsupportedLayout1.inputBuses.add(juce::AudioChannelSet::mono());   // Input bus (not supported)
+    unsupportedLayout1.outputBuses.add(juce::AudioChannelSet::mono());  // Mono output
+
     EXPECT_FALSE(processor->isBusesLayoutSupported(unsupportedLayout1));
-    
+
     // Test unsupported buses layout (stereo output)
     juce::AudioProcessor::BusesLayout unsupportedLayout2;
-    unsupportedLayout2.inputBuses.clear(); // No input buses
-    unsupportedLayout2.outputBuses.add(juce::AudioChannelSet::stereo()); // Stereo output (not supported)
-    
+    unsupportedLayout2.inputBuses.clear();  // No input buses
+    unsupportedLayout2.outputBuses.add(
+        juce::AudioChannelSet::stereo());  // Stereo output (not supported)
+
     EXPECT_FALSE(processor->isBusesLayoutSupported(unsupportedLayout2));
 }
 
-TEST_F(EGProcessorTest, EnvelopeGeneration)
-{
+TEST_F(EGProcessorTest, EnvelopeGeneration) {
     // Prepare processor
     processor->prepareToPlay(44100.0, 512);
-    
+
     // Create audio buffer
-    juce::AudioBuffer<float> buffer(1, 512); // 1 channel for output
+    juce::AudioBuffer<float> buffer(1, 512);  // 1 channel for output
     juce::MidiBuffer midiBuffer;
-    
+
     // Set ADSR parameters for testing
-    apvts->getParameter(ParameterIds::attack)->setValueNotifyingHost(
-        apvts->getParameter(ParameterIds::attack)->convertTo0to1(0.01f)); // 10ms attack
-    
-    apvts->getParameter(ParameterIds::decay)->setValueNotifyingHost(
-        apvts->getParameter(ParameterIds::decay)->convertTo0to1(0.1f)); // 100ms decay
-    
-    apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.5f); // 50% sustain
-    
-    apvts->getParameter(ParameterIds::release)->setValueNotifyingHost(
-        apvts->getParameter(ParameterIds::release)->convertTo0to1(0.2f)); // 200ms release
-    
+    apvts->getParameter(ParameterIds::attack)
+        ->setValueNotifyingHost(
+            apvts->getParameter(ParameterIds::attack)->convertTo0to1(0.01f));  // 10ms attack
+
+    apvts->getParameter(ParameterIds::decay)
+        ->setValueNotifyingHost(
+            apvts->getParameter(ParameterIds::decay)->convertTo0to1(0.1f));  // 100ms decay
+
+    apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.5f);  // 50% sustain
+
+    apvts->getParameter(ParameterIds::release)
+        ->setValueNotifyingHost(
+            apvts->getParameter(ParameterIds::release)->convertTo0to1(0.2f));  // 200ms release
+
     // Trigger note on
     processor->startEnvelope();
-    
+
     // Process block (should generate attack phase)
     buffer.clear();
     processor->processBlock(buffer, midiBuffer);
-    
+
     // Check that envelope is active
     EXPECT_TRUE(processor->isActive());
-    
+
     // Check that output buffer has non-zero values
     float sum = 0.0f;
-    for (int i = 0; i < buffer.getNumSamples(); ++i)
-    {
+    for (int i = 0; i < buffer.getNumSamples(); ++i) {
         sum += std::abs(buffer.getSample(0, i));
     }
     EXPECT_GT(sum, 0.0001f);
-    
+
     // Process more blocks to reach sustain phase
-    for (int i = 0; i < 10; ++i)
-    {
+    for (int i = 0; i < 10; ++i) {
         buffer.clear();
         processor->processBlock(buffer, midiBuffer);
     }
-    
+
     // Check that envelope is still active
     EXPECT_TRUE(processor->isActive());
-    
+
     // Trigger note off
     processor->releaseEnvelope();
-    
+
     // Process block (should generate release phase)
     buffer.clear();
     processor->processBlock(buffer, midiBuffer);
-    
+
     // Check that envelope is still active during release phase
     EXPECT_TRUE(processor->isActive());
-    
+
     // Process more blocks to complete release phase
-    for (int i = 0; i < 20; ++i)
-    {
+    for (int i = 0; i < 20; ++i) {
         buffer.clear();
         processor->processBlock(buffer, midiBuffer);
     }
-    
+
     // Check that envelope is no longer active
     EXPECT_FALSE(processor->isActive());
 }
 
-TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease)
-{
+TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease) {
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         SCOPED_TRACE(sampleRate);
         processor = std::make_unique<EGProcessor>(*apvts);
@@ -600,23 +587,22 @@ TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease)
     }
 }
 
-TEST_F(EGProcessorTest, NoteOnOff)
-{
+TEST_F(EGProcessorTest, NoteOnOff) {
     // Prepare processor
     processor->prepareToPlay(44100.0, 512);
-    
+
     // Check initial state
     EXPECT_FALSE(processor->isActive());
-    
+
     // Trigger note on
     processor->startEnvelope();
-    
+
     // Check that envelope is active
     EXPECT_TRUE(processor->isActive());
-    
+
     // Trigger note off
     processor->releaseEnvelope();
-    
+
     // Note: We can't check that envelope is inactive immediately after noteOff
     // because the release phase takes time. In a real test, we would process
     // audio blocks until the release phase is complete.

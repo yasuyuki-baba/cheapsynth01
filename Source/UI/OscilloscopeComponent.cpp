@@ -16,8 +16,8 @@ OscilloscopeComponent::OscilloscopeComponent(int initialNumChannels)
     : bufferSize(1024),
       bufferIndex(0),
       numChannels(initialNumChannels),
-      waveformColour(juce::Colours::lime), // Classic Green
-      backgroundColour(juce::Colours::black), // Black CRT-like background
+      waveformColour(juce::Colours::lime),     // Classic Green
+      backgroundColour(juce::Colours::black),  // Black CRT-like background
       gridColour(juce::Colours::darkgrey.withAlpha(0.5f)),
       waveformThickness(1.5f) {
     // Initialize audio buffer

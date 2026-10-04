@@ -52,8 +52,8 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
                 return;
 
             // Save current state before switching
-            const auto state = oldGenerator ? oldGenerator->getPlaybackState()
-                                            : ISoundGenerator::PlaybackState{};
+            const auto state =
+                oldGenerator ? oldGenerator->getPlaybackState() : ISoundGenerator::PlaybackState{};
 
             // Switch generator
             currentGenerator = newGenerator;

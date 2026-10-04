@@ -2,8 +2,7 @@
 #include <JuceHeader.h>
 #include "../Parameters.h"
 
-class VCFComponent : public juce::Component,
-                     public juce::AudioProcessorParameter::Listener {
+class VCFComponent : public juce::Component, public juce::AudioProcessorParameter::Listener {
    public:
     VCFComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCFComponent() override;

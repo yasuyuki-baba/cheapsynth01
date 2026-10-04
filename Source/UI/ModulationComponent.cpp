@@ -95,15 +95,16 @@ void ModulationComponent::timerCallback() {
     if (draggingBend)
         return;
     if (returningBend) {
-        const double progress = juce::jlimit(0.0, 1.0,
-            (juce::Time::getMillisecondCounterHiRes() - returnStarted) / 60.0);
+        const double progress = juce::jlimit(
+            0.0, 1.0, (juce::Time::getMillisecondCounterHiRes() - returnStarted) / 60.0);
         pitchBendSlider.setValue(returnPosition * (1.0 - progress), juce::dontSendNotification);
         sliderValueChanged(&pitchBendSlider);
         returningBend = progress < 1.0;
         return;
     }
-    pitchBendSlider.setValue(processor.getValueTreeState()
-        .getRawParameterValue(ParameterIds::pitchBend)->load(), juce::dontSendNotification);
+    pitchBendSlider.setValue(
+        processor.getValueTreeState().getRawParameterValue(ParameterIds::pitchBend)->load(),
+        juce::dontSendNotification);
 }
 
 ModulationComponent::~ModulationComponent() {

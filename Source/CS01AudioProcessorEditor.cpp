@@ -23,7 +23,7 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     midiKeyboard.setAvailableRange(41, 72);
     // Lower PC keyboard playback by one octave from JUCE's default (6).
     midiKeyboard.setKeyPressBaseOctave(5);
-    midiKeyboard.setKeyWidth(25); // Mini keys look
+    midiKeyboard.setKeyWidth(25);  // Mini keys look
     midiKeyboard.setBlackNoteWidthProportion(0.6f);
     midiKeyboard.setBlackNoteLengthProportion(0.6f);
 
@@ -101,8 +101,8 @@ void CS01AudioProcessorEditor::addPerformanceKeyListeners(juce::Component& compo
 }
 
 bool CS01AudioProcessorEditor::isTextInputFocused() const {
-    for (auto* component = juce::Component::getCurrentlyFocusedComponent();
-         component != nullptr; component = component->getParentComponent()) {
+    for (auto* component = juce::Component::getCurrentlyFocusedComponent(); component != nullptr;
+         component = component->getParentComponent()) {
         if (dynamic_cast<juce::TextEditor*>(component) != nullptr)
             return true;
         if (component == this)

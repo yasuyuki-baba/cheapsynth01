@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters.h"
 #include "CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
-#include "IFilter.h"     // Updated interface
+#include "IFilter.h"         // Updated interface
 
 //==============================================================================
 class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
@@ -71,7 +71,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
    private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
-    CS01VCFCircuit filter;                        // Using CS01VCFCircuit instead of StateVariableTPTFilter
+    CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
     juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse
     int modulationBufferCapacity = 0;         // Capacity (in samples) of allocated modulationBuffer
 

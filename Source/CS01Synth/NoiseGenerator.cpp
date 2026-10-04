@@ -101,7 +101,8 @@ void NoiseGenerator::restorePlaybackState(const PlaybackState& state) {
         noteOn = false;
         tailOff = true;
         tailOffCounter = 0;
-        tailOffDuration = static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
+        tailOffDuration =
+            static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
         currentlyPlayingNote = 0;
     }
 }

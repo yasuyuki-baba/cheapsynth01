@@ -28,14 +28,15 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     pwmSpeedAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::pwmSpeed), pwmSpeedSlider);
 
-    juce::Slider* sliders[] = { &glissandoSlider, &pitchSlider, &pwmSpeedSlider };
-    const juce::String ids[] = { ParameterIds::glissando, ParameterIds::pitch, ParameterIds::pwmSpeed };
+    juce::Slider* sliders[] = {&glissandoSlider, &pitchSlider, &pwmSpeedSlider};
+    const juce::String ids[] = {ParameterIds::glissando, ParameterIds::pitch,
+                                ParameterIds::pwmSpeed};
     for (int i = 0; i < 3; ++i) {
         auto* parameter = valueTreeState.getParameter(ids[i]);
         sliders[i]->setPopupDisplayEnabled(true, true, this);
         sliders[i]->setSliderSnapsToMousePosition(false);
-        sliders[i]->setDoubleClickReturnValue(true,
-            parameter->convertFrom0to1(parameter->getDefaultValue()));
+        sliders[i]->setDoubleClickReturnValue(
+            true, parameter->convertFrom0to1(parameter->getDefaultValue()));
     }
 
     // --- Waveform Buttons ---
@@ -94,8 +95,8 @@ void VCOComponent::resized() {
     auto bounds = getLocalBounds().reduced(10).withTrimmedTop(20);
     auto labels = bounds.removeFromBottom(32);
     const int unit = bounds.getWidth() * 18 / 100;
-    juce::Slider* sliders[] = { &glissandoSlider, &pitchSlider, &pwmSpeedSlider };
-    juce::Label* sliderLabels[] = { &glissandoLabel, &pitchLabel, &pwmSpeedLabel };
+    juce::Slider* sliders[] = {&glissandoSlider, &pitchSlider, &pwmSpeedSlider};
+    juce::Label* sliderLabels[] = {&glissandoLabel, &pitchLabel, &pwmSpeedLabel};
     for (int i = 0; i < 3; ++i) {
         sliders[i]->setBounds(bounds.removeFromLeft(unit));
         sliderLabels[i]->setBounds(labels.removeFromLeft(unit));

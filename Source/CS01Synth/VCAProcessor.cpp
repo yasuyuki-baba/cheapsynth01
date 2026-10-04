@@ -2,15 +2,15 @@
 #include <cmath>
 
 namespace {
-juce::dsp::IIR::Coefficients<float>::Ptr makePreciseHighPass(double sampleRate, double frequency)
-{
-    const auto values = juce::dsp::IIR::ArrayCoefficients<double>::makeHighPass(sampleRate, frequency);
+juce::dsp::IIR::Coefficients<float>::Ptr makePreciseHighPass(double sampleRate, double frequency) {
+    const auto values =
+        juce::dsp::IIR::ArrayCoefficients<double>::makeHighPass(sampleRate, frequency);
     std::array<float, 6> rounded{};
     for (size_t i = 0; i < rounded.size(); ++i)
         rounded[i] = static_cast<float>(values[i]);
     return new juce::dsp::IIR::Coefficients<float>(rounded);
 }
-}
+}  // namespace
 
 //==============================================================================
 VCAProcessor::VCAProcessor(juce::AudioProcessorValueTreeState& apvts)
@@ -25,12 +25,13 @@ VCAProcessor::~VCAProcessor() {}
 //==============================================================================
 void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
-    bufferCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
-    outputCouplingPole = static_cast<float>(std::pow(static_cast<double>(0.9995f), 44100.0 / sampleRate));
+    bufferCouplingPole =
+        static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
+    outputCouplingPole =
+        static_cast<float>(std::pow(static_cast<double>(0.9995f), 44100.0 / sampleRate));
     // Empirical second-order 40 Hz high-pass; not derived from the schematic's
     // 1 uF / 50 V coupling capacitor and 82 kohm series resistor.
-    inputHighPass.coefficients =
-        makePreciseHighPass(sampleRate, 40.0);
+    inputHighPass.coefficients = makePreciseHighPass(sampleRate, 40.0);
     inputHighPass.reset();
     inputHighPass.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
 
@@ -109,8 +110,8 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         float egValue = egData[sample];
 
         // Process through IG02600 VCA chip emulation
-        float outputSample = vcaModel.processSample(inputSample, egValue, egDepth,
-                                                   breathInput, breathVcaDepth, volumeGain);
+        float outputSample = vcaModel.processSample(inputSample, egValue, egDepth, breathInput,
+                                                    breathVcaDepth, volumeGain);
 
         // Process through Tr7 transistor buffer emulation
         outputSample = processTr7Buffer(outputSample);
