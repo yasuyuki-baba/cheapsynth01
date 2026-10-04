@@ -151,7 +151,7 @@ void CS01LookAndFeel::drawSectionBackground(juce::Graphics& g, juce::Rectangle<i
     g.setColour(juce::Colours::white);
     g.setFont(juce::Font("Helvetica", 16.0f, juce::Font::bold));
 
-    auto titleWidth = g.getCurrentFont().getStringWidth(title);
+    auto titleWidth = juce::GlyphArrangement::getStringWidthInt(g.getCurrentFont(), title);
 
     // Draw Title
     g.drawText(title, bounds.getX(), bounds.getY(), titleWidth + 10, 20,
