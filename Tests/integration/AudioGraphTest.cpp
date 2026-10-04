@@ -273,6 +273,52 @@ TEST(OutputConversionTest, DownsamplingImpulseAndReportedRoundTripLatency)
 }
 
 // Test fixture for AudioGraph integration tests
+TEST(EnvelopeRangeTest, GraphStagesFollowConfiguredSeconds)
+{
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (float position : {0.0f, 0.5f, 1.0f}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(position);
+            CS01AudioProcessor processor;
+            auto& state = processor.getValueTreeState();
+            for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release})
+                state.getParameter(id)->setValueNotifyingHost(position);
+            state.getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.5f);
+            processor.prepareToPlay(rate, 64);
+            EGProcessor* envelope = nullptr;
+            for (auto node : processor.getAudioGraphForTesting().getNodes())
+                if (auto* eg = dynamic_cast<EGProcessor*>(node->getProcessor())) envelope = eg;
+            ASSERT_NE(envelope, nullptr);
+            juce::AudioBuffer<float> buffer(2, 1);
+            auto next = [&](int event) {
+                buffer.clear();
+                juce::MidiBuffer midi;
+                if (event == 1) midi.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+                if (event == 2) midi.addEvent(juce::MidiMessage::noteOff(1, 69), 0);
+                processor.processBlock(buffer, midi);
+                return envelope->getLastOutputForTesting();
+            };
+            auto elapsed = [&](auto reached, int event) {
+                const int limit = static_cast<int>(rate * 3.0);
+                for (int n = 1; n <= limit; ++n)
+                    if (reached(next(n == 1 ? event : 0))) return n / rate;
+                return 4.0;
+            };
+            const double attack = state.getRawParameterValue(ParameterIds::attack)->load();
+            const double decay = state.getRawParameterValue(ParameterIds::decay)->load();
+            const double release = state.getRawParameterValue(ParameterIds::release)->load();
+            // Allow one host sample for observation plus float accumulation error.
+            const float peakThreshold = static_cast<float>(1.0 - 1.0 / (attack * rate));
+            EXPECT_NEAR(elapsed([&](float v) { return v >= peakThreshold; }, 1), attack,
+                        attack * 0.01 + 2.0 / rate);
+            EXPECT_NEAR(elapsed([](float v) { return v <= 0.5f; }, 0), decay,
+                        decay * 0.01 + 2.0 / rate);
+            EXPECT_NEAR(elapsed([](float v) { return v == 0.0f; }, 2), release,
+                        release * 0.01 + 2.0 / rate);
+        }
+    }
+}
+
 class AudioGraphTest : public ::testing::Test
 {
 protected:
