@@ -36,5 +36,5 @@ void LFOComponent::resized() {
 
     grid.items = {juce::GridItem(lfoSpeedSlider), juce::GridItem(lfoSpeedLabel)};
 
-    grid.performLayout(getLocalBounds().reduced(10).withTrimmedTop(20));
+    grid.performLayout(getLocalBounds().withTrimmedTop(30).withTrimmedBottom(10));
 }

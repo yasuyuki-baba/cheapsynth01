@@ -92,9 +92,9 @@ void VCOComponent::paint(juce::Graphics& g) {
 }
 
 void VCOComponent::resized() {
-    auto bounds = getLocalBounds().reduced(10).withTrimmedTop(20);
+    auto bounds = getLocalBounds().withTrimmedTop(30).withTrimmedBottom(10);
     auto labels = bounds.removeFromBottom(32);
-    const int unit = bounds.getWidth() * 18 / 100;
+    const int unit = bounds.getWidth() / 5;
     juce::Slider* sliders[] = {&glissandoSlider, &pitchSlider, &pwmSpeedSlider};
     juce::Label* sliderLabels[] = {&glissandoLabel, &pitchLabel, &pwmSpeedLabel};
     for (int i = 0; i < 3; ++i) {
@@ -102,7 +102,7 @@ void VCOComponent::resized() {
         sliderLabels[i]->setBounds(labels.removeFromLeft(unit));
         sliderLabels[i]->setJustificationType(juce::Justification::centred);
     }
-    const int waveWidth = bounds.getWidth() * 3 / 5;
+    const int waveWidth = unit;
     auto waves = bounds.removeFromLeft(waveWidth);
     waveTypeLabel.setBounds(labels.removeFromLeft(waveWidth));
     feetLabel.setBounds(labels);

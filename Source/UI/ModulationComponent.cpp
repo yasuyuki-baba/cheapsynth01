@@ -116,6 +116,8 @@ ModulationComponent::~ModulationComponent() {
 
 void ModulationComponent::paint(juce::Graphics& g) {
     CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "CONTROL");
+    g.setColour(CS01LookAndFeel::Palette::textDim.withAlpha(0.3f));
+    g.drawVerticalLine(getWidth() / 2, 30.0f, static_cast<float>(getHeight() - 8));
 }
 
 void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
@@ -136,21 +138,24 @@ void ModulationComponent::sliderValueChanged(juce::Slider* slider) {
 
 void ModulationComponent::resized() {
     auto bounds = getLocalBounds().reduced(5).withTrimmedTop(24);
-    auto targets = bounds.removeFromRight(76);
+    auto bend = bounds.removeFromLeft(bounds.getWidth() / 2).reduced(6, 0);
+    auto mod = bounds.reduced(6, 0);
+    pitchBendLabel.setBounds(bend.removeFromTop(24));
+    modDepthLabel.setBounds(mod.removeFromTop(24));
+    auto bendSettings = bend.removeFromBottom(88);
+    auto targets = mod.removeFromBottom(88);
+    bend.removeFromBottom(10);
+    mod.removeFromBottom(10);
+    pitchBendSlider.setBounds(bend);
+    modDepthSlider.setBounds(mod);
+    bendUpLabel.setBounds(bendSettings.removeFromTop(18));
+    bendUpSlider.setBounds(bendSettings.removeFromTop(22));
+    bendDownLabel.setBounds(bendSettings.removeFromTop(18));
+    bendDownSlider.setBounds(bendSettings.removeFromTop(22));
+
     lfoTargetLabel.setBounds(targets.removeFromTop(22));
     for (auto* button : lfoTargetButtons)
         button->setBounds(targets.removeFromTop(28));
-    bendUpLabel.setBounds(targets.removeFromTop(18));
-    bendUpSlider.setBounds(targets.removeFromTop(22));
-    bendDownLabel.setBounds(targets.removeFromTop(18));
-    bendDownSlider.setBounds(targets.removeFromTop(22));
-
-    bounds.removeFromRight(6);
-    auto bend = bounds.removeFromLeft(bounds.getWidth() / 2);
-    pitchBendLabel.setBounds(bend.removeFromBottom(24));
-    modDepthLabel.setBounds(bounds.removeFromBottom(24));
-    pitchBendSlider.setBounds(bend.reduced(3, 0));
-    modDepthSlider.setBounds(bounds.reduced(3, 0));
 }
 
 void ModulationComponent::parameterValueChanged(int parameterIndex, float newValue) {

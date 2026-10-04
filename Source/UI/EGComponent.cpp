@@ -80,5 +80,5 @@ void EGComponent::resized() {
                   juce::GridItem(attackLabel),   juce::GridItem(decayLabel),
                   juce::GridItem(sustainLabel),  juce::GridItem(releaseLabel)};
 
-    grid.performLayout(getLocalBounds().reduced(10).withTrimmedTop(20));
+    grid.performLayout(getLocalBounds().withTrimmedTop(30).withTrimmedBottom(10));
 }

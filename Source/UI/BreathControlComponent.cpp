@@ -41,4 +41,9 @@ void BreathControlComponent::resized() {
     flexbox.items.add(juce::FlexItem(breathVcaLabel).withHeight(15.0f));
 
     flexbox.performLayout(bounds);
+    for (auto* slider : {&breathVcfSlider, &breathVcaSlider}) {
+        auto area = slider->getBounds();
+        const int size = juce::jmin(60, area.getWidth(), area.getHeight());
+        slider->setBounds(area.withSizeKeepingCentre(size, size));
+    }
 }

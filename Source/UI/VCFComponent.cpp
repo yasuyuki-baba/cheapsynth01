@@ -7,13 +7,11 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     filterTypeParam = valueTreeState.getParameter(ParameterIds::filterType);
     jassert(filterTypeParam != nullptr);
 
-    addAndMakeVisible(filterTypeLabel);
-    filterTypeLabel.setText("TYPE", juce::dontSendNotification);
-
     if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(filterTypeParam)) {
         auto choices = choiceParam->choices;
         for (int i = 0; i < choices.size(); ++i) {
-            auto* button = filterTypeButtons.add(new juce::ToggleButton(choices[i].toUpperCase()));
+            const juce::String displayName = i == 0 ? "I" : i == 1 ? "II" : choices[i].toUpperCase();
+            auto* button = filterTypeButtons.add(new juce::ToggleButton(displayName));
             addAndMakeVisible(button);
             button->setRadioGroupId(100);
             button->setClickingTogglesState(true);
@@ -83,17 +81,19 @@ VCFComponent::~VCFComponent() {
 
 void VCFComponent::paint(juce::Graphics& g) {
     CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "VCF");
+    // Clear the header rule behind the mode switches, retaining the section divider.
+    g.setColour(CS01LookAndFeel::Palette::background);
+    g.fillRect(48, 0, 72, 22);
 }
 
 void VCFComponent::resized() {
-    auto bounds = getLocalBounds().reduced(10).withTrimmedTop(20);
+    auto bounds = getLocalBounds().withTrimmedTop(30).withTrimmedBottom(10);
     auto labels = bounds.removeFromBottom(32);
-    const int columnWidth = bounds.getWidth() / 4;
-    auto typeColumn = bounds.removeFromLeft(columnWidth);
-    const int rowHeight = juce::jmin(36, typeColumn.getHeight() / filterTypeButtons.size());
-    typeColumn.removeFromTop((typeColumn.getHeight() - rowHeight * filterTypeButtons.size()) / 2);
+    auto modes = getLocalBounds().withTrimmedLeft(48).withTrimmedRight(10).withHeight(22);
+    const int modeWidth = 36;
     for (auto* button : filterTypeButtons)
-        button->setBounds(typeColumn.removeFromTop(rowHeight).reduced(2));
+        button->setBounds(modes.removeFromLeft(modeWidth));
+    const int columnWidth = bounds.getWidth() / 3;
 
     cutoffSlider.setBounds(bounds.removeFromLeft(columnWidth));
     auto resonanceColumn = bounds.removeFromLeft(columnWidth);
@@ -102,8 +102,9 @@ void VCFComponent::resized() {
         resonanceColumn.withSizeKeepingCentre(resonanceColumn.getWidth(), 36));
     egDepthSlider.setBounds(bounds);
 
-    for (auto* label : {&filterTypeLabel, &cutoffLabel, &resonanceLabel}) {
+    for (auto* label : {&cutoffLabel, &resonanceLabel}) {
         label->setBounds(labels.removeFromLeft(columnWidth));
+        label->setBorderSize(juce::BorderSize<int>(0));
         label->setJustificationType(juce::Justification::centred);
     }
     egDepthLabel.setBounds(labels);
