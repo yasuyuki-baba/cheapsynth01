@@ -1,7 +1,6 @@
 # CheapSynth01
 
-[![Build](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/build.yml)
-[![Tests](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/tests.yml)
+[![CI](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/ci.yml/badge.svg)](https://github.com/yasuyuki-baba/cheapsynth01/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![JUCE](https://img.shields.io/badge/JUCE-Framework-orange.svg)](https://juce.com/)
