@@ -185,7 +185,18 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             // The MIDI node controls generators through direct references, not
             // audio connections: explicitly order it before audio rendering.
             juce::AudioBuffer<float> noAudio;
+            bool panic = false;
+            for (const auto event : segmentMidi)
+                panic = panic || event.getMessage().isAllSoundOff();
             midiProcessorNode->getProcessor()->processBlock(noAudio, segmentMidi);
+            if (panic) {
+                // Clear residual audio at the event boundary, without rewinding
+                // MIDI state or erasing a later note-on in the same event group.
+                vcfNode->getProcessor()->releaseResources();
+                modernVcfNode->getProcessor()->releaseResources();
+                vcaNode->getProcessor()->releaseResources();
+                outputOversampling->reset();
+            }
         }
         for (int offset = position; offset < end;) {
             const int length = juce::jmin(processingCapacity, end - offset);

@@ -1005,3 +1005,91 @@ TEST_F(AudioGraphTest, ProgramChangeEffect)
     // Clean up
     processor->releaseResources();
 }
+
+TEST(MidiPanicGraphTest, StopsAtEventBoundaryAndCanRestart)
+{
+    for (int controller : {120, 123}) {
+        CS01AudioProcessor processor;
+        auto& state = processor.getValueTreeState();
+        const auto set = [&](const juce::String& id, float value) {
+            auto* parameter = state.getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        };
+        set(ParameterIds::volume, 1);
+        set(ParameterIds::vcaEgDepth, 1);
+        set(ParameterIds::attack, 0.001f);
+        set(ParameterIds::release, 0.1f);
+        processor.prepareToPlay(48000, 256);
+        juce::AudioBuffer<float> audio(2, 256);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
+        for (int block = 0; block < 30; ++block)
+            processor.processBlock(audio, midi);
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, 0), 128);
+        processor.processBlock(audio, midi);
+        double before = 0, after = 0;
+        for (int i = 0; i < 256; ++i) {
+            ASSERT_TRUE(std::isfinite(audio.getSample(0, i)));
+            (i < 128 ? before : after) += std::abs(audio.getSample(0, i));
+        }
+        EXPECT_GT(before, 1.0e-4);
+        if (controller == 120) EXPECT_EQ(after, 0.0);
+        else EXPECT_GT(after, 1.0e-4);
+        for (int block = 0; block < 200; ++block)
+            processor.processBlock(audio, midi);
+        EXPECT_LT(audio.getMagnitude(0, 256), 1.0e-5f);
+        midi.addEvent(juce::MidiMessage::noteOn(1, 72, (juce::uint8)100), 0);
+        double restarted = 0;
+        for (int block = 0; block < 10; ++block) {
+            processor.processBlock(audio, midi);
+            restarted += audio.getMagnitude(0, 256);
+        }
+        EXPECT_GT(restarted, 1.0e-4);
+        processor.releaseResources();
+    }
+}
+
+TEST(MidiPanicGraphTest, SourceSwitchLifecycleAndSameTimestampOrdering)
+{
+    CS01AudioProcessor processor;
+    const auto set = [&](const juce::String& id, float value) {
+        auto* parameter = processor.getValueTreeState().getParameter(id);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+    };
+    set(ParameterIds::volume, 1);
+    set(ParameterIds::attack, 0.001f);
+    processor.prepareToPlay(48000, 64);
+    juce::AudioBuffer<float> audio(2, 64);
+    juce::MidiBuffer midi;
+    const auto render = [&](int blocks) {
+        double energy = 0;
+        for (int block = 0; block < blocks; ++block) {
+            processor.processBlock(audio, midi);
+            energy += audio.getMagnitude(0, 64);
+        }
+        return energy;
+    };
+    midi.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
+    EXPECT_GT(render(20), 1.0e-4);
+    midi.addEvent(juce::MidiMessage::allSoundOff(1), 0);
+    EXPECT_EQ(render(1), 0);
+    set(ParameterIds::feet, static_cast<float>(Feet::WhiteNoise));
+    EXPECT_EQ(render(10), 0);
+    set(ParameterIds::feet, static_cast<float>(Feet::Feet8));
+    EXPECT_EQ(render(10), 0);
+    // Preserve the supplied event ordering at an identical sample position.
+    midi.addEvent(juce::MidiMessage::allSoundOff(1), 0);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 72, (juce::uint8)100), 0);
+    EXPECT_GT(render(20), 1.0e-4);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 76, (juce::uint8)100), 0);
+    midi.addEvent(juce::MidiMessage::allSoundOff(1), 0);
+    EXPECT_EQ(render(10), 0);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
+    EXPECT_GT(render(20), 1.0e-4);
+    processor.releaseResources();
+    processor.prepareToPlay(48000, 64);
+    EXPECT_EQ(render(10), 0);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0);
+    EXPECT_GT(render(20), 1.0e-4);
+    processor.releaseResources();
+}
