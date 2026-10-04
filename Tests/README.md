@@ -84,7 +84,9 @@ This script performs the following:
 The unified `ci.yml` workflow runs on pushes to `main`, tags, pull requests,
 and manual dispatches. After formatting passes, independent Linux, macOS, and
 Windows jobs configure one build directory with all product formats and tests
-enabled. Linux GUI tests run under Xvfb. A failed OS job does not cancel the others.
+enabled. Linux GUI tests run under Xvfb with Openbox; the runner waits for the
+window manager to initialize before opening dialogs. A failed OS job does not
+cancel the others.
 Tag builds use Release and create a GitHub release only after all OS jobs pass.
 The workflow:
 
