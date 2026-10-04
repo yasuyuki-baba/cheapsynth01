@@ -1,4 +1,5 @@
 #pragma once
+#include "YM10150.h"
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
@@ -70,6 +71,7 @@ class ToneGenerator : public ISoundGenerator {
     int stepCounter = 0;
 
     // VCO
+    YM10150 waveformModel;
     float sampleRate = 44100.0f;
     float internalSampleRate = 176400.0f;
     juce::dsp::Oversampling<float> oversampling{1, Constants::oversamplingStages,
@@ -82,7 +84,6 @@ class ToneGenerator : public ISoundGenerator {
     float dcBlockerState = 0.0f;
 
     // Base square wave generation (master clock)
-    float previousBaseSquare = 0.0f;
 
     // Cached Parameters
     float currentModDepth = 0.0f;
@@ -95,12 +96,4 @@ class ToneGenerator : public ISoundGenerator {
     juce::dsp::Oscillator<double> pwmLfo;
     float lfoValue = 0.0f;
 
-    // Waveform Strategy Pattern - simplified with direct mapping
-    std::map<Waveform, std::unique_ptr<IWaveformStrategy>> waveformStrategies;
-    IWaveformStrategy* currentWaveformStrategy = nullptr;
-    Waveform previousWaveform = Waveform::Sawtooth;
-
-    // Helper methods for strategy pattern
-    void initializeWaveformStrategies();
-    void updateWaveformStrategy();
 };

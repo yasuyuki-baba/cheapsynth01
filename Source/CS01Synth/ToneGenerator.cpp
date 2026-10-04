@@ -3,7 +3,7 @@
 #include <cmath>
 
 ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
-    initializeWaveformStrategies();
+
 }
 
 void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
@@ -172,7 +172,7 @@ void ToneGenerator::updateBlockRateParameters() {
     pitchOffset = apvts.getRawParameterValue(ParameterIds::pitch)->load();
 
     // Update waveform strategy based on current waveform
-    updateWaveformStrategy();
+    waveformModel.selectWaveform(currentWaveform);
 }
 
 void ToneGenerator::reset() {
@@ -186,11 +186,9 @@ void ToneGenerator::reset() {
     dcBlockerState = 0.0f;
 
     // Reset base square wave state
-    previousBaseSquare = 0.0f;
+    waveformModel.reset();
     oversampling.reset();
     oversamplingBuffer.clear();
-    for (auto& entry : waveformStrategies)
-        entry.second->reset();
     pwmLfo.reset();
     pwmLfo.setFrequency(apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load(), true);
 
@@ -319,31 +317,6 @@ float ToneGenerator::getNextSample() {
     return oversamplingBuffer.getSample(0, 0);
 }
 
-void ToneGenerator::initializeWaveformStrategies() {
-    // Initialize waveform strategy mapping directly
-    waveformStrategies[Waveform::Triangle] = std::make_unique<TriangleWaveformStrategy>();
-    waveformStrategies[Waveform::Sawtooth] = std::make_unique<SawtoothWaveformStrategy>();
-    waveformStrategies[Waveform::Square] = std::make_unique<SquareWaveformStrategy>();
-    waveformStrategies[Waveform::Pulse] = std::make_unique<PulseWaveformStrategy>();
-    waveformStrategies[Waveform::Pwm] = std::make_unique<PWMWaveformStrategy>();
-
-    // Set default strategy
-    currentWaveformStrategy = waveformStrategies[Waveform::Sawtooth].get();
-}
-
-void ToneGenerator::updateWaveformStrategy() {
-    // Reset strategy-specific states when waveform changes
-    if (previousWaveform != currentWaveform) {
-        currentWaveformStrategy->reset();
-    }
-
-    // Direct access to strategy (all waveforms are guaranteed to be initialized)
-    currentWaveformStrategy = waveformStrategies[currentWaveform].get();
-
-    // Update for next comparison
-    previousWaveform = currentWaveform;
-}
-
 void ToneGenerator::setLfoValue(float newLfoValue) {
     lfoValue = newLfoValue;
 }
@@ -353,36 +326,11 @@ void ToneGenerator::setPitchBend(float bendInSemitones) {
 }
 
 float ToneGenerator::generateMasterSquareWave(float finalPitch) {
-    // Calculate frequency directly from finalPitch using continuous calculation
-    // This ensures smooth pitch bend and pitch slider operation
-    float frequency = 440.0f * static_cast<float>(std::exp2(static_cast<double>((finalPitch - 69.0f) / 12.0f)));
-    phaseIncrement = frequency / internalSampleRate;
-
-    // Generate master clock square wave (50% duty cycle)
-    float t = phase;
-    float baseSquare = (t < 0.5f) ? 1.0f : -1.0f;
-
-    // Apply poly_blep anti-aliasing
-    baseSquare += poly_blep(t, phaseIncrement);
-    baseSquare -= poly_blep(fmod(t + 0.5f, 1.0f), phaseIncrement);
-
-    // Update phase for next sample
-    phase += phaseIncrement;
-    if (phase >= 1.0f)
-        phase -= 1.0f;
-
-    // Emulate analog circuit characteristics
-    return std::tanh(baseSquare * 1.2f);
+    return waveformModel.generateMasterSquareWave(finalPitch, internalSampleRate,
+                                                  phase, phaseIncrement);
 }
 
 float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
-    if (currentWaveformStrategy == nullptr)
-        return masterSquare;
-
-    // Use Strategy pattern to generate waveform
-    float value = currentWaveformStrategy->generate(masterSquare, phase, phaseIncrement, internalSampleRate,
-                                                    previousBaseSquare, pwmLfo);
-
-    // Standard analog circuit output stage for all waveforms
-    return std::tanh(value * 1.2f);
+    return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement,
+                                          internalSampleRate, pwmLfo);
 }

@@ -148,8 +148,10 @@ target_sources(CheapSynth01
         Source/UI/VolumeComponent.cpp
         Source/UI/OscilloscopeComponent.cpp
         Source/CS01Synth/ToneGenerator.cpp
+        Source/CS01Synth/YM10150.cpp
         Source/CS01Synth/OriginalVCFProcessor.cpp
         Source/CS01Synth/VCAProcessor.cpp
+        Source/CS01Synth/IG02600.cpp
         Source/CS01Synth/VCOProcessor.cpp
         Source/CS01Synth/MidiProcessor.cpp
         Source/UI/CS01LookAndFeel.cpp
@@ -159,6 +161,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/ModernVCFProcessor.cpp
         Source/CS01Synth/NoiseGenerator.cpp
         Source/CS01Synth/IG02610LPF.cpp
+        Source/CS01Synth/IG02610.cpp
         Source/UI/FilterTypeComponent.cpp
 )
 

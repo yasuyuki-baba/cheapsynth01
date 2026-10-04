@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../Parameters.h"
+#include "IG02600.h"
 
 //==============================================================================
 class VCAProcessor : public juce::AudioProcessor {
@@ -75,7 +76,7 @@ class VCAProcessor : public juce::AudioProcessor {
     juce::dsp::IIR::Filter<float> highFreqRolloff;
 
     // IG02600 VCA chip emulation
-    float processVCA(float input, float controlVoltage, float volumeParam);
+    IG02600 vcaModel;
 
     // Tr7 transistor buffer emulation
     float processTr7Buffer(float input);

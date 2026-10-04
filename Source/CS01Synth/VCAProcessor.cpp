@@ -107,12 +107,9 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         // Get EG value
         float egValue = egData[sample];
 
-        // Calculate control voltage for VCA
-        float controlVoltage = (1.0f - egDepth) + (egValue * egDepth);
-        controlVoltage *= (1.0f - breathVcaDepth) + (breathInput * breathVcaDepth);
-
         // Process through IG02600 VCA chip emulation
-        float outputSample = processVCA(inputSample, controlVoltage, volumeGain);
+        float outputSample = vcaModel.processSample(inputSample, egValue, egDepth,
+                                                   breathInput, breathVcaDepth, volumeGain);
 
         // Process through Tr7 transistor buffer emulation
         outputSample = processTr7Buffer(outputSample);
@@ -126,26 +123,6 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         // TP5: Final output
         outputData[sample] = outputSample;
     }
-}
-
-// IG02600 VCA chip emulation
-float VCAProcessor::processVCA(float input, float controlVoltage, float volumeGain) {
-    // volumeGain is precomputed nonlinear volume curve (PVR5)
-    // Calculate gain based on control voltage and volume
-    float gain = controlVoltage * volumeGain;
-
-    // Apply gain
-    float output = input * gain;
-
-    // Emulate IG02600 VCA non-linear response
-    if (std::abs(output) > 0.7f) {
-        // Soft saturation for higher levels
-        float sign = (output > 0.0f) ? 1.0f : -1.0f;
-        float excess = std::abs(output) - 0.7f;
-        output = sign * (0.7f + excess / (1.0f + excess * 0.5f));
-    }
-
-    return output;
 }
 
 // Tr7 transistor buffer emulation
