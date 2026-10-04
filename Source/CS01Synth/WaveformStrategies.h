@@ -44,7 +44,7 @@ private:
 class TriangleWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
+                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
         // Use internal state like other waveforms for independence
         timeConstants.update(sampleRate);
         triangleIntegrator += masterSquare * phaseIncrement * 8.0f;
@@ -82,7 +82,7 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
 class SawtoothWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
+                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
         // Convert square to sawtooth using integration-like process
         timeConstants.update(sampleRate);
         sawtoothState += (masterSquare > 0 ? phaseIncrement : -phaseIncrement) * 2.0f;
@@ -110,7 +110,7 @@ class SawtoothWaveformStrategy : public IWaveformStrategy {
 class SquareWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
+                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
         // Use master square directly
         return masterSquare;
     }
@@ -122,7 +122,7 @@ class SquareWaveformStrategy : public IWaveformStrategy {
 class PulseWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
+                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
         // Generate pulse from master timing with ~25% duty cycle
         float t = phase;
         float pulseWidth = 0.25f;
@@ -143,7 +143,7 @@ class PulseWaveformStrategy : public IWaveformStrategy {
 class PWMWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<float>& pwmLfo) override {
+                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
         // Generate PWM from master timing with LFO modulation
         float pwmModulation = pwmLfo.processSample(0.0f);
         float pulseWidth = 0.5f + (pwmModulation * 0.4f);     // 10% to 90% range

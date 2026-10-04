@@ -6,8 +6,8 @@ LFOProcessor::LFOProcessor(juce::AudioProcessorValueTreeState& apvts)
       apvts(apvts),
       lfo() {
     // JUCE supplies phase in [-pi, pi], not a normalized [0, 1) phase.
-    lfo.initialise([](float phase) -> float {
-        return 1.0f - 2.0f * std::abs(phase) / juce::MathConstants<float>::pi;
+    lfo.initialise([](double phase) -> double {
+        return 1.0 - 2.0 * std::abs(phase) / juce::MathConstants<double>::pi;
     });
 }
 
@@ -39,10 +39,11 @@ void LFOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     // CS01 is a mono synth, so only generate mono output
     buffer.clear();
 
-    // Use JUCE DSP module to generate LFO signal (mono output)
-    juce::dsp::AudioBlock<float> block(buffer);
-    juce::dsp::ProcessContextReplacing<float> context(block);
-    lfo.process(context);
+    // Keep phase accumulation in double precision, including at the internal
+    // oversampled rate; convert only the control output to float.
+    auto* output = buffer.getWritePointer(0);
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+        output[i] = static_cast<float>(lfo.processSample(0.0));
 
     // LFO output is written directly to the mono buffer
 }

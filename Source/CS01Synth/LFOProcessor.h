@@ -66,7 +66,7 @@ class LFOProcessor : public juce::AudioProcessor {
     void updateParameters();
 
     juce::AudioProcessorValueTreeState& apvts;
-    juce::dsp::Oscillator<float> lfo;
+    juce::dsp::Oscillator<double> lfo;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LFOProcessor)
 };

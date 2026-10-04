@@ -15,8 +15,7 @@ void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
     pwmLfo.prepare(internalSpec);
     oversampling.initProcessing(1);
     pwmLfo.initialise(
-        [](float x) { return std::asin(std::sin(x)) * (2.0f / juce::MathConstants<float>::pi); },
-        128);
+        [](double x) { return std::asin(std::sin(x)) * (2.0 / juce::MathConstants<double>::pi); });
 
     reset();
 }
@@ -237,6 +236,22 @@ void ToneGenerator::calculateSlideParameters(int targetNote) {
 
 float ToneGenerator::getNextSample() {
     // Handle glissando (discrete semitone steps - remains unchanged)
+    if (isSliding) {
+        // Interim live-control model: preserve fractional progress through the
+        // current semitone. YM10150's oscillator phase behavior is not established.
+        const float duration = apvts.getRawParameterValue(ParameterIds::glissando)->load();
+        if (duration < 0.001f) {
+            currentPitch = targetPitch;
+            isSliding = false;
+        } else {
+            const int updatedSamples = juce::jmax(1, static_cast<int>(duration * sampleRate));
+            if (updatedSamples != samplesPerStep) {
+                stepCounter = static_cast<int>(static_cast<double>(stepCounter)
+                    * updatedSamples / samplesPerStep);
+                samplesPerStep = updatedSamples;
+            }
+        }
+    }
     if (isSliding) {
         stepCounter++;
         if (stepCounter >= samplesPerStep) {
