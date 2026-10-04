@@ -63,6 +63,8 @@ protected:
             ParameterIds::release, "Release", 
             juce::NormalisableRange<float>(0.001f, 5.0f, 0.001f, 0.5f), 0.5f));
         
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            ParameterIds::glissando, "Glissando", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
         return layout;
     }
     
@@ -70,6 +72,47 @@ protected:
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     std::unique_ptr<MidiProcessor> processor;
 };
+
+TEST_F(MidiProcessorTest, GlissandoUsesFourteenBitControllerPair)
+{
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const auto send = [&](int cc, int value) {
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, cc, value), 0);
+        processor->processBlock(unused, midi);
+    };
+    send(5, 64);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::glissando)->load(),
+                (64 * 128) / 16383.0f, 1.0e-6f);
+    send(37, 3);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::glissando)->load(),
+                (64 * 128 + 3) / 16383.0f, 1.0e-6f);
+}
+
+TEST_F(MidiProcessorTest, ResetControllersPreservesHeldNotesAndPatch)
+{
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const auto send = [&](const juce::MidiMessage& message) {
+        midi.addEvent(message, 0);
+        processor->processBlock(unused, midi);
+    };
+    send(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100));
+    send(juce::MidiMessage::pitchWheel(1, 12000));
+    for (int cc : {1, 33, 2, 34})
+        send(juce::MidiMessage::controllerEvent(1, cc, 127));
+    const float attack = apvts->getRawParameterValue(ParameterIds::attack)->load();
+    send(juce::MidiMessage::controllerEvent(1, 121, 0));
+    EXPECT_EQ(processor->getCurrentlyPlayingNote(), 64);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 0.0f);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 0.0f);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 0.0f);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), attack);
+    send(juce::MidiMessage::controllerEvent(1, 33, 1));
+    send(juce::MidiMessage::controllerEvent(1, 34, 1));
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 1.0f / 16383, 1.0e-6f);
+    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 1.0f / 16383, 1.0e-6f);
+}
 
 TEST_F(MidiProcessorTest, HeldKeysKeepEnvelopeGateOpen)
 {

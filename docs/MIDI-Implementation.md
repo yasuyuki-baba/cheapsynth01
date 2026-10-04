@@ -25,8 +25,7 @@
 | 1/33 | Modulation Depth | 14-bit | 0-16383 | MSB/LSB |
 | 2/34 | Breath Control | 14-bit | 0-16383 | MSB/LSB |
 | 7/39 | Volume | 14-bit | 0-16383 | MSB/LSB |
-| 11 | PWM Speed | 7-bit | 0-127 | |
-| 35/37 | Glissando | 14-bit | 0-16383 | MSB/LSB |
+| 5/37 | Glissando | 14-bit | 0-16383 | Portamento Time MSB/LSB; discrete pitch steps |
 | 70 | Sustain Level | 7-bit | 0-127 | |
 | 71 | Resonance | 7-bit | 0-127 | |
 | 73 | Attack | 7-bit | 0-127 | |
@@ -35,9 +34,11 @@
 | 76 | LFO Speed | 7-bit | 0-127 | |
 | 79 | Release | 7-bit | 0-127 | |
 | 120 | All Sound Off | — | — | Immediately stops generators/EG and clears residual output state |
+| 121 | Reset All Controllers | — | — | Centers bend, clears modulation/breath and their 14-bit caches; preserves notes, volume and patch |
 | 123 | All Notes Off | — | — | Clears held notes and starts normal release; repeated messages do not restart release |
 
 ## Notes
+- PWM speed remains a panel/host parameter and has no MIDI CC assignment.
 - Monophonic voice management (highest note priority)
 - 14-bit CC uses MSB/LSB pair for high precision control
 - All parameters update in real-time

@@ -6,6 +6,66 @@
 #include "../../Source/CS01Synth/SynthConstants.h"
 #include <chrono>
 
+TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope)
+{
+    for (int blockSize : {64, 256}) {
+        CS01AudioProcessor baseline, reset;
+        const auto configure = [&](CS01AudioProcessor& processor) {
+            auto& state = processor.getValueTreeState();
+            const auto set = [&](const juce::String& id, float value) {
+                auto* parameter = state.getParameter(id);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+            };
+            set(ParameterIds::attack, 0.1f);
+            set(ParameterIds::decay, 0.1f);
+            set(ParameterIds::sustain, 0.6f);
+            set(ParameterIds::breathVca, 0.0f);
+            set(ParameterIds::breathVcf, 0.0f);
+            set(ParameterIds::volume, 1.0f);
+            processor.prepareToPlay(48000.0, blockSize);
+            processor.flushPendingGraphChangesForTesting();
+        };
+        configure(baseline);
+        configure(reset);
+        const auto envelope = [](CS01AudioProcessor& processor) {
+            for (auto* node : processor.getAudioGraphForTesting().getNodes())
+                if (auto* eg = dynamic_cast<EGProcessor*>(node->getProcessor())) return eg;
+            return static_cast<EGProcessor*>(nullptr);
+        };
+        auto* expected = envelope(baseline);
+        auto* observed = envelope(reset);
+        ASSERT_NE(expected, nullptr);
+        ASSERT_NE(observed, nullptr);
+        juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
+        double energy = 0.0;
+        for (int block = 0; block < 200; ++block) {
+            juce::MidiBuffer ma, mb;
+            if (block == 0) {
+                ma.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+                mb.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
+                mb.addEvent(juce::MidiMessage::pitchWheel(1, 16383), 0);
+            }
+            // Reset during attack, not only after reaching a steady sustain.
+            if (block == 3) mb.addEvent(juce::MidiMessage::controllerEvent(1, 121, 0), 17);
+            a.clear(); b.clear();
+            baseline.processBlock(a, ma);
+            reset.processBlock(b, mb);
+            EXPECT_NEAR(observed->getLastOutputForTesting(), expected->getLastOutputForTesting(), 1.0e-6f);
+            EXPECT_EQ(observed->isActive(), expected->isActive());
+            if (block >= 3)
+                EXPECT_FLOAT_EQ(reset.getValueTreeState().getRawParameterValue(ParameterIds::pitchBend)->load(), 0.0f);
+            if (block >= 150) {
+                for (int i = 0; i < blockSize; ++i) {
+                    ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
+                    energy += b.getSample(0, i) * b.getSample(0, i);
+                }
+            }
+        }
+        EXPECT_GT(energy, 1.0e-6);
+        EXPECT_NEAR(observed->getLastOutputForTesting(), 0.6f, 1.0e-5f);
+    }
+}
+
 TEST(SessionGraphTest, RestoresRoutingWithoutRestoringHeldNotes)
 {
     for (int filter : {0, 1}) {
