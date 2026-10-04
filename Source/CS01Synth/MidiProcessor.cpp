@@ -143,6 +143,16 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
     const int controller = midiMessage.getControllerNumber();
     const int value = midiMessage.getControllerValue();
 
+    if (controller == 121) {
+        // Reset performance controls, not the patch, volume or held keys.
+        modulationMSB = modulationLSB = 0;
+        breathMSB = breathLSB = 0;
+        updateModulationParameter();
+        updateBreathParameter();
+        handlePitchWheel(juce::MidiMessage::pitchWheel(midiMessage.getChannel(), 8192));
+        return;
+    }
+
     // 14bit CC MSB processing
     if (controller == 1) {          // CC #1: Modulation MSB
         modulationMSB = value;
@@ -156,7 +166,7 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
         volumeMSB = value;
         updateVolumeParameter();
     }
-    else if (controller == 35) {    // CC #35: Glissando MSB
+    else if (controller == 5) {     // CC #5: Portamento Time MSB (discrete glissando)
         glissandoMSB = value;
         updateGlissandoParameter();
     }
@@ -178,11 +188,6 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
         updateVolumeParameter();
     }
     // 7bit CC processing
-    else if (controller == 11) {    // CC #11: PWM Speed
-        float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::pwmSpeed))
-            param->setValueNotifyingHost(floatValue);
-    }
     else if (controller == 70) {    // CC #70: Sustain Level (Sound Variation)
         float floatValue = value / 127.0f;
         if (auto* param = apvts.getParameter(ParameterIds::sustain))
