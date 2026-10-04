@@ -10,7 +10,9 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(filterTypeParam)) {
         auto choices = choiceParam->choices;
         for (int i = 0; i < choices.size(); ++i) {
-            const juce::String displayName = i == 0 ? "I" : i == 1 ? "II" : choices[i].toUpperCase();
+            const juce::String displayName = i == 0   ? "I"
+                                             : i == 1 ? "II"
+                                                      : choices[i].toUpperCase();
             auto* button = filterTypeButtons.add(new juce::ToggleButton(displayName));
             addAndMakeVisible(button);
             button->setRadioGroupId(100);

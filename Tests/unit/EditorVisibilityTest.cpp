@@ -17,8 +17,10 @@ TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
     for (auto* child : filter->getChildren()) {
         EXPECT_TRUE(filter->getLocalBounds().contains(child->getBounds()));
         if (auto* button = dynamic_cast<juce::ToggleButton*>(child)) {
-            if (button->getButtonText() == "I") original = button;
-            if (button->getButtonText() == "II") modern = button;
+            if (button->getButtonText() == "I")
+                original = button;
+            if (button->getButtonText() == "II")
+                modern = button;
         }
         if (auto* slider = dynamic_cast<juce::Slider*>(child))
             EXPECT_GE(slider->getY(), 30);
@@ -51,7 +53,6 @@ TEST(EditorVisibilityTest, CombinedDisplayPreservesUpperPanelLayout) {
         if (auto* button = dynamic_cast<juce::TextButton*>(child)) {
             if (button->getButtonText() == "KEYBOARD + MONITOR")
                 keyboardButton = button;
-
         }
     }
     ASSERT_NE(keyboard, nullptr);
@@ -123,11 +124,16 @@ TEST(EditorVisibilityTest, WheelSettingsAreBelowTheirCorrespondingWheels) {
     juce::Label* target = nullptr;
     for (auto* child : controls.getChildren()) {
         if (auto* label = dynamic_cast<juce::Label*>(child)) {
-            if (label->getText() == "BEND") bend = label;
-            if (label->getText() == "MOD") mod = label;
-            if (label->getText() == "UP") up = label;
-            if (label->getText() == "DOWN") down = label;
-            if (label->getText() == "TARGET") target = label;
+            if (label->getText() == "BEND")
+                bend = label;
+            if (label->getText() == "MOD")
+                mod = label;
+            if (label->getText() == "UP")
+                up = label;
+            if (label->getText() == "DOWN")
+                down = label;
+            if (label->getText() == "TARGET")
+                target = label;
         }
         EXPECT_TRUE(controls.getLocalBounds().contains(child->getBounds()));
     }
