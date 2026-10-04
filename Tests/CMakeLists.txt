@@ -74,9 +74,12 @@ target_sources(CheapSynth01Tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/ProgramManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610LPF.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02610.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ToneGenerator.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/YM10150.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/OriginalVCFProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCAProcessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02600.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/EGProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/LFOProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCOProcessor.cpp

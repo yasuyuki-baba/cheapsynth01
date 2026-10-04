@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "IG02610.h"
 
 //==============================================================================
 // IG02610 2-pole lowpass filter implementation
@@ -30,21 +31,7 @@ class IG02610LPF {
 
    private:
     float cutoff, resonance, sampleRate;
-    double a1, a2, b0, b1, b2;
-    double z1, z2;
-
-    // Input level tracking for OTA input level dependency characteristic
-    float inputLevelSmoothed = 0.0f;
-
-    // WaveShaper parameters - defined as static constants
-    static constexpr float RESONANCE_DRIVE = 1.2f;
-    static constexpr float RESONANCE_SHAPE = 0.8f;
-    static constexpr float OUTPUT_DRIVE = 1.1f;
-
-    // OTA input level dependency parameters
-    static constexpr float INPUT_LEVEL_INFLUENCE = 0.02f;  // ±2% cutoff modulation
-    static constexpr float LEVEL_SMOOTHING = 0.99f;        // Envelope follower coefficient
-    float levelSmoothing = LEVEL_SMOOTHING;
+    IG02610 model;
 
     // Input stage model
     struct InputStage {
@@ -82,14 +69,10 @@ class IG02610LPF {
     InputStage inputStage;
     OutputStage outputStage;
 
-    // More accurate tanh approximation
-    float accurateTanh(float x);
-
     // Input stage processing
     float processInputStage(float sample);
 
     // Output stage processing
     float processOutputStage(float sample);
 
-    void updateCoefficients();
 };
