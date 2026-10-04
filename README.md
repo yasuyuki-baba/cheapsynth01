@@ -4,7 +4,6 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![JUCE](https://img.shields.io/badge/JUCE-Framework-orange.svg)](https://juce.com/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg?v=1)](https://deepwiki.com/yasuyuki-baba/cheapsynth01)
 
 CheapSynth01 is a JUCE-based software emulation of an early 80's compact monophonic synthesizer. It combines circuit-informed modeling with provisional DSP approximations where hardware characteristics remain unresolved.
 
