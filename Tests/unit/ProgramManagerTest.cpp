@@ -140,6 +140,28 @@ TEST_F(ProgramManagerTest, ProgramSelection)
     }
 }
 
+TEST_F(ProgramManagerTest, SerializedSessionOmitsPerformanceInputs)
+{
+    TestAudioProcessor processor;
+    juce::AudioProcessorValueTreeState state(processor, nullptr, "Parameters", createTestParameterLayout());
+    ProgramManager manager(state);
+    juce::MemoryBlock saved;
+    manager.getStateInformation(saved);
+    auto xml = juce::AudioProcessor::getXmlFromBinary(saved.getData(), static_cast<int>(saved.getSize()));
+    ASSERT_NE(xml, nullptr);
+    for (auto* child : xml->getChildIterator()) {
+        const auto id = child->getStringAttribute("id");
+        EXPECT_NE(id, ParameterIds::breathInput);
+        EXPECT_NE(id, ParameterIds::pitchBend);
+        EXPECT_NE(id, ParameterIds::modDepth);
+    }
+    EXPECT_GT(xml->getNumChildElements(), 0);
+    const auto before = state.copyState().toXmlString();
+    juce::XmlElement invalid("UnrelatedDocument");
+    manager.loadPresetFromXml(&invalid);
+    EXPECT_EQ(state.copyState().toXmlString(), before);
+}
+
 TEST_F(ProgramManagerTest, StateManagement)
 {
     // Create mock AudioProcessor and parameters

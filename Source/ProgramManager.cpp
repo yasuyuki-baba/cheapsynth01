@@ -77,7 +77,9 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
         xml->setAttribute("program", currentProgram);
 
         // Get parameter elements
-        if (auto* params = xml->getChildByName("PARAMETERS")) {
+        {
+            auto* params = xml->getChildByName("PARAMETERS");
+            if (params == nullptr) params = xml.get();
             // Remove excluded parameters (only realtime input parameters for DAW sessions)
             for (int i = params->getNumChildElements() - 1; i >= 0; --i) {
                 auto* param = params->getChildElement(i);
@@ -143,7 +145,7 @@ void ProgramManager::loadPresetFromBinaryData(const juce::String& filename) {
 }
 
 void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
-    if (xml != nullptr) {
+    if (xml != nullptr && xml->hasTagName(apvts.state.getType())) {
         // Save current values of parameters excluded from preset loading
         std::map<juce::String, float> persistentValues;
         for (const auto& paramId : presetExcludedParameters) {
@@ -186,7 +188,9 @@ void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
     std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
     if (xml != nullptr) {
         // Remove excluded parameters from saved preset
-        if (auto* params = xml->getChildByName("PARAMETERS")) {
+        {
+            auto* params = xml->getChildByName("PARAMETERS");
+            if (params == nullptr) params = xml.get();
             for (int i = params->getNumChildElements() - 1; i >= 0; --i) {
                 auto* param = params->getChildElement(i);
                 if (param != nullptr && param->hasAttribute("id")) {
