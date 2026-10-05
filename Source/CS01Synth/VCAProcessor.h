@@ -78,6 +78,7 @@ class VCAProcessor : public juce::AudioProcessor {
 
     // IG02600 VCA chip emulation
     IG02600 vcaModel;
+    juce::SmoothedValue<float> egDepthControl;
 
     // Tr7 transistor buffer emulation
     float processTr7Buffer(float input);

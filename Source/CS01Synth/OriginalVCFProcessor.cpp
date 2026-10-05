@@ -18,6 +18,9 @@ void OriginalVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Initialize filter
     filter.reset();
     filter.prepare(sampleRate);
+    egDepthControl.reset(sampleRate, 0.005);
+    egDepthControl.setCurrentAndTargetValue(
+        apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load());
 
     // Pre-allocate buffer for modulation values to avoid reallocations per block
     if (samplesPerBlock > modulationBufferCapacity) {
@@ -66,6 +69,7 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto cutoffParam = apvts.getRawParameterValue(ParameterIds::cutoff)->load();
     auto resonanceParam = apvts.getRawParameterValue(ParameterIds::resonance)->load();
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load();
+    egDepthControl.setTargetValue(egDepth);
     auto modDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
@@ -107,7 +111,7 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         float baseCutoff = cutoff;
 
         // EG modulation
-        float egMod = egValue * egDepth * egModRangeSemitones;
+        float egMod = egValue * egDepthControl.getNextValue() * egModRangeSemitones;
         float egModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(egMod / 12.0f)));
 
         // LFO modulation
