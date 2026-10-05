@@ -1,9 +1,12 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
+
+#include "CS01AudioProcessor.h"
+#include "CS01AudioProcessorEditor.h"
+#include "UI/AudioDisplayFifo.h"
+
+#include <gtest/gtest.h>
+
 #include <thread>
-#include "../../Source/UI/AudioDisplayFifo.h"
-#include "../../Source/CS01AudioProcessor.h"
-#include "../../Source/CS01AudioProcessorEditor.h"
 
 TEST(AudioDisplayFifoTest, DisabledAndFullQueuesNeverGrowAndRecover) {
     AudioDisplayFifo fifo;

@@ -1,7 +1,9 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01AudioProcessor.h"
-#include "../../Source/CS01AudioProcessorEditor.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01AudioProcessorEditor.h"
+
+#include <gtest/gtest.h>
 
 TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
     CS01AudioProcessor processor;

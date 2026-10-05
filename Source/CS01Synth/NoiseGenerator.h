@@ -1,8 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ISoundGenerator.h"
-#include "../Parameters.h"
+
+#include "CS01Synth/ISoundGenerator.h"
+#include "Parameters.h"
 
 /**
  * NoiseGenerator - Responsible for noise generation

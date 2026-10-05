@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "VCFComponent.h"
-#include "../Parameters.h"
+#include "UI/VCFComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     // --- Filter Type Selector (Integrated) ---

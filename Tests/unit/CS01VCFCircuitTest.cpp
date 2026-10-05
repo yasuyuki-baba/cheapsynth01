@@ -1,8 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/CS01VCFCircuit.h"
-#include "../../Source/CS01Synth/SynthConstants.h"
-#include "../../Source/CS01AudioProcessor.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01Synth/CS01VCFCircuit.h"
+#include "CS01Synth/SynthConstants.h"
+
+#include <gtest/gtest.h>
 
 TEST(IG02610ControlTest, LowCutoffNumeratorPrecisionDiagnosis) {
     // Isolate coefficient construction from nonlinear and coupling stages.

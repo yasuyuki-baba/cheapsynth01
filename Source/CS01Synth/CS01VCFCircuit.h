@@ -1,7 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "IG02610.h"
+
+#include "CS01Synth/IG02610.h"
 
 //==============================================================================
 // CS-01 VCF signal path: provisional IG02610 model plus external coupling.

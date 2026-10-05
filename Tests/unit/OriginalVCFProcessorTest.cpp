@@ -1,8 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/OriginalVCFProcessor.h"
-#include "../../Source/CS01Synth/VCAProcessor.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/OriginalVCFProcessor.h"
+#include "CS01Synth/VCAProcessor.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
 
 // Test fixture for OriginalVCFProcessor tests
 class OriginalVCFProcessorTest : public ::testing::Test {

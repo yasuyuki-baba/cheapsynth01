@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Provisional IC-only model for the CS01II's IG05630.
 // Four-pole TPT approximation; not a reconstruction of the IC's internal circuit.
 // Replace/calibrate this class when IC documentation or measurements are available.

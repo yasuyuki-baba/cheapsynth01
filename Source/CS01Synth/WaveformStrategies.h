@@ -1,7 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "IWaveformStrategy.h"
+
+#include "CS01Synth/IWaveformStrategy.h"
+
+#include <cmath>
 
 namespace {
 float poly_blep(float t, float dt) {

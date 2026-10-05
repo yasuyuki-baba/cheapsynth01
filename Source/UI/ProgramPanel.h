@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include <memory>
+
 class ProgramManager;  // Forward declaration
 
 class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, private juce::Timer {

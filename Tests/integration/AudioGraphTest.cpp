@@ -1,9 +1,12 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01AudioProcessor.h"
-#include "../../Source/Parameters.h"
-#include "../../Source/CS01Synth/EGProcessor.h"
-#include "../../Source/CS01Synth/SynthConstants.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01Synth/EGProcessor.h"
+#include "CS01Synth/SynthConstants.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
+
 #include <chrono>
 
 TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope) {

@@ -1,9 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Parameters.h"
-#include "IFilter.h"  // Interface
-#include "CS01IIVCFCircuit.h"
+
+#include "CS01Synth/CS01IIVCFCircuit.h"
+#include "CS01Synth/IFilter.h"  // Interface
+#include "Parameters.h"
 
 //==============================================================================
 // ModernVCFProcessor - CS01II-inspired four-pole lowpass approximation.

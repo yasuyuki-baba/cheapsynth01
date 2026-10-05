@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "VCOComponent.h"
-#include "../Parameters.h"
+#include "UI/VCOComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     // Glissando, Pitch, PWM Speed Sliders (same as before)

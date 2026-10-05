@@ -1,9 +1,16 @@
 #include "CS01AudioProcessor.h"
+
 #include "CS01AudioProcessorEditor.h"
-#include "Parameters.h"
-#include "CS01Synth/VCOProcessor.h"
-#include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/EGProcessor.h"
 #include "CS01Synth/IFilter.h"  // Explicit include
+#include "CS01Synth/LFOProcessor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/ModernVCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
+#include "CS01Synth/SynthConstants.h"
+#include "CS01Synth/VCAProcessor.h"
+#include "CS01Synth/VCOProcessor.h"
+#include "Parameters.h"
 
 //==============================================================================
 CS01AudioProcessor::CS01AudioProcessor()

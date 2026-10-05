@@ -18,8 +18,8 @@ BraceWrapping:
   BeforeCatch: false
   BeforeElse: false
 
-# Includes - disable sorting to preserve JUCE header priority
-SortIncludes: false                     # Keep JUCEHeader.h first
+# Includes - preserve manually grouped headers (see CONTRIBUTING.md)
+SortIncludes: false                     # Keep JUCE before other dependencies
 
 # Alignment
 AlignAfterOpenBracket: Align

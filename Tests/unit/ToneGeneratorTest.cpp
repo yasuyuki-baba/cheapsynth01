@@ -1,11 +1,14 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/ToneGenerator.h"
-#include "../mocks/MockToneGenerator.h"
-#include "../../Source/CS01Synth/WaveformStrategies.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/ToneGenerator.h"
+#include "CS01Synth/WaveformStrategies.h"
+#include "mocks/MockToneGenerator.h"
+
+#include <gtest/gtest.h>
+
 #include <chrono>
-#include "../../Source/CS01Synth/MidiProcessor.h"
-#include "../../Source/CS01AudioProcessor.h"
 
 TEST(ManualPitchTest, HeldWheelUsesUpdatedRange) {
     CS01AudioProcessor host;

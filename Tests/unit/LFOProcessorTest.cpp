@@ -1,7 +1,9 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/LFOProcessor.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/LFOProcessor.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
 
 // Test fixture for LFOProcessor tests
 class LFOProcessorTest : public ::testing::Test {

@@ -1,0 +1,2 @@
+// Generated header self-containment check. Do not add prerequisite includes.
+#include "@HEADER_CHECK_INCLUDE@"

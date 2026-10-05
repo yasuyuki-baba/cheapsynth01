@@ -1,4 +1,5 @@
-#include "VCAProcessor.h"
+#include "CS01Synth/VCAProcessor.h"
+
 #include <cmath>
 
 namespace {
@@ -33,19 +34,19 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // 1 uF / 50 V coupling capacitor and 82 kohm series resistor.
     inputHighPass.coefficients = makePreciseHighPass(sampleRate, 40.0);
     inputHighPass.reset();
-    inputHighPass.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
+    inputHighPass.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1});
 
     // Initialize DC blocker
     dcBlocker.coefficients = makePreciseHighPass(sampleRate, 20.0);
     dcBlocker.reset();
-    dcBlocker.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
+    dcBlocker.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1});
 
     // Initialize high frequency rolloff filter
     float cutoffFreq = std::min(15000.0f, static_cast<float>(sampleRate * 0.45f));
     highFreqRolloff.coefficients =
         juce::dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, cutoffFreq);
     highFreqRolloff.reset();
-    highFreqRolloff.prepare({sampleRate, static_cast<uint32>(samplesPerBlock), 1});
+    highFreqRolloff.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1});
 
     // Reset state variables
     capacitorState = 0.0f;

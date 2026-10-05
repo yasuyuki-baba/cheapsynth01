@@ -1,4 +1,5 @@
-#include "IG05630.h"
+#include "CS01Synth/IG05630.h"
+
 #include <algorithm>
 #include <cmath>
 

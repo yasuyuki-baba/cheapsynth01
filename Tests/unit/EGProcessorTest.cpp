@@ -1,8 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/EGProcessor.h"
-#include "../../Source/Parameters.h"
-#include "../../Source/CS01AudioProcessor.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01Synth/EGProcessor.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
 
 TEST(EGTimingTest, ProductionRangeStageDurations) {
     // Use production parameter ranges, not the different ranges in the unit fixture.

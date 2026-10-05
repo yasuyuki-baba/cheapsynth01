@@ -1,8 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01AudioProcessor.h"
-#include "../../Source/CS01AudioProcessorEditor.h"
-#include "../../Source/UI/ProgramPanel.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01AudioProcessorEditor.h"
+#include "UI/ProgramPanel.h"
+
+#include <gtest/gtest.h>
 
 class ProgramPanelTest : public ::testing::Test {
    protected:

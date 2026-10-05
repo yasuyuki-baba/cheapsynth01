@@ -1,10 +1,15 @@
 #pragma once
+
 #include <JuceHeader.h>
+
+#include "CS01Synth/ISoundGenerator.h"
+#include "CS01Synth/NoiseGenerator.h"
+#include "CS01Synth/ToneGenerator.h"
+#include "Parameters.h"
+
 #include <atomic>
-#include "ToneGenerator.h"
-#include "NoiseGenerator.h"
-#include "ISoundGenerator.h"
-#include "../Parameters.h"
+#include <functional>
+#include <memory>
 
 /**
  * VCOProcessor - Processor responsible for sound generation and LFO processing

@@ -1,5 +1,7 @@
-#include "YM10150.h"
-#include "WaveformStrategies.h"
+#include "CS01Synth/YM10150.h"
+
+#include "CS01Synth/WaveformStrategies.h"
+
 #include <cmath>
 
 float YM10150::generateMasterSquareWave(float finalPitch, float sampleRate, float& phase,

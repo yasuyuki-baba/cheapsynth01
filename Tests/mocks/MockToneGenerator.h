@@ -1,10 +1,11 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "MockOscillator.h"
-#include "../../Source/CS01Synth/ToneGenerator.h"
-#include "../../Source/CS01Synth/ISoundGenerator.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/ISoundGenerator.h"
+#include "CS01Synth/ToneGenerator.h"
+#include "Parameters.h"
+#include "mocks/MockOscillator.h"
 
 namespace testing {
 /**

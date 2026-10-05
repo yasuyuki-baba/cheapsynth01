@@ -1,9 +1,11 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/MidiProcessor.h"
-#include "../../Source/CS01Synth/EGProcessor.h"
-#include "../../Source/Parameters.h"
-#include "../mocks/MockToneGenerator.h"
+
+#include "CS01Synth/EGProcessor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "Parameters.h"
+#include "mocks/MockToneGenerator.h"
+
+#include <gtest/gtest.h>
 
 // Test fixture for MidiProcessor tests
 class MidiProcessorTest : public ::testing::Test {

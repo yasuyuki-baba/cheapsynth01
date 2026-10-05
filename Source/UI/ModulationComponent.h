@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include <memory>
+
 class CS01AudioProcessor;
 
 class ModulationComponent : public juce::Component,

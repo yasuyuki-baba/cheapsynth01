@@ -1,7 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/VCAProcessor.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/VCAProcessor.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
+
 #include <complex>
 
 namespace {

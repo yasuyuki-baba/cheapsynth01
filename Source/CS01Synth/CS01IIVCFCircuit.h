@@ -1,7 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "IG05630.h"
+#include "CS01Synth/IG05630.h"
 
 // Circuit boundary for Modern, analogous to CS01VCFCircuit in Original.
 // External coupling is currently unity: no uncalibrated stages are added.

@@ -1,4 +1,4 @@
-#include "NoiseGenerator.h"
+#include "CS01Synth/NoiseGenerator.h"
 
 NoiseGenerator::NoiseGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
 

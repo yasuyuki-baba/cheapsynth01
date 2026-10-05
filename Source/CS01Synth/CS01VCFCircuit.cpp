@@ -1,4 +1,4 @@
-#include "CS01VCFCircuit.h"
+#include "CS01Synth/CS01VCFCircuit.h"
 
 CS01VCFCircuit::CS01VCFCircuit()
     : cutoff(1000.0f),

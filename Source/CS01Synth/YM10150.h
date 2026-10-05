@@ -1,6 +1,8 @@
 #pragma once
-#include "SynthConstants.h"
-#include "IWaveformStrategy.h"
+
+#include "CS01Synth/IWaveformStrategy.h"
+#include "CS01Synth/SynthConstants.h"
+
 #include <map>
 #include <memory>
 

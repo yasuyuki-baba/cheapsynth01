@@ -1,5 +1,7 @@
-#include "ToneGenerator.h"
-#include "WaveformStrategies.h"
+#include "CS01Synth/ToneGenerator.h"
+
+#include "CS01Synth/WaveformStrategies.h"
+
 #include <cmath>
 
 ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
