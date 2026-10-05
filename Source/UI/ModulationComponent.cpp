@@ -2,6 +2,7 @@
 
 #include "CS01AudioProcessor.h"
 #include "Parameters.h"
+#include "ParameterFormatting.h"
 #include "UI/CS01LookAndFeel.h"
 
 ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
@@ -9,6 +10,13 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     pitchBendSlider.setSliderStyle(juce::Slider::LinearVertical);
     pitchBendSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     pitchBendSlider.setRange(-1.0, 1.0, 0.001);
+    pitchBendSlider.textFromValueFunction = [](double value) {
+        return ParameterFormatting::format(value, ParameterFormatting::Style::SignedPercent);
+    };
+    pitchBendSlider.valueFromTextFunction = [](const juce::String& text) {
+        return ParameterFormatting::parse(text, ParameterFormatting::Style::SignedPercent);
+    };
+    pitchBendSlider.setTooltip("Bend wheel position; UP/DOWN set the range in semitones (st).");
     pitchBendSlider.setValue(0.0);
     pitchBendSlider.getProperties().set("performanceWheel", true);
     pitchBendSlider.setSliderSnapsToMousePosition(false);
@@ -34,7 +42,7 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     };
     for (auto* slider : {&bendUpSlider, &bendDownSlider}) {
         slider->setSliderStyle(juce::Slider::IncDecButtons);
-        slider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 32, 20);
+        slider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 48, 20);
         slider->setRange(0, 12, 1);
         slider->setTooltip("Pitch bend range in semitones");
         addAndMakeVisible(slider);
@@ -52,6 +60,13 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     modDepthSlider.setSliderStyle(juce::Slider::LinearVertical);
     modDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     modDepthSlider.setRange(0.0, 1.0, 0.001);
+    modDepthSlider.textFromValueFunction = [](double value) {
+        return ParameterFormatting::format(value, ParameterFormatting::Style::Percent);
+    };
+    modDepthSlider.valueFromTextFunction = [](const juce::String& text) {
+        return ParameterFormatting::parse(text, ParameterFormatting::Style::Percent);
+    };
+    modDepthSlider.setTooltip("Modulation wheel amount, not a frequency or gain percentage.");
     modDepthSlider.setValue(0.0);
     modDepthSlider.getProperties().set("performanceWheel", true);
     modDepthSlider.setSliderSnapsToMousePosition(false);

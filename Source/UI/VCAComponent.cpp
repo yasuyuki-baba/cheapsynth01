@@ -8,6 +8,7 @@ VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     vcaEgDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(vcaEgDepthSlider);
     vcaEgDepthLabel.setText("EG DEPTH", juce::dontSendNotification);
+    vcaEgDepthSlider.setTooltip("Envelope control depth; percentage is not output gain.");
     addAndMakeVisible(vcaEgDepthLabel);
 
     vcaEgDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(

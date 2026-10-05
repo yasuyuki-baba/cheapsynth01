@@ -20,6 +20,10 @@ BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeStat
     addAndMakeVisible(breathVcaLabel);
     breathVcaAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::breathVca), breathVcaSlider);
+    for (auto* slider : {&breathVcfSlider, &breathVcaSlider}) {
+        slider->setPopupDisplayEnabled(true, true, this);
+        slider->setTooltip("Breath control depth; percentage represents the control amount.");
+    }
 }
 
 BreathControlComponent::~BreathControlComponent() {}
