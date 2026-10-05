@@ -6,6 +6,48 @@
 
 #include <gtest/gtest.h>
 
+TEST(IG02610ControlTest, NonlinearResonanceBoundariesAreContinuous) {
+    // Compare complete trajectories with nearly identical controls. This detects
+    // branch discontinuities without exposing private nonlinear implementation.
+    for (float boundary : {0.4f, 0.7f}) {
+        for (float amplitude : {0.01f, 0.8f, 1.2f}) {
+            IG02610 below, above;
+            below.prepare(48000.0);
+            above.prepare(48000.0);
+            below.setCutoffFrequency(1000.0f);
+            above.setCutoffFrequency(1000.0f);
+            below.setResonance(boundary - 1.0e-6f);
+            above.setResonance(boundary + 1.0e-6f);
+            for (int i = 0; i < 4800; ++i) {
+                const float input = amplitude * std::sin(
+                    juce::MathConstants<double>::twoPi * 700.0 * i / 48000.0);
+                const float a = below.processSample(input);
+                const float b = above.processSample(input);
+                ASSERT_TRUE(std::isfinite(a));
+                ASSERT_TRUE(std::isfinite(b));
+                ASSERT_NEAR(a, b, 0.0002f) << boundary << ", sample=" << i;
+            }
+        }
+    }
+}
+
+TEST(IG02610ControlTest, ReapplyingIdenticalControlsDoesNotChangeTrajectory) {
+    IG02610 held, reapplied;
+    held.prepare(48000.0);
+    reapplied.prepare(48000.0);
+    held.setCutoffFrequency(1000.0f);
+    reapplied.setCutoffFrequency(1000.0f);
+    held.setResonance(0.7f);
+    reapplied.setResonance(0.7f);
+    for (int i = 0; i < 12000; ++i) {
+        reapplied.setCutoffFrequency(1000.0f);
+        reapplied.setResonance(0.7f);
+        const float input = 0.8f * std::sin(
+            juce::MathConstants<double>::twoPi * 440.0 * i / 48000.0);
+        ASSERT_FLOAT_EQ(held.processSample(input), reapplied.processSample(input));
+    }
+}
+
 TEST(IG02610ControlTest, LowCutoffNumeratorPrecisionDiagnosis) {
     // Isolate coefficient construction from nonlinear and coupling stages.
     for (double rate : {176400.0, 192000.0, 384000.0}) {

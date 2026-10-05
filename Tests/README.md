@@ -37,6 +37,16 @@ Contains mock objects for testing.
 
 ## How to Run Tests
 
+The conditional EG decay algebra has a separate dependency-free Python check:
+
+```bash
+python3 Tests/eg_decay_equation_check.py -v
+```
+
+This is not invoked by the CMake runner. It checks the equations and an
+invalid-operating-region example documented in `docs/EG-model-audit.md`, not
+hardware fidelity or production DSP behavior.
+
 To run the tests, execute the following command from the project's root directory:
 
 ```bash

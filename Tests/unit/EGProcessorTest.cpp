@@ -6,6 +6,13 @@
 
 #include <gtest/gtest.h>
 
+namespace {
+// Closed-form midpoint for the stateful exponential stage (k = 2).
+float provisionalHalfLevel(float initial, float) {
+    return initial * (1.0 - (1.0 - std::exp(-1.0)) / (1.0 - std::exp(-2.0)));
+}
+}  // namespace
+
 TEST(EGTimingTest, ProductionRangeStageDurations) {
     // Use production parameter ranges, not the different ranges in the unit fixture.
     CS01AudioProcessor owner;
@@ -141,6 +148,30 @@ TEST_F(EGProcessorTest, SustainAutomationRemainsBoundedAndReachesTarget) {
     }
 }
 
+TEST_F(EGProcessorTest, StatefulEditsAndRetriggerDoNotJump) {
+    processor->prepareToPlay(48000.0, 1);
+    processor->startEnvelope();
+    juce::AudioBuffer<float> buffer(1, 1);
+    juce::MidiBuffer midi;
+    for (int i = 0; i < 24000; ++i)
+        processor->processBlock(buffer, midi);
+    ASSERT_NEAR(processor->getLastOutputForTesting(), 0.5f, 1.0e-6f);
+    apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.8f);
+    const float before = processor->getLastOutputForTesting();
+    processor->processBlock(buffer, midi);
+    EXPECT_GT(buffer.getSample(0, 0), before);
+    EXPECT_LT(buffer.getSample(0, 0) - before, 0.001f);
+    processor->releaseEnvelope();
+    for (int i = 0; i < 1000; ++i)
+        processor->processBlock(buffer, midi);
+    const float releasingLevel = processor->getLastOutputForTesting();
+    processor->startEnvelope();
+    EXPECT_FLOAT_EQ(processor->getLastOutputForTesting(), releasingLevel);
+    processor->processBlock(buffer, midi);
+    EXPECT_GT(buffer.getSample(0, 0), releasingLevel);
+    EXPECT_LT(buffer.getSample(0, 0) - releasingLevel, 0.001f);
+}
+
 TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         processor->prepareToPlay(rate, 256);
@@ -261,7 +292,7 @@ TEST_F(EGProcessorTest, EarlyReleaseKeepsNoteOffRateWithZeroSustain) {
         for (int i = 0; i < static_cast<int>(sampleRate * 0.25); ++i)
             envelope.processBlock(buffer, midi);
         EXPECT_TRUE(envelope.isActive());
-        EXPECT_NEAR(buffer.getSample(0, 0), initial * 0.5f, initial * 0.002f);
+        EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(initial, 0.0f), initial * 0.002f);
         for (int i = 0; i < static_cast<int>(sampleRate * 0.26); ++i)
             envelope.processBlock(buffer, midi);
         EXPECT_FALSE(envelope.isActive());
@@ -330,12 +361,13 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
             release->setValueNotifyingHost(release->convertTo0to1(duration));
             envelope.processBlock(buffer, midi);
             EXPECT_TRUE(envelope.isActive());
-            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - 1.0 / (duration * sampleRate)),
+            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - (1.0 - std::exp(-2.0 / (duration * sampleRate))) /
+                                   (1.0 - std::exp(-2.0))),
                         1.0e-5);
             const int halfway = static_cast<int>(duration * sampleRate * 0.5);
             for (int i = 1; i < halfway; ++i)
                 envelope.processBlock(buffer, midi);
-            EXPECT_NEAR(buffer.getSample(0, 0), initial * 0.5f, initial * 0.003f);
+            EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(initial, 0.0f), initial * 0.003f);
             for (int i = 0; i < static_cast<int>(duration * sampleRate * 0.6); ++i)
                 envelope.processBlock(buffer, midi);
             EXPECT_FALSE(envelope.isActive());
@@ -381,7 +413,7 @@ TEST_F(EGProcessorTest, RetriggerRestoresSustainAfterReleaseTimeChange) {
             EXPECT_NEAR(buffer.getSample(0, 0), 0.8f, 1.0e-6f);
             envelope.releaseEnvelope();
             advance(0.1);
-            EXPECT_NEAR(buffer.getSample(0, 0), 0.4f, 0.002f);
+            EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(0.8f, 0.8f), 0.002f);
             advance(0.12);
             EXPECT_FALSE(envelope.isActive());
             EXPECT_FLOAT_EQ(buffer.getSample(0, 0), 0.0f);
@@ -564,7 +596,7 @@ TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease) {
             ASSERT_TRUE(std::isfinite(value));
             ASSERT_GE(value, 0.0f);
             ASSERT_LE(value, 1.0f);
-            ASSERT_LE(std::abs(value - previous), 1.0 / (0.1 * sampleRate) + 0.00001);
+            ASSERT_LE(std::abs(value - previous), 2.32 / (0.1 * sampleRate) + 0.00001);
             if (!reachedPeak) {
                 ASSERT_GE(value + 0.000001f, previous);
                 reachedPeak = value == 1.0f;
@@ -581,7 +613,7 @@ TEST_F(EGProcessorTest, ContinuousAttackDecayAndRelease) {
             const float value = buffer.getSample(0, 0);
             ASSERT_GE(value, 0.0f);
             ASSERT_LE(value, previous + 0.000001f);
-            ASSERT_LE(std::abs(value - previous), 0.5 / (0.5 * sampleRate) + 0.00001);
+            ASSERT_LE(std::abs(value - previous), 1.16 / (0.5 * sampleRate) + 0.00001);
             previous = value;
         }
         EXPECT_FLOAT_EQ(previous, 0.0f);
