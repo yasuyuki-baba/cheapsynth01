@@ -94,6 +94,8 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCOProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/MidiProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ModernVCFProcessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01IIVCFCircuit.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG05630.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/NoiseGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessorEditor.cpp
