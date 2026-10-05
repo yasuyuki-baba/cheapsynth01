@@ -1,4 +1,7 @@
-#include "CS01IIVCFCircuit.h"
+#include "CS01Synth/CS01IIVCFCircuit.h"
+
+#include <JuceHeader.h>
+
 #include <cmath>
 
 void CS01IIVCFCircuit::prepare(double sampleRate) {

@@ -1,6 +1,7 @@
 // Google Test main entry point
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
+
+#include <gtest/gtest.h>
 
 /**
  * Custom environment for JUCE initialization

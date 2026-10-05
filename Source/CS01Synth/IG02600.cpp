@@ -1,4 +1,5 @@
-#include "IG02600.h"
+#include "CS01Synth/IG02600.h"
+
 #include <cmath>
 
 float IG02600::processSample(float input, float egValue, float egDepth, float breathInput,

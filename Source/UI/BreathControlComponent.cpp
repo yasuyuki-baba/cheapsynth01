@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "BreathControlComponent.h"
-#include "../Parameters.h"
+#include "UI/BreathControlComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeState& apvts)
     : valueTreeState(apvts) {

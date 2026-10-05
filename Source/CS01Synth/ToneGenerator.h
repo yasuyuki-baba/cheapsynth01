@@ -1,11 +1,12 @@
 #pragma once
-#include "YM10150.h"
 
 #include <JuceHeader.h>
-#include "../Parameters.h"
-#include "SynthConstants.h"
-#include "ISoundGenerator.h"
-#include "IWaveformStrategy.h"
+
+#include "CS01Synth/ISoundGenerator.h"
+#include "CS01Synth/IWaveformStrategy.h"
+#include "CS01Synth/SynthConstants.h"
+#include "CS01Synth/YM10150.h"
+#include "Parameters.h"
 
 /**
  * ToneGenerator - Responsible for sound generation and MIDI note handling

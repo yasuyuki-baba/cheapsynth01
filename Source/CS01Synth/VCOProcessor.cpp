@@ -1,5 +1,6 @@
-#include "VCOProcessor.h"
-#include "SynthConstants.h"
+#include "CS01Synth/VCOProcessor.h"
+
+#include "CS01Synth/SynthConstants.h"
 
 VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoiseMode)
     : AudioProcessor(BusesProperties()

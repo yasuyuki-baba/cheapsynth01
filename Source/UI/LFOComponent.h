@@ -1,5 +1,8 @@
 #pragma once
+
 #include <JuceHeader.h>
+
+#include <memory>
 
 class LFOComponent : public juce::Component {
    public:

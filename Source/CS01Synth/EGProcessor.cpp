@@ -1,4 +1,4 @@
-#include "EGProcessor.h"
+#include "CS01Synth/EGProcessor.h"
 
 //==============================================================================
 EGProcessor::EGProcessor(juce::AudioProcessorValueTreeState& apvts)

@@ -1,6 +1,8 @@
 #pragma once
+
 #include <JuceHeader.h>
-#include "../Parameters.h"
+
+#include <memory>
 
 class VCFComponent : public juce::Component, public juce::AudioProcessorParameter::Listener {
    public:

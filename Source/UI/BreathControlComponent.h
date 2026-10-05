@@ -1,5 +1,8 @@
 #pragma once
+
 #include <JuceHeader.h>
+
+#include <memory>
 
 class BreathControlComponent : public juce::Component {
    public:

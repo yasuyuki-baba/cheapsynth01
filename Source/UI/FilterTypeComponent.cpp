@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "FilterTypeComponent.h"
-#include "../Parameters.h"
+#include "UI/FilterTypeComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 FilterTypeComponent::FilterTypeComponent(juce::AudioProcessorValueTreeState& apvts)
     : valueTreeState(apvts) {

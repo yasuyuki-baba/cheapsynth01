@@ -1,5 +1,8 @@
 #pragma once
+
 #include <JuceHeader.h>
+
+#include <memory>
 
 class FilterTypeComponent : public juce::Component {
    public:

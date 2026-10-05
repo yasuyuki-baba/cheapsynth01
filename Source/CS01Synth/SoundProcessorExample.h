@@ -1,6 +1,8 @@
 #pragma once
 
-#include "VCOProcessor.h"
+#include "CS01Synth/VCOProcessor.h"
+
+#include <memory>
 
 /**
  * Example showing how to use the enhanced VCOProcessor with different sound generators
@@ -23,9 +25,8 @@ class SoundProcessorExample {
             generator->renderNextBlock(buffer, 0, buffer.getNumSamples());
         }
 
-        // Example: Access as INoteHandler (backward compatibility)
-        auto* noteHandler = vcoProcessor->getNoteHandler();
-        noteHandler->startNote(60, 0.8f, 8192);
+        // Example: Handle notes through the unified sound generator interface
+        generator->startNote(60, 0.8f, 8192);
 
         // Example: Switch between generator types at runtime
         // vcoProcessor->setGeneratorType(GeneratorType::Tone);   // Switch to ToneGenerator

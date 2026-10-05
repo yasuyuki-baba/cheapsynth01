@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "EGComponent.h"
-#include "../Parameters.h"
+#include "UI/EGComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     attackSlider.setSliderStyle(juce::Slider::LinearVertical);

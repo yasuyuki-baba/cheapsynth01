@@ -8,8 +8,9 @@
   ==============================================================================
 */
 
-#include "CS01LookAndFeel.h"
-#include "OscilloscopeComponent.h"
+#include "UI/OscilloscopeComponent.h"
+
+#include "UI/CS01LookAndFeel.h"
 
 //==============================================================================
 OscilloscopeComponent::OscilloscopeComponent(int initialNumChannels)

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include <functional>
-#include "EGProcessor.h"
-#include "ISoundGenerator.h"
+
+class EGProcessor;
+class ISoundGenerator;
 
 class MidiProcessor : public juce::AudioProcessor {
    public:

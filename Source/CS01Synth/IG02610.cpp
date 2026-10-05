@@ -1,4 +1,9 @@
-#include "IG02610.h"
+#include "CS01Synth/IG02610.h"
+
+#include <JuceHeader.h>
+
+#include <cmath>
+
 void IG02610::reset() {
     z1 = z2 = 0;
     inputLevelSmoothed = 0;

@@ -88,6 +88,9 @@ This builds all supported plugin formats:
 - LV2 (macOS and Linux only)
 - CLAP (CLever Audio Plugin)
 
+For validation builds that must not install plugins, configure with
+`-DCOPY_PLUGIN_AFTER_BUILD=OFF`. Automatic installation remains enabled by default.
+
 ### Running Tests
 
 To run the tests:
@@ -112,6 +115,38 @@ Tests are enabled by default; use `-DBUILD_TESTING=OFF` for product-only builds.
 - Use UPPER_SNAKE_CASE for constants
 - Begin function names with verbs in camelCase
 - Write all comments in English
+
+### Headers and preprocessor directives
+
+- Use `#pragma once` before includes in project headers (a file comment may precede it).
+- Group includes in this order, with a blank line between groups: the matching
+  header for a `.cpp`, `JuceHeader.h`, project headers, other third-party headers,
+  and standard-library headers. Sort each group by include path.
+- Use paths relative to `Source` for production headers and relative to `Tests`
+  for test helpers, rather than `../` paths. Both roots are configured by CMake.
+- Use the generated `JuceHeader.h` for JUCE dependencies instead of listing
+  individual JUCE module headers. Keep its generation enabled in CMake.
+- Include project and standard-library dependencies used directly; do not rely
+  on incidental transitive includes. Headers that do not use JUCE need no JUCE include.
+- Prefer forward declarations for pointer/reference-only dependencies. Keep full
+  definitions for base classes, value members, and inline code that needs them.
+- Keep build configuration macros in target-scoped CMake definitions. Document
+  any compiler-specific pragmas and limit their scope; do not add warning suppression
+  globally just to make a refactor compile.
+- Generated headers and third-party code are excluded from this cleanup policy.
+
+Header self-containment checks are enabled by default (`BUILD_HEADER_CHECKS=ON`)
+and run as part of the normal build, including CI. Each maintained `.h` under
+`Source` and, when `BUILD_TESTING=ON`, `Tests` is compiled in its own generated
+translation unit without prerequisite includes, unity builds, or precompiled headers.
+Generated/resource `BinaryData.h` is excluded. To run the checks explicitly:
+
+```bash
+cmake --build build --target check_headers --config Debug --parallel 2
+```
+
+The checks build their owning targets first to generate JUCE/resource headers.
+Use `-DBUILD_HEADER_CHECKS=OFF` to disable them for product-only packaging.
 
 ### Formatting checks
 

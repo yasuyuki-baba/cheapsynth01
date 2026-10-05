@@ -1,7 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Parameters.h"
+
+#include "Parameters.h"
 
 //==============================================================================
 class LFOProcessor : public juce::AudioProcessor {

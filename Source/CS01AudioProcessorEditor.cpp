@@ -1,12 +1,13 @@
-#include "CS01AudioProcessor.h"
 #include "CS01AudioProcessorEditor.h"
+
+#include "CS01AudioProcessor.h"
+#include "CS01Synth/IFilter.h"
 #include "UI/CS01LookAndFeel.h"
 #include "UI/ProgramPanel.h"
 #include "UI/VCAComponent.h"
 #include "UI/VCFComponent.h"
 #include "UI/VCOComponent.h"
 #include "UI/VolumeComponent.h"
-#include "CS01Synth/IFilter.h"
 
 // Use JUCE namespace
 using namespace juce;

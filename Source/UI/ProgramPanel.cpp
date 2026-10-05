@@ -1,7 +1,8 @@
-#include "CS01LookAndFeel.h"
-#include "ProgramPanel.h"
-#include "../ProgramManager.h"
-#include "../CS01AudioProcessor.h"
+#include "UI/ProgramPanel.h"
+
+#include "CS01AudioProcessor.h"
+#include "ProgramManager.h"
+#include "UI/CS01LookAndFeel.h"
 
 ProgramPanel::ProgramPanel(juce::AudioProcessor& p) : audioProcessor(p) {
     addAndMakeVisible(programMenu);

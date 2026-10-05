@@ -1,9 +1,12 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/VCOProcessor.h"
-#include "../../Source/Parameters.h"
-#include "../mocks/MockToneGenerator.h"
-#include "../../Source/CS01Synth/MidiProcessor.h"
+
+#include "CS01Synth/MidiProcessor.h"
+#include "CS01Synth/VCOProcessor.h"
+#include "Parameters.h"
+#include "mocks/MockToneGenerator.h"
+
+#include <gtest/gtest.h>
+
 #include <thread>
 
 // Test fixture for VCOProcessor tests

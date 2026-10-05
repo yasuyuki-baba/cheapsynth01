@@ -1,5 +1,8 @@
-#include "MidiProcessor.h"
-#include "../Parameters.h"
+#include "CS01Synth/MidiProcessor.h"
+
+#include "CS01Synth/EGProcessor.h"
+#include "CS01Synth/ISoundGenerator.h"
+#include "Parameters.h"
 
 MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor(BusesProperties()),  // No audio buses

@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "LFOComponent.h"
-#include "../Parameters.h"
+#include "UI/LFOComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 LFOComponent::LFOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     lfoSpeedSlider.setSliderStyle(juce::Slider::LinearVertical);

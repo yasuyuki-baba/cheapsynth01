@@ -1,7 +1,9 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/ModernVCFProcessor.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/ModernVCFProcessor.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
 
 // Test fixture for ModernVCFProcessor tests
 class ModernVCFProcessorTest : public ::testing::Test {
@@ -34,7 +36,7 @@ class ModernVCFProcessorTest : public ::testing::Test {
             1000.0f));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(ParameterIds::resonance, "Resonance",
-                                                              0.0f, 1.0f, 0.0f));
+                                                               0.0f, 1.0f, 0.0f));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::vcfEgDepth, "VCF EG Depth", juce::NormalisableRange<float>(0.0f, 1.0f),
@@ -338,8 +340,10 @@ TEST_F(ModernVCFProcessorTest, FourPoleResponseAndFiniteResonance) {
             juce::AudioBuffer<float> buffer(3, 256);
             buffer.clear();
             for (int i = 0; i < 256; ++i)
-                buffer.setSample(0, i, static_cast<float>(0.1 * std::sin(
-                    juce::MathConstants<double>::twoPi * frequency * (block * 256 + i) / rate)));
+                buffer.setSample(
+                    0, i,
+                    static_cast<float>(0.1 * std::sin(juce::MathConstants<double>::twoPi *
+                                                      frequency * (block * 256 + i) / rate)));
             processor->processBlock(buffer, midi);
             for (int i = 0; i < 256; ++i) {
                 const float value = buffer.getSample(0, i);
@@ -355,7 +359,7 @@ TEST_F(ModernVCFProcessorTest, FourPoleResponseAndFiniteResonance) {
         EXPECT_NEAR(measure(rate, 1000.0, 0.0f), 1.0 / std::sqrt(2.0), 0.02);
         const double upper = measure(rate, 4000.0, 0.0f);
         const double lower = measure(rate, 2000.0, 0.0f);
-        EXPECT_LT(upper / lower, 0.075); // Approximately 24 dB/octave, not 12.
+        EXPECT_LT(upper / lower, 0.075);  // Approximately 24 dB/octave, not 12.
         EXPECT_GT(measure(rate, 1000.0, 1.0f), measure(rate, 1000.0, 0.0f));
     }
 }
@@ -386,7 +390,8 @@ TEST(CS01IIVCFCircuitTest, MatchesLinearCoreWithGentleColorationAndResets) {
                 envelope = envelope * smoothing + std::abs(input) * (1.0f - smoothing);
                 const float drive = 0.5f + 0.5f * resonance + 0.25f * envelope;
                 const float blend = 0.08f + 0.22f * resonance;
-                const float expected = linear + blend * (std::tanh(linear * drive) / drive - linear);
+                const float expected =
+                    linear + blend * (std::tanh(linear * drive) / drive - linear);
                 EXPECT_FLOAT_EQ(circuit.processSample(0, input), expected);
             }
         };

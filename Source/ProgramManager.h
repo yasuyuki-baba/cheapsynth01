@@ -1,7 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+
 #include "Parameters.h"
+
+#include <vector>
 
 //==============================================================================
 enum class PresetType { Factory, User };

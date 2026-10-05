@@ -1,7 +1,9 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/CS01Synth/NoiseGenerator.h"
-#include "../../Source/Parameters.h"
+
+#include "CS01Synth/NoiseGenerator.h"
+#include "Parameters.h"
+
+#include <gtest/gtest.h>
 
 // Test fixture for NoiseGenerator tests
 class NoiseGeneratorTest : public ::testing::Test {

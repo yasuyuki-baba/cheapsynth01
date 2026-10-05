@@ -1,4 +1,5 @@
-#include "ModernVCFProcessor.h"
+#include "CS01Synth/ModernVCFProcessor.h"
+
 #include <cmath>
 
 //==============================================================================
@@ -94,18 +95,20 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // The schematic's EG/LFO/breath controls act on the VCF continuously.
     // Follow Original's sample-wise control path rather than averaging a block.
     const int numSamples = buffer.getNumSamples();
-    const float egModRangeSemitones = 36.0f;     // Empirical, not circuit-calibrated.
+    const float egModRangeSemitones = 36.0f;  // Empirical, not circuit-calibrated.
     const float lfoModRangeSemitones = 24.0f;
     const float breathModRangeSemitones = 24.0f;
-    const float maximumCutoff = juce::jmin(20000.0f, static_cast<float>(processingSampleRate) * 0.49f);
+    const float maximumCutoff =
+        juce::jmin(20000.0f, static_cast<float>(processingSampleRate) * 0.49f);
     auto* samples = processingBuffer.getWritePointer(0);
     filter.setResonance(resonance);
 
     for (int sample = 0; sample < numSamples; ++sample) {
-        const float lfoValue = lfoData != nullptr ? juce::jlimit(-1.0f, 1.0f, lfoData[sample]) : 0.0f;
-        const float semitones = egData[sample] * egDepth * egModRangeSemitones
-                              + lfoValue * modDepth * lfoModRangeSemitones
-                              + breathInput * breathVcfDepth * breathModRangeSemitones;
+        const float lfoValue =
+            lfoData != nullptr ? juce::jlimit(-1.0f, 1.0f, lfoData[sample]) : 0.0f;
+        const float semitones = egData[sample] * egDepth * egModRangeSemitones +
+                                lfoValue * modDepth * lfoModRangeSemitones +
+                                breathInput * breathVcfDepth * breathModRangeSemitones;
         float modulatedCutoff = cutoff * std::exp2(semitones / 12.0f);
         if (!std::isfinite(modulatedCutoff))
             modulatedCutoff = cutoff;

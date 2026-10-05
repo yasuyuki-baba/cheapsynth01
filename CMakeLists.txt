@@ -45,13 +45,14 @@ else()
 endif()
 
 # JUCE plugin settings
+option(COPY_PLUGIN_AFTER_BUILD "Install plugin products after building" ON)
 juce_add_plugin(CheapSynth01
     VERSION 1.0.0
     COMPANY_NAME "Yasuyuki Baba"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD ${COPY_PLUGIN_AFTER_BUILD}
     PLUGIN_MANUFACTURER_CODE BABA
     PLUGIN_CODE CS01
     LV2URI "http://github.com/yasuyukibaba/cheapsynth01"
@@ -194,4 +195,16 @@ endif()
 option(BUILD_TESTING "Build the test executable" ON)
 if(BUILD_TESTING)
     add_subdirectory(Tests)
+endif()
+
+option(BUILD_HEADER_CHECKS "Compile project headers in isolation" ON)
+if(BUILD_HEADER_CHECKS)
+    include(cmake/HeaderChecks.cmake)
+    add_header_checks(CheapSynth01HeaderChecks CheapSynth01 "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+    add_custom_target(check_headers DEPENDS CheapSynth01HeaderChecks)
+    if(BUILD_TESTING)
+        add_header_checks(CheapSynth01TestHeaderChecks CheapSynth01Tests "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
+        target_include_directories(CheapSynth01TestHeaderChecks PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
+        add_dependencies(check_headers CheapSynth01TestHeaderChecks)
+    endif()
 endif()

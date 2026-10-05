@@ -1,9 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-// 循環参照を避けるために前方宣言
-class CS01AudioProcessor;
-class IFilter;
+
 #include "UI/BreathControlComponent.h"
 #include "UI/EGComponent.h"
 #include "UI/LFOComponent.h"
@@ -15,8 +13,12 @@ class IFilter;
 #include "UI/VCOComponent.h"
 #include "UI/VolumeComponent.h"
 
+#include <memory>
+
 // Forward declarations
+class CS01AudioProcessor;
 class CS01LookAndFeel;
+class IFilter;
 
 //==============================================================================
 class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,

@@ -1,5 +1,8 @@
 #pragma once
+
 #include <JuceHeader.h>
+
+#include <memory>
 
 class VolumeComponent : public juce::Component {
    public:

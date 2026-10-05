@@ -1,9 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Parameters.h"
-#include "CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
-#include "IFilter.h"         // Updated interface
+
+#include "CS01Synth/CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
+#include "CS01Synth/IFilter.h"         // Updated interface
+#include "Parameters.h"
 
 //==============================================================================
 class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {

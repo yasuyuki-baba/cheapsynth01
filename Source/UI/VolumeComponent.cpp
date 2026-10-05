@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "VolumeComponent.h"
-#include "../Parameters.h"
+#include "UI/VolumeComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 VolumeComponent::VolumeComponent(juce::AudioProcessorValueTreeState& apvts)
     : valueTreeState(apvts) {

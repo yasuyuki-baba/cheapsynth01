@@ -1,4 +1,5 @@
-#include "OriginalVCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
+
 #include <cmath>
 
 //==============================================================================

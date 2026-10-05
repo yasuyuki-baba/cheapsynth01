@@ -1,4 +1,4 @@
-#include "LFOProcessor.h"
+#include "CS01Synth/LFOProcessor.h"
 
 //==============================================================================
 LFOProcessor::LFOProcessor(juce::AudioProcessorValueTreeState& apvts)

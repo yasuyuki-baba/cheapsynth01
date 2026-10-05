@@ -1,5 +1,4 @@
 #pragma once
-#include <JuceHeader.h>
 
 // Provisional IC-only model. Control units and nonlinearities are empirical,
 // not an established reconstruction of the IG02610 internal circuit.

@@ -1,8 +1,10 @@
-#include <gtest/gtest.h>
 #include <JuceHeader.h>
-#include "../../Source/ProgramManager.h"
-#include "../../Source/Parameters.h"
-#include "../../Source/CS01AudioProcessor.h"
+
+#include "CS01AudioProcessor.h"
+#include "Parameters.h"
+#include "ProgramManager.h"
+
+#include <gtest/gtest.h>
 
 TEST(ParameterVersionTest, ProductionParametersHaveStableVersionHints) {
     CS01AudioProcessor processor;

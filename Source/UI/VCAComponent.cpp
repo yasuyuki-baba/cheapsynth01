@@ -1,6 +1,7 @@
-#include "CS01LookAndFeel.h"
-#include "VCAComponent.h"
-#include "../Parameters.h"
+#include "UI/VCAComponent.h"
+
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     vcaEgDepthSlider.setSliderStyle(juce::Slider::LinearVertical);

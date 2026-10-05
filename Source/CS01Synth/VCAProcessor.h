@@ -1,8 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Parameters.h"
-#include "IG02600.h"
+
+#include "CS01Synth/IG02600.h"
+#include "Parameters.h"
 
 //==============================================================================
 class VCAProcessor : public juce::AudioProcessor {

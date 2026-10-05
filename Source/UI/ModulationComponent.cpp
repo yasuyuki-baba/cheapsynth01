@@ -1,7 +1,8 @@
-#include "CS01LookAndFeel.h"
-#include "ModulationComponent.h"
-#include "../CS01AudioProcessor.h"
-#include "../Parameters.h"
+#include "UI/ModulationComponent.h"
+
+#include "CS01AudioProcessor.h"
+#include "Parameters.h"
+#include "UI/CS01LookAndFeel.h"
 
 ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     // Pitch Bend Slider
