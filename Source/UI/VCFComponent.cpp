@@ -28,6 +28,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     cutoffSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(cutoffSlider);
     cutoffLabel.setText("CUTOFF", juce::dontSendNotification);
+    cutoffSlider.setTooltip("Base cutoff frequency before modulation.");
     addAndMakeVisible(cutoffLabel);
     cutoffAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::cutoff), cutoffSlider);
@@ -36,6 +37,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     resonanceSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addChildComponent(resonanceSlider);  // Initially hidden, shown in Modern mode
     resonanceLabel.setText("RES", juce::dontSendNotification);
+    resonanceSlider.setTooltip("Resonance control amount, not a calibrated Q value.");
     addAndMakeVisible(resonanceLabel);
     resonanceAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::resonance), resonanceSlider);
@@ -50,6 +52,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     egDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(egDepthSlider);
     egDepthLabel.setText("EG DEPTH", juce::dontSendNotification);
+    egDepthSlider.setTooltip("Envelope modulation depth; percentage represents the control amount.");
     addAndMakeVisible(egDepthLabel);
     egDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcfEgDepth), egDepthSlider);

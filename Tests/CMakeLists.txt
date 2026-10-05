@@ -73,6 +73,7 @@ target_sources(CheapSynth01Tests
         unit/NoiseGeneratorTest.cpp
         unit/ProgramManagerTest.cpp
         unit/EditorVisibilityTest.cpp
+        unit/ParameterFormattingTest.cpp
         unit/ProgramPanelTest.cpp
         unit/AudioDisplayFifoTest.cpp
         integration/AudioGraphTest.cpp

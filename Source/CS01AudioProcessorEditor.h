@@ -12,6 +12,7 @@
 #include "UI/VCFComponent.h"
 #include "UI/VCOComponent.h"
 #include "UI/VolumeComponent.h"
+#include "UI/SliderValuePopup.h"
 
 #include <memory>
 
@@ -52,6 +53,7 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
     void updateDisplayLayout();
 
     CS01AudioProcessor& audioProcessor;
+    juce::TooltipWindow tooltipWindow{this, 700};
 
     juce::MidiKeyboardComponent midiKeyboard;
     juce::TextButton displayButton{"KEYBOARD + MONITOR"};
@@ -69,6 +71,7 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
     OscilloscopeComponent oscilloscopeComponent;
     juce::AudioVisualiserComponent audioVisualiser;
     juce::AudioBuffer<float> displayAudio{2, 512};
+    std::unique_ptr<SliderValuePopup> sliderValuePopup;
 
     juce::FlexBox upperFlex;
     juce::FlexBox lowerFlex;

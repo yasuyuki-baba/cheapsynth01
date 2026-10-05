@@ -9,6 +9,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     glissandoSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(glissandoSlider);
     glissandoLabel.setText("GLISS.", juce::dontSendNotification);
+    glissandoSlider.setTooltip("Time per semitone (ms/st). Zero disables glissando.");
     addAndMakeVisible(glissandoLabel);
     glissandoAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::glissando), glissandoSlider);
@@ -17,6 +18,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     pitchSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(pitchSlider);
     pitchLabel.setText("PITCH", juce::dontSendNotification);
+    pitchSlider.setTooltip("Fine tuning in cents; 100 cents = one semitone.");
     addAndMakeVisible(pitchLabel);
     pitchAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::pitch), pitchSlider);

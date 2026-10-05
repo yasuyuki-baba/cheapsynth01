@@ -35,6 +35,8 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     addAndMakeVisible(releaseLabel);
     releaseAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::release), releaseSlider);
+    for (auto* label : {&attackLabel, &decayLabel, &sustainLabel, &releaseLabel})
+        label->setJustificationType(juce::Justification::centred);
     // Match the VCO faders without changing parameter ranges or values.
     attackSlider.setPopupDisplayEnabled(true, true, this);
     attackSlider.setSliderSnapsToMousePosition(false);

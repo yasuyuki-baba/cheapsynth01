@@ -35,5 +35,10 @@ class CS01LookAndFeel : public juce::LookAndFeel_V4 {
 
     juce::Font getLabelFont(juce::Label& label) override;
 
+    int getSliderPopupPlacement(juce::Slider&) override {
+        // Avoid anchoring to the distant top/bottom of a tall fader.
+        return juce::BubbleComponent::left | juce::BubbleComponent::right;
+    }
+
    private:
 };

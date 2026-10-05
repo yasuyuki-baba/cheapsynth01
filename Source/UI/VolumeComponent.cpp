@@ -13,6 +13,8 @@ VolumeComponent::VolumeComponent(juce::AudioProcessorValueTreeState& apvts)
 
     volumeAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::volume), volumeSlider);
+    volumeSlider.setPopupDisplayEnabled(true, true, this);
+    volumeSlider.setTooltip("Master knob position; percentage is not linear output gain.");
 }
 
 VolumeComponent::~VolumeComponent() {}

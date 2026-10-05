@@ -5,6 +5,27 @@
 
 #include <gtest/gtest.h>
 
+TEST(EditorVisibilityTest, EnvelopeLabelsAreCenteredUnderTheirSliders) {
+    CS01AudioProcessor processor;
+    EGComponent envelope(processor.getValueTreeState());
+    for (const int width : {240, 360, 600}) {
+        envelope.setBounds(0, 0, width, 298);
+        int count = 0;
+        for (auto* child : envelope.getChildren()) {
+            auto* label = dynamic_cast<juce::Label*>(child);
+            if (label == nullptr)
+                continue;
+            EXPECT_EQ(label->getJustificationType(), juce::Justification::centred);
+            auto* slider = dynamic_cast<juce::Slider*>(
+                envelope.getChildComponent(envelope.getIndexOfChildComponent(label) - 1));
+            ASSERT_NE(slider, nullptr);
+            EXPECT_EQ(label->getBounds().getCentreX(), slider->getBounds().getCentreX());
+            ++count;
+        }
+        EXPECT_EQ(count, 4);
+    }
+}
+
 TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
     CS01AudioProcessor processor;
     CS01AudioProcessorEditor editor(processor);

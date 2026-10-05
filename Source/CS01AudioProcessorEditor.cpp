@@ -84,6 +84,35 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     programPanel.reset(new ProgramPanel(audioProcessor));
     addAndMakeVisible(programPanel.get());
 
+    // Popups must escape narrow section bounds. Keep explanations on the
+    // neighbouring labels so hovering a slider only shows its numeric value.
+    sliderValuePopup = std::make_unique<SliderValuePopup>(*this);
+    for (auto* panel : {static_cast<juce::Component*>(modulationComponent.get()),
+                        static_cast<juce::Component*>(vcoComponent.get()),
+                        static_cast<juce::Component*>(lfoComponent.get()),
+                        static_cast<juce::Component*>(vcfComponent.get()),
+                        static_cast<juce::Component*>(vcaComponent.get()),
+                        static_cast<juce::Component*>(egComponent.get()),
+                        static_cast<juce::Component*>(breathControlComponent.get()),
+                        static_cast<juce::Component*>(volumeComponent.get())}) {
+        for (auto* child : panel->getChildren()) {
+            auto* slider = dynamic_cast<juce::Slider*>(child);
+            if (slider == nullptr || slider->getSliderStyle() == juce::Slider::IncDecButtons)
+                continue;
+            sliderValuePopup->attach(*slider);
+            if (slider->getTooltip().isNotEmpty()) {
+                for (int i = panel->getIndexOfChildComponent(slider) + 1;
+                     i < panel->getNumChildComponents(); ++i) {
+                    if (auto* label = dynamic_cast<juce::Label*>(panel->getChildComponent(i))) {
+                        label->setTooltip(slider->getTooltip());
+                        break;
+                    }
+                }
+                slider->setTooltip({});
+            }
+        }
+    }
+
     setResizable(true, true);
     setResizeLimits(1240, 400, 2400, 1240);
     setSize(1240, 400);
@@ -94,6 +123,7 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
 
 CS01AudioProcessorEditor::~CS01AudioProcessorEditor() {
     stopTimer();
+    sliderValuePopup.reset();
     audioProcessor.getAudioDisplayFifo().setEnabled(false);
     midiKeyboard.focusLost(juce::Component::focusChangedDirectly);
     setLookAndFeel(nullptr);
@@ -133,6 +163,7 @@ bool CS01AudioProcessorEditor::keyStateChanged(bool isKeyDown, juce::Component*)
 }
 
 void CS01AudioProcessorEditor::timerCallback() {
+    sliderValuePopup->refresh();
     const int count = audioProcessor.getAudioDisplayFifo().readLatest(displayAudio);
     if (displayButton.getToggleState() && count > 0) {
         const int channels = juce::jmin(2, audioProcessor.getTotalNumOutputChannels());
