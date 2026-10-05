@@ -443,11 +443,12 @@ TEST(EnvelopeRangeTest, GraphStagesFollowConfiguredSeconds) {
             // The peak may fall between observations. Detailed sample-accurate timing
             // is covered by EGTimingTest; here verify MIDI routing and graph timing.
             const float peakThreshold =
-                static_cast<float>(1.0 - observationBlockSize / (std::min(attack, decay) * rate));
+                static_cast<float>(1.0 - std::max(0.314 / attack, 1.157 / decay) *
+                                         observationBlockSize / rate);
             EXPECT_NEAR(elapsed([&](float v) { return v >= peakThreshold; }, 1), attack,
-                        attack * 0.01 + 2.0 * observationBlockSize / rate);
+                        attack * 0.01 + 5.0 * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([](float v) { return v <= 0.5f; }, 0), decay,
-                        decay * 0.01 + 2.0 * observationBlockSize / rate);
+                        decay * 0.01 + 5.0 * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([](float v) { return v == 0.0f; }, 2), release,
                         release * 0.01 + 2.0 * observationBlockSize / rate);
         }

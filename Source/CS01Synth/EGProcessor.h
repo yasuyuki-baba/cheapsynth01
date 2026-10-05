@@ -20,7 +20,7 @@ class EGProcessor : public juce::AudioProcessor {
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     bool isActive() const {
-        return adsr.isActive();
+        return stage != Stage::idle;
     }
     // Same-thread observation only; does not advance the envelope.
     float getLastOutputForTesting() const {
@@ -28,20 +28,9 @@ class EGProcessor : public juce::AudioProcessor {
     }
 
     // Methods to control ADSR from outside
-    void startEnvelope() {
-        releasing = false;
-        updateADSR();
-        adsr.noteOn();
-    }
-    void stopEnvelopeImmediately() {
-        adsr.reset();
-        releasing = false;
-        lastOutput = 0.0f;
-    }
-    void releaseEnvelope() {
-        adsr.noteOff();
-        releasing = adsr.isActive();
-    }
+    void startEnvelope();
+    void stopEnvelopeImmediately();
+    void releaseEnvelope();
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override {
@@ -91,10 +80,16 @@ class EGProcessor : public juce::AudioProcessor {
     void updateADSR();
 
     juce::AudioProcessorValueTreeState& apvts;
-    juce::ADSR adsr;
-    bool parametersInitialized = false;
-    bool releasing = false;
+    enum class Stage { idle, attack, decay, sustain, release };
+    Stage stage = Stage::idle;
+    juce::ADSR::Parameters settings;
+    double envelopeSampleRate = 44100.0;
+    double level = 0.0, stageTarget = 0.0, stageEndpoint = 0.0;
+    double stageCoefficient = 0.0;
+    int64_t remainingSamples = 0;
     float lastOutput = 0.0f;
+    void beginStage(Stage next, double endpoint, double seconds);
+    float nextEnvelopeSample();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
 };
