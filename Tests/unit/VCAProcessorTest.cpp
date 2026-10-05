@@ -145,6 +145,36 @@ class VCAProcessorTest : public ::testing::Test {
     std::unique_ptr<VCAProcessor> processor;
 };
 
+TEST_F(VCAProcessorTest, LiveEgDepthIsPartitionIndependent) {
+    std::vector<float> reference;
+    for (int blockSize : {1, 7, 64}) {
+        apvts->getParameter(ParameterIds::vcaEgDepth)->setValueNotifyingHost(0.0f);
+        processor->prepareToPlay(48000.0, 64);
+        apvts->getParameter(ParameterIds::vcaEgDepth)->setValueNotifyingHost(1.0f);
+        std::vector<float> output;
+        juce::MidiBuffer midi;
+        for (int offset = 0; offset < 960;) {
+            const int count = std::min(blockSize, 960 - offset);
+            juce::AudioBuffer<float> buffer(2, count);
+            for (int i = 0; i < count; ++i) {
+                buffer.setSample(0, i, 0.1f);
+                buffer.setSample(1, i, 0.0f);
+            }
+            processor->processBlock(buffer, midi);
+            for (int i = 0; i < count; ++i) {
+                ASSERT_TRUE(std::isfinite(buffer.getSample(0, i)));
+                output.push_back(buffer.getSample(0, i));
+            }
+            offset += count;
+        }
+        if (reference.empty())
+            reference = output;
+        else
+            for (size_t i = 0; i < output.size(); ++i)
+                ASSERT_NEAR(output[i], reference[i], 1.0e-7f) << i;
+    }
+}
+
 TEST_F(VCAProcessorTest, FrequencyResponseCharacterization) {
     std::array<double, 5> referenceGains{};
     // Characterize the current implementation, not a calibrated hardware target.
@@ -428,6 +458,9 @@ TEST_F(VCAProcessorTest, VCAFunctionality) {
         volumeParam->setValueNotifyingHost(1.0f);
 
     // Set EG to 0
+    // Endpoint comparison, not a live-depth transition: initialize controls
+    // and filter state identically for both measurements.
+    processor->prepareToPlay(sampleRate, samplesPerBlock);
     for (int i = 0; i < samplesPerBlock; ++i) {
         egInputData[i] = 0.0f;
     }
@@ -447,6 +480,7 @@ TEST_F(VCAProcessorTest, VCAFunctionality) {
     }
 
     // Test 2: Full EG value should result in higher output
+    processor->prepareToPlay(sampleRate, samplesPerBlock);
     // Set EG to 1.0
     for (int i = 0; i < samplesPerBlock; ++i) {
         egInputData[i] = 1.0f;

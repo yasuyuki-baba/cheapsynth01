@@ -75,6 +75,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
     CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
     juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse
     int modulationBufferCapacity = 0;         // Capacity (in samples) of allocated modulationBuffer
+    juce::SmoothedValue<float> egDepthControl;
 
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam) {

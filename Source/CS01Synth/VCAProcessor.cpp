@@ -25,6 +25,9 @@ VCAProcessor::~VCAProcessor() {}
 
 //==============================================================================
 void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    egDepthControl.reset(sampleRate, 0.005);
+    egDepthControl.setCurrentAndTargetValue(
+        apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load());
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
     bufferCouplingPole =
         static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
@@ -85,6 +88,7 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
 
     // Get parameters
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load();
+    egDepthControl.setTargetValue(egDepth);
     auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
     auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
     auto volume = apvts.getRawParameterValue(ParameterIds::volume)->load();
@@ -111,7 +115,7 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         float egValue = egData[sample];
 
         // Process through IG02600 VCA chip emulation
-        float outputSample = vcaModel.processSample(inputSample, egValue, egDepth, breathInput,
+        float outputSample = vcaModel.processSample(inputSample, egValue, egDepthControl.getNextValue(), breathInput,
                                                     breathVcaDepth, volumeGain);
 
         // Process through Tr7 transistor buffer emulation
