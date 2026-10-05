@@ -14,11 +14,10 @@ ModernVCFProcessor::~ModernVCFProcessor() {}
 
 //==============================================================================
 void ModernVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    processingSampleRate = sampleRate;
     // Initialize filter for mono processing
     filter.reset();
-    filter.setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
-    filter.prepare(
-        {sampleRate, static_cast<uint32>(samplesPerBlock), 1});  // Always 1 channel (mono)
+    filter.prepare(sampleRate);
 
     // Pre-allocate temporary buffer to avoid reallocations per block
     if (samplesPerBlock > processingBufferCapacity) {
@@ -92,46 +91,27 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Copy input into the preallocated processing buffer
     processingBuffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
 
-    // Compute average modulation in semitones across the block to allow block processing.
-    // This reduces per-sample filter coefficient updates while keeping modulation behaviour
-    // approximately correct and allowing the filter to use processBlock (SIMD-friendly).
-    int numSamples = buffer.getNumSamples();
-    float accumSemitone = 0.0f;
-
-    const float egModRangeSemitones = 36.0f;      // 3 octaves
-    const float lfoModRangeSemitones = 24.0f;     // 2 octaves
-    const float breathModRangeSemitones = 24.0f;  // 2 octaves
-
-    for (int sample = 0; sample < numSamples; ++sample) {
-        float egValue = egData[sample];
-        float lfoValue = (lfoData != nullptr) ? lfoData[sample] : 0.0f;
-        lfoValue = juce::jlimit(-1.0f, 1.0f, lfoValue);
-
-        float egMod = egValue * egDepth * egModRangeSemitones;
-        float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-
-        accumSemitone += (egMod + lfoMod + breathMod);
-    }
-
-    // Average semitone modulation for the block
-    float avgSemitone = (numSamples > 0) ? (accumSemitone / static_cast<float>(numSamples)) : 0.0f;
-
-    // Convert average semitone modulation to frequency ratio and compute block cutoff
-    float avgFreqRatio = static_cast<float>(std::exp2(static_cast<double>(avgSemitone / 12.0f)));
-    float blockCutoffHz = juce::jlimit(20.0f, 20000.0f, cutoff * avgFreqRatio);
-
-    // Apply averaged filter parameters (per-block)
-    filter.setCutoffFrequency(blockCutoffHz);
+    // The schematic's EG/LFO/breath controls act on the VCF continuously.
+    // Follow Original's sample-wise control path rather than averaging a block.
+    const int numSamples = buffer.getNumSamples();
+    const float egModRangeSemitones = 36.0f;     // Empirical, not circuit-calibrated.
+    const float lfoModRangeSemitones = 24.0f;
+    const float breathModRangeSemitones = 24.0f;
+    const float maximumCutoff = juce::jmin(20000.0f, static_cast<float>(processingSampleRate) * 0.49f);
+    auto* samples = processingBuffer.getWritePointer(0);
     filter.setResonance(resonance);
 
-    // Process only the current segment, not the full preallocated capacity.
-    // Processing the unused tail would advance filter state between segments.
-    {
-        juce::dsp::AudioBlock<float> audioBlock(processingBuffer);
-        auto activeBlock = audioBlock.getSubBlock(0, static_cast<size_t>(numSamples));
-        juce::dsp::ProcessContextReplacing<float> context(activeBlock);
-        filter.process(context);
+    for (int sample = 0; sample < numSamples; ++sample) {
+        const float lfoValue = lfoData != nullptr ? juce::jlimit(-1.0f, 1.0f, lfoData[sample]) : 0.0f;
+        const float semitones = egData[sample] * egDepth * egModRangeSemitones
+                              + lfoValue * modDepth * lfoModRangeSemitones
+                              + breathInput * breathVcfDepth * breathModRangeSemitones;
+        float modulatedCutoff = cutoff * std::exp2(semitones / 12.0f);
+        if (!std::isfinite(modulatedCutoff))
+            modulatedCutoff = cutoff;
+        const float frequency = juce::jlimit(20.0f, maximumCutoff, modulatedCutoff);
+        filter.setCutoffFrequency(frequency);
+        samples[sample] = filter.processSample(0, samples[sample]);
     }
 
     // Copy processed samples back to output efficiently

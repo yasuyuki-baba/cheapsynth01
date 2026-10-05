@@ -3,9 +3,10 @@
 #include <JuceHeader.h>
 #include "../Parameters.h"
 #include "IFilter.h"  // Interface
+#include "CS01IIVCFCircuit.h"
 
 //==============================================================================
-// ModernVCFProcessor - Filter using JUCE's StateVariableTPTFilter (with less distortion)
+// ModernVCFProcessor - CS01II-inspired four-pole lowpass approximation.
 class ModernVCFProcessor : public juce::AudioProcessor, public IFilter {
    public:
     //==============================================================================
@@ -71,9 +72,10 @@ class ModernVCFProcessor : public juce::AudioProcessor, public IFilter {
    private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
-    juce::dsp::StateVariableTPTFilter<float> filter;  // Single filter for mono processing
+    CS01IIVCFCircuit filter;
     juce::AudioBuffer<float> processingBuffer;  // Reusable temporary buffer for audio processing
     int processingBufferCapacity = 0;           // Capacity (in samples) of processingBuffer
+    double processingSampleRate = 44100.0;
 
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam) {
@@ -89,9 +91,7 @@ class ModernVCFProcessor : public juce::AudioProcessor, public IFilter {
 
     // Resonance calculation function
     float calculateResonance(float resonanceParam) {
-        // Map normalized input (0.0 - 1.0) to useful resonance range
-        // Resonance for StateVariableTPTFilter is effective in the range of 0.1 to 0.9
-        return 0.1f + (resonanceParam * 0.8f);  // Map to range 0.1 to 0.9
+        return juce::jlimit(0.0f, 1.0f, resonanceParam);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModernVCFProcessor)
