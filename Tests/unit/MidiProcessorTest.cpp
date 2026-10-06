@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <chrono>
 #include <functional>
 #include <set>
 #include <thread>
@@ -731,6 +732,18 @@ class NotificationProbe : public juce::AudioProcessorParameter::Listener {
     float lastValue = 0;
     std::function<void()> onNotification;
 };
+
+bool waitForNotifications(const NotificationProbe& probe, int expectedCalls) {
+    // Timer delivery is best-effort. Pump until the observable condition holds,
+    // using a monotonic deadline so a slow CI runner cannot stall the suite.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    auto* messages = juce::MessageManager::getInstance();
+    while (probe.calls < expectedCalls && std::chrono::steady_clock::now() < deadline) {
+        if (!messages->runDispatchLoopUntil(10))
+            break;
+    }
+    return probe.calls >= expectedCalls;
+}
 }  // namespace
 
 TEST_F(MidiProcessorTest, DuplicateAndUnmatchedNotesPreserveLegatoAndVelocity) {
@@ -868,7 +881,7 @@ TEST_F(MidiProcessorTest, EveryMappedControllerUsesExistingNormalizedRange) {
             }
         }
         EXPECT_EQ(probe.calls, 0);
-        juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+        ASSERT_TRUE(waitForNotifications(probe, 1)) << "Timed out for " << ids[i].toStdString();
         EXPECT_EQ(probe.calls, 1);
         EXPECT_TRUE(probe.allOnMessageThread);
         EXPECT_NEAR(apvts->getRawParameterValue(ids[i])->load(),
@@ -882,7 +895,7 @@ TEST_F(MidiProcessorTest, EveryMappedControllerUsesExistingNormalizedRange) {
         EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::pitchBend), expected, 1.0e-7f);
     }
     EXPECT_EQ(bendProbe.calls, 0);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    ASSERT_TRUE(waitForNotifications(bendProbe, 1)) << "Timed out waiting for pitch bend";
     EXPECT_EQ(bendProbe.calls, 1);
     EXPECT_TRUE(bendProbe.allOnMessageThread);
     EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 1.0f);
@@ -910,7 +923,7 @@ TEST_F(MidiProcessorTest, NotificationsAreDeferredCoalescedAndSaveCurrentValues)
         static_cast<float>(
             snapshot.getChildWithProperty("id", ParameterIds::attack).getProperty("value")),
         expected);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    ASSERT_TRUE(waitForNotifications(probe, 1)) << "Timed out waiting for attack";
     EXPECT_EQ(probe.calls, 1);
     EXPECT_TRUE(probe.allOnMessageThread);
     EXPECT_NEAR(probe.lastValue, parameter->convertTo0to1(expected), 1.0e-6f);
@@ -919,6 +932,7 @@ TEST_F(MidiProcessorTest, NotificationsAreDeferredCoalescedAndSaveCurrentValues)
                                            .getChildWithProperty("id", ParameterIds::attack)
                                            .getProperty("value")),
                     expected);
+    // A bounded observation window checks that no duplicate notification follows.
     juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
     EXPECT_EQ(probe.calls, 1);
 }
@@ -935,7 +949,7 @@ TEST_F(MidiProcessorTest, NotificationDoesNotReplayOverNewMidiOrHostEdits) {
     send(127);
     parameter->setValueNotifyingHost(0.25f);
     const int before = probe.calls;
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    ASSERT_TRUE(waitForNotifications(probe, before + 1)) << "Timed out after the host edit";
     EXPECT_EQ(probe.calls, before + 1);
     EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::modDepth), 0.25f);
     EXPECT_FLOAT_EQ(probe.lastValue, 0.25f);
@@ -944,7 +958,7 @@ TEST_F(MidiProcessorTest, NotificationDoesNotReplayOverNewMidiOrHostEdits) {
             send(32);
     };
     send(64);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    ASSERT_TRUE(waitForNotifications(probe, before + 3)) << "Timed out after reentrant MIDI";
     EXPECT_EQ(probe.calls, before + 3);
     EXPECT_NEAR(probe.lastValue, 32 * 128 / 16383.0f, 1.0e-6f);
     EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::modDepth), 32 * 128 / 16383.0f,
@@ -958,6 +972,7 @@ TEST_F(MidiProcessorTest, DestroyWithPendingNotificationsIsSafe) {
     processor->processBlock(unused, midi);
     NotificationProbe probe(*apvts->getParameter(ParameterIds::pitchBend));
     processor.reset();
+    // No notification is expected; keep a bounded teardown observation window.
     juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
     EXPECT_EQ(probe.calls, 0);
 }
