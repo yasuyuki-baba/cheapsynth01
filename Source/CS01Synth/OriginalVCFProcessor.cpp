@@ -1,5 +1,7 @@
 #include "CS01Synth/OriginalVCFProcessor.h"
 
+#include "MidiParameterValue.h"
+
 #include <cmath>
 
 //==============================================================================
@@ -66,12 +68,12 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto lfoInput = getBusBuffer(buffer, true, 2);
 
     // Get parameters
-    auto cutoffParam = apvts.getRawParameterValue(ParameterIds::cutoff)->load();
-    auto resonanceParam = apvts.getRawParameterValue(ParameterIds::resonance)->load();
+    auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
+    auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load();
     egDepthControl.setTargetValue(egDepth);
-    auto modDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
-    auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
+    auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
+    auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
     // Cutoff frequency calculation

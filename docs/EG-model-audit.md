@@ -171,9 +171,11 @@ with transistor/FET operating points. The two
 timing branches cannot safely be assumed to alternate as a conventional
 software ADSR without that derivation. Keep production integration deferred.
 
-The production EG remains JUCE's linear ADSR. Its lifecycle and parameter-update
-regressions are covered separately. It is not claimed to reproduce the analog
-charging/discharging curve.
+The production EG uses the [stateful exponential software model](EG-stateful-model.md).
+Its lifecycle, stage timing and parameter-update behavior are implemented and
+regression-tested. Curvature k = 2 is provisional; it is not claimed to reproduce
+verified analog charging/discharging trajectories. Circuit-derived integration
+remains deferred.
 
 ## Verified candidate
 
@@ -455,7 +457,8 @@ evidence. No ON/OFF states or analog thresholds should be filled from guesswork.
 
 ## Decision and bounded next step
 
-Keep the production linear ADSR and its regression tests. Stop adding generic
+Keep the provisional stateful exponential EG and its regression tests. Its
+software curvature is not evidence of hardware calibration. Stop adding generic
 RC tests as a substitute for identifying the circuit. The next circuit-model
 step is to bound the transistor branch voltages, sustain-reference loading,
 and IC4 switching voltage. Conditional logic states and reduced stage equations

@@ -3,10 +3,12 @@
 #include "CS01AudioProcessor.h"
 #include "CS01Synth/EGProcessor.h"
 #include "CS01Synth/SynthConstants.h"
+#include "MidiParameterValue.h"
 #include "Parameters.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <chrono>
 
 TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope) {
@@ -60,7 +62,7 @@ TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope) {
             EXPECT_EQ(observed->isActive(), expected->isActive());
             if (block >= 3) {
                 EXPECT_FLOAT_EQ(
-                    reset.getValueTreeState().getRawParameterValue(ParameterIds::pitchBend)->load(),
+                    getMidiParameterValue(reset.getValueTreeState(), ParameterIds::pitchBend),
                     0.0f);
             }
             if (block >= 150) {
@@ -161,7 +163,7 @@ TEST(BendInputTest, ExternalInputWinsAndDoesNotAutoReturn) {
     };
     queuePanel(16383);
     processor.processBlock(audio, midi);
-    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), 1);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(state, ParameterIds::pitchBend), 1);
     const auto revision = processor.getExternalBendRevision();
     EXPECT_EQ(revision, 0u);
 
@@ -169,18 +171,18 @@ TEST(BendInputTest, ExternalInputWinsAndDoesNotAutoReturn) {
     queuePanel(8192);  // An in-flight panel return must not override external input.
     midi.addEvent(juce::MidiMessage::pitchWheel(1, 0), 17);
     processor.processBlock(audio, midi);
-    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), -1);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(state, ParameterIds::pitchBend), -1);
     EXPECT_EQ(processor.getExternalBendRevision(), revision + 1);
     for (int block = 0; block < 100; ++block) {
         midi.clear();
         processor.processBlock(audio, midi);
     }
-    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), -1);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(state, ParameterIds::pitchBend), -1);
     EXPECT_EQ(processor.getExternalBendRevision(), revision + 1);
     midi.clear();
     midi.addEvent(juce::MidiMessage::pitchWheel(1, 8192), 0);
     processor.processBlock(audio, midi);
-    EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(), 0);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(state, ParameterIds::pitchBend), 0);
     processor.releaseResources();
 }
 
@@ -442,9 +444,8 @@ TEST(EnvelopeRangeTest, GraphStagesFollowConfiguredSeconds) {
             };
             // The peak may fall between observations. Detailed sample-accurate timing
             // is covered by EGTimingTest; here verify MIDI routing and graph timing.
-            const float peakThreshold =
-                static_cast<float>(1.0 - std::max(0.314 / attack, 1.157 / decay) *
-                                         observationBlockSize / rate);
+            const float peakThreshold = static_cast<float>(
+                1.0 - std::max(0.314 / attack, 1.157 / decay) * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([&](float v) { return v >= peakThreshold; }, 1), attack,
                         attack * 0.01 + 5.0 * observationBlockSize / rate);
             EXPECT_NEAR(elapsed([](float v) { return v <= 0.5f; }, 0), decay,
@@ -572,10 +573,9 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
                     }
                 }
             }
-            EXPECT_FLOAT_EQ(controlled.getValueTreeState()
-                                .getRawParameterValue(ParameterIds::breathInput)
-                                ->load(),
-                            1.0f);
+            EXPECT_FLOAT_EQ(
+                getMidiParameterValue(controlled.getValueTreeState(), ParameterIds::breathInput),
+                1.0f);
             ASSERT_GT(baselinePower, 1.0e-8);
             if (enabled) {
                 EXPECT_LT(mutedPower, baselinePower * 1.0e-8);
@@ -648,8 +648,7 @@ TEST_F(AudioGraphTest, BreathMidiControlsOriginalFilterAndRecovers) {
         ASSERT_GT(referenceRecovered, 1.0e-10);
         EXPECT_NEAR(recovered / referenceRecovered, 1.0, 0.01);
         EXPECT_FLOAT_EQ(
-            controlled.getValueTreeState().getRawParameterValue(ParameterIds::breathInput)->load(),
-            0.0f);
+            getMidiParameterValue(controlled.getValueTreeState(), ParameterIds::breathInput), 0.0f);
     }
 }
 
@@ -1209,5 +1208,79 @@ TEST(MidiPanicGraphTest, SourceSwitchLifecycleAndSameTimestampOrdering) {
     EXPECT_EQ(render(10), 0);
     midi.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0);
     EXPECT_GT(render(20), 1.0e-4);
+    processor.releaseResources();
+}
+
+TEST(MidiRealtimeGraphTest, EveryControllerMatchesSynchronousDspBeforeNotifications) {
+    for (int filter : {0, 1}) {
+        CS01AudioProcessor controlled, reference;
+        for (auto* processor : {&controlled, &reference}) {
+            auto& state = processor->getValueTreeState();
+            const auto set = [&](const juce::String& id, float value) {
+                auto* parameter = state.getParameter(id);
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+            };
+            set(ParameterIds::filterType, static_cast<float>(filter));
+            set(ParameterIds::waveType, 1);
+            set(ParameterIds::volume, 0.5f);
+            set(ParameterIds::breathVca, 0.5f);
+            set(ParameterIds::breathVcf, 0.5f);
+            processor->prepareToPlay(48000, 64);
+            processor->flushPendingGraphChangesForTesting();
+        }
+        juce::AudioBuffer<float> a(2, 64), b(2, 64);
+        juce::MidiBuffer midiA, midiB;
+        midiA.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100), 0);
+        midiB.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100), 0);
+        controlled.processBlock(a, midiA);
+        reference.processBlock(b, midiB);
+        const std::array ids{
+            ParameterIds::modDepth,  ParameterIds::breathInput, ParameterIds::volume,
+            ParameterIds::glissando, ParameterIds::sustain,     ParameterIds::resonance,
+            ParameterIds::attack,    ParameterIds::cutoff,      ParameterIds::decay,
+            ParameterIds::lfoSpeed,  ParameterIds::release};
+        const std::array msbs{1, 2, 7, 5, 70, 71, 73, 74, 75, 76, 79};
+        const std::array lsbs{33, 34, 39, 37};
+        for (size_t i = 0; i < ids.size(); ++i) {
+            SCOPED_TRACE(ids[i].toStdString());
+            auto* parameter = reference.getValueTreeState().getParameter(ids[i]);
+            const float normalized = i < lsbs.size() ? (64 * 128 + 3) / 16383.0f : 64 / 127.0f;
+            parameter->setValueNotifyingHost(normalized);
+            midiA.addEvent(juce::MidiMessage::controllerEvent(1, msbs[i], 64), 0);
+            if (i < lsbs.size())
+                midiA.addEvent(juce::MidiMessage::controllerEvent(1, lsbs[i], 3), 0);
+            if (ids[i] == ParameterIds::release) {
+                midiA.addEvent(juce::MidiMessage::noteOff(1, 64), 0);
+                midiB.addEvent(juce::MidiMessage::noteOff(1, 64), 0);
+            }
+            for (int block = 0; block < 16; ++block) {
+                controlled.processBlock(a, midiA);
+                reference.processBlock(b, midiB);
+                for (int channel = 0; channel < 2; ++channel)
+                    for (int sample = 0; sample < 64; ++sample)
+                        EXPECT_NEAR(a.getSample(channel, sample), b.getSample(channel, sample),
+                                    1.0e-6f);
+            }
+            EXPECT_FLOAT_EQ(getMidiParameterValue(controlled.getValueTreeState(), ids[i]),
+                            getMidiParameterValue(reference.getValueTreeState(), ids[i]));
+        }
+        controlled.releaseResources();
+        reference.releaseResources();
+    }
+}
+
+TEST(MidiRealtimeGraphTest, SessionSaveBeforeNotificationIncludesMidiEdits) {
+    CS01AudioProcessor processor, restored;
+    processor.prepareToPlay(48000, 64);
+    processor.flushPendingGraphChangesForTesting();
+    juce::AudioBuffer<float> audio(2, 64);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::controllerEvent(1, 73, 100), 0);
+    processor.processBlock(audio, midi);
+    juce::MemoryBlock saved;
+    processor.getStateInformation(saved);
+    restored.setStateInformation(saved.getData(), static_cast<int>(saved.getSize()));
+    EXPECT_FLOAT_EQ(getMidiParameterValue(restored.getValueTreeState(), ParameterIds::attack),
+                    getMidiParameterValue(processor.getValueTreeState(), ParameterIds::attack));
     processor.releaseResources();
 }
