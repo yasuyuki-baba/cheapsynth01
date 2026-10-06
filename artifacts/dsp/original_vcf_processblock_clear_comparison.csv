@@ -1,0 +1,11 @@
+variant,repetition,block_size,blocks,total_samples,elapsed_seconds,ns_per_sample,finite_output
+with_clear,1,1024,256,262144,0.0144264,55.0322,finite
+with_clear,2,1024,256,262144,0.0140246,53.4998,finite
+with_clear,3,1024,256,262144,0.0140897,53.7481,finite
+with_clear,4,1024,256,262144,0.0138592,52.8686,finite
+with_clear,5,1024,256,262144,0.0144506,55.1248,finite
+without_clear,1,1024,256,262144,0.0150470,57.3998,finite
+without_clear,2,1024,256,262144,0.0151352,57.7363,finite
+without_clear,3,1024,256,262144,0.0141669,54.0426,finite
+without_clear,4,1024,256,262144,0.0137451,52.4332,finite
+without_clear,5,1024,256,262144,0.0137386,52.4086,finite

@@ -95,9 +95,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Expect modulationBuffer to be preallocated in prepareToPlay; avoid reallocating on audio
     // thread
     jassert(numSamples <= modulationBufferCapacity);
-    if (modulationBufferCapacity > 0) {
-        modulationBuffer.clear(numSamples);
-    }
+    // Every active sample is assigned below before the buffer is consumed, so
+    // clearing this block would add a redundant full-buffer write.
 
     // Empirical modulation spans, not calibrated from IG02610 control-current data.
     // Keep these separate from tests of polarity and disabled-control independence.
@@ -114,20 +113,20 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // EG modulation
         float egMod = egValue * egDepthControl.getNextValue() * egModRangeSemitones;
-        float egModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(egMod / 12.0f)));
 
         // LFO modulation
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(lfoMod / 12.0f)));
 
         // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio =
-            static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
 
-        // Apply all modulations
-        float modulatedCutoffHz =
-            baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
+        // Semitone ratios multiply, so sum their exponents and evaluate one
+        // exp2 instead of three. This is algebraically equivalent, with only
+        // small floating-point rounding differences from the old multiply path.
+        const float totalModSemitones = egMod + lfoMod + breathMod;
+        const float combinedModFreqRatio = static_cast<float>(
+            std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
+        float modulatedCutoffHz = baseCutoff * combinedModFreqRatio;
 
         // Check for NaN or Infinity
         if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
@@ -144,7 +143,7 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
 
     // Process using filter
-    if (model == Model::Legacy) {
+    if (model.load(std::memory_order_relaxed) == Model::Legacy) {
         filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
     } else {
         for (int sample = 0; sample < numSamples; ++sample)

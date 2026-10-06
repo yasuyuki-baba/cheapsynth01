@@ -57,6 +57,8 @@ class CS01AudioProcessorEditor : public juce::AudioProcessorEditor,
 
     juce::MidiKeyboardComponent midiKeyboard;
     juce::TextButton displayButton{"KEYBOARD + MONITOR"};
+    juce::TextButton originalVcfModelButton{"ORIGINAL: LEGACY"};
+    juce::TextButton modernVcfModelButton{"MODERN: LEGACY"};
 
     std::unique_ptr<ModulationComponent> modulationComponent;
     std::unique_ptr<VCOComponent> vcoComponent;
