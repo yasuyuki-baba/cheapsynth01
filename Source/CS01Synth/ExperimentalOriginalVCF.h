@@ -12,8 +12,9 @@ class ExperimentalOriginalVCF {
         // Provisional damping map; replace with measured resonance response.
         static constexpr float minimumDamping = 0.12f;
         static constexpr float maximumDamping = 1.25f;
-        // Provisional normalized feedback drive and output safety limit.
+        // Provisional normalized drives; neither is calibrated to an IC.
         static constexpr float feedbackDrive = 1.0f;
+        static constexpr float integratorInputDrive = 2.0f;
         static constexpr float maximumOutput = 1.5f;
     };
 
@@ -30,10 +31,14 @@ class ExperimentalOriginalVCF {
             static_cast<double>(EmpiricalParameters::maximumDamping),
             static_cast<double>(EmpiricalParameters::minimumDamping));
 
-        // The nonlinear feedback is an explicit behavioral hypothesis. tanh
-        // bounds feedback while retaining a smooth, deterministic transfer.
+        // Behavioral hypothesis based on a two-integrator SVF with soft
+        // limiting around the summing/integrator input and resonant feedback.
+        // These placements do not claim to reproduce the IC's internal circuit.
         const double feedback = damping * std::tanh(ic2eq * EmpiricalParameters::feedbackDrive);
-        const double v1 = (ic1eq + g * (static_cast<double>(input) - feedback - ic2eq)) /
+        const double integratorInput = std::tanh(
+            (static_cast<double>(input) - feedback) * EmpiricalParameters::integratorInputDrive) /
+            EmpiricalParameters::integratorInputDrive;
+        const double v1 = (ic1eq + g * (integratorInput - ic2eq)) /
                           (1.0 + g * (g + damping));
         const double v2 = ic2eq + g * v1;
         ic1eq = 2.0 * v1 - ic1eq;

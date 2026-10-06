@@ -117,6 +117,8 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
         static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()));
     applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
                        juce::AudioProcessorGraph::UpdateKind::sync);
+    setExperimentalOriginalVcf(requestedExperimentalOriginalVcf.load());
+    setExperimentalModernVcf(requestedExperimentalModernVcf.load());
 }
 
 void CS01AudioProcessor::applyFilterRouting(int filterType, int lfoTarget,
@@ -460,6 +462,34 @@ IFilter* CS01AudioProcessor::getCurrentFilterProcessor() {
     }
 
     return nullptr;
+}
+
+void CS01AudioProcessor::setExperimentalModernVcf(bool enabled) {
+    requestedExperimentalModernVcf.store(enabled);
+    if (modernVcfNode == nullptr || modernVcfNode->getProcessor() == nullptr)
+        return;
+    if (auto* modern = dynamic_cast<ModernVCFProcessor*>(modernVcfNode->getProcessor())) {
+        modern->setModel(enabled ? ModernVCFProcessor::Model::Experimental
+                                 : ModernVCFProcessor::Model::Legacy);
+    }
+}
+
+void CS01AudioProcessor::setExperimentalOriginalVcf(bool enabled) {
+    requestedExperimentalOriginalVcf.store(enabled);
+    if (vcfNode == nullptr || vcfNode->getProcessor() == nullptr)
+        return;
+    if (auto* original = dynamic_cast<OriginalVCFProcessor*>(vcfNode->getProcessor())) {
+        original->setModel(enabled ? OriginalVCFProcessor::Model::Experimental
+                                   : OriginalVCFProcessor::Model::Legacy);
+    }
+}
+
+bool CS01AudioProcessor::isExperimentalModernVcf() const {
+    return requestedExperimentalModernVcf.load();
+}
+
+bool CS01AudioProcessor::isExperimentalOriginalVcf() const {
+    return requestedExperimentalOriginalVcf.load();
 }
 
 void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue) {

@@ -1,6 +1,8 @@
 #include <JuceHeader.h>
 
+#include "CS01AudioProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
 #include "Parameters.h"
 
 #include <gtest/gtest.h>
@@ -426,4 +428,30 @@ TEST(IG05630Test, ColorationIsGentleSymmetricAndLevelDependent) {
             EXPECT_NEAR(settle(0.0f), 0.0f, 1.0e-7f);
         }
     }
+}
+
+TEST(CS01AudioProcessorTest, TemporaryExperimentalIG05630SwitchCanBeChanged) {
+    CS01AudioProcessor processor;
+    EXPECT_FALSE(processor.isExperimentalOriginalVcf());
+    processor.setExperimentalOriginalVcf(true);
+    processor.apvts.getParameter(ParameterIds::filterType)->setValueNotifyingHost(0.0f);
+    processor.prepareToPlay(48000.0, 64);
+    auto* original = dynamic_cast<OriginalVCFProcessor*>(processor.getCurrentFilterProcessor());
+    ASSERT_NE(original, nullptr);
+    EXPECT_EQ(original->getModel(), OriginalVCFProcessor::Model::Experimental);
+    processor.setExperimentalOriginalVcf(false);
+    EXPECT_EQ(original->getModel(), OriginalVCFProcessor::Model::Legacy);
+
+    processor.releaseResources();
+    EXPECT_FALSE(processor.isExperimentalModernVcf());
+    processor.setExperimentalModernVcf(true);
+    processor.apvts.getParameter(ParameterIds::filterType)->setValueNotifyingHost(1.0f);
+    processor.prepareToPlay(48000.0, 64);
+    auto* modern = dynamic_cast<ModernVCFProcessor*>(processor.getCurrentFilterProcessor());
+    ASSERT_NE(modern, nullptr);
+    EXPECT_EQ(modern->getModel(), ModernVCFProcessor::Model::Experimental);
+    processor.setExperimentalModernVcf(false);
+    EXPECT_EQ(modern->getModel(), ModernVCFProcessor::Model::Legacy);
+    processor.releaseResources();
+    EXPECT_FALSE(processor.isExperimentalModernVcf());
 }

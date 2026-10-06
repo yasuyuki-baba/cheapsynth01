@@ -161,6 +161,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/ModernVCFProcessor.cpp
         Source/CS01Synth/CS01IIVCFCircuit.cpp
         Source/CS01Synth/IG05630.cpp
+        Source/CS01Synth/ExperimentalIG05630.cpp
         Source/CS01Synth/NoiseGenerator.cpp
         Source/CS01Synth/CS01VCFCircuit.cpp
         Source/CS01Synth/IG02610.cpp
