@@ -57,7 +57,6 @@ float IG02610::processSample(float sample) {
     z1 = b1 * input - a1 * output + z2;
     z2 = b2 * input - a2 * output;
 
-
     // Use the lowpass output without an unverified dry-input/notch blend.
     // The available CS-01 schematic does not establish such a bypass path.
     float y = output;
@@ -96,8 +95,8 @@ float IG02610::processSample(float sample) {
             const float levelFactor = 1.0f + inputLevel * 0.5f;
 
             // Frequency-dependent saturation characteristics
-            const float freqSaturation = 1.3f - 0.6f *
-                juce::jlimit(0.0f, 1.0f, (cutoff - 500.0f) / 4500.0f);
+            const float freqSaturation =
+                1.3f - 0.6f * juce::jlimit(0.0f, 1.0f, (cutoff - 500.0f) / 4500.0f);
 
             const float heavilyDriven = y * levelFactor * (1.0f + strongAmount * 0.25f);
             const float primarySat = accurateTanh(heavilyDriven * 0.5f * freqSaturation);
