@@ -195,6 +195,9 @@ Tests for each component are implemented from the perspectives of initialization
 duplicates, unmatched releases, priority/fallback, legato/velocity, reset commands,
 every mapped controller and pitch bend. Timer tests check message-thread-only,
 coalesced notification, current-state saving, edits during dispatch and safe
-teardown. `MidiRealtimeGraphTest` compares MIDI control changes with synchronous
+teardown. Expected notifications are awaited by pumping the message loop until
+the expected count is reached, with a two-second monotonic timeout; this does
+not assume a timer callback arrives within 100 ms on every CI platform.
+`MidiRealtimeGraphTest` compares MIDI control changes with synchronous
 parameter changes in both filter paths before any notification tick, and checks
 session saving before dispatch. See [the control-flow design](../docs/MIDI-realtime-control.md).
