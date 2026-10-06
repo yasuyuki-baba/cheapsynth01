@@ -1,0 +1,13 @@
+build_type,host_rate,internal_rate,cutoff_mode,samples,legacy_before_ns_per_sample,legacy_after_ns_per_sample,relative_speedup,finite_output
+Debug,44100,176400,static,65536,352.367,221.632,1.5899,finite
+Debug,44100,176400,modulated,65536,345.029,234.482,1.4714,finite
+Debug,48000,192000,static,65536,344.293,234.382,1.4698,finite
+Debug,48000,192000,modulated,65536,351.845,229.705,1.5326,finite
+Debug,96000,384000,static,65536,360.474,217.197,1.6599,finite
+Debug,96000,384000,modulated,65536,363.155,232.237,1.5638,finite
+Release,44100,176400,static,65536,101.929,63.300,1.6106,finite
+Release,44100,176400,modulated,65536,108.665,62.410,1.7412,finite
+Release,48000,192000,static,65536,107.470,65.644,1.6377,finite
+Release,48000,192000,modulated,65536,101.252,60.817,1.6655,finite
+Release,96000,384000,static,65536,111.149,61.803,1.7984,finite
+Release,96000,384000,modulated,65536,115.762,66.590,1.7384,finite

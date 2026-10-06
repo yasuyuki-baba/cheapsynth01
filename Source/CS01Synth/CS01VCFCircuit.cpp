@@ -17,6 +17,7 @@ CS01VCFCircuit::CS01VCFCircuit(double sampleRate)
 
 void CS01VCFCircuit::reset() {
     model.reset();
+    experimentalModel.reset();
 
     // Reset input and output stages
     inputStage.reset();
@@ -26,6 +27,7 @@ void CS01VCFCircuit::reset() {
 void CS01VCFCircuit::prepare(double newSampleRate) {
     sampleRate = static_cast<float>(newSampleRate);
     model.prepare(newSampleRate);
+    experimentalModel.prepare(newSampleRate);
 
     // Prepare input and output stages
     inputStage.prepare(newSampleRate);
@@ -71,6 +73,12 @@ void CS01VCFCircuit::setResonance(float newResonance) {
 
 float CS01VCFCircuit::processSample(int channel, float sample) {
     return processOutputStage(model.processSample(processInputStage(sample)));
+}
+
+float CS01VCFCircuit::processExperimentalSample(float sample, float cutoffHz, float resonanceValue) {
+    const float coupledInput = processInputStage(sample);
+    const float filtered = experimentalModel.processSample(coupledInput, cutoffHz, resonanceValue);
+    return processOutputStage(filtered);
 }
 
 void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
