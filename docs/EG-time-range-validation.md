@@ -15,8 +15,10 @@ The circuit's branch RC constants are not directly stage completion times.
 Without the switching thresholds and effective load, expanding or contracting
 these ranges would be a usability choice, not verified circuit calibration.
 
-Decision: retain the current ranges and linear ADSR for this change; correct
-the misleading comments and test the parameter mappings independently.
+The timing audit originally retained the linear ADSR. Production now uses the
+[stateful exponential EG](EG-stateful-model.md), with the same ranges and seconds
+units. Parameter mappings and software stage durations are regression-tested;
+curvature k = 2 and hardware calibration remain provisional.
 Existing envelope tests cover sample-rate scaling and stage behavior, but
 do not establish hardware agreement.
  
@@ -38,15 +40,17 @@ aggregation and a tighter numerical error budget remain future work.
 ## Full graph timing check
 
 The integration test sends MIDI note-on/off through the production synth graph
-at 44.1, 48 and 96 kHz and observes the EG after each single host sample.
-Minimum, midpoint and maximum positions are checked with sustain at 0.5.
-This exercises the shared oversampled graph without confusing EG timing with
-the audio filters' transient response.
+at 44.1, 48 and 96 kHz and observes the EG in adaptive blocks of 1 to 64 host
+samples, retaining at least 16 observations across the shortest configured stage
+where sample resolution permits. Minimum, midpoint and maximum positions are
+checked with sustain at 0.5. This exercises the shared oversampled graph without
+confusing EG timing with the audio filters' transient response.
 
-Because only the last internal sample is observable, the exact attack peak
-can occur between observations. The attack detection threshold is
-1 - 1/(attackSeconds * hostSampleRate), derived from the linear attack slope
-and one host sample's observation interval. Decay timing consequently has up
-to approximately one host sample of boundary uncertainty. The acceptance
-budget remains 1% plus two host samples. This validates the existing linear
-model and its clock scaling, not an analog circuit's stage thresholds.
+Because only the last internal sample of each observation is visible, the exact
+attack peak can occur between observations. The detector uses the stateful
+exponential model's boundary slopes: attack end approximately 0.314/T and decay
+start at sustain 0.5 approximately 1.157/T. Its five-observation timing budget
+accounts for peak-window and stage-boundary uncertainty. The independent
+single-sample stage-duration test retains its 1% plus two-sample criterion.
+These tests validate software behavior and clock scaling, not hardware switching
+thresholds or the provisional exponential curvature.

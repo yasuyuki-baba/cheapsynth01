@@ -2,25 +2,24 @@
 
 ## Subsequent provisional implementation
 
-The user authorized provisional values after this audit. Production EG now
-retains JUCE's linear internal stage clock but applies a piecewise exponential
-output curve with provisional curvature k = 0.5. Each segment is normalized
-as `expm1(k*t)/expm1(k)` and anchored at 0, the sustain setting, and 1.
-This preserves sustain and endpoint timings without claiming a transistor
-simulation. Attack is convex and decay/release are exponentially curved;
-this is a phenomenological approximation, not the derived circuit solution.
-The anchor is held during release, including release-time changes, while the
-unshaped level is used to recalculate note-off rates. Parameter identifiers,
-ranges and stored values are unchanged; rendered sound is intentionally changed.
-Changing sustain during an active note can change the curve immediately; this
-model does not implement analog control smoothing. No buffer, slider or audio
-coupling calibration was added. Earlier unchanged-DSP decisions below describe
-the audit phase, not this subsequent implementation.
+Production EG now uses explicit idle, attack, decay, sustain and release states
+with a stateful exponential recurrence and provisional curvature k = 2. Each
+moving stage begins at the current level and reaches its endpoint after the
+configured duration. Retriggers and active-stage edits preserve level continuity;
+sustain edits slew using decay time. Parameter identifiers, ranges and preset
+units remain unchanged. See [the current EG policy](EG-stateful-model.md) for
+implementation and regression coverage.
 
-Rebuilt EG/Envelope/RC tests: 24 passed after updating linear midpoint/slope
-expectations to the provisional curve; existing duration checks are unchanged.
-After the final lifecycle reset change, the rebuilt executable was also run
-with `--all`: all 182 tests from 38 suites passed, including observations.
+This software policy supersedes both the linear JUCE ADSR and the intermediate
+k = 0.5 output-shaping implementation. Neither the current curvature nor the
+intermediate shape is verified hardware behavior. Transistor operating points,
+slider taper, switching thresholds and output-buffer calibration remain incomplete.
+The unchanged-DSP decisions below refer to the historical audit phase.
+
+Historical verification of the intermediate k = 0.5 implementation: 24
+EG/Envelope/RC tests passed after updating midpoint/slope expectations, and all
+182 tests from 38 suites passed with `--all`. These are historical results, not
+validation counts for the current implementation.
 
 ## Scope and decision
 
@@ -80,4 +79,5 @@ Do not introduce guessed junction constants, arbitrary region thresholds or
 uncalibrated sustain targets into production merely to mark the work complete.
 When these evidence gates are met, add independently expected circuit tests,
 replace the corresponding approximation, rebuild, and run full regression and
-observation categories. Until then, retain the production linear ADSR.
+observation categories. Until then, retain the provisional stateful exponential EG and its software
+regressions; do not describe its curvature as hardware-calibrated.

@@ -1,5 +1,7 @@
 #include "ProgramManager.h"
 
+#include "MidiParameterValue.h"
+
 #include "BinaryData.h"
 
 ProgramManager::ProgramManager(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
@@ -80,7 +82,7 @@ void ProgramManager::loadFactoryPreset(int index) {
 
 void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
     // Get current state as XML
-    std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
+    std::unique_ptr<juce::XmlElement> xml = copyCurrentMidiParameterState(apvts).createXml();
 
     // Get parameter elements from XML
     if (xml != nullptr) {
@@ -207,7 +209,7 @@ void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
     auto presetFile = userPresetsDir.getChildFile(filename);
 
     // Get current state as XML
-    std::unique_ptr<juce::XmlElement> xml = apvts.copyState().createXml();
+    std::unique_ptr<juce::XmlElement> xml = copyCurrentMidiParameterState(apvts).createXml();
     if (xml != nullptr) {
         // Remove excluded parameters from saved preset
         {

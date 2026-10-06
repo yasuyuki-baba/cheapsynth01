@@ -1,5 +1,7 @@
 #include "CS01Synth/VCOProcessor.h"
 
+#include "MidiParameterValue.h"
+
 #include "CS01Synth/SynthConstants.h"
 
 VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoiseMode)
@@ -96,7 +98,7 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     if (currentGenerator == toneGenerator.get()) {
         // LFO input is always mono (channel 0)
         auto lfoInput = getBusBuffer(buffer, true, 0);
-        auto modDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
+        auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
         const float lfoModRangeSemitones = 1.0f;
         toneGenerator->updateBlockRateParameters();
         auto* output = buffer.getWritePointer(0);

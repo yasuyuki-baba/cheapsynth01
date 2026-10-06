@@ -34,7 +34,9 @@ characteristics.
 
 ## Implementation policy until evidence is sufficient
 
-Keep the production EG as a provisional linear ADSR with durations in seconds.
+Keep the production EG as a provisional stateful exponential envelope with
+durations in seconds, as described in [EG-stateful-model.md](EG-stateful-model.md).
+Its implemented and regression-tested curvature is not verified hardware behavior.
 RC charging/discharging calculations have been tested, but CS-01 switching
 conditions remain unresolved. Prioritize continuity, monotonicity, retriggering,
 parameter changes, and independence from sample rate and block partitioning,

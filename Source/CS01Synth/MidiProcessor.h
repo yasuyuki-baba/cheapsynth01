@@ -2,10 +2,14 @@
 
 #include <JuceHeader.h>
 
+#include <array>
+#include <atomic>
+#include <bitset>
+
 class EGProcessor;
 class ISoundGenerator;
 
-class MidiProcessor : public juce::AudioProcessor {
+class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
    public:
     MidiProcessor(juce::AudioProcessorValueTreeState& apvts);
     ~MidiProcessor() override;
@@ -61,7 +65,10 @@ class MidiProcessor : public juce::AudioProcessor {
 
     // Get currently playing note
     int getCurrentlyPlayingNote() const {
-        return activeNotes.isEmpty() ? 0 : activeNotes.getLast();
+        for (int note = 127; note >= 0; --note)
+            if (activeNotes[static_cast<size_t>(note)])
+                return note;
+        return 0;
     }
 
     // Get sound generator
@@ -69,12 +76,35 @@ class MidiProcessor : public juce::AudioProcessor {
         return soundGenerator;
     }
 
-    // Get array of active notes
-    const juce::Array<int>& getActiveNotes() const {
+    // Audio-thread inspection only; one bit per held MIDI key.
+    const std::bitset<128>& getActiveNotes() const {
         return activeNotes;
     }
 
    private:
+    enum class Control {
+        PitchBend,
+        Modulation,
+        Breath,
+        Volume,
+        Glissando,
+        Sustain,
+        Resonance,
+        Attack,
+        Cutoff,
+        Decay,
+        LfoSpeed,
+        Release,
+        Count
+    };
+    struct ControlState {
+        juce::RangedAudioParameter* parameter = nullptr;
+        std::atomic<bool> pending{false};
+    };
+    std::array<ControlState, static_cast<size_t>(Control::Count)> controls;
+    void updateParameter(Control control, float normalizedValue);
+    void timerCallback() override;
+
     // MIDI processing methods
     void handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&);
     void handleNoteOn(const juce::MidiMessage& midiMessage);
@@ -88,12 +118,11 @@ class MidiProcessor : public juce::AudioProcessor {
     void updateVolumeParameter();
     void updateGlissandoParameter();
 
-    juce::AudioProcessorValueTreeState& apvts;
     ISoundGenerator* soundGenerator = nullptr;
     EGProcessor* egProcessor = nullptr;
 
     // For monophonic sound management
-    juce::Array<int> activeNotes;
+    std::bitset<128> activeNotes;
     int lastPitchWheelValue = 8192;  // Center value
 
     // 14bit CC values storage

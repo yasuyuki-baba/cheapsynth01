@@ -154,7 +154,6 @@ target_sources(CheapSynth01
         Source/CS01Synth/VCAProcessor.cpp
         Source/CS01Synth/IG02600.cpp
         Source/CS01Synth/VCOProcessor.cpp
-        Source/CS01Synth/MidiProcessor.cpp
         Source/UI/CS01LookAndFeel.cpp
         Source/CS01Synth/EGProcessor.cpp
         Source/CS01Synth/LFOProcessor.cpp

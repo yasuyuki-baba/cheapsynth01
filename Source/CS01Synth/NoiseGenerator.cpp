@@ -1,5 +1,7 @@
 #include "CS01Synth/NoiseGenerator.h"
 
+#include "MidiParameterValue.h"
+
 NoiseGenerator::NoiseGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
 
 void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
@@ -56,7 +58,7 @@ void NoiseGenerator::stopNote(bool allowTailOff) {
         tailOff = true;
 
         // Get release time from parameter (convert to samples)
-        float releaseSecs = apvts.getRawParameterValue(ParameterIds::release)->load();
+        float releaseSecs = getMidiParameterValue(apvts, ParameterIds::release);
         tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
         tailOffCounter = 0;
     } else {

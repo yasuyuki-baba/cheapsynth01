@@ -2,10 +2,16 @@
 
 #include "CS01Synth/EGProcessor.h"
 #include "CS01Synth/MidiProcessor.h"
+#include "MidiParameterValue.h"
 #include "Parameters.h"
 #include "mocks/MockToneGenerator.h"
 
 #include <gtest/gtest.h>
+
+#include <array>
+#include <functional>
+#include <set>
+#include <thread>
 
 // Test fixture for MidiProcessor tests
 class MidiProcessorTest : public ::testing::Test {
@@ -63,6 +69,10 @@ class MidiProcessorTest : public ::testing::Test {
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::glissando, "Glissando", juce::NormalisableRange<float>(0.0f, 1.0f),
             0.0f));
+        for (const auto& id : {ParameterIds::volume, ParameterIds::resonance, ParameterIds::cutoff,
+                               ParameterIds::lfoSpeed})
+            layout.add(std::make_unique<juce::AudioParameterFloat>(
+                id, id, juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
         return layout;
     }
 
@@ -79,11 +89,11 @@ TEST_F(MidiProcessorTest, GlissandoUsesFourteenBitControllerPair) {
         processor->processBlock(unused, midi);
     };
     send(5, 64);
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::glissando)->load(), (64 * 128) / 16383.0f,
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::glissando), (64 * 128) / 16383.0f,
                 1.0e-6f);
     send(37, 3);
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::glissando)->load(),
-                (64 * 128 + 3) / 16383.0f, 1.0e-6f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::glissando), (64 * 128 + 3) / 16383.0f,
+                1.0e-6f);
 }
 
 TEST_F(MidiProcessorTest, ResetControllersPreservesHeldNotesAndPatch) {
@@ -97,18 +107,17 @@ TEST_F(MidiProcessorTest, ResetControllersPreservesHeldNotesAndPatch) {
     send(juce::MidiMessage::pitchWheel(1, 12000));
     for (int cc : {1, 33, 2, 34})
         send(juce::MidiMessage::controllerEvent(1, cc, 127));
-    const float attack = apvts->getRawParameterValue(ParameterIds::attack)->load();
+    const float attack = getMidiParameterValue(*apvts, ParameterIds::attack);
     send(juce::MidiMessage::controllerEvent(1, 121, 0));
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 64);
-    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 0.0f);
-    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 0.0f);
-    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 0.0f);
-    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), attack);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::pitchBend), 0.0f);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::modDepth), 0.0f);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::breathInput), 0.0f);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::attack), attack);
     send(juce::MidiMessage::controllerEvent(1, 33, 1));
     send(juce::MidiMessage::controllerEvent(1, 34, 1));
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 1.0f / 16383, 1.0e-6f);
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 1.0f / 16383,
-                1.0e-6f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::modDepth), 1.0f / 16383, 1.0e-6f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 1.0f / 16383, 1.0e-6f);
 }
 
 TEST_F(MidiProcessorTest, HeldKeysKeepEnvelopeGateOpen) {
@@ -166,7 +175,7 @@ TEST_F(MidiProcessorTest, Initialization) {
     EXPECT_FALSE(processor->isMidiEffect());
 
     // Check initial state
-    EXPECT_TRUE(processor->getActiveNotes().isEmpty());
+    EXPECT_TRUE(processor->getActiveNotes().none());
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 0);
     EXPECT_EQ(processor->getSoundGenerator(), nullptr);
 }
@@ -192,7 +201,7 @@ TEST_F(MidiProcessorTest, NoteOnOff) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that note is active
-    EXPECT_FALSE(processor->getActiveNotes().isEmpty());
+    EXPECT_FALSE(processor->getActiveNotes().none());
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 60);
     EXPECT_TRUE(mockToneGenerator.isActive());
     EXPECT_EQ(mockToneGenerator.getCurrentlyPlayingNote(), 60);
@@ -208,7 +217,7 @@ TEST_F(MidiProcessorTest, NoteOnOff) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that note is no longer active
-    EXPECT_TRUE(processor->getActiveNotes().isEmpty());
+    EXPECT_TRUE(processor->getActiveNotes().none());
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 0);
 }
 
@@ -238,7 +247,7 @@ TEST_F(MidiProcessorTest, PitchWheel) {
     // Process MIDI buffer
     processor->processBlock(buffer, midiBuffer);
 
-    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 1.0f);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::pitchBend), 1.0f);
 }
 
 TEST_F(MidiProcessorTest, ControllerMessages) {
@@ -254,7 +263,7 @@ TEST_F(MidiProcessorTest, ControllerMessages) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that modulation depth parameter was updated
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 64.0f / 127.0f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::modDepth), 64.0f / 127.0f, 0.01f);
 
     // Create new MIDI buffer for breath controller
     midiBuffer.clear();
@@ -267,8 +276,7 @@ TEST_F(MidiProcessorTest, ControllerMessages) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that breath input parameter was updated
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 100.0f / 127.0f,
-                0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 100.0f / 127.0f, 0.01f);
 }
 
 TEST_F(MidiProcessorTest, MonophonicNoteManagement) {
@@ -288,7 +296,7 @@ TEST_F(MidiProcessorTest, MonophonicNoteManagement) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that note is active
-    EXPECT_FALSE(processor->getActiveNotes().isEmpty());
+    EXPECT_FALSE(processor->getActiveNotes().none());
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 60);
     EXPECT_TRUE(mockToneGenerator.isActive());
     EXPECT_EQ(mockToneGenerator.getCurrentlyPlayingNote(), 60);
@@ -304,7 +312,7 @@ TEST_F(MidiProcessorTest, MonophonicNoteManagement) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that both notes are active, but highest note is played
-    EXPECT_EQ(processor->getActiveNotes().size(), 2);
+    EXPECT_EQ(processor->getActiveNotes().count(), 2);
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 64);
     EXPECT_TRUE(mockToneGenerator.isActive());
     EXPECT_EQ(mockToneGenerator.getCurrentlyPlayingNote(), 64);
@@ -320,7 +328,7 @@ TEST_F(MidiProcessorTest, MonophonicNoteManagement) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that first note is still active and played
-    EXPECT_EQ(processor->getActiveNotes().size(), 1);
+    EXPECT_EQ(processor->getActiveNotes().count(), 1);
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 60);
     EXPECT_TRUE(mockToneGenerator.isActive());
     EXPECT_EQ(mockToneGenerator.getCurrentlyPlayingNote(), 60);
@@ -349,7 +357,7 @@ TEST_F(MidiProcessorTest, EdgeCases) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that all notes are active, but highest note is played
-    EXPECT_EQ(processor->getActiveNotes().size(), 3);
+    EXPECT_EQ(processor->getActiveNotes().count(), 3);
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 67);  // G4 should be played
     EXPECT_TRUE(mockToneGenerator.isActive());
     EXPECT_EQ(mockToneGenerator.getCurrentlyPlayingNote(), 67);
@@ -370,7 +378,7 @@ TEST_F(MidiProcessorTest, EdgeCases) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that no notes are active
-    EXPECT_TRUE(processor->getActiveNotes().isEmpty());
+    EXPECT_TRUE(processor->getActiveNotes().none());
     EXPECT_EQ(processor->getCurrentlyPlayingNote(), 0);
 }
 
@@ -387,7 +395,7 @@ TEST_F(MidiProcessorTest, BreathController) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that breath input parameter was updated to minimum
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 0.0f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 0.0f, 0.01f);
 
     // Test 2: Maximum breath controller value
     midiBuffer.clear();
@@ -399,7 +407,7 @@ TEST_F(MidiProcessorTest, BreathController) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that breath input parameter was updated to maximum
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 1.0f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 1.0f, 0.01f);
 
     // Test 3: Mid-range breath controller value
     midiBuffer.clear();
@@ -410,8 +418,7 @@ TEST_F(MidiProcessorTest, BreathController) {
     processor->processBlock(buffer, midiBuffer);
 
     // Check that breath input parameter was updated to mid-range
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 64.0f / 127.0f,
-                0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 64.0f / 127.0f, 0.01f);
 }
 
 TEST_F(MidiProcessorTest, EGProcessorIntegration) {
@@ -532,21 +539,21 @@ TEST_F(MidiProcessorTest, ParameterChanges) {
         ->setValueNotifyingHost(0.75f);  // 75% of range (0.5f is center)
 
     // Check that parameter was updated - actual value is 0.5f based on test results
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 0.5f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::pitchBend), 0.5f, 0.01f);
 
     // Test 2: Modulation depth parameter changes
     // Directly change modulation depth parameter
     apvts->getParameter(ParameterIds::modDepth)->setValueNotifyingHost(0.5f);  // 50% of range
 
     // Check that parameter was updated
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::modDepth)->load(), 0.5f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::modDepth), 0.5f, 0.01f);
 
     // Test 3: Breath input parameter changes
     // Directly change breath input parameter
     apvts->getParameter(ParameterIds::breathInput)->setValueNotifyingHost(0.25f);  // 25% of range
 
     // Check that parameter was updated
-    EXPECT_NEAR(apvts->getRawParameterValue(ParameterIds::breathInput)->load(), 0.25f, 0.01f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::breathInput), 0.25f, 0.01f);
 }
 
 TEST_F(MidiProcessorTest, VelocityNonResponse) {
@@ -676,4 +683,281 @@ TEST_F(MidiProcessorTest, VelocityParameterPassing) {
         midiBuffer.addEvent(noteOff, 0);
         processor->processBlock(buffer, midiBuffer);
     }
+}
+
+namespace {
+class RecordingGenerator : public testing::MockToneGenerator {
+   public:
+    using MockToneGenerator::MockToneGenerator;
+    void startNote(int note, float velocity, int wheel) override {
+        ++starts;
+        lastVelocity = velocity;
+        lastWheel = wheel;
+        MockToneGenerator::startNote(note, velocity, wheel);
+    }
+    void changeNote(int note) override {
+        ++changes;
+        MockToneGenerator::changeNote(note);
+    }
+    void stopNote(bool tail) override {
+        ++stops;
+        lastTail = tail;
+        MockToneGenerator::stopNote(tail);
+    }
+    int starts = 0, changes = 0, stops = 0, lastWheel = 0;
+    float lastVelocity = 0;
+    bool lastTail = false;
+};
+
+class NotificationProbe : public juce::AudioProcessorParameter::Listener {
+   public:
+    explicit NotificationProbe(juce::RangedAudioParameter& parameter) : parameter(parameter) {
+        parameter.addListener(this);
+    }
+    ~NotificationProbe() override {
+        parameter.removeListener(this);
+    }
+    void parameterValueChanged(int, float value) override {
+        ++calls;
+        allOnMessageThread &= juce::MessageManager::getInstance()->isThisTheMessageThread();
+        lastValue = value;
+        if (onNotification)
+            onNotification();
+    }
+    void parameterGestureChanged(int, bool) override {}
+    juce::RangedAudioParameter& parameter;
+    int calls = 0;
+    bool allOnMessageThread = true;
+    float lastValue = 0;
+    std::function<void()> onNotification;
+};
+}  // namespace
+
+TEST_F(MidiProcessorTest, DuplicateAndUnmatchedNotesPreserveLegatoAndVelocity) {
+    RecordingGenerator generator(*apvts);
+    processor->setSoundGenerator(&generator);
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const auto send = [&](const juce::MidiMessage& message) {
+        midi.addEvent(message, 0);
+        processor->processBlock(unused, midi);
+    };
+    send(juce::MidiMessage::pitchWheel(1, 12000));
+    send(juce::MidiMessage::noteOn(1, 64, (juce::uint8)23));
+    send(juce::MidiMessage::noteOn(1, 64, (juce::uint8)127));
+    send(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));
+    EXPECT_EQ(processor->getActiveNotes().count(), 2u);
+    EXPECT_EQ(generator.starts, 1);
+    EXPECT_FLOAT_EQ(generator.lastVelocity, 23 / 127.0f);
+    EXPECT_EQ(generator.lastWheel, 12000);
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 64);
+    const int changes = generator.changes;
+    send(juce::MidiMessage::noteOff(1, 63));
+    EXPECT_EQ(generator.changes, changes);
+    EXPECT_EQ(generator.stops, 0);
+    send(juce::MidiMessage::noteOff(1, 64));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 60);
+    send(juce::MidiMessage::noteOff(1, 64));
+    EXPECT_EQ(generator.getCurrentlyPlayingNote(), 60);
+    send(juce::MidiMessage::noteOff(1, 60));
+    EXPECT_EQ(generator.stops, 1);
+    EXPECT_TRUE(generator.lastTail);
+    send(juce::MidiMessage::noteOff(1, 60));
+    EXPECT_EQ(generator.stops, 1);
+    processor->setSoundGenerator(nullptr);
+}
+
+TEST_F(MidiProcessorTest, FixedNoteSetMatchesPreviousSetSemanticsAcrossEntireRange) {
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    std::set<int> reference;
+    const auto send = [&](int note, bool on) {
+        midi.addEvent(on ? juce::MidiMessage::noteOn(1, note, (juce::uint8)100)
+                         : juce::MidiMessage::noteOff(1, note),
+                      0);
+        processor->processBlock(unused, midi);
+        if (on)
+            reference.insert(note);
+        else
+            reference.erase(note);
+        EXPECT_EQ(processor->getActiveNotes().count(), reference.size());
+        EXPECT_EQ(processor->getCurrentlyPlayingNote(),
+                  reference.empty() ? 0 : *reference.rbegin());
+        for (int key = 0; key < 128; ++key)
+            EXPECT_EQ(processor->getActiveNotes().test(static_cast<size_t>(key)),
+                      reference.count(key) != 0);
+    };
+    // Coprime stride covers every key out of order, including 0 and 127.
+    for (int i = 0; i < 128; ++i) {
+        send((i * 37) % 128, true);
+        send((i * 37) % 128, true);
+    }
+    for (int note = 127; note >= 0; --note) {
+        send(note, false);
+        send(note, false);
+    }
+}
+
+TEST_F(MidiProcessorTest, AllNotesOffReleasesAndAllSoundOffStopsImmediately) {
+    RecordingGenerator generator(*apvts);
+    EGProcessor envelope(*apvts);
+    envelope.prepareToPlay(48000, 64);
+    processor->setSoundGenerator(&generator);
+    processor->setEGProcessor(&envelope);
+    juce::AudioBuffer<float> audio(1, 64);
+    juce::MidiBuffer midi;
+    const auto send = [&](const juce::MidiMessage& message) {
+        midi.addEvent(message, 0);
+        processor->processBlock(audio, midi);
+    };
+    send(juce::MidiMessage::noteOn(1, 0, (juce::uint8)100));
+    send(juce::MidiMessage::noteOn(1, 127, (juce::uint8)100));
+    envelope.processBlock(audio, midi);
+    send(juce::MidiMessage::allNotesOff(1));
+    EXPECT_TRUE(processor->getActiveNotes().none());
+    EXPECT_TRUE(generator.lastTail);
+    EXPECT_TRUE(envelope.isActive());
+    const int stops = generator.stops;
+    send(juce::MidiMessage::allNotesOff(1));
+    EXPECT_EQ(generator.stops, stops);
+    send(juce::MidiMessage::allSoundOff(1));
+    EXPECT_FALSE(generator.lastTail);
+    EXPECT_FALSE(generator.isActive());
+    EXPECT_FALSE(envelope.isActive());
+    EXPECT_TRUE(processor->getActiveNotes().none());
+    envelope.processBlock(audio, midi);
+    EXPECT_FLOAT_EQ(audio.getMagnitude(0, 64), 0);
+    send(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100));
+    send(juce::MidiMessage::allSoundOff(1));
+    EXPECT_TRUE(processor->getActiveNotes().none());
+    EXPECT_FALSE(generator.isActive());
+    EXPECT_FALSE(envelope.isActive());
+    processor->setSoundGenerator(nullptr);
+    processor->setEGProcessor(nullptr);
+}
+
+TEST_F(MidiProcessorTest, EveryMappedControllerUsesExistingNormalizedRange) {
+    const std::array ids{
+        ParameterIds::modDepth,  ParameterIds::breathInput, ParameterIds::volume,
+        ParameterIds::glissando, ParameterIds::sustain,     ParameterIds::resonance,
+        ParameterIds::attack,    ParameterIds::cutoff,      ParameterIds::decay,
+        ParameterIds::lfoSpeed,  ParameterIds::release};
+    const std::array msbs{1, 2, 7, 5, 70, 71, 73, 74, 75, 76, 79};
+    const std::array lsbs{33, 34, 39, 37};
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const auto send = [&](int cc, int value) {
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, cc, value), 0);
+        processor->processBlock(unused, midi);
+    };
+    for (size_t i = 0; i < ids.size(); ++i) {
+        auto* parameter = apvts->getParameter(ids[i]);
+        NotificationProbe probe(*parameter);
+        for (int value : {0, 64, 127}) {
+            if (i < lsbs.size())
+                send(lsbs[i], 0);
+            send(msbs[i], value);
+            float normalized = i < lsbs.size() ? value * 128 / 16383.0f : value / 127.0f;
+            EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ids[i]),
+                            parameter->convertFrom0to1(normalized));
+            if (i < lsbs.size()) {
+                send(lsbs[i], 127);
+                normalized = (value * 128 + 127) / 16383.0f;
+                EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ids[i]),
+                                parameter->convertFrom0to1(normalized));
+            }
+        }
+        EXPECT_EQ(probe.calls, 0);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+        EXPECT_EQ(probe.calls, 1);
+        EXPECT_TRUE(probe.allOnMessageThread);
+        EXPECT_NEAR(apvts->getRawParameterValue(ids[i])->load(),
+                    getMidiParameterValue(*apvts, ids[i]), 1.0e-6f);
+    }
+    NotificationProbe bendProbe(*apvts->getParameter(ParameterIds::pitchBend));
+    for (int wheel : {0, 4096, 8192, 12000, 16383}) {
+        midi.addEvent(juce::MidiMessage::pitchWheel(1, wheel), 0);
+        processor->processBlock(unused, midi);
+        const float expected = (wheel - 8192) / (wheel >= 8192 ? 8191.0f : 8192.0f);
+        EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::pitchBend), expected, 1.0e-7f);
+    }
+    EXPECT_EQ(bendProbe.calls, 0);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    EXPECT_EQ(bendProbe.calls, 1);
+    EXPECT_TRUE(bendProbe.allOnMessageThread);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::pitchBend)->load(), 1.0f);
+}
+
+TEST_F(MidiProcessorTest, NotificationsAreDeferredCoalescedAndSaveCurrentValues) {
+    auto* parameter = apvts->getParameter(ParameterIds::attack);
+    NotificationProbe probe(*parameter);
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const float oldRaw = apvts->getRawParameterValue(ParameterIds::attack)->load();
+    std::thread audioThread([&] {
+        for (int value : {30, 70, 100}) {
+            midi.addEvent(juce::MidiMessage::controllerEvent(1, 73, value), 0);
+            processor->processBlock(unused, midi);
+        }
+    });
+    audioThread.join();
+    EXPECT_EQ(probe.calls, 0);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), oldRaw);
+    const float expected = parameter->convertFrom0to1(100 / 127.0f);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::attack), expected);
+    const auto snapshot = copyCurrentMidiParameterState(*apvts);
+    EXPECT_FLOAT_EQ(
+        static_cast<float>(
+            snapshot.getChildWithProperty("id", ParameterIds::attack).getProperty("value")),
+        expected);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    EXPECT_EQ(probe.calls, 1);
+    EXPECT_TRUE(probe.allOnMessageThread);
+    EXPECT_NEAR(probe.lastValue, parameter->convertTo0to1(expected), 1.0e-6f);
+    EXPECT_FLOAT_EQ(apvts->getRawParameterValue(ParameterIds::attack)->load(), expected);
+    EXPECT_FLOAT_EQ(static_cast<float>(apvts->copyState()
+                                           .getChildWithProperty("id", ParameterIds::attack)
+                                           .getProperty("value")),
+                    expected);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    EXPECT_EQ(probe.calls, 1);
+}
+
+TEST_F(MidiProcessorTest, NotificationDoesNotReplayOverNewMidiOrHostEdits) {
+    auto* parameter = apvts->getParameter(ParameterIds::modDepth);
+    NotificationProbe probe(*parameter);
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    const auto send = [&](int value) {
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, 1, value), 0);
+        processor->processBlock(unused, midi);
+    };
+    send(127);
+    parameter->setValueNotifyingHost(0.25f);
+    const int before = probe.calls;
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    EXPECT_EQ(probe.calls, before + 1);
+    EXPECT_FLOAT_EQ(getMidiParameterValue(*apvts, ParameterIds::modDepth), 0.25f);
+    EXPECT_FLOAT_EQ(probe.lastValue, 0.25f);
+    probe.onNotification = [&] {
+        if (probe.calls == before + 2)
+            send(32);
+    };
+    send(64);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    EXPECT_EQ(probe.calls, before + 3);
+    EXPECT_NEAR(probe.lastValue, 32 * 128 / 16383.0f, 1.0e-6f);
+    EXPECT_NEAR(getMidiParameterValue(*apvts, ParameterIds::modDepth), 32 * 128 / 16383.0f,
+                1.0e-6f);
+}
+
+TEST_F(MidiProcessorTest, DestroyWithPendingNotificationsIsSafe) {
+    juce::AudioBuffer<float> unused(1, 1);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::pitchWheel(1, 0), 0);
+    processor->processBlock(unused, midi);
+    NotificationProbe probe(*apvts->getParameter(ParameterIds::pitchBend));
+    processor.reset();
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(100);
+    EXPECT_EQ(probe.calls, 0);
 }

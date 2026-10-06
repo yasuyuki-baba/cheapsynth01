@@ -23,7 +23,7 @@ establish internal transfer characteristics.
 | Target | Unresolved details / current treatment | Detailed record |
 | --- | --- | --- |
 | EG stage switching | Local TC7476BP truth table and asynchronous reset/feedback wiring mapped; conditional attack/decay/release sequence identified. Actual input thresholds, loaded logic levels and transient behavior remain unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
-| EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses linear ADSR | [EG audit](EG-model-audit.md) |
+| EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
 | EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](EG-time-range-validation.md) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
 | Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `Source/CS01Synth/VCAProcessor.cpp`, `Source/CS01Synth/WaveformStrategies.h` |

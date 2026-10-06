@@ -53,7 +53,8 @@ listed there; this is not yet a complete EG state model.
 
 IC-specific logic is now supported by the local datasheet, not the catalog
 description. An analog threshold or EG stage duration is still not established.
-Keep the current tested generic ADSR until the remaining wiring and operating
+Keep the current regression-tested provisional stateful exponential EG (see
+[EG-stateful-model.md](EG-stateful-model.md)) until the remaining wiring and operating
 states can be validated. This investigation changes no
 audio behavior and adds no executable test because no new circuit behavior
 has been established.
