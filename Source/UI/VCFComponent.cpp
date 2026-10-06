@@ -52,7 +52,8 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     egDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(egDepthSlider);
     egDepthLabel.setText("EG DEPTH", juce::dontSendNotification);
-    egDepthSlider.setTooltip("Envelope modulation depth; percentage represents the control amount.");
+    egDepthSlider.setTooltip(
+        "Envelope modulation depth; percentage represents the control amount.");
     addAndMakeVisible(egDepthLabel);
     egDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcfEgDepth), egDepthSlider);

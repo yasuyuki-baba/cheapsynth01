@@ -19,8 +19,8 @@ TEST(IG02610ControlTest, NonlinearResonanceBoundariesAreContinuous) {
             below.setResonance(boundary - 1.0e-6f);
             above.setResonance(boundary + 1.0e-6f);
             for (int i = 0; i < 4800; ++i) {
-                const float input = amplitude * std::sin(
-                    juce::MathConstants<double>::twoPi * 700.0 * i / 48000.0);
+                const float input =
+                    amplitude * std::sin(juce::MathConstants<double>::twoPi * 700.0 * i / 48000.0);
                 const float a = below.processSample(input);
                 const float b = above.processSample(input);
                 ASSERT_TRUE(std::isfinite(a));
@@ -42,8 +42,8 @@ TEST(IG02610ControlTest, ReapplyingIdenticalControlsDoesNotChangeTrajectory) {
     for (int i = 0; i < 12000; ++i) {
         reapplied.setCutoffFrequency(1000.0f);
         reapplied.setResonance(0.7f);
-        const float input = 0.8f * std::sin(
-            juce::MathConstants<double>::twoPi * 440.0 * i / 48000.0);
+        const float input =
+            0.8f * std::sin(juce::MathConstants<double>::twoPi * 440.0 * i / 48000.0);
         ASSERT_FLOAT_EQ(held.processSample(input), reapplied.processSample(input));
     }
 }

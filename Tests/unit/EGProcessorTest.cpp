@@ -361,13 +361,15 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
             release->setValueNotifyingHost(release->convertTo0to1(duration));
             envelope.processBlock(buffer, midi);
             EXPECT_TRUE(envelope.isActive());
-            EXPECT_NEAR(buffer.getSample(0, 0), initial * (1.0 - (1.0 - std::exp(-2.0 / (duration * sampleRate))) /
-                                   (1.0 - std::exp(-2.0))),
+            EXPECT_NEAR(buffer.getSample(0, 0),
+                        initial * (1.0 - (1.0 - std::exp(-2.0 / (duration * sampleRate))) /
+                                             (1.0 - std::exp(-2.0))),
                         1.0e-5);
             const int halfway = static_cast<int>(duration * sampleRate * 0.5);
             for (int i = 1; i < halfway; ++i)
                 envelope.processBlock(buffer, midi);
-            EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(initial, 0.0f), initial * 0.003f);
+            EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(initial, 0.0f),
+                        initial * 0.003f);
             for (int i = 0; i < static_cast<int>(duration * sampleRate * 0.6); ++i)
                 envelope.processBlock(buffer, midi);
             EXPECT_FALSE(envelope.isActive());

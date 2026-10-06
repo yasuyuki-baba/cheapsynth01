@@ -3,8 +3,7 @@
 #include <JuceHeader.h>
 
 // One persistent popup, with a single owner for both text and position updates.
-class SliderValuePopup : public juce::BubbleComponent,
-                         private juce::Slider::Listener {
+class SliderValuePopup : public juce::BubbleComponent, private juce::Slider::Listener {
    public:
     explicit SliderValuePopup(juce::Component& parent) : host(parent) {
         host.addChildComponent(this);
