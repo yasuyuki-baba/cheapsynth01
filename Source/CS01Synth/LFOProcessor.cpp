@@ -1,5 +1,7 @@
 #include "CS01Synth/LFOProcessor.h"
 
+#include "MidiParameterValue.h"
+
 //==============================================================================
 LFOProcessor::LFOProcessor(juce::AudioProcessorValueTreeState& apvts)
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::mono(), true)),
@@ -49,6 +51,6 @@ void LFOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
 }
 
 void LFOProcessor::updateParameters() {
-    auto lfoSpeed = apvts.getRawParameterValue(ParameterIds::lfoSpeed)->load();
+    auto lfoSpeed = getMidiParameterValue(apvts, ParameterIds::lfoSpeed);
     lfo.setFrequency(lfoSpeed);
 }

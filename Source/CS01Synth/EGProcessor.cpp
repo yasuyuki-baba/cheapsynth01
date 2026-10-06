@@ -1,5 +1,7 @@
 #include "CS01Synth/EGProcessor.h"
 
+#include "MidiParameterValue.h"
+
 #include <cmath>
 
 //==============================================================================
@@ -59,8 +61,8 @@ void EGProcessor::beginStage(Stage next, double endpoint, double seconds) {
     const double distance = endpoint - level;
     stageTarget = level + distance / (-std::expm1(-2.0));
     stageCoefficient = -std::expm1(-2.0 / (std::max(seconds, 1.0e-6) * envelopeSampleRate));
-    remainingSamples = std::max<int64_t>(1, static_cast<int64_t>(
-        std::ceil(std::max(seconds, 0.0) * envelopeSampleRate)));
+    remainingSamples = std::max<int64_t>(
+        1, static_cast<int64_t>(std::ceil(std::max(seconds, 0.0) * envelopeSampleRate)));
 }
 
 float EGProcessor::nextEnvelopeSample() {
@@ -101,10 +103,10 @@ void EGProcessor::stopEnvelopeImmediately() {
 
 void EGProcessor::updateADSR() {
     juce::ADSR::Parameters next;
-    next.attack = apvts.getRawParameterValue(ParameterIds::attack)->load();
-    next.decay = apvts.getRawParameterValue(ParameterIds::decay)->load();
-    next.sustain = apvts.getRawParameterValue(ParameterIds::sustain)->load();
-    next.release = apvts.getRawParameterValue(ParameterIds::release)->load();
+    next.attack = getMidiParameterValue(apvts, ParameterIds::attack);
+    next.decay = getMidiParameterValue(apvts, ParameterIds::decay);
+    next.sustain = getMidiParameterValue(apvts, ParameterIds::sustain);
+    next.release = getMidiParameterValue(apvts, ParameterIds::release);
     const auto previous = settings;
     settings = next;
     // Edits restart only the affected stage from its current level. Unrelated

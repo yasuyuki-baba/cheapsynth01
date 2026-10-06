@@ -48,3 +48,10 @@
 - CC120/123 follow MIDI event positions. Events at the same position retain their input order.
 - Preparing/releasing the audio processor clears held-note state. Transport stop alone does not trigger panic, allowing live playing while stopped.
 - Sustain pedal (CC64) is not implemented; CC123 releases the shared gate directly.
+
+## Realtime implementation
+
+Held-key tracking and immediate DSP control writes use fixed storage and lock-free
+atomics. Host/UI notifications are coalesced on a message-thread timer. See
+[MIDI realtime control flow](MIDI-realtime-control.md) for timing, persistence,
+threading and remaining audit limitations.

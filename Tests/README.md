@@ -188,3 +188,13 @@ Tests aim to cover the following areas:
 4. **Integration Tests** - Tests to verify interaction between components
 
 Tests for each component are implemented from the perspectives of initialization, basic functionality, edge cases, and performance.
+
+## MIDI realtime regression coverage
+
+`MidiProcessorTest` covers fixed-storage note tracking across all 128 keys,
+duplicates, unmatched releases, priority/fallback, legato/velocity, reset commands,
+every mapped controller and pitch bend. Timer tests check message-thread-only,
+coalesced notification, current-state saving, edits during dispatch and safe
+teardown. `MidiRealtimeGraphTest` compares MIDI control changes with synchronous
+parameter changes in both filter paths before any notification tick, and checks
+session saving before dispatch. See [the control-flow design](../docs/MIDI-realtime-control.md).
