@@ -82,6 +82,21 @@ TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndep
     EXPECT_EQ(whole, split);
 }
 
+TEST(ExperimentalOriginalVCFTest, BehavioralSaturationDependsOnSignalLevel) {
+    const auto low = renderFilter(true, 192000.0, 1000.0f, 0.7f, 440.0, 0.05f);
+    const auto high = renderFilter(true, 192000.0, 1000.0f, 0.7f, 440.0, 0.5f);
+    double normalizedDifferencePower = 0.0;
+    const int begin = characterizationSamples / 2;
+    for (int i = begin; i < characterizationSamples; ++i) {
+        const double difference = high[i] / 10.0 - low[i];
+        normalizedDifferencePower += difference * difference;
+    }
+    normalizedDifferencePower /= characterizationSamples - begin;
+    // Check that the explicitly nonlinear behavioral stages are active without
+    // encoding a desired tone or any hardware THD target.
+    EXPECT_GT(normalizedDifferencePower, 1.0e-8);
+}
+
 TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
     constexpr int sampleCount = 65536;
     for (const double hostRate : {44100.0, 48000.0, 96000.0}) {

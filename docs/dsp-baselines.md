@@ -82,6 +82,32 @@ observation rather than a machine-independent guarantee. `artifacts/dsp/original
 contains the paired values. Across the six cases per build, the observed
 legacy runtime fell by about 32–40% in Debug and 38–44% in Release. Output
 remained finite; the coefficient math and nonlinear path are unchanged. The
-per-sample coefficient calculation remains the next significant cost, and
-the processor's separate three-`exp2` modulation calculation has not yet been
-optimized.
+per-sample coefficient calculation remains the next significant cost.
+
+## Cutoff modulation exponent comparison
+
+The processor now sums EG, LFO, and breath contributions in semitones and
+evaluates one `exp2` instead of three separate `exp2` calls. This follows the
+same equal-tempered cutoff law; because floating-point addition and
+multiplication round differently, it can produce tiny numerical differences.
+The dedicated formula comparison test renders 262,144 deterministic control
+tuples through both expressions, verifies finite checksums and a maximum
+relative cutoff error below `1e-6`, and reports five timing repetitions per
+build. Raw observations are in
+`artifacts/dsp/original_vcf_modulation_exp2_comparison.csv`. The Release
+median was about 2.15x faster for this modulation calculation alone; Debug
+timings were effectively tied and noisy. This is a formula-kernel benchmark,
+not a whole-processor timing. Feeding both cutoff sequences to the legacy
+filter path produced a maximum absolute sample difference of `3.34e-6` in the
+characterization stimulus. Existing Original VCF routing and modulation tests
+also pass with the combined expression.
+
+## Processor buffer write probe
+
+The per-block modulation buffer was zeroed before a loop that overwrites every
+sample. The clear has been removed. A Release `processBlock` probe over 256
+blocks of 1,024 samples measured nearly identical median time with and without
+the clear (53.75 versus 54.04 ns/sample, within run-to-run noise), so this is a
+redundant-write cleanup rather than a demonstrated CPU win. All output samples
+were finite. The five raw repetitions are in
+`artifacts/dsp/original_vcf_processblock_clear_comparison.csv`.

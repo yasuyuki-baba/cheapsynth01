@@ -9,6 +9,9 @@
 #include "UI/VCOComponent.h"
 #include "UI/VolumeComponent.h"
 
+#include <functional>
+#include <utility>
+
 // Use JUCE namespace
 using namespace juce;
 
@@ -44,6 +47,30 @@ CS01AudioProcessorEditor::CS01AudioProcessorEditor(CS01AudioProcessor& p)
     addChildComponent(midiKeyboard);
     addChildComponent(oscilloscopeComponent);
     addAndMakeVisible(displayButton);
+    const auto configureModelButton = [](juce::TextButton& button, const juce::String& name,
+                                         bool experimental,
+                                         std::function<void(bool)> onChange) {
+        button.setClickingTogglesState(true);
+        button.setComponentID(name);
+        button.setToggleState(experimental, juce::dontSendNotification);
+        button.setButtonText(name + (experimental ? ": EXPERIMENT" : ": LEGACY"));
+        button.onClick = [&button, onChange = std::move(onChange), name] {
+            const bool enabled = button.getToggleState();
+            onChange(enabled);
+            button.setButtonText(name + (enabled ? ": EXPERIMENT" : ": LEGACY"));
+        };
+    };
+    addAndMakeVisible(originalVcfModelButton);
+    configureModelButton(originalVcfModelButton, "ORIGINAL",
+                         audioProcessor.isExperimentalOriginalVcf(),
+                         [this](bool enabled) { audioProcessor.setExperimentalOriginalVcf(enabled); });
+    originalVcfModelButton.setTooltip(
+        "Temporary Original VCF A/B switch; choose Original in the filter controls to hear it.");
+    addAndMakeVisible(modernVcfModelButton);
+    configureModelButton(modernVcfModelButton, "MODERN", audioProcessor.isExperimentalModernVcf(),
+                         [this](bool enabled) { audioProcessor.setExperimentalModernVcf(enabled); });
+    modernVcfModelButton.setTooltip(
+        "Temporary Modern VCF A/B switch; choose Modern in the filter controls to hear it.");
     displayButton.setClickingTogglesState(true);
     displayButton.onClick = [this] {
         auto& fifo = audioProcessor.getAudioDisplayFifo();
@@ -195,6 +222,10 @@ void CS01AudioProcessorEditor::resized() {
     auto bounds = getLocalBounds().reduced(20);
     auto header = bounds.removeFromTop(44);
     displayButton.setBounds(header.removeFromRight(220));
+    header.removeFromRight(8);
+    modernVcfModelButton.setBounds(header.removeFromRight(180));
+    header.removeFromRight(8);
+    originalVcfModelButton.setBounds(header.removeFromRight(180));
     programPanel->setBounds(header.withSizeKeepingCentre(560, 44));
     bounds.removeFromTop(18);
 

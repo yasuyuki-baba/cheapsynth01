@@ -36,17 +36,52 @@ resonance as a signal-feedback interaction. Those are useful, plausible
 structural clues, but the IC has no located Yamaha datasheet or internal block
 diagram, so they do not identify its actual internal circuit.
 
+### Review of the supplied IG02610 report
+
+The report's OTA-based, two-integrator SVF is a reasonable structural
+hypothesis for the experimental model. It is more specific than the available
+primary evidence supports, however. The reviewed CS-01 service material
+identifies the IC and its external use/adjustment, but does not document an
+internal OTA, exponential converter, integrator count, or the pin functions
+listed in the report. Treat those details as hypotheses until a legible
+primary schematic that traces the pins or a hardware investigation confirms
+them. In particular, the current TPT SVF is an implementation choice inspired
+by that hypothesis, not a reverse-engineered schematic transcription.
+
+The PS-30 service manual's parts list calls out **IG02612** as its VCF. That is
+useful evidence for a related Yamaha filter application, but it does not
+confirm the report's IG02611 attribution for PS-30 or establish compatibility
+with IG02610. The external reverse-engineering article discusses IG02610/11
+and is useful as a secondary interpretation; it is not a Yamaha datasheet or
+hardware measurement. The report's low-voltage design rationale, detailed
+pinout, and proposed soft-clipping behavior likewise remain unverified.
+
+| Claim | Evidence status | Model consequence |
+| --- | --- | --- |
+| CS-01 uses an IG02610 VCF and exposes cutoff/resonance behavior | Service-manual-supported external facts | Preserve the wrapper and legacy sound; exercise cutoff and resonance |
+| The filter response is a resonant two-pole low-pass | Consistent with the service adjustment and secondary interpretation | A two-state-variable low-pass is a useful behavioral candidate |
+| Internal OTA pair, exponential bias converter, pin-by-pin roles | Provisional circuit hypothesis; not confirmed by the reviewed Yamaha material | Do not encode these as verified circuit facts |
+| Feedback saturation reproduces the IC's distortion | Behavioral hypothesis; no hardware THD data | Keep it opt-in and expose its empirical constants |
+| PS-30 is fitted with IG02611 | Contradicted by the reviewed PS-30 manual parts list, which identifies IG02612 | Do not use this attribution as support for IG02610 equivalence |
+
 ### Provisional structure
 
 Given those constraints, the experimental model uses two state variables as a
 stable digital stand-in for a two-pole resonant low-pass, with resonance
-entering the recursive feedback relation. A smooth bounded nonlinearity is
-placed in that feedback relation to test the behavioral hypothesis that
-resonant level changes can affect harmonic content. The PS-30 VCF listing and
-the CS-01 resonance interaction motivate testing a feedback-centered model;
-they do not prove that either instrument uses a TPT SVF or a saturating
-integrator. No asymmetry is included because none of the reviewed evidence
-supports its direction or amount.
+entering the recursive feedback relation. Following the supplied report's
+behavioral proposal, smooth bounded nonlinearities now shape both the
+resonant feedback and the signal entering the first integrator. This is a
+testable hypothesis about where level-dependent harmonics may arise; it does
+not mean the IC's internal circuit is known. The two saturation drives and
+damping map are provisional calibration parameters. No asymmetry is included
+because neither its direction nor amount is supported by the available
+evidence.
+
+The processor maps EG, LFO, and breath modulation to semitone offsets and
+combines them with an `exp2` ratio before sending cutoff in hertz to the core.
+This gives the behavioral model a smooth exponential frequency response to
+those controls. It is not a calibrated volts-per-octave or CV-to-bias law for
+IG02610; those mappings remain unknown.
 
 This makes the hypotheses testable without pretending they are measured:
 compare a linear two-pole response against feedback nonlinearity across
@@ -68,8 +103,10 @@ primary circuit evidence becomes available.
 `setModel(Model::Experimental)` on an instance to compare it with
 `Model::Legacy`; both paths receive the same audio, EG/LFO/breath cutoff
 modulation, and routing. Existing presets and default production routing stay
-on the legacy implementation. The experimental core can be selected without
-changing the modern filter.
+on the legacy implementation. The editor also has a temporary Original VCF
+Legacy/Experimental toggle beside the keyboard/monitor toggle. This UI state is
+not stored in presets or plugin state. The Modern VCF has its own independent
+toggle; selecting a model does not change which filter family is routed.
 
 Both paths use the existing external input and output coupling approximations
 in `CS01VCFCircuit`; the legacy path additionally retains its IG02610 wrapper
@@ -80,23 +117,24 @@ behavior (input clamp and empirical post-filter coloration).
 The experimental core is a topology-preserving-transform state-variable
 low-pass. Its integrator state does not depend on a stored biquad coefficient
 set, so cutoff can be changed every sample without coefficient history
-interpolation. The mapping uses one tangent per sample; this remains
-transcendental work and has not yet been benchmarked against the Phase 2
-baseline. The state update is deterministic, double precision, and bounded by
+interpolation. The mapping uses one tangent and two `tanh` evaluations per
+sample. The state update is deterministic, double precision, and bounded by
 the selected cutoff interval. Compared with a linear TPT SVF, the nonlinear
-feedback introduces additional resonance-dependent harmonics and makes the
-resonant feedback response level dependent. It costs a `tanh` per sample.
+feedback and integrator input make the response level dependent and generate
+additional harmonics. The extra nonlinear stage has a measurable CPU cost;
+updated same-machine compiled benchmarks are recorded below.
 
-The `tanh` feedback and the chosen damping map are behavioral hypotheses. They
-are not claims about the IG02610's transistor, OTA, or integrator stages. No
-asymmetry is used because the available evidence does not justify its sign or
-magnitude. The final output clamp and finite-input handling are implementation
-safety measures, not hardware behavior.
+The `tanh` feedback and integrator-input shaping, exponential modulation map,
+and chosen damping map are behavioral hypotheses. They are not claims about
+the IG02610's transistor, OTA, or integrator stages. The final output clamp
+and finite-input handling are implementation safety measures, not hardware
+behavior.
 
 ## Empirical parameters
 
 The named values in `ExperimentalOriginalVCF::EmpiricalParameters` are
-provisional: minimum/maximum damping, feedback drive, and maximum output.
+provisional: minimum/maximum damping, feedback drive, integrator-input drive,
+and maximum output.
 They should be grouped with future calibration data and replaced only when
 repeatable measurements support new values. The processor's cutoff limits and
 legacy resonance toggle are inherited behavior, not claims about a control
@@ -123,11 +161,11 @@ also found non-finite output in the legacy equation transcription for some
 1x-rate cases; treat that as a model-probe finding, not proof of production
 failure.
 
-The compiled tests passed 201 tests, including filter observations and the
-new modulation and CPU probes. Four `ProgramPanelTest` GUI dialog tests were
-excluded from the headless run because this environment has no X server; an
-unfiltered run reached JUCE's X11 assertion and segfaulted in that GUI test.
-Rerun the full suite under Xvfb/Openbox to close this environment gap.
+The targeted compiled run passed 17 tests across the experimental model and
+Original VCF processor suites, including finite/bounded output at 44.1, 48,
+and 96 kHz host rates, deterministic block partitioning, level-dependent
+nonlinearity, legacy behavior, and routing. This was not the complete project
+test suite.
 
 These probes do not validate the complete EG/LFO/breath routing in a running
 graph or establish hardware behavior. Before deciding whether to change the
@@ -144,14 +182,16 @@ Compiled response, harmonic, and CPU probes are recorded in
 `artifacts/dsp/original_vcf_cpp_benchmark.csv`. Response and harmonic
 measurements render each C++ core with the shared coupling stages. The CPU
 probe uses 65,536 samples per case, 4x internal rate, static and sinusoidally
-modulated cutoff, and the same wrapper stages. On this machine the Debug
-experimental path took about 99.3–114.2 ns/sample versus 344.3–363.2 for
-legacy. Release took about 34.3–38.5 ns/sample versus 101.3–115.8. These are
-observational measurements, not cross-machine guarantees; CPU timing excludes
-processor-side modulation generation and whole-graph scheduling. The response
-and harmonic CSVs characterize the filter paths, not the whole plugin graph or
-hardware. No hardware validation is available to justify replacing the legacy
-sound.
+modulated cutoff, and the same wrapper stages. After adding integrator-input
+saturation, Debug experimental processing measured a 137.1 ns/sample median
+(133.4–142.3 range) versus 214.9 (209.5–218.2) for legacy. Release measured
+59.9 ns/sample median (59.0–62.7) versus 60.5 (60.0–64.3) for legacy. This
+meets the target of comparable or lower core cost on this machine, with the
+Debug difference larger than the Release difference. These are observational
+measurements, not cross-machine guarantees; CPU timing excludes processor-side
+modulation generation and whole-graph scheduling. The response and harmonic
+CSVs characterize the filter paths, not the whole plugin graph or hardware.
+No hardware validation is available to justify replacing the legacy sound.
 
 ## Recommendation
 

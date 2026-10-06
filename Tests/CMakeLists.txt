@@ -64,6 +64,7 @@ target_sources(CheapSynth01Tests
         unit/ToneGeneratorTest.cpp
         unit/OriginalVCFProcessorTest.cpp
         unit/ExperimentalOriginalVCFTest.cpp
+        unit/ExperimentalIG05630Test.cpp
         unit/VCAProcessorTest.cpp
         unit/EGProcessorTest.cpp
         unit/RCEnvelopeModelTest.cpp
@@ -98,6 +99,7 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ModernVCFProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01IIVCFCircuit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG05630.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ExperimentalIG05630.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/NoiseGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessorEditor.cpp
