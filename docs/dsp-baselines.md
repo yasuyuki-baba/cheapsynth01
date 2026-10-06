@@ -53,3 +53,35 @@ filter coefficient kernel, so it cannot rank total graph stages or assign a
 whole-graph oversampling multiplier.
 
 No wall-clock thresholds or uncalibrated CI assertions are defined.
+
+For a comparative probe of the legacy and experimental Original VCF cores,
+run `python3 tools/original_vcf_ab_characterize.py`. It writes
+`artifacts/dsp/original_vcf_ab.json`; scope and limitations are recorded in
+[the experimental VCF design note](Original-VCF-experimental-design.md).
+Compiled filter-path timing, response, and harmonic observations are recorded
+in `artifacts/dsp/original_vcf_cpp_benchmark.csv`,
+`artifacts/dsp/original_vcf_cpp_response.csv`, and
+`artifacts/dsp/original_vcf_cpp_harmonics.csv`. They cover Debug and Release
+cores with shared coupling stages, not full-graph or hardware behavior.
+
+## Legacy coefficient-update optimization
+
+`IG02610::processSample` always rebuilds coefficients from the input-level
+adjusted cutoff before reading them. The per-sample control setters also used
+to rebuild coefficients, so in the modulated path those setter results were
+discarded before they could affect audio. The setters now only clamp/store
+their controls; the sample function still calculates and uses the same
+per-sample coefficients, including the same smoothed input-level cutoff
+behavior. This removes redundant transcendental work without changing the
+filter equation or its modulation rate.
+
+The comparative C++ probe used 65,536 samples at 4x internal rate, in Debug
+and Release builds, with static and sinusoidally modulated cutoff. One before
+and one after timing were recorded for each case, so treat them as an
+observation rather than a machine-independent guarantee. `artifacts/dsp/original_vcf_legacy_update_optimization.csv`
+contains the paired values. Across the six cases per build, the observed
+legacy runtime fell by about 32–40% in Debug and 38–44% in Release. Output
+remained finite; the coefficient math and nonlinear path are unchanged. The
+per-sample coefficient calculation remains the next significant cost, and
+the processor's separate three-`exp2` modulation calculation has not yet been
+optimized.

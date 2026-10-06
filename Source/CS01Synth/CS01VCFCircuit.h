@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "CS01Synth/IG02610.h"
+#include "CS01Synth/ExperimentalOriginalVCF.h"
 
 //==============================================================================
 // CS-01 VCF signal path: provisional IG02610 model plus external coupling.
@@ -20,6 +21,8 @@ class CS01VCFCircuit {
 
     // Process a single sample (legacy method)
     float processSample(int channel, float sample);
+    // Alternative provisional core with the same external coupling stages.
+    float processExperimentalSample(float sample, float cutoffHz, float resonance);
 
     // Process a block of samples (more efficient)
     void processBlock(float* samples, int numSamples);
@@ -34,6 +37,7 @@ class CS01VCFCircuit {
    private:
     float cutoff, resonance, sampleRate;
     IG02610 model;
+    ExperimentalOriginalVCF experimentalModel;
 
     // Input stage model
     struct InputStage {

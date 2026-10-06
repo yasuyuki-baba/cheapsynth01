@@ -1,0 +1,6691 @@
+{
+  "benchmark_seconds_requested": 0.05,
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.12.14"
+  },
+  "format": "original-vcf-ab-characterization-v1",
+  "models": {
+    "experimental_tpt_nonlinear_feedback": {
+      "cpu_microbenchmark": [
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0018706000000747736,
+          "host_rate": 44100,
+          "ns_per_sample": 848.344671235725,
+          "oversampling": 1,
+          "realtime_factor": 26.72939163797784,
+          "resonance": 0.1,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.0022406639998280298,
+          "host_rate": 44100,
+          "ns_per_sample": 1016.1741495818729,
+          "oversampling": 1,
+          "realtime_factor": 22.314813824757966,
+          "resonance": 0.1,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0018611860000419256,
+          "host_rate": 44100,
+          "ns_per_sample": 844.0752834657259,
+          "oversampling": 1,
+          "realtime_factor": 26.864590642135546,
+          "resonance": 0.8,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.0020952800000486604,
+          "host_rate": 44100,
+          "ns_per_sample": 950.2403628338596,
+          "oversampling": 1,
+          "realtime_factor": 23.863159099900162,
+          "resonance": 0.8,
+          "samples": 2205
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.007196078000106354,
+          "host_rate": 44100,
+          "ns_per_sample": 815.8818594224891,
+          "oversampling": 4,
+          "realtime_factor": 6.948229299246205,
+          "resonance": 0.1,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.008138804000054733,
+          "host_rate": 44100,
+          "ns_per_sample": 922.7668934302419,
+          "oversampling": 4,
+          "realtime_factor": 6.143408785819606,
+          "resonance": 0.1,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.007218851000061477,
+          "host_rate": 44100,
+          "ns_per_sample": 818.4638322065166,
+          "oversampling": 4,
+          "realtime_factor": 6.926310017975741,
+          "resonance": 0.8,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.008057214000018575,
+          "host_rate": 44100,
+          "ns_per_sample": 913.5163265327183,
+          "oversampling": 4,
+          "realtime_factor": 6.205618964555829,
+          "resonance": 0.8,
+          "samples": 8820
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0019710169999598293,
+          "host_rate": 48000,
+          "ns_per_sample": 821.2570833165955,
+          "oversampling": 1,
+          "realtime_factor": 25.367614790242317,
+          "resonance": 0.1,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.0022084260001520306,
+          "host_rate": 48000,
+          "ns_per_sample": 920.1775000633461,
+          "oversampling": 1,
+          "realtime_factor": 22.640559383270233,
+          "resonance": 0.1,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0019930890000523505,
+          "host_rate": 48000,
+          "ns_per_sample": 830.4537500218128,
+          "oversampling": 1,
+          "realtime_factor": 25.0866870464323,
+          "resonance": 0.8,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.00247183400006179,
+          "host_rate": 48000,
+          "ns_per_sample": 1029.930833359079,
+          "oversampling": 1,
+          "realtime_factor": 20.227895562060446,
+          "resonance": 0.8,
+          "samples": 2400
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.007968133000076705,
+          "host_rate": 48000,
+          "ns_per_sample": 830.0138541746568,
+          "oversampling": 4,
+          "realtime_factor": 6.274995660780095,
+          "resonance": 0.1,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.008986800000002404,
+          "host_rate": 48000,
+          "ns_per_sample": 936.1250000002505,
+          "oversampling": 4,
+          "realtime_factor": 5.563715671872816,
+          "resonance": 0.1,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.008132705999969403,
+          "host_rate": 48000,
+          "ns_per_sample": 847.1568749968128,
+          "oversampling": 4,
+          "realtime_factor": 6.148015187096166,
+          "resonance": 0.8,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.008768208999981653,
+          "host_rate": 48000,
+          "ns_per_sample": 913.3551041647555,
+          "oversampling": 4,
+          "realtime_factor": 5.702418817811554,
+          "resonance": 0.8,
+          "samples": 9600
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.004092301000127918,
+          "host_rate": 96000,
+          "ns_per_sample": 852.5627083599829,
+          "oversampling": 1,
+          "realtime_factor": 12.2180650930704,
+          "resonance": 0.1,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.004528421000031813,
+          "host_rate": 96000,
+          "ns_per_sample": 943.4210416732942,
+          "oversampling": 1,
+          "realtime_factor": 11.041376232388453,
+          "resonance": 0.1,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.003995608999957767,
+          "host_rate": 96000,
+          "ns_per_sample": 832.4185416578682,
+          "oversampling": 1,
+          "realtime_factor": 12.513736954874338,
+          "resonance": 0.8,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.0046658630001275014,
+          "host_rate": 96000,
+          "ns_per_sample": 972.0547916932295,
+          "oversampling": 1,
+          "realtime_factor": 10.716131184870555,
+          "resonance": 0.8,
+          "samples": 4800
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0161038839999037,
+          "host_rate": 96000,
+          "ns_per_sample": 838.7439583283177,
+          "oversampling": 4,
+          "realtime_factor": 3.1048410433345768,
+          "resonance": 0.1,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.018055309999908786,
+          "host_rate": 96000,
+          "ns_per_sample": 940.380729161916,
+          "oversampling": 4,
+          "realtime_factor": 2.769268431295425,
+          "resonance": 0.1,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.01925156200013589,
+          "host_rate": 96000,
+          "ns_per_sample": 1002.685520840411,
+          "oversampling": 4,
+          "realtime_factor": 2.5971918538166965,
+          "resonance": 0.8,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.017637086000149793,
+          "host_rate": 96000,
+          "ns_per_sample": 918.5982291744684,
+          "oversampling": 4,
+          "realtime_factor": 2.8349354309195607,
+          "resonance": 0.8,
+          "samples": 19200
+        }
+      ],
+      "cutoff_modulation_stress": [
+        {
+          "core_rate": 44100,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 176400,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 48000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 192000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 96000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 384000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "peak_output": 1.5
+        }
+      ],
+      "frequency_response": [
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -6.474091425515374,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -5.775450062156465,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -4.196960686274342,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.4321214608671546,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.18359226778666,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.821288572118966,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.58913966097951,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -87.22121968116497,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -110.86948288044114,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.2206948884934774,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -0.829404707135586,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.136753001206449,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 6.409382765527805,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.2414821674425,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.833663317072904,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.58960484532889,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -87.22128841218546,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -110.86952010774667,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.600461521440673,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.580730673363881,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.582993835843648,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.554523326301583,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -6.018089684793143,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -3.815663910237421,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.179789701472757,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -43.22271526203043,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -66.95781600836699,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.581141301555836,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.5658413597171883,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.5441560492929893,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.5133194820388627,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.3033544132334507,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.518134937625257,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.263600097022564,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -43.23916112842896,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -66.95886188433933,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.596142257830804,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.5959098738847075,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.595980940441502,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.595674050983437,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.59082746835193,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.568532401762365,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.8121646992309675,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -1.1946792481197015,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -22.342982528072888,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.580909498031806,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.580760336686954,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.58064789917545,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.580389568097312,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.5724260146167097,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.53680614368629,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -1.2936797345584672,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 9.139619215416088,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -22.844259011739084,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -6.535419077468027,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -6.263448380004126,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -3.827913461510437,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -2.7143599227845487,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.239714149708963,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.80475220869285,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.87763676443507,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.0606454159105,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.69678795341966,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.2523093802527745,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -1.0590193569349033,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.775689856761846,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 7.264587342690083,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.27511916651751,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.84429789333913,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.97748745998699,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.13653929275306,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.79312373809962,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.60267741706658,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.616924911899709,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.599773912335094,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.550402532509631,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -6.000509651121137,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -4.032620304826945,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.47798946987006,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.05497603650872,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.780896113354885,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.582138716394014,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.583262428770665,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.55251163073957,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.5115421692734903,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.2808707654797489,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.301170981099902,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.54600759463953,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.07312171455311,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.78654368718732,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.59670296876337,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.598119807722799,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.5978581457052865,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.594617324734999,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.586047686290465,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.560339946287872,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.789277168358783,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -3.35159619123556,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.587741799128106,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.5811738640048265,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.5818030418970457,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.581459966143811,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.579730707711758,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.567121484805579,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.5174147760731675,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -0.8998958132330643,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.982220409166566,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.534170800638211,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -6.312656393924528,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -6.003547553433522,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -3.897947345980046,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.6377728232033184,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.18664913053516,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.81819141910631,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.46798978514109,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -86.63853797612481,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -106.55086258954685,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.1298522302838068,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -0.9660656002599792,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.43541147268432,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 6.404629534761591,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.24171398933913,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.82963672029878,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.46862103763466,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -86.63857094811024,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -106.55068000768765,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.585715811715456,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.599647678449197,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.574387224653623,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.568060780276639,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -6.019635392110075,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -3.826200567549315,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.058984664162217,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -42.638629984803096,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -62.639783486975524,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.5739582934617693,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.575023670525402,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.5401108855919037,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.5197533297613752,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.3025776276225889,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.5075976819497345,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.141391647289964,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -42.65579921108022,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -62.64156590631948,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.595874972785153,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.596214837763272,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.595854869901291,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.595834496176408,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.590520371152817,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.566824304877803,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.777815436544048,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -1.3432681458138616,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -17.84910530756752,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.580779226912013,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.580904171176692,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.5805730289926987,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.580445061845706,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.571851354156715,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.533776876477697,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -1.2204514067569552,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 8.99090270631499,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -18.64615592176972,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -6.792715943992449,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -5.974687224780015,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -4.150196609138725,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -4.577750692173723,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.14625481836298,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.793099821531136,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.8691646761984,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.03068031354877,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.60238214252107,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.374630530990899,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -0.9784404579417599,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.313260894871947,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 5.940204168601287,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.237907707641916,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.80628311155506,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.9001488987584,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.03893383427649,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.55955084968485,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.622268402608541,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.616735609244712,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.540422773958011,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.596688367107668,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -6.073674111186219,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -3.9970618470206394,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.474896444920958,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.0257675905127,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.68386693118814,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.5915970192127515,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.583554395750656,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.5227567965571085,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.532681620135314,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.3240634353525507,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.336731441409324,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.539640356337568,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.044024576553696,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.68946055374151,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.59835985804873,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.5982609888489865,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.592603402576441,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.598074770774095,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.593103167760576,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.564165255848878,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.7950578959816195,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -3.4059057971879203,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.605606605039943,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.5819740814979935,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.5818740423781987,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.578912601023272,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.5813896454864587,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.5705130707030626,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.519128963554411,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -0.896890270623219,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.927908243757992,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.436431447733478,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -6.5314106163592704,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -5.7195066418900335,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -4.3142832250710015,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.3179841220493267,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.213791244764447,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.79973024197126,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.9879689615465,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.51166354257825,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -96.27671766639862,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.2571055711317243,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -0.7799091539754527,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.052627691056554,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 6.2884048971115885,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.24909891156331,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.81635672684459,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.99104773851363,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.51881162174647,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -96.2683314981382,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.607664253563233,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.57264509967975,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.594728908591009,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.534207919113965,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -5.998006879148583,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -4.012183376985669,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.586009981034326,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.50575314264065,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -52.36240553542391,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.584660891289996,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.561803939310007,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.549637575157391,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.5030915361979353,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.2853748756709842,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.321609697333869,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.65781678165647,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.5250043178975,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -52.367421214551236,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.596930593633381,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.594766563236454,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.597011961028779,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.593628569691835,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.58771502042975,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.563417806053863,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.733578679866463,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -2.690848451469815,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -7.163895544708985,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.5812859894577422,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.580187574278439,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.58106676868982,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.579277828958699,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.568526256729564,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.521923971897575,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -0.9449973217088299,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 7.643011272357577,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -8.192817101663737,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.980657703474185,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -6.740280614034637,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -3.1875312011986696,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.8662365293005996,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.252973683618364,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.760271785447955,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.79907371992851,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -83.86470113509036,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.30083995373198,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -2.035246559878018,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -1.4023107134575858,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.453013378970702,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 5.536062146214183,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.498083439343215,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -43.939211186005814,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -71.82153380323172,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -83.95809476316904,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.18161269046163,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -6.553698415247111,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -6.646945611860714,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -6.625989671452688,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -6.621769184475865,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -6.014224607190599,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -4.201665594590027,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.44722676456972,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -39.90853856018329,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.29706608080392,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -2.5583545049470335,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -2.5976729515136348,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -2.566052529370052,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -2.545475114753015,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -1.281859197895422,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.132125901176558,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -27.510721750138135,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -39.92637454660801,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.302660222569614,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -6.5922159865936525,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -6.6011051744029805,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -6.600796390177614,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -6.600833497296481,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -6.585133121219419,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -6.566620993311867,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -5.83394562686019,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -3.781810614621458,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.862347085900346,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -2.579004259962747,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -2.5832423620217284,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -2.582879633209503,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -2.582716907095146,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -2.5663879540740124,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -2.5190592659342452,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -0.8911938749079567,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.551989196319781,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -6.066618886528815,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        }
+      ],
+      "harmonics": [
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -55.90592265037505,
+            -36.71748711178652,
+            -65.69794995516828,
+            -84.32771686278596,
+            -71.04100042490319,
+            -75.96905374421786,
+            -75.12939712352147
+          ],
+          "host_rate": 44100,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -45.14051299959563,
+            -35.61468795983311,
+            -48.49468550935007,
+            -51.55388557410375,
+            -56.04684743545066,
+            -64.68211699753512,
+            -71.15000582651517
+          ],
+          "host_rate": 44100,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -54.64777962544082,
+            -37.25963160182647,
+            -62.24143003749593,
+            -67.82146742443541,
+            -75.56336389936165,
+            -67.87364815555893,
+            -66.89981442883608
+          ],
+          "host_rate": 48000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -43.86842587489348,
+            -36.39416400304028,
+            -55.09535455088988,
+            -61.34128489732955,
+            -61.4218037919506,
+            -63.74691342616232,
+            -66.68836170732189
+          ],
+          "host_rate": 48000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -56.13877634915529,
+            -36.63923330120927,
+            -57.643110777570435,
+            -60.21919214779783,
+            -60.408514476615096,
+            -62.441021624823144,
+            -65.05040690960826
+          ],
+          "host_rate": 96000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -37.929851852818686,
+            -33.36722669771379,
+            -46.787002171964566,
+            -52.270800620974036,
+            -50.72704162564161,
+            -50.45846371993044,
+            -52.83836796147249
+          ],
+          "host_rate": 96000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        }
+      ]
+    },
+    "legacy_biquad": {
+      "cpu_microbenchmark": [
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0028124250000018947,
+          "host_rate": 44100,
+          "ns_per_sample": 1275.4761904770498,
+          "oversampling": 1,
+          "realtime_factor": 17.77825186448219,
+          "resonance": 0.1,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.004603516999850399,
+          "host_rate": 44100,
+          "ns_per_sample": 2087.7628117235367,
+          "oversampling": 1,
+          "realtime_factor": 10.861261075309347,
+          "resonance": 0.1,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.002950908000002528,
+          "host_rate": 44100,
+          "ns_per_sample": 1338.28027210999,
+          "oversampling": 1,
+          "realtime_factor": 16.94393725590807,
+          "resonance": 0.8,
+          "samples": 2205
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.0031233810000230733,
+          "host_rate": 44100,
+          "ns_per_sample": 1416.4993197383553,
+          "oversampling": 1,
+          "realtime_factor": 16.00829357661798,
+          "resonance": 0.8,
+          "samples": 2205
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.011731484999927488,
+          "host_rate": 44100,
+          "ns_per_sample": 1330.1003401278333,
+          "oversampling": 4,
+          "realtime_factor": 4.262035027987425,
+          "resonance": 0.1,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.012636524999834364,
+          "host_rate": 44100,
+          "ns_per_sample": 1432.712585015234,
+          "oversampling": 4,
+          "realtime_factor": 3.956784005148202,
+          "resonance": 0.1,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.012178081999991264,
+          "host_rate": 44100,
+          "ns_per_sample": 1380.7349206339302,
+          "oversampling": 4,
+          "realtime_factor": 4.105736847562356,
+          "resonance": 0.8,
+          "samples": 8820
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.014200834999883227,
+          "host_rate": 44100,
+          "ns_per_sample": 1610.071995451613,
+          "oversampling": 4,
+          "realtime_factor": 3.5209197205946796,
+          "resonance": 0.8,
+          "samples": 8820
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.00425121900002523,
+          "host_rate": 48000,
+          "ns_per_sample": 1771.3412500105128,
+          "oversampling": 1,
+          "realtime_factor": 11.761332455397678,
+          "resonance": 0.1,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.003976664999981949,
+          "host_rate": 48000,
+          "ns_per_sample": 1656.9437499924788,
+          "oversampling": 1,
+          "realtime_factor": 12.573349779331918,
+          "resonance": 0.1,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.003382973000043421,
+          "host_rate": 48000,
+          "ns_per_sample": 1409.5720833514254,
+          "oversampling": 1,
+          "realtime_factor": 14.779899218633505,
+          "resonance": 0.8,
+          "samples": 2400
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.005976906000114468,
+          "host_rate": 48000,
+          "ns_per_sample": 2490.377500047695,
+          "oversampling": 1,
+          "realtime_factor": 8.365532266868914,
+          "resonance": 0.8,
+          "samples": 2400
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.01360541999997622,
+          "host_rate": 48000,
+          "ns_per_sample": 1417.2312499975228,
+          "oversampling": 4,
+          "realtime_factor": 3.6750059902661874,
+          "resonance": 0.1,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.013773528000001534,
+          "host_rate": 48000,
+          "ns_per_sample": 1434.7425000001597,
+          "oversampling": 4,
+          "realtime_factor": 3.630151984298753,
+          "resonance": 0.1,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.012708430999964548,
+          "host_rate": 48000,
+          "ns_per_sample": 1323.7948958296404,
+          "oversampling": 4,
+          "realtime_factor": 3.934395992718494,
+          "resonance": 0.8,
+          "samples": 9600
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.014289694999888525,
+          "host_rate": 48000,
+          "ns_per_sample": 1488.5098958217213,
+          "oversampling": 4,
+          "realtime_factor": 3.49902499671197,
+          "resonance": 0.8,
+          "samples": 9600
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.006074959999978091,
+          "host_rate": 96000,
+          "ns_per_sample": 1265.6166666621025,
+          "oversampling": 1,
+          "realtime_factor": 8.230506867564614,
+          "resonance": 0.1,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.007163539999964996,
+          "host_rate": 96000,
+          "ns_per_sample": 1492.4041666593741,
+          "oversampling": 1,
+          "realtime_factor": 6.97978932207321,
+          "resonance": 0.1,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.0063284029999977065,
+          "host_rate": 96000,
+          "ns_per_sample": 1318.4172916661887,
+          "oversampling": 1,
+          "realtime_factor": 7.90088747508939,
+          "resonance": 0.8,
+          "samples": 4800
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.006858362000002671,
+          "host_rate": 96000,
+          "ns_per_sample": 1428.8254166672232,
+          "oversampling": 1,
+          "realtime_factor": 7.290370499542096,
+          "resonance": 0.8,
+          "samples": 4800
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.02557954200005952,
+          "host_rate": 96000,
+          "ns_per_sample": 1332.2678125031,
+          "oversampling": 4,
+          "realtime_factor": 1.9546870698421286,
+          "resonance": 0.1,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.027881324999952994,
+          "host_rate": 96000,
+          "ns_per_sample": 1452.1523437475519,
+          "oversampling": 4,
+          "realtime_factor": 1.793315059455901,
+          "resonance": 0.1,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "static",
+          "elapsed_seconds": 0.02560360600000422,
+          "host_rate": 96000,
+          "ns_per_sample": 1333.5211458335532,
+          "oversampling": 4,
+          "realtime_factor": 1.9528499227800866,
+          "resonance": 0.8,
+          "samples": 19200
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_mode": "modulated",
+          "elapsed_seconds": 0.03125748799993744,
+          "host_rate": 96000,
+          "ns_per_sample": 1627.9941666634081,
+          "oversampling": 4,
+          "realtime_factor": 1.5996167062465185,
+          "resonance": 0.8,
+          "samples": 19200
+        }
+      ],
+      "cutoff_modulation_stress": [
+        {
+          "core_rate": 44100,
+          "fast_cutoff_sweep_finite": false,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "peak_output": null
+        },
+        {
+          "core_rate": 176400,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 48000,
+          "fast_cutoff_sweep_finite": false,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "peak_output": null
+        },
+        {
+          "core_rate": 192000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "peak_output": 1.5
+        },
+        {
+          "core_rate": 96000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "peak_output": 1.1184882299904664
+        },
+        {
+          "core_rate": 384000,
+          "fast_cutoff_sweep_finite": true,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "peak_output": 1.5
+        }
+      ],
+      "frequency_response": [
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -0.3705415567480869,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": 0.3367748933617406,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -1.0215346397012628,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.571232737029466,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -30.025628899018745,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.41721321535511,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -73.12872908906222,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -87.75905863185082,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -111.40695142482402,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.170236165401087,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -3.220234635257109,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.532425073442443,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -1.8545497908907689,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -35.016405522557946,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.53194898102594,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -78.26965915648164,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -92.90084640538586,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -116.54728105246957,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.5475057580328929,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.5092086027029918,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.5259145179258012,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.473358415869467,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.09073307124455705,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -0.9677674896860966,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -29.084693396898395,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -43.827572180996825,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -67.49967597985777,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.679351319107076,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.661218040891783,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.629016516243962,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.589895326113084,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.895407864540596,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.590985220655261,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -34.051121242127856,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -48.93842269919995,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -72.64005175134659,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5384297049224844,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.5355163401202389,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5383329445162852,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5352057612092105,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.5333265272834328,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.5121993392961945,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.07277099032067214,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -0.9849913970564272,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -23.944239942464762,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.680139714817763,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.679401505060944,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.679808875444206,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.678902641511842,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.669056275163165,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.622493777933482,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.968813628115794,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.573761305043924,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -28.757039461875248,
+          "host_rate": 44100,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -0.5715449307375662,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -0.4929503244972761,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 0.06410012925710847,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -2.830947815550229,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -30.07320726262066,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.39943383151254,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.41589120280098,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.59781406433322,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -95.2328183544715,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.161177029662482,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -3.546297395070277,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.417632063388897,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -1.2534765344791894,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -34.84196244745015,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.351636940327175,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -77.33221618450708,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -89.53809422943073,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -100.17050709371297,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.5517121651201494,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.5828889182091143,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.5530325323310915,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.45846335629809115,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.14435733477590407,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -1.0492098192731838,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.38774590544587,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.683401408235305,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -51.34504928190084,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.680148883087545,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.678281136024877,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.636720002361621,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.588141969789956,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.863072672745461,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.509542824505199,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -33.34059649665889,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -45.78032634689856,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -56.47445723815737,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5389540935007291,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.5424209899772918,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5419228238529035,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5342145150127793,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.5209079465045209,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.49054164804286343,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.2070645688855485,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -0.994128201605883,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -10.332774990680882,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.680250761738189,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.680964978611857,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.680511393732315,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.678468358040977,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.661747959157317,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.594753697896139,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.3396325862944116,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.564624493142837,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -13.442117992412001,
+          "host_rate": 44100,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -0.13934668894206426,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": 0.030181426572021344,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -0.627325087568049,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.5896727015921948,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -30.02804239604948,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.41401066605409,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -73.007609891331,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -87.1764041758723,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -107.0883484740525,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.081802993416328,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -3.3599528460268986,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.923559221039644,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -1.7771190285310337,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -35.01778566166736,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.528082476979456,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -78.15077336766453,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -92.31830126446667,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -112.22866254179463,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.5167304861727057,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.5489003918994596,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.5059322743590458,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.5025698003267183,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.08913713188083865,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -0.9550719411559171,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.96634336089036,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -43.24768508419452,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -63.18444124018853,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.672039401823805,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.670570257629697,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.624853450749692,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.596438871609962,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.8935158746631715,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.603680769585717,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -33.93020466036839,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -48.35635931324737,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -68.32357149516797,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5357564139783267,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.538905244302634,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5368787579601272,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5375079172458868,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.5325835283658277,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.5087606677269162,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.09594223697984668,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -0.9819866231668577,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -20.08759323950403,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.679517511474158,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.680182066004184,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.679452948725708,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.679398866404032,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.668188408787111,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.618147153079317,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.866272614396815,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.576766082616755,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -24.69891208667718,
+          "host_rate": 48000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -1.084690086526265,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": 0.6674340544989027,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -2.1148483115610532,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -4.0867827839617235,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -29.991342811026712,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.38952422347501,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.40918076012906,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.56892116007033,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -95.13943928126255,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.260858028962222,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -3.6457713617614984,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 4.113213335627888,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -0.9037887241956395,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -35.36496941590969,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.76665913152673,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -77.81693385053826,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -89.90723989674764,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -99.8002910972971,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.5911536713019012,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.579255733144121,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.441820684394733,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.5621017754487518,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.04922132128565974,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -0.8707722237637503,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.383802865375465,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.65436451587138,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -51.248266289772964,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.689267610570134,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.678555578982696,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.607919211206026,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.608550466971306,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.906962099326361,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.687980501613948,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -33.33399411154722,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -45.75131145334824,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -56.37745018268891,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5428540877447616,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.5426281006602082,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5294738103036614,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5425730180333495,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.537345660013644,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.4980076719469243,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.20652341682752925,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -0.9721506250878296,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -10.261837731384247,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.68115402636939,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.6810236037172945,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.6775972284467375,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.680365603294245,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.665615759817619,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.596610332268893,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.331855679925049,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.58660207973962,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -13.348075912349731,
+          "host_rate": 48000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -0.40257782090708355,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": 0.33030397951087465,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": -0.9544380338187772,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -3.708776570238146,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -30.051495619119155,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.39543356523468,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.52769829930874,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -85.04965425769683,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -96.81429528979324,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.210879674615376,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -3.1941296903188072,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 6.3714180812013,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -2.1191663210639127,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -35.011748851010374,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.48308791538348,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -77.65292305403607,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -90.16002975887164,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -101.99977811411858,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.5612656657050432,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.4938509656656057,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.548025092167128,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.4313553540658799,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.1651277798307391,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -1.039009363072684,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.498238329668027,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -41.13122318006248,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -52.92251455935649,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.682684096420547,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.657420261762839,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.634109462583167,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.579794066391509,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.8697636972756637,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.519743316858012,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -33.45129800944307,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -46.23103738211606,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -58.05403668903983,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5399932599477172,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.533608651682629,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5406197045739517,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5306999674003136,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.5243643354498833,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.5025922830872911,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.1992627960617148,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -0.9877574682599567,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -11.526043276997493,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.6804962238876335,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.678927192191234,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.680219193592463,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.67767130406985,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.663353079966445,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.601335390899185,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.4382638609479295,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.570995229421824,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -14.970850914167961,
+          "host_rate": 96000,
+          "oversampling": 1,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": 0.4510505702633996,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -1.4020046302054254,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 1.440698023964292,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": -2.846020961329133,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -30.151134967818997,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -44.49356638153901,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -72.48860886612827,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -84.57986392296947,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -94.52550691816127,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 20,
+          "gain_db": -5.080672962970078,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 40,
+          "gain_db": -2.865947385725016,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 80,
+          "gain_db": 4.732459300927595,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 100,
+          "gain_db": 0.6629138194000116,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 440,
+          "gain_db": -34.83229413371123,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 1000,
+          "gain_db": -49.62134911539363,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 5000,
+          "gain_db": -77.49941436553064,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 10000,
+          "gain_db": -89.82432718233022,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 80,
+          "frequency_hz": 18000,
+          "gain_db": -99.34674285687663,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -0.4547301845822994,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -0.6429262111693888,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -0.5974746366042267,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -0.6055486518021701,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": 0.08666366036855956,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": -1.2074373888809689,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -28.353831232140507,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -40.537431958209226,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -50.862410676862304,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 20,
+          "gain_db": -5.657351120877631,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 40,
+          "gain_db": -5.69194394751135,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 80,
+          "gain_db": -5.649595857424856,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 100,
+          "gain_db": -5.620681419931782,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 440,
+          "gain_db": -3.862878065835114,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 1000,
+          "gain_db": 6.351096487218598,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 5000,
+          "gain_db": -33.30513930784997,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 10000,
+          "gain_db": -45.63401835503244,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "frequency_hz": 18000,
+          "gain_db": -55.990949746366,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -0.5291298740548526,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -0.5483187951189593,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -0.5476509927587296,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -0.5479291455882315,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -0.5195068922958316,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -0.5019494407497347,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": 0.23711140583575746,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": -1.0052175267594792,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -9.978217712818202,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.1
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 20,
+          "gain_db": -5.677970580549716,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 40,
+          "gain_db": -5.6823268994841225,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 80,
+          "gain_db": -5.681854968291481,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 100,
+          "gain_db": -5.681615487173316,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 440,
+          "gain_db": -5.661062849953216,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 1000,
+          "gain_db": -5.59586542482969,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 5000,
+          "gain_db": -3.3018145393744875,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 10000,
+          "gain_db": 6.553535165372201,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 10000,
+          "frequency_hz": 18000,
+          "gain_db": -12.971704229052062,
+          "host_rate": 96000,
+          "oversampling": 4,
+          "resonance": 0.8
+        }
+      ],
+      "harmonics": [
+        {
+          "core_rate": 44100,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -55.6937787733473,
+            -51.35322601557125,
+            -66.182412198674,
+            -75.70217261599572,
+            -71.30231930317021,
+            -76.01279810828576,
+            -75.34797716060721
+          ],
+          "host_rate": 44100,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 176400,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -45.096721134468595,
+            -51.03357302649399,
+            -48.44230516014293,
+            -51.408854653650835,
+            -55.953847156536284,
+            -64.41272648016648,
+            -70.85492323419606
+          ],
+          "host_rate": 44100,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 48000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -54.56984761112531,
+            -48.19911594562803,
+            -62.105742498272505,
+            -72.02070152503737,
+            -75.88002485627717,
+            -68.03180034815341,
+            -66.92660613186342
+          ],
+          "host_rate": 48000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 192000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -43.78408633972014,
+            -53.983966870878504,
+            -55.61436475563763,
+            -63.474968084435986,
+            -61.75272065173977,
+            -64.19227822752123,
+            -66.90844530069695
+          ],
+          "host_rate": 48000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 96000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -56.205989418633315,
+            -55.128441898877284,
+            -57.70251753821,
+            -58.89481141086779,
+            -60.448108943056376,
+            -62.4473599624287,
+            -65.02903317706684
+          ],
+          "host_rate": 96000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        },
+        {
+          "core_rate": 384000,
+          "cutoff_hz": 1000,
+          "fundamental_hz": 440,
+          "harmonic_db_relative_to_fundamental": [
+            0.0,
+            -37.86301722985612,
+            -40.92586075622408,
+            -46.4375556529452,
+            -51.466971291862436,
+            -50.70820358887051,
+            -50.476286418718736,
+            -52.71485924285359
+          ],
+          "host_rate": 96000,
+          "input_peak": 0.7,
+          "resonance": 0.8
+        }
+      ]
+    }
+  },
+  "scope": "Python transcription of filter core equations; not plugin execution or hardware data"
+}
