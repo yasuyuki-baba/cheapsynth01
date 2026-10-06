@@ -63,6 +63,7 @@ target_sources(CheapSynth01Tests
         unit/CS01VCFCircuitTest.cpp
         unit/ToneGeneratorTest.cpp
         unit/OriginalVCFProcessorTest.cpp
+        unit/ExperimentalOriginalVCFTest.cpp
         unit/VCAProcessorTest.cpp
         unit/EGProcessorTest.cpp
         unit/RCEnvelopeModelTest.cpp

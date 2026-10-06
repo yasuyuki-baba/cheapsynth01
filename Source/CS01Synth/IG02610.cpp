@@ -20,13 +20,17 @@ float IG02610::accurateTanh(float x) {
 
 void IG02610::setCutoffFrequency(float newCutoff) {
     cutoff = juce::jlimit(20.0f, 20000.0f, newCutoff);
-    updateCoefficients();
+    // processSample() rebuilds coefficients from the effective, level-modulated
+    // cutoff before using them. Rebuilding here is redundant; in the per-sample
+    // modulation path it used to perform two full coefficient builds per
+    // cutoff update, both discarded by the next processSample().
 }
 
 void IG02610::setResonance(float newResonance) {
     // IG02610 resonance range (limit max to 0.8f)
     resonance = juce::jlimit(0.1f, 0.8f, newResonance);
-    updateCoefficients();
+    // As with cutoff, the next processSample() rebuilds coefficients using
+    // this resonance value before reading them.
 }
 
 float IG02610::processSample(float sample) {
