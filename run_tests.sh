@@ -16,7 +16,7 @@ while [ "$#" -gt 0 ]; do
             fi
             case "$2" in
                 audio|audio-core)
-                    GROUP_FILTER='VCOProcessorTest.*:ToneGeneratorTest.*:ToneGeneratorRealTest.*:ManualPitchTest.*:VcoSpectrumTest.*:OriginalVCFProcessorTest.*:ModernVCFProcessorTest.*:CS01IIVCFCircuitTest.*:IG05630Test.*:IG02610ControlTest.*:IG02610OversamplingTest.*:IG02610SpectrumTest.*:IG02610NonlinearSafetyTest.*:CS01VCFCircuitTest.*:VCAProcessorTest.*:ResponseMeasurementTest.*:EGProcessorTest.*:EGTimingTest.*:RCEnvelopeModelTest.*:LFOProcessorTest.*:NoiseGeneratorTest.*'
+                    GROUP_FILTER='DspStructureRegressionTest.*:IG02610BehavioralModel*.*:IG05630BehavioralModelTest.*:VCOProcessorTest.*:ToneGeneratorTest.*:ToneGeneratorRealTest.*:ManualPitchTest.*:VcoSpectrumTest.*:OriginalVCFProcessorTest.*:ModernVCFProcessorTest.*:CS01IIVCFCircuitTest.*:IG05630Test.*:IG02610ControlTest.*:IG02610OversamplingTest.*:IG02610SpectrumTest.*:IG02610NonlinearSafetyTest.*:CS01VCFCircuitTest.*:VCAProcessorTest.*:ResponseMeasurementTest.*:EGProcessorTest.*:EGTimingTest.*:RCEnvelopeModelTest.*:LFOProcessorTest.*:NoiseGeneratorTest.*'
                     ;;
                 midi|control)
                     GROUP_FILTER='MidiProcessorTest.*:MidiResetGraphTest.*:MidiPanicGraphTest.*:MidiRealtimeGraphTest.*:BendInputTest.*'

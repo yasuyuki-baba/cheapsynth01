@@ -128,7 +128,7 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             static_cast<float>(std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
         float modulatedCutoffHz = baseCutoff * combinedModFreqRatio;
 
-        // Check for NaN or Infinity
+        // Numerical safety for modulation; not a hardware control law.
         if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {
             modulatedCutoffHz = baseCutoff;
         }

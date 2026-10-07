@@ -1,4 +1,4 @@
-# Experimental Original VCF behavioral model
+# Original VCF behavioral model
 
 ## Evidence categories
 
@@ -39,7 +39,7 @@ diagram, so they do not identify its actual internal circuit.
 ### Review of the supplied IG02610 report
 
 The report's OTA-based, two-integrator SVF is a reasonable structural
-hypothesis for the experimental model. It is more specific than the available
+hypothesis for the behavioral model. It is more specific than the available
 primary evidence supports, however. The reviewed CS-01 service material
 identifies the IC and its external use/adjustment, but does not document an
 internal OTA, exponential converter, integrator count, or the pin functions
@@ -66,7 +66,7 @@ pinout, and proposed soft-clipping behavior likewise remain unverified.
 
 ### Provisional structure
 
-Given those constraints, the experimental model uses two state variables as a
+Given those constraints, the behavioral model uses two state variables as a
 stable digital stand-in for a two-pole resonant low-pass, with resonance
 entering the recursive feedback relation. Following the supplied report's
 behavioral proposal, smooth bounded nonlinearities now shape both the
@@ -97,13 +97,13 @@ primary circuit evidence becomes available.
 
 ## Current architecture
 
-`OriginalVCFProcessor` routes control-rate and audio-rate modulation through `CS01VCFCircuit`, which now uses the `ExperimentalOriginalVCF` TPT state-variable behavioral core. The separate Legacy biquad implementation, model-selection API, and temporary editor toggles have been removed. The existing filter type control continues to choose Original or Modern; both selections use their respective experimental behavioral models.
+`OriginalVCFProcessor` routes control-rate and audio-rate modulation through `CS01VCFCircuit`, which now uses the `IG02610BehavioralModel` TPT state-variable behavioral core. The separate Legacy biquad implementation, model-selection API, and temporary editor toggles have been removed. The existing filter type control continues to choose Original or Modern; both selections use their respective production behavioral models.
 
 The wrapper retains empirical input/output coupling approximations. The core uses explicit provisional damping, feedback-drive, integrator-drive, and output-bound parameters. None is calibrated to a physical IG02610. The selected structure is motivated by the supplied report's two-integrator SVF hypothesis and the numerical need for continuous cutoff modulation; it is not evidence of the IC's actual internals.
 
 ## Chosen topology and trade-offs
 
-The experimental core is a topology-preserving-transform state-variable
+The behavioral core is a topology-preserving-transform state-variable
 low-pass. Its integrator state does not depend on a stored biquad coefficient
 set, so cutoff can be changed every sample without coefficient history
 interpolation. The mapping uses one tangent and two `tanh` evaluations per
@@ -121,9 +121,10 @@ behavior.
 
 ## Empirical parameters
 
-The named values in `ExperimentalOriginalVCF::EmpiricalParameters` are
-provisional: minimum/maximum damping, feedback drive, integrator-input drive,
-and maximum output.
+The named values in `IG02610BehavioralModel::EmpiricalParameters` are
+provisional: minimum/maximum damping, feedback drive, and integrator-input drive.
+The unchanged maximum output is separately named in `SafetyParameters`; it is
+an implementation bound, not a calibration target.
 They should be grouped with future calibration data and replaced only when
 repeatable measurements support new values. The processor's cutoff limits and
 two-position resonance control is inherited behavior, not claims about a control
@@ -164,7 +165,7 @@ Compiled response, harmonic, and CPU probes are recorded in
 measurements render each C++ core with the shared coupling stages. The CPU
 probe uses 65,536 samples per case, 4x internal rate, static and sinusoidally
 modulated cutoff, and the same wrapper stages. After adding integrator-input
-saturation, Debug experimental processing measured a 137.1 ns/sample median
+saturation, Debug behavioral processing measured a 137.1 ns/sample median
 (133.4–142.3 range) versus 214.9 (209.5–218.2) for legacy. Release measured
 59.9 ns/sample median (59.0–62.7) versus 60.5 (60.0–64.3) for legacy. This
 meets the target of comparable or lower core cost on this machine, with the
@@ -176,8 +177,10 @@ No hardware validation is available; the chosen model is a product sound decisio
 
 ## Recommendation
 
-The experimental model is now the sole Original VCF implementation following
+The behavioral model is now the sole Original VCF implementation following
 the user's listening evaluation; the previous implementation and A/B toggle
 have been removed. This is a product sound choice, not confirmation of hardware
 accuracy; no physical IG02610 comparison is available. Earlier CSV comparison
 artifacts remain archived and describe the code as it existed when measured.
+
+Current stage boundaries and safety ownership are described in [DSP responsibility boundaries](DSP-responsibility-boundaries.md).

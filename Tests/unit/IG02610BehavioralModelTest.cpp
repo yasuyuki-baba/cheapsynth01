@@ -1,4 +1,4 @@
-#include "CS01Synth/ExperimentalOriginalVCF.h"
+#include "CS01Synth/IG02610BehavioralModel.h"
 #include "CS01Synth/CS01VCFCircuit.h"
 
 #include <gtest/gtest.h>
@@ -41,25 +41,24 @@ double projectedAmplitude(const std::vector<float>& audio, double sampleRate, do
 }
 }  // namespace
 
-TEST(ExperimentalOriginalVCFTest, RemainsFiniteAndBoundedDuringFastModulation) {
+TEST(IG02610BehavioralModelTest, RemainsFiniteAndBoundedDuringFastModulation) {
     for (const double rate : {44100.0, 48000.0, 96000.0}) {
-        ExperimentalOriginalVCF filter;
+        IG02610BehavioralModel filter;
         filter.prepare(rate * 4.0);  // Match the project's 4x internal filter rate.
         for (int i = 0; i < 200000; ++i) {
             const float cutoff = (i & 1) ? 20.0f : 20000.0f;
             const float input = 4.0f * std::sin(static_cast<float>(i) * 0.17f);
             const float output = filter.processSample(input, cutoff, 1.0f);
             ASSERT_TRUE(std::isfinite(output));
-            EXPECT_LE(std::abs(output),
-                      ExperimentalOriginalVCF::EmpiricalParameters::maximumOutput);
+            EXPECT_LE(std::abs(output), IG02610BehavioralModel::SafetyParameters::maximumOutput);
         }
     }
 }
 
-TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndependent) {
+TEST(IG02610BehavioralModelTest, RenderingIsDeterministicAndBlockPartitionIndependent) {
     constexpr int count = 4096;
     std::vector<float> whole(count), split(count);
-    ExperimentalOriginalVCF a, b;
+    IG02610BehavioralModel a, b;
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < count; ++i) {
@@ -77,7 +76,7 @@ TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndep
     EXPECT_EQ(whole, split);
 }
 
-TEST(ExperimentalOriginalVCFTest, BehavioralSaturationDependsOnSignalLevel) {
+TEST(IG02610BehavioralModelTest, BehavioralSaturationDependsOnSignalLevel) {
     const auto low = renderFilter(192000.0, 1000.0f, 0.7f, 440.0, 0.05f);
     const auto high = renderFilter(192000.0, 1000.0f, 0.7f, 440.0, 0.5f);
     double normalizedDifferencePower = 0.0;
@@ -92,7 +91,7 @@ TEST(ExperimentalOriginalVCFTest, BehavioralSaturationDependsOnSignalLevel) {
     EXPECT_GT(normalizedDifferencePower, 1.0e-8);
 }
 
-TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
+TEST(IG02610BehavioralModelTest, Observation_CompiledCoreCpuComparison) {
     constexpr int sampleCount = 65536;
     for (const double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double coreRate = hostRate * 4.0;
@@ -117,7 +116,7 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
                 const bool finite = std::all_of(audio.begin(), audio.end(),
                                                 [](float x) { return std::isfinite(x); });
                 std::cout << "ORIGINAL_VCF_CPP_BENCH,"
-                          << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
+                          << "behavioral_tpt" << ',' << hostRate << ',' << coreRate << ','
                           << (modulated ? "modulated" : "static") << ',' << sampleCount << ','
                           << elapsed << ',' << (elapsed * 1e9 / sampleCount) << ','
                           << (finite ? "finite" : "nonfinite") << '\n';
@@ -126,7 +125,7 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
     }
 }
 
-TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) {
+TEST(IG02610BehavioralModelTest, Observation_CompiledCoreResponseAndHarmonics) {
     for (const double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double coreRate = hostRate * 4.0;
         for (const float cutoffHz : {80.0f, 1000.0f, 10000.0f}) {
@@ -144,7 +143,7 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
                         const double output = projectedAmplitude(audio, coreRate, frequencyHz);
                         const double gainDb = 20.0 * std::log10(std::max(output / 0.01, 1.0e-15));
                         std::cout << "ORIGINAL_VCF_CPP_RESPONSE,"
-                                  << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
+                                  << "behavioral_tpt" << ',' << hostRate << ',' << coreRate << ','
                                   << cutoffHz << ',' << resonance << ',' << frequencyHz << ','
                                   << gainDb << ','
                                   << (std::isfinite(gainDb) ? "finite" : "nonfinite") << '\n';
@@ -163,7 +162,7 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
                     renderFilter(coreRate, cutoffHz, resonance, frequencyHz, amplitude);
                 const double fundamental = projectedAmplitude(audio, coreRate, frequencyHz);
                 std::cout << "ORIGINAL_VCF_CPP_HARMONICS,"
-                          << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
+                          << "behavioral_tpt" << ',' << hostRate << ',' << coreRate << ','
                           << cutoffHz << ',' << resonance << ',' << amplitude << ',' << frequencyHz;
                 for (int harmonic = 1; harmonic <= 8; ++harmonic) {
                     const double level = projectedAmplitude(audio, coreRate, frequencyHz, harmonic);

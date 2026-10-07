@@ -152,7 +152,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/YM10150.cpp
         Source/CS01Synth/OriginalVCFProcessor.cpp
         Source/CS01Synth/VCAProcessor.cpp
-        Source/CS01Synth/IG02600.cpp
+        Source/CS01Synth/IG02600BehavioralModel.cpp
         Source/CS01Synth/VCOProcessor.cpp
         Source/UI/CS01LookAndFeel.cpp
         Source/CS01Synth/EGProcessor.cpp
@@ -160,7 +160,7 @@ target_sources(CheapSynth01
         Source/CS01Synth/MidiProcessor.cpp
         Source/CS01Synth/ModernVCFProcessor.cpp
         Source/CS01Synth/CS01IIVCFCircuit.cpp
-        Source/CS01Synth/ExperimentalIG05630.cpp
+        Source/CS01Synth/IG05630BehavioralModel.cpp
         Source/CS01Synth/NoiseGenerator.cpp
         Source/CS01Synth/CS01VCFCircuit.cpp
         Source/UI/FilterTypeComponent.cpp

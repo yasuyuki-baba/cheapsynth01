@@ -216,3 +216,12 @@ not assume a timer callback arrives within 100 ms on every CI platform.
 `MidiRealtimeGraphTest` compares MIDI control changes with synchronous
 parameter changes in both filter paths before any notification tick, and checks
 session saving before dispatch. See [the control-flow design](../docs/MIDI-realtime-control.md).
+
+## DSP structural refactor coverage
+
+`DspStructureRegressionTest` checks exact float bits against frozen pre-refactor
+Original/Modern VCF wrappers and the VCA signal path at 44.1/48/96/192 kHz.
+The audio group also includes `IG02610BehavioralModel*` and
+`IG05630BehavioralModelTest` suites. See
+[DSP responsibility boundaries](../docs/DSP-responsibility-boundaries.md) for
+coverage and the test-oracle maintenance policy.

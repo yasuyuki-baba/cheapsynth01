@@ -1,7 +1,7 @@
 #include <JuceHeader.h>
 
 #include "CS01Synth/CS01IIVCFCircuit.h"
-#include "CS01Synth/ExperimentalIG05630.h"
+#include "CS01Synth/IG05630BehavioralModel.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -43,9 +43,9 @@ double amplitudeAt(const std::vector<float>& signal, double sampleRate, double f
 }
 }  // namespace
 
-TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
+TEST(IG05630BehavioralModelTest, RemainsFiniteAndBoundedUnderFastModulation) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
-        ExperimentalIG05630 filter;
+        IG05630BehavioralModel filter;
         filter.prepare(hostRate * 4.0);
         for (int i = 0; i < 100000; ++i) {
             filter.setCutoffFrequency((i & 1) ? 20.0f : 20000.0f);
@@ -53,13 +53,13 @@ TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
             const float input = 4.0f * std::sin(i * 0.19f);
             const float output = filter.processSample(input);
             ASSERT_TRUE(std::isfinite(output));
-            EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+            EXPECT_LE(std::abs(output), IG05630BehavioralModel::SafetyParameters::maximumOutput);
         }
     }
 }
 
-TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
-    ExperimentalIG05630 filter;
+TEST(IG05630BehavioralModelTest, ResonanceDecaysAfterAnImpulse) {
+    IG05630BehavioralModel filter;
     filter.prepare(192000.0);
     filter.setCutoffFrequency(1000.0f);
     filter.setResonance(1.0f);
@@ -69,7 +69,7 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
     for (int i = 0; i < sampleCount; ++i) {
         const float output = filter.processSample(i == 0 ? 0.5f : 0.0f);
         ASSERT_TRUE(std::isfinite(output));
-        EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+        EXPECT_LE(std::abs(output), IG05630BehavioralModel::SafetyParameters::maximumOutput);
         if (i >= sampleCount * 3 / 4)
             latePower += static_cast<double>(output) * output;
     }
@@ -77,10 +77,10 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
     EXPECT_LT(lateRms, 1.0e-5);
 }
 
-TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
+TEST(IG05630BehavioralModelTest, RenderingIsDeterministicAcrossBlockPartitions) {
     constexpr int sampleCount = 8192;
     std::vector<float> whole(sampleCount), partitioned(sampleCount);
-    ExperimentalIG05630 a, b;
+    IG05630BehavioralModel a, b;
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < sampleCount; ++i) {
@@ -102,7 +102,7 @@ TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
     EXPECT_EQ(whole, partitioned);
 }
 
-TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
+TEST(IG05630BehavioralModelTest, ZeroResonanceHasFourPoleLowpassResponse) {
     constexpr double rate = 192000.0;
     const auto cutoffSignal = render(rate, 1000.0f, 0.0f, 1000.0, 0.01f);
     const auto lowerSignal = render(rate, 1000.0f, 0.0f, 2000.0, 0.01f);
@@ -114,7 +114,7 @@ TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
     EXPECT_LT(upper / lower, 0.08);  // Four-pole asymptote: roughly 24 dB/octave.
 }
 
-TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
+TEST(IG05630BehavioralModelTest, Observation_BehavioralCharacterization) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double rate = hostRate * 4.0;
         for (float cutoff : {80.0f, 1000.0f, 10000.0f}) {
@@ -131,10 +131,9 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                         const bool finite =
                             std::all_of(signal.begin(), signal.end(),
                                         [](float value) { return std::isfinite(value); });
-                        std::cout << "IG05630_RESPONSE,experimental" << ',' << hostRate << ','
-                                  << rate << ',' << cutoff << ',' << resonance << ',' << frequency
-                                  << ',' << gain << ',' << (finite ? "finite" : "nonfinite")
-                                  << '\n';
+                        std::cout << "IG05630_RESPONSE,behavioral" << ',' << hostRate << ',' << rate
+                                  << ',' << cutoff << ',' << resonance << ',' << frequency << ','
+                                  << gain << ',' << (finite ? "finite" : "nonfinite") << '\n';
                     }
                 }
             }
@@ -148,7 +147,7 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                 {
                     const auto signal = render(rate, cutoff, resonance, frequency, inputPeak);
                     const double fundamental = amplitudeAt(signal, rate, frequency);
-                    std::cout << "IG05630_HARMONICS,experimental" << ',' << hostRate << ',' << rate
+                    std::cout << "IG05630_HARMONICS,behavioral" << ',' << hostRate << ',' << rate
                               << ',' << cutoff << ',' << resonance << ',' << inputPeak << ','
                               << frequency;
                     for (int harmonic = 1; harmonic <= 8; ++harmonic) {
@@ -191,7 +190,7 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                 }
                 const double elapsed =
                     std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-                std::cout << "IG05630_BENCH,experimental" << ',' << hostRate << ',' << rate << ','
+                std::cout << "IG05630_BENCH,behavioral" << ',' << hostRate << ',' << rate << ','
                           << (modulated ? "modulated" : "static") << ',' << sampleCount << ','
                           << elapsed << ',' << elapsed * 1.0e9 / sampleCount << ','
                           << (finite ? "finite" : "nonfinite") << '\n';

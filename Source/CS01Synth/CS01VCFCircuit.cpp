@@ -17,8 +17,8 @@ void CS01VCFCircuit::reset() {
     model.reset();
 
     // Reset input and output stages
-    inputStage.reset();
-    outputStage.reset();
+    inputCoupling.reset();
+    outputCoupling.reset();
 }
 
 void CS01VCFCircuit::prepare(double newSampleRate) {
@@ -26,31 +26,8 @@ void CS01VCFCircuit::prepare(double newSampleRate) {
     model.prepare(newSampleRate);
 
     // Prepare input and output stages
-    inputStage.prepare(newSampleRate);
-    outputStage.prepare(newSampleRate);
-}
-
-// Input stage processing - Clean DC blocking based on circuit diagram
-float CS01VCFCircuit::processInputStage(float sample) {
-    // Empirical 20 Hz, second-order DC blocker; not derived from the audio-input RC network.
-    sample = inputStage.dcBlocker.processSample(sample);
-
-    return sample;
-}
-
-// Output stage processing - Clean DC blocking based on circuit diagram
-float CS01VCFCircuit::processOutputStage(float sample) {
-    // Empirical coupling approximation. The schematic's 1/50 means 1 uF / 50 V,
-    // not 0.02 uF. Its effective load has not been established here.
-    const float cutoffFreq = 8.0f;  // Uncalibrated model value, not an RC-derived target.
-    const float alpha =
-        1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffFreq / outputStage.sampleRate);
-
-    // Clean DC blocking filter
-    outputStage.prevOutput = alpha * (outputStage.prevOutput + sample - outputStage.prevInput);
-    outputStage.prevInput = sample;
-
-    return outputStage.prevOutput;
+    inputCoupling.prepare(newSampleRate);
+    outputCoupling.prepare(newSampleRate);
 }
 
 void CS01VCFCircuit::setCutoffFrequency(float newCutoff) {
@@ -62,9 +39,9 @@ void CS01VCFCircuit::setResonance(float newResonance) {
 }
 
 float CS01VCFCircuit::processSample(int channel, float sample) {
-    const float coupledInput = processInputStage(sample);
+    const float coupledInput = inputCoupling.processSample(sample);
     const float filtered = model.processSample(coupledInput, cutoff, resonance);
-    return processOutputStage(filtered);
+    return outputCoupling.processSample(filtered);
 }
 
 void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
@@ -94,8 +71,8 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* c
     const float boundedResonance = juce::jlimit(0.0f, 1.0f, baseResonance);
     for (int i = 0; i < numSamples; ++i) {
         const float boundedCutoff = juce::jlimit(20.0f, 20000.0f, cutoffModulation[i]);
-        samples[i] = processOutputStage(
-            model.processSample(processInputStage(samples[i]), boundedCutoff, boundedResonance));
+        samples[i] = outputCoupling.processSample(model.processSample(
+            inputCoupling.processSample(samples[i]), boundedCutoff, boundedResonance));
     }
     cutoff = originalCutoff;
     resonance = originalResonance;

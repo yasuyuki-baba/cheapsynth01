@@ -109,3 +109,5 @@ Load the plugin in your DAW or launch the standalone application.
 ## License
 
 This project is released under the GNU General Public License v3. See the LICENSE file for details.
+
+DSP architecture and modeling terminology: [responsibility boundaries](docs/DSP-responsibility-boundaries.md).

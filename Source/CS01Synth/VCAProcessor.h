@@ -2,8 +2,9 @@
 
 #include <JuceHeader.h>
 
-#include "CS01Synth/IG02600.h"
+#include "CS01Synth/IG02600BehavioralModel.h"
 #include "Parameters.h"
+#include "CS01Synth/VCAEmpiricalStages.h"
 
 //==============================================================================
 class VCAProcessor : public juce::AudioProcessor {
@@ -67,31 +68,35 @@ class VCAProcessor : public juce::AudioProcessor {
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
 
-    // Input stage high-pass filter (82K resistor and 1/50 capacitor)
-    juce::dsp::IIR::Filter<float> inputHighPass;
+    // Empirical second-order 40 Hz input coupling, not an RC reconstruction.
+    juce::dsp::IIR::Filter<float> empiricalInputCoupling;
 
-    // Simple DC blocking filter
-    juce::dsp::IIR::Filter<float> dcBlocker;
+    // Implementation safety: additional 20 Hz DC removal.
+    juce::dsp::IIR::Filter<float> safetyDcBlocker;
 
-    // Simple high frequency rolloff filter
-    juce::dsp::IIR::Filter<float> highFreqRolloff;
+    // Implementation safety/rolloff: 15 kHz ceiling, bounded to 45% of rate.
+    juce::dsp::IIR::Filter<float> safetyHighFreqRolloff;
 
-    // IG02600 VCA chip emulation
-    IG02600 vcaModel;
+    // Provisional IC gain/nonlinearity; no internal topology claim.
+    IG02600BehavioralModel vcaModel;
     juce::SmoothedValue<float> egDepthControl;
 
-    // Tr7 transistor buffer emulation
-    float processTr7Buffer(float input);
-
-    // Output coupling capacitor emulation
-    float processOutputCoupling(float input);
-
-    // State variables for analog circuit emulation
-    float capacitorState = 0.0f;
-    float prevOutput = 0.0f;
-    float outCapacitorState = 0.0f;
-    float bufferCouplingPole = 0.997f;
-    float outputCouplingPole = 0.9995f;
+    // External coupling/Tr7 path: empirical poles, not RC-derived targets.
+    struct EmpiricalParameters {
+        static constexpr double inputCouplingHz = 40.0;
+        // Empirical normalized panel-volume curve, not an IC control law.
+        static constexpr float volumeExponent = 2.5f;
+        static constexpr float bufferCouplingReferencePole = 0.997f;
+        static constexpr float outputCouplingReferencePole = 0.9995f;
+    };
+    struct SafetyParameters {
+        static constexpr double dcBlockerHz = 20.0;
+        static constexpr float rolloffHz = 15000.0f;
+        static constexpr float maximumRateFraction = 0.45f;
+    };
+    EmpiricalVCACoupling bufferInputCoupling{EmpiricalParameters::bufferCouplingReferencePole};
+    Tr7EmpiricalBuffer tr7Buffer;
+    EmpiricalVCACoupling outputCoupling{EmpiricalParameters::outputCouplingReferencePole};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VCAProcessor)
 };

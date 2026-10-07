@@ -12,8 +12,8 @@ filter or MIDI extensions.
 | YM10150: waveform generation | Waveform/feet selection and sound-generator connections | Generation method, amplitude, harmonics, output impedance | BLEP, integration, custom waveform corrections, and tanh shaping affect waveform and timbre | `Source/CS01Synth/ToneGenerator.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
 | YM10150: keyboard and gate | Keyboard inputs and EG gate path | Key priority, retrigger conditions, transition state | Highest-note priority and legato gate retention; consistency tests do not prove hardware behavior | `Source/CS01Synth/MidiProcessor.cpp` |
 | YM10150: glissando | GLS connections to 22 kohm, A1M, and 0.022 uF components transcribed | Oscillation thresholds, division, resistance-to-semitone timing, phase during adjustment | Maximum 208 ms per semitone with a provisional control curve; changes preserve fractional step progress | `Source/CS01Synth/ToneGenerator.cpp` |
-| IG02610: VCF | External control/audio paths and High/Low selection | Internal topology, control-to-cutoff relationship, loading, resonance, distortion | TPT state-variable behavioral core with nonlinear feedback; damping/drive values and modulation depth are provisional | `Source/CS01Synth/ExperimentalOriginalVCF.h`, `Source/CS01Synth/CS01VCFCircuit.cpp`, `Source/CS01Synth/OriginalVCFProcessor.cpp` and `.h` |
-| IG02600: VCA | External audio, EG, and breath paths | Control-voltage-to-gain relationship, input combination, saturation, loading | Multiplied EG/breath gains and custom saturation; intermediate curves remain unresolved | `Source/CS01Synth/VCAProcessor.cpp` |
+| IG02610: VCF | External control/audio paths and High/Low selection | Internal topology, control-to-cutoff relationship, loading, resonance, distortion | TPT state-variable behavioral core with nonlinear feedback; damping/drive values and modulation depth are provisional | `Source/CS01Synth/IG02610BehavioralModel.h`, `Source/CS01Synth/CS01VCFCircuit.cpp`, `Source/CS01Synth/OriginalVCFProcessor.cpp` and `.h` |
+| IG02600: VCA | External audio, EG, and breath paths | Control-voltage-to-gain relationship, input combination, saturation, loading | Multiplied EG/breath gains and custom saturation; intermediate curves remain unresolved | `Source/CS01Synth/IG02600BehavioralModel.cpp`, `Source/CS01Synth/VCAEmpiricalStages.h`, `Source/CS01Synth/VCAProcessor.cpp` |
 
 Implementation paths are relative to the repository root. Pinouts alone do not
 establish internal transfer characteristics.
@@ -53,3 +53,5 @@ Creating this inventory did not change production audio processing.
 See [external-circuit closeout](External-circuit-closeout.md) for completed
 analysis, reproducible verification and the remaining evidence required before
 production changes. Audit completion is not hardware-model completion.
+
+For current production stage ownership and terminology, see [DSP responsibility boundaries](DSP-responsibility-boundaries.md).
