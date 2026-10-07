@@ -1,16 +1,146 @@
 #include <JuceHeader.h>
 
+#include "BinaryData.h"
 #include "CS01AudioProcessor.h"
 #include "Parameters.h"
 #include "ProgramManager.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cmath>
+
 TEST(ParameterVersionTest, ProductionParametersHaveStableVersionHints) {
     CS01AudioProcessor processor;
     ASSERT_EQ(processor.getParameters().size(), 24);
     for (auto* parameter : processor.getParameters()) {
         EXPECT_EQ(parameter->getVersionHint(), 1);
+    }
+}
+
+TEST(ProductionStateTest, EveryFactoryPresetLoadsEmbeddedSoundAndPreservesLiveControls) {
+    CS01AudioProcessor host;
+    auto& state = host.getValueTreeState();
+    auto& manager = host.getPresetManager();
+    const std::vector<std::pair<juce::String, float>> liveControls{
+        {ParameterIds::volume, 0.3f},
+        {ParameterIds::breathInput, 0.2f},
+        {ParameterIds::pitchBend, -0.5f},
+        {ParameterIds::modDepth, 0.4f}};
+    int factoryCount = 0;
+    for (int index = 0; index < manager.getNumPrograms(); ++index) {
+        if (manager.isUserPreset(index))
+            continue;
+        ++factoryCount;
+        SCOPED_TRACE(manager.getProgramName(index).toStdString());
+        int size = 0;
+        const auto resource = manager.getProgramFilename(index).replace(".", "_");
+        const auto* data = BinaryData::getNamedResource(resource.toRawUTF8(), size);
+        ASSERT_NE(data, nullptr);
+        ASSERT_GT(size, 0);
+        auto xml = juce::XmlDocument::parse(juce::String::fromUTF8(data, size));
+        ASSERT_NE(xml, nullptr);
+        ASSERT_TRUE(xml->hasTagName(state.state.getType()));
+        ASSERT_EQ(xml->getNumChildElements(), 18);
+        // Perturb each sound control to prove selection actually reloads it.
+        for (auto* child : xml->getChildIterator()) {
+            auto* parameter = state.getParameter(child->getStringAttribute("id"));
+            ASSERT_NE(parameter, nullptr);
+            const auto expected = static_cast<float>(child->getDoubleAttribute("value"));
+            const auto normalized = parameter->convertTo0to1(expected);
+            parameter->setValueNotifyingHost(normalized < 0.5f ? 1.0f : 0.0f);
+        }
+        for (const auto& [id, value] : liveControls) {
+            auto* parameter = state.getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+        }
+        manager.setCurrentProgram(index);
+        for (auto* child : xml->getChildIterator()) {
+            const auto id = child->getStringAttribute("id");
+            SCOPED_TRACE(id.toStdString());
+            auto* parameter = state.getParameter(id);
+            const auto expected = static_cast<float>(child->getDoubleAttribute("value"));
+            EXPECT_NEAR(parameter->convertFrom0to1(parameter->getValue()), expected, 0.001f);
+        }
+        for (const auto& [id, value] : liveControls)
+            EXPECT_NEAR(state.getRawParameterValue(id)->load(), value, 0.001f);
+    }
+    EXPECT_EQ(factoryCount, 7);
+}
+
+TEST(ProductionStateTest, ManualFactoryPresetsMatchDocumentedPanelReadings) {
+    CS01AudioProcessor host;
+    auto& state = host.getValueTreeState();
+    auto& manager = host.getPresetManager();
+    // Independent visual readings from printed pages 28-33. See Factory-presets.md.
+    struct Reading {
+        const char* filename;
+        int wave, feet, resonance, target;
+        std::array<float, 11> positions;
+    };
+    const std::array<juce::String, 11> ids{
+        ParameterIds::cutoff,    ParameterIds::vcfEgDepth, ParameterIds::vcaEgDepth,
+        ParameterIds::attack,    ParameterIds::decay,      ParameterIds::sustain,
+        ParameterIds::release,   ParameterIds::lfoSpeed,   ParameterIds::pwmSpeed,
+        ParameterIds::breathVcf, ParameterIds::breathVca};
+    const Reading readings[]{
+        {"Flute.xml", 0, 2, 0, 0, {.2f, .4f, 1, .2f, 0, 1, 0, 0, 0, .7f, .7f}},
+        {"Violin.xml", 1, 3, 0, 0, {.75f, .45f, 1, .1f, .1f, 1, 0, .75f, 0, .7f, 0}},
+        {"Trumpet.xml", 1, 2, 0, 0, {.35f, .5f, 1, .1f, .2f, .5f, 0, 0, 0, 0, 0}},
+        {"Clavinet.xml", 3, 1, 1, 1, {.6f, .5f, 1, 0, .2f, 0, .65f, .75f, 0, .3f, .3f}},
+        {"Solo_Synth_Lead.xml", 2, 3, 0, 0, {.35f, 1, 1, 0, .1f, .3f, .3f, .55f, .6f, 0, 0}},
+        {"Synth_Bass.xml", 3, 0, 1, 1, {.4f, .25f, 1, 0, .3f, 0, .5f, .1f, 0, 0, 0}}};
+    for (const auto& reading : readings) {
+        SCOPED_TRACE(reading.filename);
+        const auto index = manager.findProgram(reading.filename, PresetType::Factory);
+        ASSERT_GE(index, 0);
+        manager.setCurrentProgram(index);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::waveType)->load(), reading.wave);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::feet)->load(), reading.feet);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::resonance)->load(),
+                        reading.resonance);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::lfoTarget)->load(),
+                        reading.target);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::filterType)->load(), 0);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitch)->load(), 0);
+        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::glissando)->load(), 0);
+        for (size_t i = 0; i < ids.size(); ++i) {
+            SCOPED_TRACE(ids[i].toStdString());
+            // Low EG positions lose precision when rounded to 1 ms in the XML.
+            EXPECT_NEAR(state.getParameter(ids[i])->getValue(), reading.positions[i], .02f);
+        }
+    }
+}
+
+TEST(ProductionStateTest, FactorySoundsRenderFiniteAudibleNotesWithoutBreathInput) {
+    CS01AudioProcessor host;
+    auto& manager = host.getPresetManager();
+    for (int index = 0; index < manager.getNumPrograms(); ++index) {
+        if (manager.isUserPreset(index))
+            continue;
+        SCOPED_TRACE(manager.getProgramName(index).toStdString());
+        manager.setCurrentProgram(index);
+        host.prepareToPlay(48000, 128);
+        juce::AudioBuffer<float> buffer(2, 128);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
+        float peak = 0;
+        for (int block = 0; block < 100; ++block) {
+            buffer.clear();
+            host.processBlock(buffer, midi);
+            midi.clear();
+            for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
+                for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
+                    const auto value = buffer.getSample(channel, sample);
+                    ASSERT_TRUE(std::isfinite(value));
+                    peak = juce::jmax(peak, std::abs(value));
+                }
+            }
+        }
+        EXPECT_GT(peak, 0.00001f);
+        midi.addEvent(juce::MidiMessage::allNotesOff(1), 0);
+        host.processBlock(buffer, midi);
+        host.releaseResources();
     }
 }
 

@@ -12,6 +12,8 @@ CheapSynth01 is a JUCE-based software emulation of an early 80's compact monopho
 ## Features
 
 - Circuit-informed synthesis with documented modeling limitations
+- Six factory sounds transcribed from the CS01 owner's manual
+  ([panel readings and usage](docs/Factory-presets.md))
 - Two filter types with different resonance control modes:
   - Original VCF with toggle resonance (High/Low)
   - Modern VCF with continuous resonance control

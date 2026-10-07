@@ -1,20 +1,21 @@
+<!-- CS01 owner's manual, printed page 28. Approximate panel positions; see docs/Factory-presets.md. -->
 <Parameters>
   <PARAM id="WAVE_TYPE" value="0"/>
   <PARAM id="FEET" value="2"/>
   <PARAM id="PWM_SPEED" value="0.6"/>
-  <PARAM id="PITCH" value="0.0"/>
-  <PARAM id="GLISSANDO" value="0.0"/>
-  <PARAM id="CUTOFF" value="113.0"/>
-  <PARAM id="RESONANCE" value="0.0"/>
-  <PARAM id="VCF_EG_DEPTH" value="0.5"/>
-  <PARAM id="VCA_EG_DEPTH" value="1.0"/>
-  <PARAM id="ATTACK" value="0.010"/>
+  <PARAM id="PITCH" value="0"/>
+  <PARAM id="GLISSANDO" value="0"/>
+  <PARAM id="CUTOFF" value="113"/>
+  <PARAM id="RESONANCE" value="0"/>
+  <PARAM id="VCF_EG_DEPTH" value="0.4"/>
+  <PARAM id="VCA_EG_DEPTH" value="1"/>
+  <PARAM id="ATTACK" value="0.01"/>
   <PARAM id="DECAY" value="0.001"/>
-  <PARAM id="SUSTAIN" value="1.0"/>
+  <PARAM id="SUSTAIN" value="1"/>
   <PARAM id="RELEASE" value="0.001"/>
-  <PARAM id="LFO_SPEED" value="2.0"/>
+  <PARAM id="LFO_SPEED" value="0.8"/>
   <PARAM id="LFO_TARGET" value="0"/>
-  <PARAM id="BREATH_VCF" value="0.5"/>
-  <PARAM id="BREATH_VCA" value="0.5"/>
+  <PARAM id="BREATH_VCF" value="0.7"/>
+  <PARAM id="BREATH_VCA" value="0.7"/>
   <PARAM id="FILTER_TYPE" value="0"/>
 </Parameters>
