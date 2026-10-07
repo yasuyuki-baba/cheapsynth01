@@ -226,7 +226,8 @@ TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CompareInterpolatedInp
     }
 }
 
-TEST(ExperimentalOriginalVCFSpectrumTest, Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
+TEST(ExperimentalOriginalVCFSpectrumTest,
+     Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
     // One-second coherent window after one-second settling. Observations only:
     // folded bins can contain multiple harmonics, not exclusively harmonic five.
     for (double rate : {44100.0, 48000.0, 96000.0}) {

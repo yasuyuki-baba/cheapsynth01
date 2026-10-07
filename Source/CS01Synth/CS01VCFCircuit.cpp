@@ -94,8 +94,8 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* c
     const float boundedResonance = juce::jlimit(0.0f, 1.0f, baseResonance);
     for (int i = 0; i < numSamples; ++i) {
         const float boundedCutoff = juce::jlimit(20.0f, 20000.0f, cutoffModulation[i]);
-        samples[i] = processOutputStage(model.processSample(
-            processInputStage(samples[i]), boundedCutoff, boundedResonance));
+        samples[i] = processOutputStage(
+            model.processSample(processInputStage(samples[i]), boundedCutoff, boundedResonance));
     }
     cutoff = originalCutoff;
     resonance = originalResonance;

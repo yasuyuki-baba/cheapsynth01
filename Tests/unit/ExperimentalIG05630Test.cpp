@@ -13,17 +13,17 @@
 namespace {
 constexpr int characterSamples = 32768;
 
-std::vector<float> render(double sampleRate, float cutoff, float resonance,
-                          double toneHz, float amplitude) {
+std::vector<float> render(double sampleRate, float cutoff, float resonance, double toneHz,
+                          float amplitude) {
     CS01IIVCFCircuit circuit;
     circuit.prepare(sampleRate);
     circuit.setCutoffFrequency(cutoff);
     circuit.setResonance(resonance);
     std::vector<float> output(characterSamples);
     for (int i = 0; i < characterSamples; ++i) {
-        const float input = amplitude *
-                            static_cast<float>(std::sin(2.0 * juce::MathConstants<double>::pi *
-                                                        toneHz * i / sampleRate));
+        const float input =
+            amplitude * static_cast<float>(std::sin(2.0 * juce::MathConstants<double>::pi * toneHz *
+                                                    i / sampleRate));
         output[i] = circuit.processSample(0, input);
     }
     return output;
@@ -34,8 +34,8 @@ double amplitudeAt(const std::vector<float>& signal, double sampleRate, double f
     double sine = 0.0;
     double cosine = 0.0;
     for (int i = characterSamples / 2; i < characterSamples; ++i) {
-        const double phase = 2.0 * juce::MathConstants<double>::pi * frequency * harmonic * i /
-                             sampleRate;
+        const double phase =
+            2.0 * juce::MathConstants<double>::pi * frequency * harmonic * i / sampleRate;
         sine += signal[i] * std::sin(phase);
         cosine += signal[i] * std::cos(phase);
     }
@@ -53,8 +53,7 @@ TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
             const float input = 4.0f * std::sin(i * 0.19f);
             const float output = filter.processSample(input);
             ASSERT_TRUE(std::isfinite(output));
-            EXPECT_LE(std::abs(output),
-                      ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+            EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
         }
     }
 }
@@ -70,8 +69,7 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
     for (int i = 0; i < sampleCount; ++i) {
         const float output = filter.processSample(i == 0 ? 0.5f : 0.0f);
         ASSERT_TRUE(std::isfinite(output));
-        EXPECT_LE(std::abs(output),
-                  ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+        EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
         if (i >= sampleCount * 3 / 4)
             latePower += static_cast<double>(output) * output;
     }
@@ -126,16 +124,17 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                     if (frequency >= rate * 0.4)
                         continue;
                     {
-                        const auto signal = render(rate, cutoff, resonance, frequency,
-                                                   0.01f);
-                        const double gain = 20.0 * std::log10(
-                            std::max(amplitudeAt(signal, rate, frequency) / 0.01, 1.0e-15));
-                        const bool finite = std::all_of(signal.begin(), signal.end(),
-                                                        [](float value) { return std::isfinite(value); });
-                        std::cout << "IG05630_RESPONSE,experimental"
-                                  << ',' << hostRate << ',' << rate << ',' << cutoff << ','
-                                  << resonance << ',' << frequency << ',' << gain << ','
-                                  << (finite ? "finite" : "nonfinite") << '\n';
+                        const auto signal = render(rate, cutoff, resonance, frequency, 0.01f);
+                        const double gain =
+                            20.0 * std::log10(std::max(amplitudeAt(signal, rate, frequency) / 0.01,
+                                                       1.0e-15));
+                        const bool finite =
+                            std::all_of(signal.begin(), signal.end(),
+                                        [](float value) { return std::isfinite(value); });
+                        std::cout << "IG05630_RESPONSE,experimental" << ',' << hostRate << ','
+                                  << rate << ',' << cutoff << ',' << resonance << ',' << frequency
+                                  << ',' << gain << ',' << (finite ? "finite" : "nonfinite")
+                                  << '\n';
                     }
                 }
             }
@@ -144,20 +143,21 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
         for (float resonance : {0.4f, 0.8f, 1.0f}) {
             for (float inputPeak : {0.05f, 0.5f}) {
                 constexpr float cutoff = 1000.0f;
-                const int cycles = juce::jmax(
-                    8, juce::roundToInt(440.0 * characterSamples / rate));
+                const int cycles = juce::jmax(8, juce::roundToInt(440.0 * characterSamples / rate));
                 const double frequency = cycles * rate / characterSamples;
                 {
-                    const auto signal = render(rate, cutoff, resonance, frequency,
-                                               inputPeak);
+                    const auto signal = render(rate, cutoff, resonance, frequency, inputPeak);
                     const double fundamental = amplitudeAt(signal, rate, frequency);
-                    std::cout << "IG05630_HARMONICS,experimental"
-                              << ',' << hostRate << ',' << rate << ',' << cutoff << ',' << resonance
-                              << ',' << inputPeak << ',' << frequency;
+                    std::cout << "IG05630_HARMONICS,experimental" << ',' << hostRate << ',' << rate
+                              << ',' << cutoff << ',' << resonance << ',' << inputPeak << ','
+                              << frequency;
                     for (int harmonic = 1; harmonic <= 8; ++harmonic) {
                         const double level = amplitudeAt(signal, rate, frequency, harmonic);
-                        const double relativeDb = harmonic == 1 ? 0.0 : 20.0 * std::log10(
-                            std::max(level / std::max(fundamental, 1.0e-30), 1.0e-15));
+                        const double relativeDb =
+                            harmonic == 1
+                                ? 0.0
+                                : 20.0 * std::log10(std::max(level / std::max(fundamental, 1.0e-30),
+                                                             1.0e-15));
                         std::cout << ',' << relativeDb;
                     }
                     std::cout << '\n';
@@ -170,7 +170,7 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
             std::vector<float> source(sampleCount);
             for (int i = 0; i < sampleCount; ++i)
                 source[i] = 0.2f * static_cast<float>(std::sin(
-                    i * 2.0 * juce::MathConstants<double>::pi * 220.0 / rate));
+                                       i * 2.0 * juce::MathConstants<double>::pi * 220.0 / rate));
             {
                 auto input = source;
                 CS01IIVCFCircuit circuit;
@@ -178,19 +178,20 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                 const auto start = std::chrono::steady_clock::now();
                 bool finite = true;
                 for (int i = 0; i < sampleCount; ++i) {
-                    const float cutoff = modulated
-                        ? 1000.0f * (1.0f + 0.8f * std::sin(i * 2.0f * juce::MathConstants<float>::pi /
-                                                               8192.0f))
-                        : 1000.0f;
+                    const float cutoff =
+                        modulated
+                            ? 1000.0f *
+                                  (1.0f + 0.8f * std::sin(i * 2.0f *
+                                                          juce::MathConstants<float>::pi / 8192.0f))
+                            : 1000.0f;
                     circuit.setCutoffFrequency(cutoff);
                     circuit.setResonance(0.8f);
                     input[i] = circuit.processSample(0, input[i]);
                     finite = finite && std::isfinite(input[i]);
                 }
-                const double elapsed = std::chrono::duration<double>(
-                    std::chrono::steady_clock::now() - start).count();
-                std::cout << "IG05630_BENCH,experimental"
-                          << ',' << hostRate << ',' << rate << ','
+                const double elapsed =
+                    std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+                std::cout << "IG05630_BENCH,experimental" << ',' << hostRate << ',' << rate << ','
                           << (modulated ? "modulated" : "static") << ',' << sampleCount << ','
                           << elapsed << ',' << elapsed * 1.0e9 / sampleCount << ','
                           << (finite ? "finite" : "nonfinite") << '\n';

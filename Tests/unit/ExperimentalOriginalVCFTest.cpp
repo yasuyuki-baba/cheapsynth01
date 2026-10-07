@@ -12,8 +12,8 @@
 namespace {
 constexpr int characterizationSamples = 32768;
 
-std::vector<float> renderFilter(double sampleRate, float cutoffHz,
-                                float resonance, double frequencyHz, float amplitude) {
+std::vector<float> renderFilter(double sampleRate, float cutoffHz, float resonance,
+                                double frequencyHz, float amplitude) {
     CS01VCFCircuit filter;
     filter.prepare(sampleRate);
     std::vector<float> audio(characterizationSamples);
@@ -27,13 +27,13 @@ std::vector<float> renderFilter(double sampleRate, float cutoffHz,
 }
 
 double projectedAmplitude(const std::vector<float>& audio, double sampleRate, double frequencyHz,
-                           int harmonic = 1) {
+                          int harmonic = 1) {
     double sine = 0.0;
     double cosine = 0.0;
     const int begin = characterizationSamples / 2;
     for (int i = begin; i < characterizationSamples; ++i) {
-        const double phase = juce::MathConstants<double>::twoPi * frequencyHz * harmonic * i /
-                             sampleRate;
+        const double phase =
+            juce::MathConstants<double>::twoPi * frequencyHz * harmonic * i / sampleRate;
         sine += audio[i] * std::sin(phase);
         cosine += audio[i] * std::cos(phase);
     }
@@ -112,13 +112,12 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
                 auto audio = source;
                 const auto start = std::chrono::steady_clock::now();
                 filter.processBlock(audio.data(), sampleCount, cutoff.data(), 0.7f);
-                const auto elapsed = std::chrono::duration<double>(
-                    std::chrono::steady_clock::now() - start).count();
+                const auto elapsed =
+                    std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
                 const bool finite = std::all_of(audio.begin(), audio.end(),
                                                 [](float x) { return std::isfinite(x); });
                 std::cout << "ORIGINAL_VCF_CPP_BENCH,"
-                          << "experimental_tpt" << ','
-                          << hostRate << ',' << coreRate << ','
+                          << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
                           << (modulated ? "modulated" : "static") << ',' << sampleCount << ','
                           << elapsed << ',' << (elapsed * 1e9 / sampleCount) << ','
                           << (finite ? "finite" : "nonfinite") << '\n';
@@ -140,14 +139,14 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
                     if (frequencyHz >= coreRate * 0.45)
                         continue;
                     {
-                        const auto audio = renderFilter(coreRate, cutoffHz, resonance,
-                                                        frequencyHz, 0.01f);
+                        const auto audio =
+                            renderFilter(coreRate, cutoffHz, resonance, frequencyHz, 0.01f);
                         const double output = projectedAmplitude(audio, coreRate, frequencyHz);
                         const double gainDb = 20.0 * std::log10(std::max(output / 0.01, 1.0e-15));
                         std::cout << "ORIGINAL_VCF_CPP_RESPONSE,"
-                                  << "experimental_tpt" << ','
-                                  << hostRate << ',' << coreRate << ',' << cutoffHz << ','
-                                  << resonance << ',' << frequencyHz << ',' << gainDb << ','
+                                  << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
+                                  << cutoffHz << ',' << resonance << ',' << frequencyHz << ','
+                                  << gainDb << ','
                                   << (std::isfinite(gainDb) ? "finite" : "nonfinite") << '\n';
                     }
                 }
@@ -160,20 +159,19 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
             const int cycles = juce::roundToInt(440.0 * characterizationSamples / coreRate);
             const double frequencyHz = cycles * coreRate / characterizationSamples;
             {
-                const auto audio = renderFilter(coreRate, cutoffHz, resonance,
-                                                frequencyHz, amplitude);
+                const auto audio =
+                    renderFilter(coreRate, cutoffHz, resonance, frequencyHz, amplitude);
                 const double fundamental = projectedAmplitude(audio, coreRate, frequencyHz);
                 std::cout << "ORIGINAL_VCF_CPP_HARMONICS,"
-                          << "experimental_tpt" << ','
-                          << hostRate << ',' << coreRate << ',' << cutoffHz << ',' << resonance
-                          << ',' << amplitude << ',' << frequencyHz;
+                          << "experimental_tpt" << ',' << hostRate << ',' << coreRate << ','
+                          << cutoffHz << ',' << resonance << ',' << amplitude << ',' << frequencyHz;
                 for (int harmonic = 1; harmonic <= 8; ++harmonic) {
                     const double level = projectedAmplitude(audio, coreRate, frequencyHz, harmonic);
-                    const double relativeDb = harmonic == 1
-                                                  ? 0.0
-                                                  : 20.0 * std::log10(std::max(
-                                                        level / std::max(fundamental, 1.0e-30),
-                                                        1.0e-15));
+                    const double relativeDb =
+                        harmonic == 1
+                            ? 0.0
+                            : 20.0 * std::log10(
+                                         std::max(level / std::max(fundamental, 1.0e-30), 1.0e-15));
                     std::cout << ',' << relativeDb;
                 }
                 std::cout << '\n';
