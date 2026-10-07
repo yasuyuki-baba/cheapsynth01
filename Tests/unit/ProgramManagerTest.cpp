@@ -102,7 +102,8 @@ TEST(ProductionStateTest, ManualFactoryPresetsMatchDocumentedPanelReadings) {
         EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::lfoTarget)->load(),
                         reading.target);
         EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::filterType)->load(), 0);
-        EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitch)->load(), 0);
+        // Bipolar range conversion can leave a rounding residual at the centre on ARM.
+        EXPECT_NEAR(state.getRawParameterValue(ParameterIds::pitch)->load(), 0.0f, 0.000001f);
         EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::glissando)->load(), 0);
         for (size_t i = 0; i < ids.size(); ++i) {
             SCOPED_TRACE(ids[i].toStdString());
