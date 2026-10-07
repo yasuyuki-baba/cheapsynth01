@@ -79,6 +79,26 @@ TEST(ExperimentalIG05630Test, SustainsBoundedResonanceAfterAnImpulse) {
     EXPECT_GT(lateRms, 1.0e-5);
 }
 
+TEST(ExperimentalIG05630Test, KeepsSelfOscillationNearTheTopOfTheResonanceRange) {
+    const auto lateRmsAfterImpulse = [](float resonance) {
+        ExperimentalIG05630 filter;
+        filter.prepare(192000.0);
+        filter.setCutoffFrequency(1000.0f);
+        filter.setResonance(resonance);
+        double latePower = 0.0;
+        constexpr int sampleCount = 192000;
+        for (int i = 0; i < sampleCount; ++i) {
+            const float output = filter.processSample(i == 0 ? 0.5f : 0.0f);
+            if (i >= sampleCount * 3 / 4)
+                latePower += static_cast<double>(output) * output;
+        }
+        return std::sqrt(latePower / (sampleCount / 4));
+    };
+
+    EXPECT_LT(lateRmsAfterImpulse(0.8f), 1.0e-5);
+    EXPECT_GT(lateRmsAfterImpulse(1.0f), 1.0e-5);
+}
+
 TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
     constexpr int sampleCount = 8192;
     std::vector<float> whole(sampleCount), partitioned(sampleCount);

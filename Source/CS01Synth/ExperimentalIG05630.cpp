@@ -38,6 +38,10 @@ void ExperimentalIG05630::setCutoffFrequency(float frequency) {
 
 void ExperimentalIG05630::setResonance(float amount) {
     resonance = std::isfinite(amount) ? std::clamp(amount, 0.0f, 1.0f) : 0.0f;
+    // The fourth-power map is an explicit behavioral hypothesis to keep moderate
+    // panel values below the self-oscillation region while retaining it near max.
+    resonanceFeedbackGain = EmpiricalParameters::maximumFeedbackGain *
+                            std::pow(resonance, EmpiricalParameters::resonanceCurve);
 }
 
 float ExperimentalIG05630::processSample(float sample) {
@@ -51,8 +55,7 @@ float ExperimentalIG05630::processSample(float sample) {
 
     // The one-sample feedback state keeps this behavioral loop deterministic.
     // This is an explicit-delay TPT cascade, not a ZDF solution of an IC loop.
-    const float feedbackGain = EmpiricalParameters::maximumFeedbackGain * resonance;
-    const float feedback = feedbackGain *
+    const float feedback = resonanceFeedbackGain *
                            std::tanh(feedbackOutput * EmpiricalParameters::feedbackDrive);
     const float integratorInput =
         std::tanh((sample - feedback) * EmpiricalParameters::inputDrive) /
