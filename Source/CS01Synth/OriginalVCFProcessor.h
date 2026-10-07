@@ -6,6 +6,8 @@
 #include "CS01Synth/IFilter.h"         // Updated interface
 #include "Parameters.h"
 
+#include <atomic>
+
 //==============================================================================
 class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
    public:

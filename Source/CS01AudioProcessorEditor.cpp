@@ -9,6 +9,9 @@
 #include "UI/VCOComponent.h"
 #include "UI/VolumeComponent.h"
 
+#include <functional>
+#include <utility>
+
 // Use JUCE namespace
 using namespace juce;
 
@@ -195,6 +198,7 @@ void CS01AudioProcessorEditor::resized() {
     auto bounds = getLocalBounds().reduced(20);
     auto header = bounds.removeFromTop(44);
     displayButton.setBounds(header.removeFromRight(220));
+    header.removeFromRight(8);
     programPanel->setBounds(header.withSizeKeepingCentre(560, 44));
     bounds.removeFromTop(18);
 

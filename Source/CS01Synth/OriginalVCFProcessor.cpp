@@ -1,5 +1,7 @@
 #include "CS01Synth/OriginalVCFProcessor.h"
 
+#include "MidiParameterValue.h"
+
 #include <cmath>
 
 //==============================================================================
@@ -66,12 +68,12 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto lfoInput = getBusBuffer(buffer, true, 2);
 
     // Get parameters
-    auto cutoffParam = apvts.getRawParameterValue(ParameterIds::cutoff)->load();
-    auto resonanceParam = apvts.getRawParameterValue(ParameterIds::resonance)->load();
+    auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
+    auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load();
     egDepthControl.setTargetValue(egDepth);
-    auto modDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
-    auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
+    auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
+    auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
     auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
 
     // Cutoff frequency calculation
@@ -93,9 +95,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Expect modulationBuffer to be preallocated in prepareToPlay; avoid reallocating on audio
     // thread
     jassert(numSamples <= modulationBufferCapacity);
-    if (modulationBufferCapacity > 0) {
-        modulationBuffer.clear(numSamples);
-    }
+    // Every active sample is assigned below before the buffer is consumed, so
+    // clearing this block would add a redundant full-buffer write.
 
     // Empirical modulation spans, not calibrated from IG02610 control-current data.
     // Keep these separate from tests of polarity and disabled-control independence.
@@ -112,20 +113,20 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         // EG modulation
         float egMod = egValue * egDepthControl.getNextValue() * egModRangeSemitones;
-        float egModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(egMod / 12.0f)));
 
         // LFO modulation
         float lfoMod = lfoValue * modDepth * lfoModRangeSemitones;
-        float lfoModFreqRatio = static_cast<float>(std::exp2(static_cast<double>(lfoMod / 12.0f)));
 
         // Breath modulation
         float breathMod = breathInput * breathVcfDepth * breathModRangeSemitones;
-        float breathModFreqRatio =
-            static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
 
-        // Apply all modulations
-        float modulatedCutoffHz =
-            baseCutoff * egModFreqRatio * lfoModFreqRatio * breathModFreqRatio;
+        // Semitone ratios multiply, so sum their exponents and evaluate one
+        // exp2 instead of three. This is algebraically equivalent, with only
+        // small floating-point rounding differences from the old multiply path.
+        const float totalModSemitones = egMod + lfoMod + breathMod;
+        const float combinedModFreqRatio =
+            static_cast<float>(std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
+        float modulatedCutoffHz = baseCutoff * combinedModFreqRatio;
 
         // Check for NaN or Infinity
         if (std::isnan(modulatedCutoffHz) || std::isinf(modulatedCutoffHz)) {

@@ -1,10 +1,17 @@
 #include <JuceHeader.h>
 
+#include "CS01Synth/CS01VCFCircuit.h"
 #include "CS01Synth/OriginalVCFProcessor.h"
 #include "CS01Synth/VCAProcessor.h"
 #include "Parameters.h"
 
 #include <gtest/gtest.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iostream>
+#include <vector>
 
 // Test fixture for OriginalVCFProcessor tests
 class OriginalVCFProcessorTest : public ::testing::Test {
@@ -759,4 +766,111 @@ TEST_F(OriginalVCFProcessorTest, ModulationInputs) {
         // Just verify that processing completed without crash
         EXPECT_TRUE(true) << "Modulation processing completed without crash (no output detected)";
     }
+}
+
+TEST_F(OriginalVCFProcessorTest, Observation_ProcessBlockCpu) {
+    constexpr int blockSize = 1024;
+    constexpr int blockCount = 256;
+    juce::AudioProcessor::BusesLayout layout;
+    layout.inputBuses.add(juce::AudioChannelSet::mono());
+    layout.inputBuses.add(juce::AudioChannelSet::mono());
+    layout.inputBuses.add(juce::AudioChannelSet::mono());
+    layout.outputBuses.add(juce::AudioChannelSet::mono());
+    ASSERT_TRUE(processor->setBusesLayout(layout));
+    processor->prepareToPlay(192000.0, blockSize);
+
+    juce::AudioBuffer<float> buffer(4, blockSize);
+    juce::MidiBuffer midi;
+    for (int i = 0; i < blockSize; ++i) {
+        buffer.setSample(0, i, 0.2f * std::sin(i * 0.031f));
+        buffer.setSample(1, i, std::sin(i * 0.004f));
+        buffer.setSample(2, i, std::sin(i * 0.017f));
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    for (int block = 0; block < blockCount; ++block)
+        processor->processBlock(buffer, midi);
+    const double elapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    const bool finite = std::all_of(buffer.getReadPointer(0), buffer.getReadPointer(0) + blockSize,
+                                    [](float value) { return std::isfinite(value); });
+    EXPECT_TRUE(finite);
+    std::cout << "ORIGINAL_VCF_PROCESSOR_BENCH," << blockSize << ',' << blockCount << ',' << elapsed
+              << ',' << elapsed * 1.0e9 / (blockSize * blockCount) << ','
+              << (finite ? "finite" : "nonfinite") << '\n';
+}
+
+TEST(OriginalVCFProcessorModulationTest, Observation_CombinedSemitoneExponent) {
+    constexpr int sampleCount = 262144;
+    std::vector<float> eg(sampleCount), lfo(sampleCount), breath(sampleCount),
+        baseCutoff(sampleCount);
+    for (int i = 0; i < sampleCount; ++i) {
+        const float phase = static_cast<float>(i) * 0.013f;
+        eg[i] = std::sin(phase);
+        lfo[i] = std::sin(phase * 0.37f);
+        breath[i] = std::sin(phase * 0.11f);
+        baseCutoff[i] = 20.0f + static_cast<float>(i % 19981);
+    }
+
+    std::vector<float> separate(sampleCount), combined(sampleCount);
+    const auto separateStart = std::chrono::steady_clock::now();
+    double separateSum = 0.0;
+    for (int i = 0; i < sampleCount; ++i) {
+        const float egMod = eg[i] * 0.7f * 36.0f;
+        const float lfoMod = lfo[i] * 0.8f * 24.0f;
+        const float breathMod = breath[i] * 0.6f * 24.0f;
+        const float egRatio = static_cast<float>(std::exp2(static_cast<double>(egMod / 12.0f)));
+        const float lfoRatio = static_cast<float>(std::exp2(static_cast<double>(lfoMod / 12.0f)));
+        const float breathRatio =
+            static_cast<float>(std::exp2(static_cast<double>(breathMod / 12.0f)));
+        separate[i] = baseCutoff[i] * egRatio * lfoRatio * breathRatio;
+        separateSum += separate[i];
+    }
+    const auto separateElapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - separateStart).count();
+
+    const auto combinedStart = std::chrono::steady_clock::now();
+    double combinedSum = 0.0;
+    for (int i = 0; i < sampleCount; ++i) {
+        const float egMod = eg[i] * 0.7f * 36.0f;
+        const float lfoMod = lfo[i] * 0.8f * 24.0f;
+        const float breathMod = breath[i] * 0.6f * 24.0f;
+        const float totalModSemitones = egMod + lfoMod + breathMod;
+        const float ratio =
+            static_cast<float>(std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
+        combined[i] = baseCutoff[i] * ratio;
+        combinedSum += combined[i];
+    }
+    const auto combinedElapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - combinedStart).count();
+
+    float maxRelativeError = 0.0f;
+    for (int i = 0; i < sampleCount; ++i) {
+        maxRelativeError = juce::jmax(maxRelativeError, std::abs(combined[i] - separate[i]) /
+                                                            juce::jmax(separate[i], 1.0f));
+    }
+
+    std::vector<float> input(sampleCount), separateOutput(sampleCount), combinedOutput(sampleCount);
+    for (int i = 0; i < sampleCount; ++i) {
+        input[i] = 0.25f * std::sin(static_cast<float>(i) * 0.047f);
+    }
+    separateOutput = input;
+    combinedOutput = input;
+    CS01VCFCircuit separateFilter, combinedFilter;
+    separateFilter.prepare(192000.0);
+    combinedFilter.prepare(192000.0);
+    separateFilter.processBlock(separateOutput.data(), sampleCount, separate.data(), 0.7f);
+    combinedFilter.processBlock(combinedOutput.data(), sampleCount, combined.data(), 0.7f);
+    float maxAbsAudioDifference = 0.0f;
+    for (int i = 0; i < sampleCount; ++i) {
+        maxAbsAudioDifference =
+            juce::jmax(maxAbsAudioDifference, std::abs(separateOutput[i] - combinedOutput[i]));
+    }
+
+    ASSERT_TRUE(std::isfinite(separateSum));
+    ASSERT_TRUE(std::isfinite(combinedSum));
+    EXPECT_LT(maxRelativeError, 1.0e-6f);
+    std::cout << "ORIGINAL_VCF_MODULATION_BENCH," << sampleCount << ',' << separateElapsed << ','
+              << combinedElapsed << ',' << maxRelativeError << ',' << separateSum << ','
+              << combinedSum << ',' << maxAbsAudioDifference << '\n';
 }

@@ -1,5 +1,7 @@
 #include "CS01Synth/ToneGenerator.h"
 
+#include "MidiParameterValue.h"
+
 #include "CS01Synth/WaveformStrategies.h"
 
 #include <cmath>
@@ -38,7 +40,7 @@ void ToneGenerator::stopNote(bool allowTailOff) {
     if (allowTailOff) {
         tailOff = true;
         // Get release time from parameter (convert to samples)
-        float releaseSecs = apvts.getRawParameterValue(ParameterIds::release)->load();
+        float releaseSecs = getMidiParameterValue(apvts, ParameterIds::release);
         tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
         tailOffCounter = 0;
     } else {
@@ -169,7 +171,7 @@ void ToneGenerator::updateBlockRateParameters() {
     float pwmSpeed = apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load();
     pwmLfo.setFrequency(pwmSpeed);
 
-    currentModDepth = apvts.getRawParameterValue(ParameterIds::modDepth)->load();
+    currentModDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
 
     // Cache pitch-related parameters to avoid per-sample parameter access
     // MIDI (including queued panel gestures) applies bend once via pitchWheelMoved.
@@ -220,7 +222,7 @@ void ToneGenerator::setNote(int midiNoteNumber, bool isLegato) {
 
 void ToneGenerator::calculateSlideParameters(int targetNote) {
     targetPitch = static_cast<float>(targetNote);
-    auto timePerSemitone = apvts.getRawParameterValue(ParameterIds::glissando)->load();
+    auto timePerSemitone = getMidiParameterValue(apvts, ParameterIds::glissando);
 
     if (timePerSemitone < 0.001f)  // No slide
     {
@@ -249,7 +251,7 @@ float ToneGenerator::getNextSample() {
     if (isSliding) {
         // Interim live-control model: preserve fractional progress through the
         // current semitone. YM10150's oscillator phase behavior is not established.
-        const float duration = apvts.getRawParameterValue(ParameterIds::glissando)->load();
+        const float duration = getMidiParameterValue(apvts, ParameterIds::glissando);
         if (duration < 0.001f) {
             currentPitch = targetPitch;
             isSliding = false;

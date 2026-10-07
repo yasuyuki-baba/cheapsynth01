@@ -4,6 +4,7 @@
 #include "CS01Synth/MidiProcessor.h"
 #include "CS01Synth/ToneGenerator.h"
 #include "CS01Synth/WaveformStrategies.h"
+#include "MidiParameterValue.h"
 #include "mocks/MockToneGenerator.h"
 
 #include <gtest/gtest.h>
@@ -78,7 +79,7 @@ TEST(ManualPitchTest, MeasuredPitchAndMidiBend) {
                 events.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8)100), 0);
                 midi.processBlock(buffer, events);
                 generator.updateBlockRateParameters();
-                EXPECT_FLOAT_EQ(state.getRawParameterValue(ParameterIds::pitchBend)->load(),
+                EXPECT_FLOAT_EQ(getMidiParameterValue(state, ParameterIds::pitchBend),
                                 wheel == 0 ? -1.0f : (wheel == 16383 ? 1.0f : 0.0f));
                 for (int i = 0; i < static_cast<int>(rate * 0.1); ++i)
                     generator.getNextSample();

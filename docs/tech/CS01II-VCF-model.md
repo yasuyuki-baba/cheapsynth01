@@ -1,47 +1,21 @@
-# Modern VCF / CS01II model
+# CS-01II / IG05630-inspired behavioral model
 
-## Local primary sources
+## Evidence and limits
 
-- `CS01 II Sythesizer.pdf`, page 6, VCF schematic.
-- `../Yamaha-CS-01-Overall-Circuit-Diagram.pdf`, VCF schematic.
+The CS-01II service drawing identifies IC2 as IG05630; the earlier CS-01 drawing identifies IG02610. The reports supplied for this work suggest an OTA based, four-pole response for IG05630, but the detailed internal topology and control laws remain secondary interpretations. No physical CS-01II or IG05630 measurements are available. This implementation is therefore an **IG05630-inspired behavioral model**, not a circuit reconstruction.
 
-The CS01 drawing identifies IC2 as IG02610; the CS01II drawing identifies
-IC2 as IG05630. The CS01 drawing exposes C1/C2
-capacitor connections and takes the signal from C3 (pin 14). The CS01II
-drawing exposes C1/C2/C3/C4 capacitor connections. This supports changing
-Modern's order rather than replacing Original's processing or controls.
+## Implementation
 
-## DSP approximation, not a transistor-level reconstruction
+`ExperimentalIG05630` cascades two TPT second-order lowpass sections and places bounded nonlinear feedback around the resonant section. The cascade gives a four-pole LP response. Resonance uses a provisional fourth-power control curve into the feedback loop, with a maximum loop gain of 1.2 to keep this implementation below its modeled self-oscillation threshold. This non-oscillating behavior is a conservative hypothesis because the service material found so far does not establish the IC's self-oscillation behavior; it is not a verified property of the hardware. Input drive and output bounds remain separate safety/model parameters. BPF/HPF taps and the alleged internal resonance-control cell are not modeled because no supporting pin-level evidence has been verified.
 
-Modern uses two self-implemented TPT lowpass sections. At zero resonance their Q values
-are 0.5411961 and 1.3065630: a fourth-order Butterworth approximation with
-unity DC gain and nominal -3 dB at cutoff. Original remains unchanged.
+`CS01IIVCFCircuit` now directly wraps this model. `ModernVCFProcessor` owns parameter and modulation routing; the filter type control selects Original or Modern. There is no Legacy model or model toggle.
 
-The IC's internal topology and exact transfer function are not established
-by these external schematics. Butterworth alignment is a modelling choice,
-not a measured or schematic-proven hardware response. Resonance scales the
-first section's Q by 1..4; this is empirical and does not reproduce global
-feedback or self-oscillation. No hardware-calibrated saturation is claimed.
-Gentle output-only tanh coloration blends 8..30% with the linear output;
-drive increases smoothly with resonance and a sample-rate-adjusted input
-envelope. Small-signal gain remains unity. This is an empirical voicing choice
-inspired by Original, not evidence of common internal IC circuitry. There is
-no duplicated per-stage distortion or added asymmetric DC bias.
-Existing semitone control depths are also empirical.
+## Validation
 
-Further calibration requires internal IC documentation or hardware response
-measurements, particularly for resonance and pole alignment.
-## Code boundaries
+Automated checks cover finite and bounded output during fast cutoff/resonance changes, impulse-response decay at maximum resonance, deterministic rendering across block partitions, and the lowpass response shape. These verify numerical behavior, not a match to Yamaha hardware. No THD, resonance curve, self-oscillation threshold, or CV law has been checked against a real IC.
 
-`ModernVCFProcessor` handles buses, parameters and modulation;
-`CS01IIVCFCircuit` owns the circuit boundary and cutoff safety limits;
-`IG05630` owns the two TPT sections and empirical resonance mapping.
-This mirrors Original's processor/circuit/IC-model separation without changing
-Original. External coupling remains unity to preserve the existing Modern sound.
-The IC name identifies the hardware component and the future update boundary,
-not the fidelity of the model. Both `IG02610` (Original) and `IG05630` (Modern)
-are provisional IC models; their approximations are documented separately.
+Historical CSVs under `artifacts/characterization` and `artifacts/dsp` contain measurements made while the removed Legacy implementation still existed. They are retained as archival comparisons and cannot be regenerated from the current source tree. New runs characterize the single behavioral implementation.
 
-`IG05630` has no JUCE dependency: coefficients and trapezoidal integrator
-states are implemented locally. JUCE filters remain only as a test reference
-for the previous Modern response, not as production filter components.
+## Calibration path
+
+Future hardware measurements should record frequency response across cutoff and resonance settings, resonance peak and onset, self-oscillation amplitude/frequency, level-dependent harmonics, and cutoff/resonance modulation transients at documented host rates. Fit the named empirical damping, feedback, and saturation parameters against those measurements, and keep the source data and fitting method alongside any parameter changes.

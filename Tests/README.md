@@ -19,7 +19,7 @@ Tests the functionality of individual components. Each class has a dedicated tes
 - **LFOProcessorTest** - Tests for the LFO processor
 - **MidiProcessorTest** - Tests for MIDI processing
 - **NoiseGeneratorTest** - Tests for the noise generator
-- **CS01VCFCircuitTest** - Tests for the IG02610 filter
+- **CS01VCFCircuitTest** - Tests for the IG02610-inspired behavioral filter wrapper
 
 ### Integration Tests (`integration/`)
 
@@ -188,3 +188,16 @@ Tests aim to cover the following areas:
 4. **Integration Tests** - Tests to verify interaction between components
 
 Tests for each component are implemented from the perspectives of initialization, basic functionality, edge cases, and performance.
+
+## MIDI realtime regression coverage
+
+`MidiProcessorTest` covers fixed-storage note tracking across all 128 keys,
+duplicates, unmatched releases, priority/fallback, legato/velocity, reset commands,
+every mapped controller and pitch bend. Timer tests check message-thread-only,
+coalesced notification, current-state saving, edits during dispatch and safe
+teardown. Expected notifications are awaited by pumping the message loop until
+the expected count is reached, with a two-second monotonic timeout; this does
+not assume a timer callback arrives within 100 ms on every CI platform.
+`MidiRealtimeGraphTest` compares MIDI control changes with synchronous
+parameter changes in both filter paths before any notification tick, and checks
+session saving before dispatch. See [the control-flow design](../docs/MIDI-realtime-control.md).

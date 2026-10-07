@@ -4,17 +4,60 @@
 #include "CS01Synth/ISoundGenerator.h"
 #include "Parameters.h"
 
-MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
-    : AudioProcessor(BusesProperties()),  // No audio buses
-      apvts(apvts) {}
+#include <typeinfo>
 
-MidiProcessor::~MidiProcessor() = default;
+MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
+    : AudioProcessor(BusesProperties()) {  // No audio buses
+    static_assert(std::atomic<float>::is_always_lock_free);
+    static_assert(std::atomic<bool>::is_always_lock_free);
+    const std::array ids{
+        ParameterIds::pitchBend, ParameterIds::modDepth,  ParameterIds::breathInput,
+        ParameterIds::volume,    ParameterIds::glissando, ParameterIds::sustain,
+        ParameterIds::resonance, ParameterIds::attack,    ParameterIds::cutoff,
+        ParameterIds::decay,     ParameterIds::lfoSpeed,  ParameterIds::release};
+    for (size_t i = 0; i < controls.size(); ++i) {
+        auto* parameter = apvts.getParameter(ids[i]);
+        // Only the standard float class has the empty valueChanged hook we
+        // rely on. A future custom parameter must be audited before MIDI use.
+        if (parameter != nullptr && typeid(*parameter) == typeid(juce::AudioParameterFloat))
+            controls[i].parameter = parameter;
+        else
+            jassert(parameter == nullptr);
+    }
+    // Polling avoids AsyncUpdater's potentially blocking message post on the audio thread.
+    startTimerHz(60);
+}
+
+MidiProcessor::~MidiProcessor() {
+    stopTimer();
+}
+
+void MidiProcessor::updateParameter(Control control, float normalizedValue) {
+    auto& state = controls[static_cast<size_t>(control)];
+    if (state.parameter == nullptr)
+        return;
+    // Standard AudioParameterFloat::setValue only stores its atomic value and
+    // calls the empty valueChanged hook. DSP reads that value directly; APVTS's
+    // listener-maintained raw cache is deliberately deferred to the timer.
+    state.parameter->setValue(normalizedValue);
+    state.pending.store(true, std::memory_order_release);
+}
+
+void MidiProcessor::timerCallback() {
+    for (auto& state : controls) {
+        if (state.pending.exchange(false, std::memory_order_acquire)) {
+            // Notify the current value without writing a snapshot back. A MIDI
+            // update or host edit during dispatch cannot be rolled back here.
+            state.parameter->sendValueChangedMessageToListeners(state.parameter->getValue());
+        }
+    }
+}
 
 void MidiProcessor::prepareToPlay(double, int) {
     releaseResources();
 }
 void MidiProcessor::releaseResources() {
-    activeNotes.clear();
+    activeNotes.reset();
     if (soundGenerator != nullptr)
         soundGenerator->stopNote(false);
     if (egProcessor != nullptr)
@@ -40,8 +83,8 @@ void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::
     if (midiMessage.isAllSoundOff()) {
         releaseResources();
     } else if (midiMessage.isAllNotesOff()) {
-        if (!activeNotes.isEmpty()) {
-            activeNotes.clear();
+        if (activeNotes.any()) {
+            activeNotes.reset();
             if (soundGenerator != nullptr)
                 soundGenerator->stopNote(true);
             if (egProcessor != nullptr)
@@ -60,11 +103,10 @@ void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::
 }
 
 void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage) {
-    bool wasEmpty = activeNotes.isEmpty();
-    activeNotes.addIfNotAlreadyThere(midiMessage.getNoteNumber());
-    activeNotes.sort();
+    bool wasEmpty = activeNotes.none();
+    activeNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
 
-    int highestNote = activeNotes.getLast();
+    int highestNote = getCurrentlyPlayingNote();
     float velocity = midiMessage.getVelocity() / 127.0f;
 
     if (soundGenerator != nullptr) {
@@ -83,12 +125,12 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage) {
 
 void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage) {
     // An unmatched key release must not restart an already running release.
-    if (!activeNotes.contains(midiMessage.getNoteNumber()))
+    if (!activeNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
         return;
-    activeNotes.removeFirstMatchingValue(midiMessage.getNoteNumber());
+    activeNotes.reset(static_cast<size_t>(midiMessage.getNoteNumber()));
 
     if (soundGenerator != nullptr) {
-        if (activeNotes.isEmpty()) {
+        if (activeNotes.none()) {
             // Always set allowTailOff = true to make sound fade gradually
             soundGenerator->stopNote(true);
 
@@ -97,8 +139,7 @@ void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage) {
                 egProcessor->releaseEnvelope();
             }
         } else {
-            activeNotes.sort();
-            int highestNote = activeNotes.getLast();
+            int highestNote = getCurrentlyPlayingNote();
             soundGenerator->changeNote(highestNote);
         }
     }
@@ -114,36 +155,32 @@ void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage) {
 
     const float displacement = static_cast<float>(lastPitchWheelValue - 8192);
     const float position = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
-    if (auto* parameter = apvts.getParameter(ParameterIds::pitchBend))
-        parameter->setValueNotifyingHost(parameter->convertTo0to1(position));
+    if (auto* parameter = controls[static_cast<size_t>(Control::PitchBend)].parameter)
+        updateParameter(Control::PitchBend, parameter->convertTo0to1(position));
 }
 
 void MidiProcessor::updateModulationParameter() {
     int value14bit = (modulationMSB << 7) | modulationLSB;
     float normalizedValue = value14bit / 16383.0f;
-    if (auto* param = apvts.getParameter(ParameterIds::modDepth))
-        param->setValueNotifyingHost(normalizedValue);
+    updateParameter(Control::Modulation, normalizedValue);
 }
 
 void MidiProcessor::updateBreathParameter() {
     int value14bit = (breathMSB << 7) | breathLSB;
     float normalizedValue = value14bit / 16383.0f;
-    if (auto* param = apvts.getParameter(ParameterIds::breathInput))
-        param->setValueNotifyingHost(normalizedValue);
+    updateParameter(Control::Breath, normalizedValue);
 }
 
 void MidiProcessor::updateVolumeParameter() {
     int value14bit = (volumeMSB << 7) | volumeLSB;
     float normalizedValue = value14bit / 16383.0f;
-    if (auto* param = apvts.getParameter(ParameterIds::volume))
-        param->setValueNotifyingHost(normalizedValue);
+    updateParameter(Control::Volume, normalizedValue);
 }
 
 void MidiProcessor::updateGlissandoParameter() {
     int value14bit = (glissandoMSB << 7) | glissandoLSB;
     float normalizedValue = value14bit / 16383.0f;
-    if (auto* param = apvts.getParameter(ParameterIds::glissando))
-        param->setValueNotifyingHost(normalizedValue);
+    updateParameter(Control::Glissando, normalizedValue);
 }
 
 void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage) {
@@ -191,31 +228,24 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
     // 7bit CC processing
     else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::sustain))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Sustain, floatValue);
     } else if (controller == 71) {  // CC #71: Filter Resonance
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::resonance))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Resonance, floatValue);
     } else if (controller == 73) {  // CC #73: Attack Time
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::attack))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Attack, floatValue);
     } else if (controller == 74) {  // CC #74: Filter Cutoff
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::cutoff))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Cutoff, floatValue);
     } else if (controller == 75) {  // CC #75: Decay Time
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::decay))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Decay, floatValue);
     } else if (controller == 76) {  // CC #76: LFO Speed (Vibrato Rate)
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::lfoSpeed))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::LfoSpeed, floatValue);
     } else if (controller == 79) {  // CC #79: Release Time
         float floatValue = value / 127.0f;
-        if (auto* param = apvts.getParameter(ParameterIds::release))
-            param->setValueNotifyingHost(floatValue);
+        updateParameter(Control::Release, floatValue);
     }
 }

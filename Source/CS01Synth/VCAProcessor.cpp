@@ -1,5 +1,7 @@
 #include "CS01Synth/VCAProcessor.h"
 
+#include "MidiParameterValue.h"
+
 #include <cmath>
 
 namespace {
@@ -89,9 +91,9 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     // Get parameters
     auto egDepth = apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load();
     egDepthControl.setTargetValue(egDepth);
-    auto breathInput = apvts.getRawParameterValue(ParameterIds::breathInput)->load();
+    auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
     auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
-    auto volume = apvts.getRawParameterValue(ParameterIds::volume)->load();
+    auto volume = getMidiParameterValue(apvts, ParameterIds::volume);
     // Precompute nonlinear volume curve once per block
     float volumeGain = std::pow(volume, 2.5f);
 
@@ -115,8 +117,9 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         float egValue = egData[sample];
 
         // Process through IG02600 VCA chip emulation
-        float outputSample = vcaModel.processSample(inputSample, egValue, egDepthControl.getNextValue(), breathInput,
-                                                    breathVcaDepth, volumeGain);
+        float outputSample =
+            vcaModel.processSample(inputSample, egValue, egDepthControl.getNextValue(), breathInput,
+                                   breathVcaDepth, volumeGain);
 
         // Process through Tr7 transistor buffer emulation
         outputSample = processTr7Buffer(outputSample);
