@@ -60,7 +60,22 @@ observations named `Observation_*`. No tests are deleted or disabled.
 ./run_tests.sh --observations  # Detailed DSP observations only
 ./run_tests.sh --all           # Regression tests and observations
 ./run_tests.sh '--gtest_filter=EGTimingTest.*:EnvelopeRangeTest.*'
+./run_tests.sh --group audio  # Core sound generation and DSP
+./run_tests.sh --group midi  # MIDI and real-time control paths
+./run_tests.sh --group ui  # Editor, panels, display, and parameter formatting
+./run_tests.sh --group presets  # Preset and saved-state behavior
+./run_tests.sh --group integration  # Whole-graph integration coverage
 ```
+
+Functional groups are filters over the existing Google Test suites; they do
+not move or duplicate test code. `audio` (also `audio-core`) covers oscillators,
+filters, envelopes, amplifiers, modulation, and noise. `midi` (also `control`)
+covers MIDI processing and graph-level MIDI controls. `ui` covers editor and
+panel behavior, the audio display FIFO, and parameter formatting. `presets`
+(also `state`) covers preset selection and persisted state. `integration`
+covers the complete audio graph and graph-level routing, timing, and output
+conversion. Groups may overlap where a suite crosses functional boundaries.
+An explicit `--gtest_filter` passed with `--group` takes precedence.
 
 The same options can be passed directly to the test executable. An explicit
 `--gtest_filter` overrides the category default. `--gtest_output` is also respected.
