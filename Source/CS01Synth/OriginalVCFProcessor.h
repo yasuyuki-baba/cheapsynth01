@@ -3,7 +3,6 @@
 #include <JuceHeader.h>
 
 #include "CS01Synth/CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
-#include "CS01Synth/ExperimentalOriginalVCF.h"
 #include "CS01Synth/IFilter.h"         // Updated interface
 #include "Parameters.h"
 
@@ -12,9 +11,6 @@
 //==============================================================================
 class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
    public:
-    enum class Model { Legacy, Experimental };
-    void setModel(Model newModel) { model.store(newModel, std::memory_order_relaxed); }
-    Model getModel() const { return model.load(std::memory_order_relaxed); }
     //==============================================================================
     OriginalVCFProcessor(juce::AudioProcessorValueTreeState& apvts);
     ~OriginalVCFProcessor() override;
@@ -79,7 +75,6 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
     CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
-    std::atomic<Model> model{Model::Legacy};  // Preserve the existing sound by default.
     juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse
     int modulationBufferCapacity = 0;         // Capacity (in samples) of allocated modulationBuffer
     juce::SmoothedValue<float> egDepthControl;

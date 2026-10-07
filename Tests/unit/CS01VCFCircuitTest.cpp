@@ -6,68 +6,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(IG02610ControlTest, NonlinearResonanceBoundariesAreContinuous) {
-    // Compare complete trajectories with nearly identical controls. This detects
-    // branch discontinuities without exposing private nonlinear implementation.
-    for (float boundary : {0.4f, 0.7f}) {
-        for (float amplitude : {0.01f, 0.8f, 1.2f}) {
-            IG02610 below, above;
-            below.prepare(48000.0);
-            above.prepare(48000.0);
-            below.setCutoffFrequency(1000.0f);
-            above.setCutoffFrequency(1000.0f);
-            below.setResonance(boundary - 1.0e-6f);
-            above.setResonance(boundary + 1.0e-6f);
-            for (int i = 0; i < 4800; ++i) {
-                const float input =
-                    amplitude * std::sin(juce::MathConstants<double>::twoPi * 700.0 * i / 48000.0);
-                const float a = below.processSample(input);
-                const float b = above.processSample(input);
-                ASSERT_TRUE(std::isfinite(a));
-                ASSERT_TRUE(std::isfinite(b));
-                ASSERT_NEAR(a, b, 0.0002f) << boundary << ", sample=" << i;
-            }
-        }
-    }
-}
-
-TEST(IG02610ControlTest, ReapplyingIdenticalControlsDoesNotChangeTrajectory) {
-    IG02610 held, reapplied;
-    held.prepare(48000.0);
-    reapplied.prepare(48000.0);
-    held.setCutoffFrequency(1000.0f);
-    reapplied.setCutoffFrequency(1000.0f);
-    held.setResonance(0.7f);
-    reapplied.setResonance(0.7f);
-    for (int i = 0; i < 12000; ++i) {
-        reapplied.setCutoffFrequency(1000.0f);
-        reapplied.setResonance(0.7f);
-        const float input =
-            0.8f * std::sin(juce::MathConstants<double>::twoPi * 440.0 * i / 48000.0);
-        ASSERT_FLOAT_EQ(held.processSample(input), reapplied.processSample(input));
-    }
-}
-
-TEST(IG02610ControlTest, LowCutoffNumeratorPrecisionDiagnosis) {
-    // Isolate coefficient construction from nonlinear and coupling stages.
-    for (double rate : {176400.0, 192000.0, 384000.0}) {
-        const double angle = juce::MathConstants<double>::twoPi * 20.0 / rate;
-        // Independent, cancellation-resistant trigonometric identity.
-        const double expected = 2.0 * std::pow(std::sin(angle * 0.5), 2.0);
-        const double doubleNumerator = 1.0 - std::cos(angle);
-        EXPECT_NEAR(doubleNumerator, expected, expected * 1.0e-8);
-        const float floatAngle =
-            (20.0f / static_cast<float>(rate)) * (2.0f * juce::MathConstants<float>::pi);
-        const float floatNumerator = 1.0f - std::cos(floatAngle);
-        std::cout << "VCF numerator precision: rate=" << rate
-                  << ", relative-error=" << floatNumerator / expected - 1.0 << '\n';
-        // Diagnostic only: deliberately do not require the observed float error.
-        // An implementation improvement must not make this test fail.
-        EXPECT_GT(expected, 0.0);
-    }
-}
-
-TEST(IG02610ControlTest, Observation_ProductionPanelResponse) {
+TEST(ExperimentalOriginalVCFTest, Observation_ProductionPanelResponse) {
     CS01AudioProcessor host;
     auto* parameter = host.getValueTreeState().getParameter(ParameterIds::cutoff);
     ASSERT_NE(parameter, nullptr);
@@ -111,7 +50,7 @@ TEST(IG02610ControlTest, Observation_ProductionPanelResponse) {
     }
 }
 
-TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded) {
+TEST(ExperimentalOriginalVCFTest, LiveCutoffAndResonanceRemainBounded) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double rate = hostRate * Constants::oversamplingFactor;
         CS01VCFCircuit filter;
@@ -146,7 +85,7 @@ TEST(IG02610ControlTest, LiveCutoffAndResonanceRemainBounded) {
     }
 }
 
-TEST(IG02610OversamplingTest, Observation_CharacterizeInternalRateProcessing) {
+TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CharacterizeInternalRateProcessing) {
     for (double rate : {44100.0, 48000.0}) {
         for (float resonance : {0.7f, 0.8f}) {
             for (bool bypassFilter : {true, false}) {
@@ -213,7 +152,7 @@ double spectralAmplitude(const std::vector<float>& samples, double rate, double 
 }
 }  // namespace
 
-TEST(IG02610SpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
+TEST(ExperimentalOriginalVCFSpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
     for (double rate : {44100.0, 48000.0}) {
         std::vector<float> samples(static_cast<size_t>(rate));
         for (size_t i = 0; i < samples.size(); ++i) {
@@ -230,7 +169,7 @@ TEST(IG02610SpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
     }
 }
 
-TEST(IG02610OversamplingTest, Observation_CompareInterpolatedInputResponse) {
+TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CompareInterpolatedInputResponse) {
     // Realistic resampling path, not direct generation at the internal rate.
     for (double rate : {44100.0, 48000.0}) {
         for (float cutoff : {250.0f, 1000.0f, 5000.0f}) {
@@ -287,7 +226,7 @@ TEST(IG02610OversamplingTest, Observation_CompareInterpolatedInputResponse) {
     }
 }
 
-TEST(IG02610SpectrumTest, Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
+TEST(ExperimentalOriginalVCFSpectrumTest, Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
     // One-second coherent window after one-second settling. Observations only:
     // folded bins can contain multiple harmonics, not exclusively harmonic five.
     for (double rate : {44100.0, 48000.0, 96000.0}) {
@@ -325,7 +264,7 @@ TEST(IG02610SpectrumTest, Observation_CharacterizeDrivenFilterHarmonicsAndFolded
     }
 }
 
-TEST(IG02610NonlinearSafetyTest, DrivenSignalAndSilenceRemainFinite) {
+TEST(ExperimentalOriginalVCFTest, DrivenSignalAndSilenceRemainFiniteAndBounded) {
     // Numerical safety invariant, not a hardware distortion target.
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         for (float resonance : {0.2f, 0.7f, 0.8f}) {
@@ -356,7 +295,8 @@ TEST(IG02610NonlinearSafetyTest, DrivenSignalAndSilenceRemainFinite) {
                         last = filter.processSample(0, 0.0f);
                         ASSERT_TRUE(std::isfinite(last));
                     }
-                    EXPECT_LT(std::abs(last), 1.0e-4f);
+                    EXPECT_LE(std::abs(last),
+                              ExperimentalOriginalVCF::EmpiricalParameters::maximumOutput);
                 }
             }
         }

@@ -13,12 +13,10 @@
 namespace {
 constexpr int characterSamples = 32768;
 
-std::vector<float> render(bool experimental, double sampleRate, float cutoff, float resonance,
+std::vector<float> render(double sampleRate, float cutoff, float resonance,
                           double toneHz, float amplitude) {
     CS01IIVCFCircuit circuit;
     circuit.prepare(sampleRate);
-    circuit.setModel(experimental ? CS01IIVCFCircuit::Model::Experimental
-                                  : CS01IIVCFCircuit::Model::Legacy);
     circuit.setCutoffFrequency(cutoff);
     circuit.setResonance(resonance);
     std::vector<float> output(characterSamples);
@@ -108,9 +106,9 @@ TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
 
 TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
     constexpr double rate = 192000.0;
-    const auto cutoffSignal = render(true, rate, 1000.0f, 0.0f, 1000.0, 0.01f);
-    const auto lowerSignal = render(true, rate, 1000.0f, 0.0f, 2000.0, 0.01f);
-    const auto upperSignal = render(true, rate, 1000.0f, 0.0f, 4000.0, 0.01f);
+    const auto cutoffSignal = render(rate, 1000.0f, 0.0f, 1000.0, 0.01f);
+    const auto lowerSignal = render(rate, 1000.0f, 0.0f, 2000.0, 0.01f);
+    const auto upperSignal = render(rate, 1000.0f, 0.0f, 4000.0, 0.01f);
     const double atCutoff = amplitudeAt(cutoffSignal, rate, 1000.0) / 0.01;
     const double lower = amplitudeAt(lowerSignal, rate, 2000.0);
     const double upper = amplitudeAt(upperSignal, rate, 4000.0);
@@ -118,36 +116,7 @@ TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
     EXPECT_LT(upper / lower, 0.08);  // Four-pole asymptote: roughly 24 dB/octave.
 }
 
-TEST(CS01IIVCFCircuitTest, ExperimentalModelCanBeSelectedWithoutChangingDefault) {
-    CS01IIVCFCircuit circuit;
-    EXPECT_EQ(circuit.getModel(), CS01IIVCFCircuit::Model::Legacy);
-    circuit.prepare(48000.0);
-    circuit.setModel(CS01IIVCFCircuit::Model::Experimental);
-    EXPECT_EQ(circuit.getModel(), CS01IIVCFCircuit::Model::Experimental);
-    circuit.setCutoffFrequency(1200.0f);
-    circuit.setResonance(0.8f);
-    float experimentalOutput = 0.0f;
-    for (int i = 0; i < 10000; ++i)
-        experimentalOutput = circuit.processSample(0, 0.2f * std::sin(i * 0.1f));
-    EXPECT_TRUE(std::isfinite(experimentalOutput));
-
-    CS01IIVCFCircuit legacy;
-    legacy.prepare(48000.0);
-    legacy.setCutoffFrequency(1200.0f);
-    legacy.setResonance(0.8f);
-    circuit.reset();
-    float modelDifference = 0.0f;
-    for (int i = 0; i < 10000; ++i) {
-        const float input = 0.5f * std::sin(i * 0.1f);
-        const float experimentalSample = circuit.processSample(0, input);
-        const float legacySample = legacy.processSample(0, input);
-        modelDifference = std::max(modelDifference,
-                                   std::abs(experimentalSample - legacySample));
-    }
-    EXPECT_GT(modelDifference, 0.01f);
-}
-
-TEST(ExperimentalIG05630Test, Observation_CompiledAbaCharacterization) {
+TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double rate = hostRate * 4.0;
         for (float cutoff : {80.0f, 1000.0f, 10000.0f}) {
@@ -156,14 +125,14 @@ TEST(ExperimentalIG05630Test, Observation_CompiledAbaCharacterization) {
                     const double frequency = cutoff * ratio;
                     if (frequency >= rate * 0.4)
                         continue;
-                    for (bool experimental : {false, true}) {
-                        const auto signal = render(experimental, rate, cutoff, resonance, frequency,
+                    {
+                        const auto signal = render(rate, cutoff, resonance, frequency,
                                                    0.01f);
                         const double gain = 20.0 * std::log10(
                             std::max(amplitudeAt(signal, rate, frequency) / 0.01, 1.0e-15));
                         const bool finite = std::all_of(signal.begin(), signal.end(),
                                                         [](float value) { return std::isfinite(value); });
-                        std::cout << "IG05630_RESPONSE," << (experimental ? "experimental" : "legacy")
+                        std::cout << "IG05630_RESPONSE,experimental"
                                   << ',' << hostRate << ',' << rate << ',' << cutoff << ','
                                   << resonance << ',' << frequency << ',' << gain << ','
                                   << (finite ? "finite" : "nonfinite") << '\n';
@@ -178,11 +147,11 @@ TEST(ExperimentalIG05630Test, Observation_CompiledAbaCharacterization) {
                 const int cycles = juce::jmax(
                     8, juce::roundToInt(440.0 * characterSamples / rate));
                 const double frequency = cycles * rate / characterSamples;
-                for (bool experimental : {false, true}) {
-                    const auto signal = render(experimental, rate, cutoff, resonance, frequency,
+                {
+                    const auto signal = render(rate, cutoff, resonance, frequency,
                                                inputPeak);
                     const double fundamental = amplitudeAt(signal, rate, frequency);
-                    std::cout << "IG05630_HARMONICS," << (experimental ? "experimental" : "legacy")
+                    std::cout << "IG05630_HARMONICS,experimental"
                               << ',' << hostRate << ',' << rate << ',' << cutoff << ',' << resonance
                               << ',' << inputPeak << ',' << frequency;
                     for (int harmonic = 1; harmonic <= 8; ++harmonic) {
@@ -202,12 +171,10 @@ TEST(ExperimentalIG05630Test, Observation_CompiledAbaCharacterization) {
             for (int i = 0; i < sampleCount; ++i)
                 source[i] = 0.2f * static_cast<float>(std::sin(
                     i * 2.0 * juce::MathConstants<double>::pi * 220.0 / rate));
-            for (bool experimental : {false, true}) {
+            {
                 auto input = source;
                 CS01IIVCFCircuit circuit;
                 circuit.prepare(rate);
-                circuit.setModel(experimental ? CS01IIVCFCircuit::Model::Experimental
-                                              : CS01IIVCFCircuit::Model::Legacy);
                 const auto start = std::chrono::steady_clock::now();
                 bool finite = true;
                 for (int i = 0; i < sampleCount; ++i) {
@@ -222,7 +189,7 @@ TEST(ExperimentalIG05630Test, Observation_CompiledAbaCharacterization) {
                 }
                 const double elapsed = std::chrono::duration<double>(
                     std::chrono::steady_clock::now() - start).count();
-                std::cout << "IG05630_BENCH," << (experimental ? "experimental" : "legacy")
+                std::cout << "IG05630_BENCH,experimental"
                           << ',' << hostRate << ',' << rate << ','
                           << (modulated ? "modulated" : "static") << ',' << sampleCount << ','
                           << elapsed << ',' << elapsed * 1.0e9 / sampleCount << ','
