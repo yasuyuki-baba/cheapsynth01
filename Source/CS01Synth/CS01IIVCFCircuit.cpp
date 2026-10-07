@@ -5,6 +5,7 @@
 #include <cmath>
 
 void CS01IIVCFCircuit::prepare(double sampleRate) {
+    // Wrapper safety bound; the model also bounds its TPT coefficient to 45% of rate.
     maximumCutoff = juce::jmin(20000.0f, static_cast<float>(sampleRate) * 0.49f);
     model.prepare(sampleRate);
 }

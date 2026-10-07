@@ -96,10 +96,10 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
         // For original filter, use threshold to binarize the value
         // Treat as High Resonance if value is 0.5 or higher
         if (resonanceParam >= 0.5f) {
-            // High resonance setting - CS01VCFCircuit has max resonance of 0.8f
+            // Empirical High setting; not an IC limit or calibrated resonance value.
             return 0.7f;
         } else {
-            // Low resonance setting
+            // Empirical Low setting for the external two-position control.
             return 0.2f;
         }
     }

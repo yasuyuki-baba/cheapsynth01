@@ -3,7 +3,7 @@
 // CS-01II / IG05630-inspired behavioral hypothesis.
 // Four poles, continuous resonant feedback, and bounded nonlinear stages are
 // model choices based on the supplied report, not an internal IC reconstruction.
-class ExperimentalIG05630 {
+class IG05630BehavioralModel {
    public:
     struct EmpiricalParameters {
         // Butterworth-aligned section Q values; used as the zero-resonance target.
@@ -17,6 +17,10 @@ class ExperimentalIG05630 {
         // not a verified property of the hardware.
         static constexpr float maximumFeedbackGain = 1.2f;
         static constexpr float resonanceCurve = 4.0f;
+    };
+
+    // Implementation protection, not an IC transfer characteristic.
+    struct SafetyParameters {
         static constexpr float maximumOutput = 1.5f;
     };
 

@@ -2,7 +2,7 @@
 
 #include "CS01AudioProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
-#include "CS01Synth/ExperimentalIG05630.h"
+#include "CS01Synth/IG05630BehavioralModel.h"
 #include "CS01Synth/OriginalVCFProcessor.h"
 #include "Parameters.h"
 
@@ -367,7 +367,7 @@ TEST_F(ModernVCFProcessorTest, FourPoleResponseAndFiniteResonance) {
     }
 }
 
-TEST(CS01IIVCFCircuitTest, ExperimentalCoreRemainsBoundedAndResetsDeterministically) {
+TEST(CS01IIVCFCircuitTest, BehavioralCoreRemainsBoundedAndResetsDeterministically) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         CS01IIVCFCircuit circuit;
         circuit.prepare(rate);
@@ -382,7 +382,7 @@ TEST(CS01IIVCFCircuitTest, ExperimentalCoreRemainsBoundedAndResetsDeterministica
                 output[i] = circuit.processSample(0, input);
                 EXPECT_TRUE(std::isfinite(output[i]));
                 EXPECT_LE(std::abs(output[i]),
-                          ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+                          IG05630BehavioralModel::SafetyParameters::maximumOutput);
             }
             return output;
         };
