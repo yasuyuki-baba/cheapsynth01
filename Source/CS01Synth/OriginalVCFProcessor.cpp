@@ -143,11 +143,5 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     buffer.copyFrom(0, 0, audioData, buffer.getNumSamples());
 
     // Process using filter
-    if (model.load(std::memory_order_relaxed) == Model::Legacy) {
-        filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
-    } else {
-        for (int sample = 0; sample < numSamples; ++sample)
-            outputData[sample] = filter.processExperimentalSample(
-                outputData[sample], modulationBuffer[sample], resonance);
-    }
+    filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
 }

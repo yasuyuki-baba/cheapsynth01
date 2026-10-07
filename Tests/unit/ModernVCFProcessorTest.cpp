@@ -2,6 +2,7 @@
 
 #include "CS01AudioProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
+#include "CS01Synth/ExperimentalIG05630.h"
 #include "CS01Synth/OriginalVCFProcessor.h"
 #include "Parameters.h"
 
@@ -366,92 +367,27 @@ TEST_F(ModernVCFProcessorTest, FourPoleResponseAndFiniteResonance) {
     }
 }
 
-TEST(CS01IIVCFCircuitTest, MatchesLinearCoreWithGentleColorationAndResets) {
+TEST(CS01IIVCFCircuitTest, ExperimentalCoreRemainsBoundedAndResetsDeterministically) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         CS01IIVCFCircuit circuit;
         circuit.prepare(rate);
-        juce::dsp::StateVariableTPTFilter<float> first, second;
-        for (auto* stage : {&first, &second}) {
-            stage->setType(juce::dsp::StateVariableTPTFilter<float>::Type::lowpass);
-            stage->prepare({rate, 512, 1});
-        }
-        const auto compare = [&]() {
-            float envelope = 0.0f;
-            const float smoothing = static_cast<float>(std::pow(0.99, 44100.0 / rate));
-            for (int i = 0; i < 4096; ++i) {
-                const float resonance = static_cast<float>(i % 101) / 100.0f;
+        const auto render = [&]() -> std::vector<float> {
+            std::vector<float> output(4096);
+            for (int i = 0; i < static_cast<int>(output.size()); ++i) {
                 const float cutoff = 20.0f + static_cast<float>(i % 1000) * 19.0f;
+                const float resonance = static_cast<float>(i % 101) / 100.0f;
                 const float input = 0.2f * std::sin(static_cast<float>(i) * 0.13f);
                 circuit.setResonance(resonance);
                 circuit.setCutoffFrequency(cutoff);
-                first.setResonance(0.5411961f * (1.0f + 3.0f * resonance));
-                second.setResonance(1.3065630f);
-                first.setCutoffFrequency(cutoff);
-                second.setCutoffFrequency(cutoff);
-                const float linear = second.processSample(0, first.processSample(0, input));
-                envelope = envelope * smoothing + std::abs(input) * (1.0f - smoothing);
-                const float drive = 0.5f + 0.5f * resonance + 0.25f * envelope;
-                const float blend = 0.08f + 0.22f * resonance;
-                const float expected =
-                    linear + blend * (std::tanh(linear * drive) / drive - linear);
-                EXPECT_FLOAT_EQ(circuit.processSample(0, input), expected);
+                output[i] = circuit.processSample(0, input);
+                EXPECT_TRUE(std::isfinite(output[i]));
+                EXPECT_LE(std::abs(output[i]),
+                          ExperimentalIG05630::EmpiricalParameters::maximumOutput);
             }
+            return output;
         };
-        compare();
+        const auto first = render();
         circuit.reset();
-        first.reset();
-        second.reset();
-        compare();
+        EXPECT_EQ(first, render());
     }
-}
-
-TEST(IG05630Test, ColorationIsGentleSymmetricAndLevelDependent) {
-    for (double rate : {44100.0, 48000.0, 96000.0}) {
-        for (float resonance : {0.0f, 0.5f, 1.0f}) {
-            const auto settle = [&](float input) {
-                IG05630 model;
-                model.prepare(rate);
-                model.setCutoffFrequency(1000.0f);
-                model.setResonance(resonance);
-                float output = 0.0f;
-                for (int i = 0; i < static_cast<int>(rate * 0.1); ++i) {
-                    output = model.processSample(input);
-                    EXPECT_TRUE(std::isfinite(output));
-                }
-                return output;
-            };
-            EXPECT_NEAR(settle(0.001f), 0.001f, 1.0e-6f);
-            const float loud = settle(1.0f);
-            EXPECT_GT(loud, 0.85f);
-            EXPECT_LT(loud, 1.0f);
-            EXPECT_NEAR(settle(-1.0f), -loud, 1.0e-6f);
-            EXPECT_NEAR(settle(0.0f), 0.0f, 1.0e-7f);
-        }
-    }
-}
-
-TEST(CS01AudioProcessorTest, TemporaryExperimentalIG05630SwitchCanBeChanged) {
-    CS01AudioProcessor processor;
-    EXPECT_FALSE(processor.isExperimentalOriginalVcf());
-    processor.setExperimentalOriginalVcf(true);
-    processor.apvts.getParameter(ParameterIds::filterType)->setValueNotifyingHost(0.0f);
-    processor.prepareToPlay(48000.0, 64);
-    auto* original = dynamic_cast<OriginalVCFProcessor*>(processor.getCurrentFilterProcessor());
-    ASSERT_NE(original, nullptr);
-    EXPECT_EQ(original->getModel(), OriginalVCFProcessor::Model::Experimental);
-    processor.setExperimentalOriginalVcf(false);
-    EXPECT_EQ(original->getModel(), OriginalVCFProcessor::Model::Legacy);
-
-    processor.releaseResources();
-    EXPECT_FALSE(processor.isExperimentalModernVcf());
-    processor.setExperimentalModernVcf(true);
-    processor.apvts.getParameter(ParameterIds::filterType)->setValueNotifyingHost(1.0f);
-    processor.prepareToPlay(48000.0, 64);
-    auto* modern = dynamic_cast<ModernVCFProcessor*>(processor.getCurrentFilterProcessor());
-    ASSERT_NE(modern, nullptr);
-    EXPECT_EQ(modern->getModel(), ModernVCFProcessor::Model::Experimental);
-    processor.setExperimentalModernVcf(false);
-    EXPECT_EQ(modern->getModel(), ModernVCFProcessor::Model::Legacy);
-    processor.releaseResources();
-    EXPECT_FALSE(processor.isExperimentalModernVcf());
 }

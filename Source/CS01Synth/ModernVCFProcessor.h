@@ -10,10 +10,6 @@
 // ModernVCFProcessor - CS01II-inspired four-pole lowpass approximation.
 class ModernVCFProcessor : public juce::AudioProcessor, public IFilter {
    public:
-    using Model = CS01IIVCFCircuit::Model;
-    void setModel(Model newModel) { filter.setModel(newModel); }
-    Model getModel() const { return filter.getModel(); }
-
     //==============================================================================
     ModernVCFProcessor(juce::AudioProcessorValueTreeState& apvts);
     ~ModernVCFProcessor() override;

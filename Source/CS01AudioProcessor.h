@@ -16,10 +16,6 @@ class CS01AudioProcessor : public juce::AudioProcessor,
    public:
     // Get current filter processor
     IFilter* getCurrentFilterProcessor();
-    void setExperimentalModernVcf(bool enabled);
-    bool isExperimentalModernVcf() const;
-    void setExperimentalOriginalVcf(bool enabled);
-    bool isExperimentalOriginalVcf() const;
     //==============================================================================
     CS01AudioProcessor();
     ~CS01AudioProcessor() override;
@@ -151,8 +147,6 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     // Latest requested routing state; parameter callbacks only publish values here.
     std::atomic<int> requestedFilterType{0};
     std::atomic<int> requestedLfoTarget{0};
-    std::atomic<bool> requestedExperimentalOriginalVcf{false};
-    std::atomic<bool> requestedExperimentalModernVcf{false};
     std::atomic<bool> pendingRoutingChange{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CS01AudioProcessor)
 };

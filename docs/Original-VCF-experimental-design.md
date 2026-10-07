@@ -58,10 +58,10 @@ pinout, and proposed soft-clipping behavior likewise remain unverified.
 
 | Claim | Evidence status | Model consequence |
 | --- | --- | --- |
-| CS-01 uses an IG02610 VCF and exposes cutoff/resonance behavior | Service-manual-supported external facts | Preserve the wrapper and legacy sound; exercise cutoff and resonance |
+| CS-01 uses an IG02610 VCF and exposes cutoff/resonance behavior | Service-manual-supported external facts | Preserve wrapper behavior and exercise cutoff and resonance |
 | The filter response is a resonant two-pole low-pass | Consistent with the service adjustment and secondary interpretation | A two-state-variable low-pass is a useful behavioral candidate |
 | Internal OTA pair, exponential bias converter, pin-by-pin roles | Provisional circuit hypothesis; not confirmed by the reviewed Yamaha material | Do not encode these as verified circuit facts |
-| Feedback saturation reproduces the IC's distortion | Behavioral hypothesis; no hardware THD data | Keep it opt-in and expose its empirical constants |
+| Feedback saturation reproduces the IC's distortion | Behavioral hypothesis; no hardware THD data | Keep parameters explicit and keep provisional behavior explicitly identified |
 | PS-30 is fitted with IG02611 | Contradicted by the reviewed PS-30 manual parts list, which identifies IG02612 | Do not use this attribution as support for IG02610 equivalence |
 
 ### Provisional structure
@@ -83,10 +83,8 @@ This gives the behavioral model a smooth exponential frequency response to
 those controls. It is not a calibrated volts-per-octave or CV-to-bias law for
 IG02610; those mappings remain unknown.
 
-This makes the hypotheses testable without pretending they are measured:
-compare a linear two-pole response against feedback nonlinearity across
-cutoff, resonance, and input level, save all parameters and outputs, and keep
-both model selections available. The hardware-specific cutoff law, Q mapping,
+These hypotheses were compared against the former linear biquad in the
+archived Phase 2 artifacts. The hardware-specific cutoff law, Q mapping,
 nonlinear transfer, and asymmetry remain unknown until a unit or further
 primary circuit evidence becomes available.
 
@@ -97,20 +95,11 @@ primary circuit evidence becomes available.
 - [CS-01 service manual](https://manuals.plus/m/7bf5a88f7fd7a35ab00af242825c27ab94ff0c3ffd909bbce88c3360fa997a4f): IG02610 identification, control/adjustment data, and overall circuit diagrams.
 - [IG02610/11 schematic interpretation](https://ss30m.blogspot.com/2020/05/fun-with-filters-pt2.html): secondary reverse-engineering notes; treated as an interpretation, not Yamaha documentation or hardware measurement.
 
-## A/B architecture
+## Current architecture
 
-`OriginalVCFProcessor` retains `Model::Legacy` as its default. Call
-`setModel(Model::Experimental)` on an instance to compare it with
-`Model::Legacy`; both paths receive the same audio, EG/LFO/breath cutoff
-modulation, and routing. Existing presets and default production routing stay
-on the legacy implementation. The editor also has a temporary Original VCF
-Legacy/Experimental toggle beside the keyboard/monitor toggle. This UI state is
-not stored in presets or plugin state. The Modern VCF has its own independent
-toggle; selecting a model does not change which filter family is routed.
+`OriginalVCFProcessor` routes control-rate and audio-rate modulation through `CS01VCFCircuit`, which now uses the `ExperimentalOriginalVCF` TPT state-variable behavioral core. The separate Legacy biquad implementation, model-selection API, and temporary editor toggles have been removed. The existing filter type control continues to choose Original or Modern; both selections use their respective experimental behavioral models.
 
-Both paths use the existing external input and output coupling approximations
-in `CS01VCFCircuit`; the legacy path additionally retains its IG02610 wrapper
-behavior (input clamp and empirical post-filter coloration).
+The wrapper retains empirical input/output coupling approximations. The core uses explicit provisional damping, feedback-drive, integrator-drive, and output-bound parameters. None is calibrated to a physical IG02610. The selected structure is motivated by the supplied report's two-integrator SVF hypothesis and the numerical need for continuous cutoff modulation; it is not evidence of the IC's actual internals.
 
 ## Chosen topology and trade-offs
 
@@ -137,7 +126,7 @@ provisional: minimum/maximum damping, feedback drive, integrator-input drive,
 and maximum output.
 They should be grouped with future calibration data and replaced only when
 repeatable measurements support new values. The processor's cutoff limits and
-legacy resonance toggle are inherited behavior, not claims about a control
+two-position resonance control is inherited behavior, not claims about a control
 voltage law.
 
 ## Validation coverage and limitations
@@ -145,36 +134,28 @@ voltage law.
 The new unit checks cover finite and bounded output under fast cutoff sweeps
 at 44.1, 48, and 96 kHz host rates (at the project's 4x internal rate), plus
 deterministic output independent of how a sequence is partitioned into
-blocks. Existing Original VCF tests continue to cover legacy regression and
+blocks. Original VCF tests cover routing, finite output, modulation behavior, and
 bus/control routing. These checks do not validate measured frequency
 response, resonance peak, THD, cutoff modulation spectrum, or hardware tone.
 They also do not establish block-size consistency for the whole graph.
 
-The remote Phase 2 commit supplies deterministic baseline probes, and
-`tools/original_vcf_ab_characterize.py` writes the dual-model JSON result at
-`artifacts/dsp/original_vcf_ab.json`. It reports sine response, harmonic
-projections, a rapid cutoff stress sweep, and a same-process CPU microbenchmark
-at 1x and 4x nominal core rates. The script transcribes equations in Python;
-it is not a render of the compiled C++ processors. The CPU timings therefore
-compare Python loops and cannot establish production CPU cost. The rapid sweep
-also found non-finite output in the legacy equation transcription for some
-1x-rate cases; treat that as a model-probe finding, not proof of production
-failure.
+The archived dual-model JSON and compiled comparisons in `artifacts/dsp/` were
+recorded before the Legacy implementation was removed. Their Python harness
+has also been removed, so these files are historical rather than regenerable
+current-source measurements. They compare model equations and filter-path
+timings, not hardware or whole-plugin performance.
 
-The targeted compiled run passed 17 tests across the experimental model and
-Original VCF processor suites, including finite/bounded output at 44.1, 48,
-and 96 kHz host rates, deterministic block partitioning, level-dependent
-nonlinearity, legacy behavior, and routing. This was not the complete project
-test suite.
+The focused compiled checks cover finite/bounded output at 44.1, 48, and 96 kHz
+host rates, deterministic block partitioning and reset, level-dependent
+nonlinearity, and routing. They are implementation checks, not hardware
+validation.
 
 These probes do not validate the complete EG/LFO/breath routing in a running
-graph or establish hardware behavior. Before deciding whether to change the
-default, run both compiled model selections through identical rendered plugin
-stimuli and compare them with the Phase 2 windows. Save raw values and metadata
-(sample rate, oversampling, cutoff, resonance, input level, block size, build
-type), then compare against captures from multiple hardware units. Calibrate
-one behavioral parameter group at a time and keep the source measurements
-with each machine-readable result.
+graph or establish hardware behavior. Capture current-model plugin stimuli
+with documented metadata (sample rate, oversampling, cutoff, resonance, input
+level, block size, and build type) and compare them against measurements from
+multiple hardware units. Calibrate one behavioral parameter group at a time
+and keep the source measurements with each machine-readable result.
 
 Compiled response, harmonic, and CPU probes are recorded in
 `artifacts/dsp/original_vcf_cpp_response.csv`,
@@ -191,11 +172,12 @@ Debug difference larger than the Release difference. These are observational
 measurements, not cross-machine guarantees; CPU timing excludes processor-side
 modulation generation and whole-graph scheduling. The response and harmonic
 CSVs characterize the filter paths, not the whole plugin graph or hardware.
-No hardware validation is available to justify replacing the legacy sound.
+No hardware validation is available; the chosen model is a product sound decision, not evidence of circuit accuracy.
 
 ## Recommendation
 
-Keep the experimental model opt-in. Compiled core measurements show faster
-processing and characterize response/harmonics, but no whole-plugin comparison
-or hardware validation demonstrates that the changed response is a better
-match for the CS-01.
+The experimental model is now the sole Original VCF implementation following
+the user's listening evaluation; the previous implementation and A/B toggle
+have been removed. This is a product sound choice, not confirmation of hardware
+accuracy; no physical IG02610 comparison is available. Earlier CSV comparison
+artifacts remain archived and describe the code as it existed when measured.
