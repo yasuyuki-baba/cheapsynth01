@@ -4,7 +4,7 @@
 #include <cmath>
 
 float ExperimentalIG05630::StateVariableLowpass::processSample(float input, float g,
-                                                                float damping) {
+                                                               float damping) {
     // TPT SVF with coupled trapezoidal integrators.
     const float normalization = 1.0f / (1.0f + damping * g + g * g);
     const float highpass = normalization * (input - integrator1 * (g + damping) - integrator2);
@@ -55,11 +55,10 @@ float ExperimentalIG05630::processSample(float sample) {
 
     // The one-sample feedback state keeps this behavioral loop deterministic.
     // This is an explicit-delay TPT cascade, not a ZDF solution of an IC loop.
-    const float feedback = resonanceFeedbackGain *
-                           std::tanh(feedbackOutput * EmpiricalParameters::feedbackDrive);
-    const float integratorInput =
-        std::tanh((sample - feedback) * EmpiricalParameters::inputDrive) /
-        EmpiricalParameters::inputDrive;
+    const float feedback =
+        resonanceFeedbackGain * std::tanh(feedbackOutput * EmpiricalParameters::feedbackDrive);
+    const float integratorInput = std::tanh((sample - feedback) * EmpiricalParameters::inputDrive) /
+                                  EmpiricalParameters::inputDrive;
 
     const float firstOutput = firstSection.processSample(integratorInput, g, firstDamping);
     const float output = secondSection.processSample(firstOutput, g, secondDamping);

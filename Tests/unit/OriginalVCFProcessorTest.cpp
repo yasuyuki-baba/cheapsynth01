@@ -790,20 +790,20 @@ TEST_F(OriginalVCFProcessorTest, Observation_ProcessBlockCpu) {
     const auto start = std::chrono::steady_clock::now();
     for (int block = 0; block < blockCount; ++block)
         processor->processBlock(buffer, midi);
-    const double elapsed = std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - start).count();
-    const bool finite = std::all_of(buffer.getReadPointer(0),
-                                    buffer.getReadPointer(0) + blockSize,
+    const double elapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    const bool finite = std::all_of(buffer.getReadPointer(0), buffer.getReadPointer(0) + blockSize,
                                     [](float value) { return std::isfinite(value); });
     EXPECT_TRUE(finite);
-    std::cout << "ORIGINAL_VCF_PROCESSOR_BENCH," << blockSize << ',' << blockCount << ','
-              << elapsed << ',' << elapsed * 1.0e9 / (blockSize * blockCount) << ','
+    std::cout << "ORIGINAL_VCF_PROCESSOR_BENCH," << blockSize << ',' << blockCount << ',' << elapsed
+              << ',' << elapsed * 1.0e9 / (blockSize * blockCount) << ','
               << (finite ? "finite" : "nonfinite") << '\n';
 }
 
 TEST(OriginalVCFProcessorModulationTest, Observation_CombinedSemitoneExponent) {
     constexpr int sampleCount = 262144;
-    std::vector<float> eg(sampleCount), lfo(sampleCount), breath(sampleCount), baseCutoff(sampleCount);
+    std::vector<float> eg(sampleCount), lfo(sampleCount), breath(sampleCount),
+        baseCutoff(sampleCount);
     for (int i = 0; i < sampleCount; ++i) {
         const float phase = static_cast<float>(i) * 0.013f;
         eg[i] = std::sin(phase);
@@ -826,8 +826,8 @@ TEST(OriginalVCFProcessorModulationTest, Observation_CombinedSemitoneExponent) {
         separate[i] = baseCutoff[i] * egRatio * lfoRatio * breathRatio;
         separateSum += separate[i];
     }
-    const auto separateElapsed = std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - separateStart).count();
+    const auto separateElapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - separateStart).count();
 
     const auto combinedStart = std::chrono::steady_clock::now();
     double combinedSum = 0.0;
@@ -841,14 +841,13 @@ TEST(OriginalVCFProcessorModulationTest, Observation_CombinedSemitoneExponent) {
         combined[i] = baseCutoff[i] * ratio;
         combinedSum += combined[i];
     }
-    const auto combinedElapsed = std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - combinedStart).count();
+    const auto combinedElapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - combinedStart).count();
 
     float maxRelativeError = 0.0f;
     for (int i = 0; i < sampleCount; ++i) {
-        maxRelativeError = juce::jmax(
-            maxRelativeError,
-            std::abs(combined[i] - separate[i]) / juce::jmax(separate[i], 1.0f));
+        maxRelativeError = juce::jmax(maxRelativeError, std::abs(combined[i] - separate[i]) /
+                                                            juce::jmax(separate[i], 1.0f));
     }
 
     std::vector<float> input(sampleCount), separateOutput(sampleCount), combinedOutput(sampleCount);

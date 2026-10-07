@@ -124,8 +124,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         // exp2 instead of three. This is algebraically equivalent, with only
         // small floating-point rounding differences from the old multiply path.
         const float totalModSemitones = egMod + lfoMod + breathMod;
-        const float combinedModFreqRatio = static_cast<float>(
-            std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
+        const float combinedModFreqRatio =
+            static_cast<float>(std::exp2(static_cast<double>(totalModSemitones / 12.0f)));
         float modulatedCutoffHz = baseCutoff * combinedModFreqRatio;
 
         // Check for NaN or Infinity
