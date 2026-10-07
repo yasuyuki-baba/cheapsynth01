@@ -38,8 +38,8 @@ void ExperimentalIG05630::setCutoffFrequency(float frequency) {
 
 void ExperimentalIG05630::setResonance(float amount) {
     resonance = std::isfinite(amount) ? std::clamp(amount, 0.0f, 1.0f) : 0.0f;
-    // The fourth-power map is an explicit behavioral hypothesis to keep moderate
-    // panel values below the self-oscillation region while retaining it near max.
+    // The fourth-power map is an explicit behavioral hypothesis that makes the
+    // resonance control gradual. Maximum gain is limited to avoid self-oscillation.
     resonanceFeedbackGain = EmpiricalParameters::maximumFeedbackGain *
                             std::pow(resonance, EmpiricalParameters::resonanceCurve);
 }

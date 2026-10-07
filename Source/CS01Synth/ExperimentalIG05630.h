@@ -12,9 +12,10 @@ class ExperimentalIG05630 {
         // Provisional normalized saturation and resonance ranges. Not calibrated.
         static constexpr float inputDrive = 2.0f;
         static constexpr float feedbackDrive = 1.0f;
-        // Provisional feedback map: delay self-oscillation until the upper
-        // resonance range and reduce its maximum level. Not hardware-calibrated.
-        static constexpr float maximumFeedbackGain = 2.0f;
+        // Provisional feedback map kept below the model's self-oscillation
+        // threshold. Non-oscillating behavior is a conservative hypothesis,
+        // not a verified property of the hardware.
+        static constexpr float maximumFeedbackGain = 1.2f;
         static constexpr float resonanceCurve = 4.0f;
         static constexpr float maximumOutput = 1.5f;
     };
