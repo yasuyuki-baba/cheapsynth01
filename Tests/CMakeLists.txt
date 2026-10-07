@@ -56,14 +56,16 @@ juce_generate_juce_header(CheapSynth01Tests)
 target_sources(CheapSynth01Tests
     PRIVATE
         TestRunner.cpp
+        unit/DspStructureRegressionTest.cpp
+        reference/DspBeforeRefactor.cpp
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h
         unit/CS01VCFCircuitTest.cpp
         unit/ToneGeneratorTest.cpp
         unit/OriginalVCFProcessorTest.cpp
-        unit/ExperimentalOriginalVCFTest.cpp
-        unit/ExperimentalIG05630Test.cpp
+        unit/IG02610BehavioralModelTest.cpp
+        unit/IG05630BehavioralModelTest.cpp
         unit/VCAProcessorTest.cpp
         unit/EGProcessorTest.cpp
         unit/RCEnvelopeModelTest.cpp
@@ -89,14 +91,14 @@ target_sources(CheapSynth01Tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/YM10150.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/OriginalVCFProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCAProcessor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02600.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG02600BehavioralModel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/EGProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/LFOProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/VCOProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/MidiProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ModernVCFProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/CS01IIVCFCircuit.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/ExperimentalIG05630.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/IG05630BehavioralModel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01Synth/NoiseGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../Source/CS01AudioProcessorEditor.cpp

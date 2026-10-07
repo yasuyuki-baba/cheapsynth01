@@ -1,10 +1,10 @@
-#include "CS01Synth/ExperimentalIG05630.h"
+#include "CS01Synth/IG05630BehavioralModel.h"
 
 #include <algorithm>
 #include <cmath>
 
-float ExperimentalIG05630::StateVariableLowpass::processSample(float input, float g,
-                                                               float damping) {
+float IG05630BehavioralModel::StateVariableLowpass::processSample(float input, float g,
+                                                                  float damping) {
     // TPT SVF with coupled trapezoidal integrators.
     const float normalization = 1.0f / (1.0f + damping * g + g * g);
     const float highpass = normalization * (input - integrator1 * (g + damping) - integrator2);
@@ -15,28 +15,28 @@ float ExperimentalIG05630::StateVariableLowpass::processSample(float input, floa
     return lowpass;
 }
 
-void ExperimentalIG05630::StateVariableLowpass::reset() {
+void IG05630BehavioralModel::StateVariableLowpass::reset() {
     integrator1 = 0.0f;
     integrator2 = 0.0f;
 }
 
-void ExperimentalIG05630::prepare(double newSampleRate) {
+void IG05630BehavioralModel::prepare(double newSampleRate) {
     sampleRate = std::max(1.0, newSampleRate);
     reset();
 }
 
-void ExperimentalIG05630::reset() {
+void IG05630BehavioralModel::reset() {
     feedbackOutput = 0.0f;
     firstSection.reset();
     secondSection.reset();
 }
 
-void ExperimentalIG05630::setCutoffFrequency(float frequency) {
+void IG05630BehavioralModel::setCutoffFrequency(float frequency) {
     cutoff = std::isfinite(frequency) ? frequency : 1000.0f;
     cutoff = std::clamp(cutoff, 20.0f, static_cast<float>(sampleRate * 0.45));
 }
 
-void ExperimentalIG05630::setResonance(float amount) {
+void IG05630BehavioralModel::setResonance(float amount) {
     resonance = std::isfinite(amount) ? std::clamp(amount, 0.0f, 1.0f) : 0.0f;
     // The fourth-power map is an explicit behavioral hypothesis that makes the
     // resonance control gradual. Maximum gain is limited to avoid self-oscillation.
@@ -44,7 +44,7 @@ void ExperimentalIG05630::setResonance(float amount) {
                             std::pow(resonance, EmpiricalParameters::resonanceCurve);
 }
 
-float ExperimentalIG05630::processSample(float sample) {
+float IG05630BehavioralModel::processSample(float sample) {
     if (!std::isfinite(sample))
         sample = 0.0f;
 
@@ -64,10 +64,10 @@ float ExperimentalIG05630::processSample(float sample) {
     const float output = secondSection.processSample(firstOutput, g, secondDamping);
     feedbackOutput = output;
 
+    // Numerical safety: recover states and bound output; not hardware saturation.
     if (!std::isfinite(output)) {
         reset();
         return 0.0f;
     }
-    return std::clamp(output, -EmpiricalParameters::maximumOutput,
-                      EmpiricalParameters::maximumOutput);
+    return std::clamp(output, -SafetyParameters::maximumOutput, SafetyParameters::maximumOutput);
 }

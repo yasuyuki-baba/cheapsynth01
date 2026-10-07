@@ -100,6 +100,7 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const float egModRangeSemitones = 36.0f;  // Empirical, not circuit-calibrated.
     const float lfoModRangeSemitones = 24.0f;
     const float breathModRangeSemitones = 24.0f;
+    // Implementation safety bound, separate from the empirical modulation spans.
     const float maximumCutoff =
         juce::jmin(20000.0f, static_cast<float>(processingSampleRate) * 0.49f);
     auto* samples = processingBuffer.getWritePointer(0);
@@ -112,6 +113,7 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                 lfoValue * modDepth * lfoModRangeSemitones +
                                 breathInput * breathVcfDepth * breathModRangeSemitones;
         float modulatedCutoff = cutoff * std::exp2(semitones / 12.0f);
+        // Numerical safety for modulation; not a hardware control law.
         if (!std::isfinite(modulatedCutoff))
             modulatedCutoff = cutoff;
         const float frequency = juce::jlimit(20.0f, maximumCutoff, modulatedCutoff);

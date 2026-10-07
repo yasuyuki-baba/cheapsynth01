@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(ExperimentalOriginalVCFTest, Observation_ProductionPanelResponse) {
+TEST(IG02610BehavioralModelTest, Observation_ProductionPanelResponse) {
     CS01AudioProcessor host;
     auto* parameter = host.getValueTreeState().getParameter(ParameterIds::cutoff);
     ASSERT_NE(parameter, nullptr);
@@ -50,7 +50,7 @@ TEST(ExperimentalOriginalVCFTest, Observation_ProductionPanelResponse) {
     }
 }
 
-TEST(ExperimentalOriginalVCFTest, LiveCutoffAndResonanceRemainBounded) {
+TEST(IG02610BehavioralModelTest, LiveCutoffAndResonanceRemainBounded) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
         const double rate = hostRate * Constants::oversamplingFactor;
         CS01VCFCircuit filter;
@@ -85,7 +85,7 @@ TEST(ExperimentalOriginalVCFTest, LiveCutoffAndResonanceRemainBounded) {
     }
 }
 
-TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CharacterizeInternalRateProcessing) {
+TEST(IG02610BehavioralModelOversamplingTest, Observation_CharacterizeInternalRateProcessing) {
     for (double rate : {44100.0, 48000.0}) {
         for (float resonance : {0.7f, 0.8f}) {
             for (bool bypassFilter : {true, false}) {
@@ -152,7 +152,7 @@ double spectralAmplitude(const std::vector<float>& samples, double rate, double 
 }
 }  // namespace
 
-TEST(ExperimentalOriginalVCFSpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
+TEST(IG02610BehavioralModelSpectrumTest, MeasurementDetectsKnownHarmonicAndFoldedTone) {
     for (double rate : {44100.0, 48000.0}) {
         std::vector<float> samples(static_cast<size_t>(rate));
         for (size_t i = 0; i < samples.size(); ++i) {
@@ -169,7 +169,7 @@ TEST(ExperimentalOriginalVCFSpectrumTest, MeasurementDetectsKnownHarmonicAndFold
     }
 }
 
-TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CompareInterpolatedInputResponse) {
+TEST(IG02610BehavioralModelOversamplingTest, Observation_CompareInterpolatedInputResponse) {
     // Realistic resampling path, not direct generation at the internal rate.
     for (double rate : {44100.0, 48000.0}) {
         for (float cutoff : {250.0f, 1000.0f, 5000.0f}) {
@@ -226,7 +226,7 @@ TEST(ExperimentalOriginalVCFOversamplingTest, Observation_CompareInterpolatedInp
     }
 }
 
-TEST(ExperimentalOriginalVCFSpectrumTest,
+TEST(IG02610BehavioralModelSpectrumTest,
      Observation_CharacterizeDrivenFilterHarmonicsAndFoldedComponents) {
     // One-second coherent window after one-second settling. Observations only:
     // folded bins can contain multiple harmonics, not exclusively harmonic five.
@@ -265,7 +265,7 @@ TEST(ExperimentalOriginalVCFSpectrumTest,
     }
 }
 
-TEST(ExperimentalOriginalVCFTest, DrivenSignalAndSilenceRemainFiniteAndBounded) {
+TEST(IG02610BehavioralModelTest, DrivenSignalAndSilenceRemainFiniteAndBounded) {
     // Numerical safety invariant, not a hardware distortion target.
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         for (float resonance : {0.2f, 0.7f, 0.8f}) {
@@ -297,7 +297,7 @@ TEST(ExperimentalOriginalVCFTest, DrivenSignalAndSilenceRemainFiniteAndBounded) 
                         ASSERT_TRUE(std::isfinite(last));
                     }
                     EXPECT_LE(std::abs(last),
-                              ExperimentalOriginalVCF::EmpiricalParameters::maximumOutput);
+                              IG02610BehavioralModel::SafetyParameters::maximumOutput);
                 }
             }
         }

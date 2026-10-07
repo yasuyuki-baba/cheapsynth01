@@ -6,7 +6,7 @@
 
 // IG02610-inspired behavioral model. The TPT state-variable topology and
 // nonlinear feedback are numerical/behavioral choices, not an IC reconstruction.
-class ExperimentalOriginalVCF {
+class IG02610BehavioralModel {
    public:
     struct EmpiricalParameters {
         // Provisional damping map; replace with measured resonance response.
@@ -15,6 +15,10 @@ class ExperimentalOriginalVCF {
         // Provisional normalized drives; neither is calibrated to an IC.
         static constexpr float feedbackDrive = 1.0f;
         static constexpr float integratorInputDrive = 2.0f;
+    };
+
+    // Implementation protection, not an IC transfer characteristic.
+    struct SafetyParameters {
         static constexpr float maximumOutput = 1.5f;
     };
 
@@ -27,6 +31,7 @@ class ExperimentalOriginalVCF {
     }
 
     float processSample(float input, float cutoffHz, float resonance) {
+        // Numerical safety: reject invalid input and bound the TPT coefficient.
         if (!std::isfinite(input))
             input = 0.0f;
         const double boundedCutoff =
@@ -48,10 +53,11 @@ class ExperimentalOriginalVCF {
         ic1eq = 2.0 * v1 - ic1eq;
         ic2eq = 2.0 * v2 - ic2eq;
 
+        // Numerical safety: finite output and amplitude bound, outside the model curve.
         const double output = std::isfinite(v2) ? v2 : 0.0;
         return static_cast<float>(
-            juce::jlimit(-static_cast<double>(EmpiricalParameters::maximumOutput),
-                         static_cast<double>(EmpiricalParameters::maximumOutput), output));
+            juce::jlimit(-static_cast<double>(SafetyParameters::maximumOutput),
+                         static_cast<double>(SafetyParameters::maximumOutput), output));
     }
 
    private:
