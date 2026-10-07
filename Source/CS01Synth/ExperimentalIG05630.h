@@ -12,7 +12,10 @@ class ExperimentalIG05630 {
         // Provisional normalized saturation and resonance ranges. Not calibrated.
         static constexpr float inputDrive = 2.0f;
         static constexpr float feedbackDrive = 1.0f;
-        static constexpr float maximumFeedbackGain = 3.0f;
+        // Provisional feedback map: delay self-oscillation until the upper
+        // resonance range and reduce its maximum level. Not hardware-calibrated.
+        static constexpr float maximumFeedbackGain = 2.0f;
+        static constexpr float resonanceCurve = 4.0f;
         static constexpr float maximumOutput = 1.5f;
     };
 
@@ -34,6 +37,7 @@ class ExperimentalIG05630 {
     double sampleRate = 44100.0;
     float cutoff = 1000.0f;
     float resonance = 0.0f;
+    float resonanceFeedbackGain = 0.0f;
     float feedbackOutput = 0.0f;
     StateVariableLowpass firstSection;
     StateVariableLowpass secondSection;
