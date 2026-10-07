@@ -56,7 +56,6 @@ juce_generate_juce_header(CheapSynth01Tests)
 target_sources(CheapSynth01Tests
     PRIVATE
         TestRunner.cpp
-        BinaryData.cpp
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h
@@ -128,6 +127,7 @@ target_link_juce_modules(CheapSynth01Tests)
 target_link_libraries(CheapSynth01Tests
     PRIVATE
         gmock_main
+        CheapSynth01Resources
 )
 
 # Compiler warning settings
