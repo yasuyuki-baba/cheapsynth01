@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # Project name and language settings
-project(CheapSynth01 VERSION 1.0.0 LANGUAGES C CXX)
+project(CheapSynth01 VERSION 0.3.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -47,7 +47,7 @@ endif()
 # JUCE plugin settings
 option(COPY_PLUGIN_AFTER_BUILD "Install plugin products after building" ON)
 juce_add_plugin(CheapSynth01
-    VERSION 1.0.0
+    VERSION ${PROJECT_VERSION}
     COMPANY_NAME "Yasuyuki Baba"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
