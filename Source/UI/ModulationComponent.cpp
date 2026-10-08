@@ -67,13 +67,17 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
         return ParameterFormatting::parse(text, ParameterFormatting::Style::Percent);
     };
     modDepthSlider.setTooltip("Modulation wheel amount, not a frequency or gain percentage.");
-    modDepthSlider.setValue(0.0);
+    modDepthSlider.setValue(
+        processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load(),
+        juce::dontSendNotification);
     modDepthSlider.getProperties().set("performanceWheel", true);
     modDepthSlider.setSliderSnapsToMousePosition(false);
     modDepthSlider.setPopupDisplayEnabled(true, true, this);
     modDepthSlider.setDoubleClickReturnValue(true, 0.0);
     modDepthSlider.addListener(this);
     addAndMakeVisible(modDepthSlider);
+    modDepthSlider.onDragStart = [this] { draggingMod = true; };
+    modDepthSlider.onDragEnd = [this] { draggingMod = false; };
     modDepthLabel.setText("MOD", juce::dontSendNotification);
     modDepthLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(modDepthLabel);
@@ -103,6 +107,12 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
 }
 
 void ModulationComponent::timerCallback() {
+    if (!draggingMod) {
+        modDepthSlider.setValue(
+            processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load(),
+            juce::dontSendNotification);
+    }
+
     const auto revision = processor.getExternalBendRevision();
     if (revision != bendRevision) {
         bendRevision = revision;
