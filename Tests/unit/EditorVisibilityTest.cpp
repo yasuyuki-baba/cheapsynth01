@@ -7,6 +7,9 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <cmath>
+
 TEST(EditorVisibilityTest, ModWheelFollowsMidiWithoutSendingControllerFeedback) {
     CS01AudioProcessor processor;
     processor.getMidiMessageCollector().reset(48000);
@@ -26,29 +29,49 @@ TEST(EditorVisibilityTest, ModWheelFollowsMidiWithoutSendingControllerFeedback) 
     }
     ASSERT_NE(mod, nullptr);
     ASSERT_NE(bend, nullptr);
+    auto waitUntil = [](auto condition) {
+        // MIDI notifications and UI polling use separate best-effort timers.
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (!condition() && std::chrono::steady_clock::now() < deadline) {
+            if (!juce::MessageManager::getInstance()->runDispatchLoopUntil(10))
+                break;
+        }
+        return condition();
+    };
+    auto waitForMod = [&](double expected) {
+        return waitUntil([&] { return std::abs(mod->getValue() - expected) <= 0.001; });
+    };
     auto receive = [&](int controller, int value) {
         juce::AudioBuffer<float> audio(2, 64);
         juce::MidiBuffer midi;
         midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, value), 0);
         midiProcessor.processBlock(audio, midi);
-        juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
     };
     receive(1, 64);
+    ASSERT_TRUE(waitForMod(8192.0 / 16383.0));
     EXPECT_NEAR(mod->getValue(), 8192.0 / 16383.0, 0.001);
     receive(33, 127);
+    ASSERT_TRUE(waitForMod(8319.0 / 16383.0));
     EXPECT_NEAR(mod->getValue(), 8319.0 / 16383.0, 0.001);
 
     // Bend dragging must not suspend the independent MOD display.
     bend->onDragStart();
     receive(1, 127);
+    EXPECT_TRUE(waitForMod(1.0));
     EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
     bend->onDragEnd();
 
     mod->onDragStart();
     receive(121, 0);
+    EXPECT_TRUE(waitUntil([&] {
+        return processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load() ==
+               0.0f;
+    }));
+    // Observe timer delivery while dragging; the display must retain its value.
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
     EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
     mod->onDragEnd();
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    ASSERT_TRUE(waitForMod(0.0));
     EXPECT_DOUBLE_EQ(mod->getValue(), 0.0);
 
     juce::MidiBuffer feedback;
