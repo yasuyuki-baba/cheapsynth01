@@ -413,7 +413,8 @@ TEST(AuditRealtimeTest, EntireCallbackHasNoHeapOperationsForDenseMidiAndGuiQueue
     EXPECT_EQ(allocations, 0u);
     EXPECT_EQ(frees, 0u);
     std::cout << "RT callback probe: allocation=" << allocations << " free=" << frees
-              << " pthread_mutex_lock=" << locks << " (JUCE graph node callback locks)\n";
+              << " pthread_mutex_lock=" << locks
+              << " (including JUCE graph nodes and MessageManager thread checks)\n";
 }
 #endif
 
@@ -511,4 +512,50 @@ TEST(AuditQueueTest, PreparationResetCanOverlapProducersAndConsumer) {
     EXPECT_FALSE(queue.removeNextBlockOfMessages(midi, 64));
     ASSERT_EQ(midi.getNumEvents(), 1);
     EXPECT_TRUE((*midi.begin()).getMessage().isNoteOff());
+}
+
+TEST(AuditProgramTest, UserHostRequestsUsePreparedValuesAndRejectInvalidRefreshedFiles) {
+    CS01AudioProcessor processor;
+    processor.prepareToPlay(48000, 64);
+    auto directory = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                         .getChildFile("cheapsynth-host-user-" + juce::Uuid().toString());
+    ASSERT_TRUE(directory.createDirectory());
+    auto& manager = processor.getPresetManager();
+    manager.setUserPresetsDirectoryForTesting(directory);
+    setControl(processor, ParameterIds::cutoff, 0.8f);
+    setControl(processor, ParameterIds::feet, 4);
+    const auto savedCutoff = processor.apvts.getParameter(ParameterIds::cutoff)->getValue();
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Prepared"));
+    const int index = manager.findProgram("Prepared.xml", PresetType::User);
+    ASSERT_GE(index, 0);
+    manager.setCurrentProgram(0);
+    render(processor, 64);
+    EXPECT_FALSE(source(processor)->isNoiseMode());
+    juce::MemoryBlock defaultSession;
+    processor.getStateInformation(defaultSession);
+    // External edits do not introduce file I/O on a host/audio program request.
+    ASSERT_TRUE(directory.getChildFile("Prepared.xml").replaceWithText("broken XML"));
+    std::thread host([&] { processor.setCurrentProgram(index); });
+    host.join();
+    EXPECT_EQ(processor.getCurrentProgram(), 0);
+    render(processor, 64);
+    EXPECT_EQ(processor.getCurrentProgram(), index);
+    EXPECT_FLOAT_EQ(processor.apvts.getParameter(ParameterIds::cutoff)->getValue(), savedCutoff);
+    EXPECT_TRUE(source(processor)->isNoiseMode());
+    processor.setStateInformation(defaultSession.getData(),
+                                  static_cast<int>(defaultSession.getSize()));
+    render(processor, 64);
+    EXPECT_FALSE(source(processor)->isNoiseMode());
+    std::thread again([&] { processor.setCurrentProgram(index); });
+    again.join();
+    render(processor, 64);
+    EXPECT_TRUE(source(processor)->isNoiseMode());
+    manager.refreshUserPresets();
+    manager.setCurrentProgram(0);
+    std::thread invalid([&] { processor.setCurrentProgram(index); });
+    invalid.join();
+    render(processor, 64);
+    EXPECT_EQ(processor.getCurrentProgram(), 0);
+    EXPECT_FALSE(source(processor)->isNoiseMode());
+    directory.deleteRecursively();
 }
