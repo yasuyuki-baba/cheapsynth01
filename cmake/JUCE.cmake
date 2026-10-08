@@ -12,9 +12,11 @@ FetchContent_Declare(
 
 # Make JUCE available
 FetchContent_MakeAvailable(JUCE)
+include("${CMAKE_CURRENT_LIST_DIR}/JuceGraphRealtimePatch.cmake")
 
 # JUCE related helper functions
 function(target_link_juce_modules target)
+    target_include_directories(${target} BEFORE PRIVATE "${CHEAPSYNTH_JUCE_RT_INCLUDE}")
     target_link_libraries(${target} 
         PRIVATE
         juce::juce_audio_basics

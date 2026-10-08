@@ -19,7 +19,8 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
     auto* feetParam =
         dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet));
     if (feetParam != nullptr) {
-        isNoiseMode = feetParam->getIndex() == static_cast<int>(Feet::WhiteNoise);
+        observedFeet = feetParam->getIndex();
+        isNoiseMode = observedFeet == static_cast<int>(Feet::WhiteNoise);
     }
     requestedNoiseMode.store(isNoiseMode);
     currentGenerator = isNoiseMode ? static_cast<ISoundGenerator*>(noiseGenerator.get())
@@ -37,6 +38,13 @@ void VCOProcessor::parameterChanged(const juce::String& parameterID, float newVa
 }
 
 void VCOProcessor::applyPendingGeneratorChange() {
+    const int feet =
+        static_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet))
+            ->getIndex();
+    if (feet != observedFeet) {
+        observedFeet = feet;
+        requestedNoiseMode.store(feet == static_cast<int>(Feet::WhiteNoise));
+    }
     ISoundGenerator* next = requestedNoiseMode.load()
                                 ? static_cast<ISoundGenerator*>(noiseGenerator.get())
                                 : static_cast<ISoundGenerator*>(toneGenerator.get());

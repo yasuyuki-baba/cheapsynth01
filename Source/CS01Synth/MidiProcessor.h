@@ -53,6 +53,8 @@ class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
     void getStateInformation(juce::MemoryBlock&) override {}
     void setStateInformation(const void*, int) override {}
 
+    void processShortEvent(const juce::MidiMessage& message);
+
     // Set sound generator
     void setSoundGenerator(ISoundGenerator* generator) {
         soundGenerator = generator;
@@ -106,7 +108,7 @@ class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
     void timerCallback() override;
 
     // MIDI processing methods
-    void handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&);
+    void handleMidiEvent(const juce::MidiMessage& midiMessage);
     void handleNoteOn(const juce::MidiMessage& midiMessage);
     void handleNoteOff(const juce::MidiMessage& midiMessage);
     void handlePitchWheel(const juce::MidiMessage& midiMessage);

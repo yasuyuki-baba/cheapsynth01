@@ -31,6 +31,8 @@ class ToneGenerator : public ISoundGenerator {
     void changeNote(int midiNoteNumber) override;
     void pitchWheelMoved(int newPitchWheelValue) override;
     bool isActive() const override;
+    void setReleaseSamplesRemaining(int samples) override;
+
     int getCurrentlyPlayingNote() const override;
 
     // Audio processing methods
@@ -62,6 +64,9 @@ class ToneGenerator : public ISoundGenerator {
     bool tailOff = false;
     int tailOffCounter = 0;
     int tailOffDuration = 0;
+    float releaseSeconds = 0.0f;
+    bool graphOwnsRelease = false;
+    void updateReleaseDuration();
 
     // Pitch State
     float currentPitch = 60.0f;

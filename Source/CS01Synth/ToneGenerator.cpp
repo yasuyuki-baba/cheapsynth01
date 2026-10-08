@@ -34,14 +34,16 @@ void ToneGenerator::startNote(int midiNoteNumber, float velocity, int currentPit
 }
 
 void ToneGenerator::stopNote(bool allowTailOff) {
+    graphOwnsRelease = false;
     noteOn = false;
     currentlyPlayingNote = 0;
 
     if (allowTailOff) {
         tailOff = true;
         // Get release time from parameter (convert to samples)
-        float releaseSecs = getMidiParameterValue(apvts, ParameterIds::release);
-        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
+        releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
+        tailOffDuration =
+            static_cast<int>(std::ceil(static_cast<double>(releaseSeconds) * sampleRate));
         tailOffCounter = 0;
     } else {
         tailOff = false;
@@ -55,8 +57,8 @@ void ToneGenerator::changeNote(int midiNoteNumber) {
 
 void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
     lastPitchWheel = newPitchWheelValue;
-    auto upRange = apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load();
-    auto downRange = apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load();
+    auto upRange = getCurrentParameterValue(apvts, ParameterIds::pitchBendUpRange);
+    auto downRange = getCurrentParameterValue(apvts, ParameterIds::pitchBendDownRange);
     appliedBendUpRange = upRange;
     appliedBendDownRange = downRange;
 
@@ -91,6 +93,7 @@ void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
     if (!state.held) {
         noteOn = false;
         tailOff = true;
+        releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
         tailOffCounter = 0;
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
@@ -105,9 +108,12 @@ int ToneGenerator::getCurrentlyPlayingNote() const {
 // Audio processing methods
 void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample,
                                     int numSamples) {
+    updateReleaseDuration();
     if (!isActive())
         return;
 
+    if (tailOff)
+        numSamples = juce::jmin(numSamples, juce::jmax(0, tailOffDuration - tailOffCounter));
     updateBlockRateParameters();
 
     const int numChannels = outputBuffer.getNumChannels();
@@ -158,17 +164,16 @@ void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& con
 // Existing methods from ToneGenerator
 void ToneGenerator::updateBlockRateParameters() {
     if (appliedBendUpRange >= 0.0f &&
-        (apvts.getRawParameterValue(ParameterIds::pitchBendUpRange)->load() != appliedBendUpRange ||
-         apvts.getRawParameterValue(ParameterIds::pitchBendDownRange)->load() !=
-             appliedBendDownRange))
+        (getCurrentParameterValue(apvts, ParameterIds::pitchBendUpRange) != appliedBendUpRange ||
+         getCurrentParameterValue(apvts, ParameterIds::pitchBendDownRange) != appliedBendDownRange))
         pitchWheelMoved(lastPitchWheel);
     currentFeet =
-        static_cast<Feet>(static_cast<int>(*apvts.getRawParameterValue(ParameterIds::feet)));
+        static_cast<Feet>(static_cast<int>(getCurrentParameterValue(apvts, ParameterIds::feet)));
     currentWaveform = static_cast<Waveform>(
-        static_cast<int>(*apvts.getRawParameterValue(ParameterIds::waveType)));
+        static_cast<int>(getCurrentParameterValue(apvts, ParameterIds::waveType)));
 
     // PWM LFO frequency setting with hardware-accurate range (0-60Hz)
-    float pwmSpeed = apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load();
+    float pwmSpeed = getCurrentParameterValue(apvts, ParameterIds::pwmSpeed);
     pwmLfo.setFrequency(pwmSpeed);
 
     currentModDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
@@ -176,7 +181,7 @@ void ToneGenerator::updateBlockRateParameters() {
     // Cache pitch-related parameters to avoid per-sample parameter access
     // MIDI (including queued panel gestures) applies bend once via pitchWheelMoved.
     pitchBendOffset = 0.0f;
-    pitchOffset = apvts.getRawParameterValue(ParameterIds::pitch)->load();
+    pitchOffset = getCurrentParameterValue(apvts, ParameterIds::pitch);
 
     // Update waveform strategy based on current waveform
     waveformModel.selectWaveform(currentWaveform);
@@ -197,7 +202,7 @@ void ToneGenerator::reset() {
     oversampling.reset();
     oversamplingBuffer.clear();
     pwmLfo.reset();
-    pwmLfo.setFrequency(apvts.getRawParameterValue(ParameterIds::pwmSpeed)->load(), true);
+    pwmLfo.setFrequency(getCurrentParameterValue(apvts, ParameterIds::pwmSpeed), true);
 
     // Reset note state
     noteOn = false;
@@ -340,4 +345,31 @@ float ToneGenerator::generateMasterSquareWave(float finalPitch) {
 float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
     return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement, internalSampleRate,
                                           pwmLfo);
+}
+
+void ToneGenerator::setReleaseSamplesRemaining(int samples) {
+    graphOwnsRelease = true;
+    if (!tailOff)
+        return;
+    releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
+    tailOffCounter = 0;
+    tailOffDuration = juce::jmax(0, samples);
+    if (samples <= 0) {
+        tailOff = false;
+        noteOn = false;
+    }
+}
+
+void ToneGenerator::updateReleaseDuration() {
+    if (graphOwnsRelease)
+        return;
+    if (tailOff) {
+        const float requested = getMidiParameterValue(apvts, ParameterIds::release);
+        if (requested != releaseSeconds) {
+            releaseSeconds = requested;
+            tailOffCounter = 0;
+            tailOffDuration =
+                static_cast<int>(std::ceil(static_cast<double>(requested) * sampleRate));
+        }
+    }
 }

@@ -59,7 +59,10 @@ bend, delayed/coalesced message-thread notification, save-before-dispatch,
 concurrent/reentrant edits and destruction with pending notification. Existing
 sample-timed graph and envelope regressions remain the behavior checks.
 
-## Remaining concerns outside this refactor
+## Historical concerns before the October stability audit
+
+The following described commit `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`.
+The next section records the current implementation and remaining limits.
 
 The surrounding audio callback still grows temporary `MidiBuffer` storage and
 can allocate for long MIDI messages (including SysEx copies).
@@ -72,3 +75,42 @@ JUCE's normal synchronous parameter listeners; this patch defers notifications
 originating specifically from MIDI. Existing DSP parameter lookups and
 coefficient work are unchanged. This refactor does not establish that the whole
 synth callback is allocation-free or bounded in cost.
+
+## October 2026 stability audit
+
+`RealtimeMidiQueue` replaces the panel collectors and the audio-side keyboard
+state injection. Each input/mirror queue has 2048 inline short-event slots; full
+or contended input queues request panic (discard that queued batch, stop all voices,
+reset audio tails). Long SysEx and unsupported messages are ignored. The host's
+MIDI buffer is read without payload copies or a capacity cap; host Note Off is not
+subject to the GUI queue overflow policy. Accepted host events retain positions
+and same-position order; host events precede GUI events at equal positions.
+Positions outside 0..N-1 clamp to 0 or N. At N events apply after rendering and
+change the next nonempty block's state. A zero-sample block applies host events
+without advancing DSP or draining the GUI queue. UI key highlighting follows
+host MIDI on the message-thread timer; it no longer locks keyboard state on audio.
+
+Choice UI and routing listeners publish only atomic state. Routing is still
+message-thread graph mutation, polled at 60 Hz; it depends on message-loop service,
+and is not a sample-accurate filter/LFO switch. A fixed graph was not adopted in
+this patch: compare CPU with both filters processing nonzero input, test crossfade
+semantics and source/host compatibility before a separate routing redesign.
+
+Host program calls from non-message threads select an immutable, pre-parsed
+catalogue entry. The next audio callback applies the parameter values without XML,
+I/O or notifications; the message-thread timer sends current-value notifications.
+Latest request wins. User files are cached at refresh/save/rename, so external file
+edits need a refresh. UI selections still validate and read the actual file before
+committing selection. Catalogues retain queued/selected entries and readers;
+allocation/reclamation happens on the message thread. Preset identity is filename
+plus type, not a mutable ordinal. Missing preset parameters use JUCE defaults,
+and live-control exclusions are unchanged.
+
+The measured callback probe covers C++ new/delete, malloc/calloc/realloc/free
+and pthread_mutex_lock calls linked into the Linux test executable. It does not
+cover every allocation inside shared libraries, all possible host automation
+callbacks, scheduling or system calls. JUCE graph nodes still acquire callback
+mutexes; standard JUCE slider/button attachments may post AsyncUpdater messages
+when a host notifies them off the message thread. This work does not establish a
+lock-free callback or a hard deadline guarantee. See the audit report for measured
+counts, timing percentiles, build conditions and remaining work.
