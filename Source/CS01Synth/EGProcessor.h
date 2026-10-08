@@ -22,6 +22,10 @@ class EGProcessor : public juce::AudioProcessor {
     bool isActive() const {
         return stage != Stage::idle;
     }
+    int getReleaseSamplesRemaining() {
+        updateADSR();
+        return stage == Stage::release ? static_cast<int>(remainingSamples) : (isActive() ? -1 : 0);
+    }
     // Same-thread observation only; does not advance the envelope.
     float getLastOutputForTesting() const {
         return lastOutput;

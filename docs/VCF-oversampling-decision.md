@@ -1,4 +1,9 @@
-# VCF internal-rate experiment
+> This document records a past filter-only experiment, not current production
+> routing. As of baseline `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`, production
+> oversamples the whole graph. See [Oversampling-validation.md](Oversampling-validation.md)
+> and [Audit-stability.md](Audit-stability.md) for current behavior and validation.
+
+# Historical experiment: VCF internal-rate experiment
 
 ## Subsequent whole-graph implementation
 
@@ -39,7 +44,7 @@ claimed. Total alias power and all waveform/parameter combinations remain untest
 
 ## Historical standalone VCF decision (superseded by whole-graph integration)
 
-Do not enable VCF oversampling in production yet. The current experiment uses
+Historical decision at the time of this experiment: do not enable VCF oversampling yet. The current experiment uses
 the shared factor (4) and JUCE polyphase IIR resampling. It reduces selected
 folded components but also changes frequency response. In the interpolated sine
 comparison, the largest observed fundamental-gain difference was +3.07683 dB

@@ -71,15 +71,20 @@ void MidiProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
 
     // Process MIDI messages but don't generate output buffer
     for (const auto metadata : midiMessages) {
-        auto message = metadata.getMessage();
-        handleMidiEvent(message, midiMessages);
+        // Supported channel events fit MidiMessage inline storage; never copy SysEx.
+        if (metadata.numBytes <= 3)
+            handleMidiEvent(metadata.getMessage());
     }
 
     // Clear MIDI buffer as we don't generate output MIDI messages
     midiMessages.clear();
 }
 
-void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&) {
+void MidiProcessor::processShortEvent(const juce::MidiMessage& message) {
+    handleMidiEvent(message);
+}
+
+void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage) {
     if (midiMessage.isAllSoundOff()) {
         releaseResources();
     } else if (midiMessage.isAllNotesOff()) {

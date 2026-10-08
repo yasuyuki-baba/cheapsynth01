@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.22)
 
 # Project name and language settings
 project(CheapSynth01 VERSION 0.3.0 LANGUAGES C CXX)

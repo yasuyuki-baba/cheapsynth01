@@ -34,6 +34,8 @@ class NoiseGenerator : public ISoundGenerator {
     void changeNote(int midiNoteNumber) override;
     void pitchWheelMoved(int newPitchWheelValue) override;
     bool isActive() const override;
+    void setReleaseSamplesRemaining(int samples) override;
+
     int getCurrentlyPlayingNote() const override;
 
    private:
@@ -46,6 +48,9 @@ class NoiseGenerator : public ISoundGenerator {
     bool tailOff = false;
     int tailOffCounter = 0;
     int tailOffDuration = 0;
+    float releaseSeconds = 0.0f;
+    bool graphOwnsRelease = false;
+    void updateReleaseDuration();
     int currentlyPlayingNote = 0;
     double sampleRate = 44100.0;
     int pitchWheelValue = 8192;  // Center value

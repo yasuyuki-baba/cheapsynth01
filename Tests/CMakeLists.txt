@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.22)
 
 # Test project name
 project(CheapSynth01Tests VERSION ${CheapSynth01_VERSION} LANGUAGES C CXX)
@@ -56,6 +56,7 @@ juce_generate_juce_header(CheapSynth01Tests)
 target_sources(CheapSynth01Tests
     PRIVATE
         TestRunner.cpp
+        unit/AuditStabilityTest.cpp
         unit/DspStructureRegressionTest.cpp
         reference/DspBeforeRefactor.cpp
         mocks/MockTimer.h
@@ -170,6 +171,7 @@ endif()
 # JUCE settings
 target_compile_definitions(CheapSynth01Tests
     PRIVATE
+    CHEAPSYNTH_TEST_PRESET_ISOLATION=1
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
@@ -179,3 +181,12 @@ target_compile_definitions(CheapSynth01Tests
 )
 
 message(STATUS "CheapSynth01Tests configuration complete!")
+
+# ELF-only callback instrumentation; other platforms explicitly lack this probe.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_CXX_FLAGS MATCHES "sanitize")
+    target_sources(CheapSynth01Tests PRIVATE RealtimeAudit.cpp)
+    target_compile_definitions(CheapSynth01Tests PRIVATE CHEAPSYNTH_RT_AUDIT=1)
+    target_link_options(CheapSynth01Tests PRIVATE
+        "-Wl,--wrap=malloc" "-Wl,--wrap=calloc" "-Wl,--wrap=realloc"
+        "-Wl,--wrap=free" "-Wl,--wrap=pthread_mutex_lock")
+endif()

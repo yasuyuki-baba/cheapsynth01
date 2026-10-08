@@ -57,6 +57,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype6-dev libx11-dev libxi-dev libxext-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev libxrender-dev libfontconfig1-dev libgtk-3-dev lv2-dev xvfb xauth openbox x11-utils
+      - name: Validate release version
+        if: github.ref_type == 'tag'
+        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME"
       - name: Configure
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -99,6 +102,12 @@ jobs:
             build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
             build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
           if-no-files-found: error
+      - name: Stage distribution notices
+        if: github.ref_type == 'tag'
+        run: python3 scripts/package-notices.py --products "build/CheapSynth01_artefacts/$BUILD_TYPE" --juce build/_deps/juce-src
+      - name: Package corresponding source
+        if: github.ref_type == 'tag' && runner.os == 'Linux'
+        run: python3 scripts/package-source.py --juce build/_deps/juce-src --googletest build/_deps/googletest-src --output release-packages/cheapsynth01-source.zip
       - name: Package for release (Linux and macOS)
         if: github.ref_type == 'tag' && runner.os != 'Windows'
         env:
@@ -122,6 +131,7 @@ jobs:
           $releaseDir = Join-Path $env:GITHUB_WORKSPACE "release-packages"
           Compress-Archive -Path "$buildDir\Standalone\*" -DestinationPath "$releaseDir\cheapsynth01-windows-standalone.zip" -Force
           Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
+          Compress-Archive -Path "$buildDir\CLAP\*" -DestinationPath "$releaseDir\cheapsynth01-windows-clap.zip" -Force
       - name: Upload release packages
         if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v7
@@ -144,6 +154,9 @@ jobs:
           pattern: cheapsynth01-*-packages
           path: release-packages
           merge-multiple: true
+      - uses: actions/checkout@v6
+      - name: Validate release assets
+        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME" --assets release-packages
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:

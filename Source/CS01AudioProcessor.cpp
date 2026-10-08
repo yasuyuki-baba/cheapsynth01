@@ -18,13 +18,17 @@ CS01AudioProcessor::CS01AudioProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", createParameterLayout()),
       presetManager(apvts) {
+    keyboardState.addListener(this);
+    keyboardMirrorMidi.ensureSize(32768);
+    startTimerHz(60);
     apvts.addParameterListener(ParameterIds::lfoTarget, this);
     apvts.addParameterListener(ParameterIds::filterType, this);
     apvts.addParameterListener(ParameterIds::feet, this);
 }
 
 CS01AudioProcessor::~CS01AudioProcessor() {
-    cancelPendingUpdate();
+    stopTimer();
+    keyboardState.removeListener(this);
     apvts.removeParameterListener(ParameterIds::lfoTarget, this);
     apvts.removeParameterListener(ParameterIds::filterType, this);
     apvts.removeParameterListener(ParameterIds::feet, this);
@@ -34,6 +38,9 @@ CS01AudioProcessor::~CS01AudioProcessor() {
 void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
     panelBendCollector.reset(sampleRate);
+    panelBendMidi.ensureSize(32768);
+    queuedMidi.ensureSize(65536);
+    keyboardMirror.reset(sampleRate);
     processingCapacity = juce::jmax(1, samplesPerBlock);
     outputOversampling = std::make_unique<juce::dsp::Oversampling<float>>(
         getMainBusNumOutputChannels(), Constants::oversamplingStages,
@@ -168,45 +175,39 @@ bool CS01AudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) cons
 void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
-    // Graph topology changes are queued on the message thread by handleAsyncUpdate().
-    midiMessageCollector.removeNextBlockOfMessages(midiMessages, buffer.getNumSamples());
+    presetManager.applyPendingProgram();
+    // Graph topology changes are queued on the message thread by timerCallback().
+    queuedMidi.clear();
+    panelBendMidi.clear();
+    bool queuePanic = false;
+    if (buffer.getNumSamples() > 0) {
+        queuePanic =
+            midiMessageCollector.removeNextBlockOfMessages(queuedMidi, buffer.getNumSamples());
+        queuePanic =
+            panelBendCollector.removeNextBlockOfMessages(panelBendMidi, buffer.getNumSamples()) ||
+            queuePanic;
+    }
     bool externalBend = false;
     for (const auto metadata : midiMessages)
-        externalBend = externalBend || metadata.getMessage().isPitchWheel();
-    juce::MidiBuffer panelBend;
-    panelBendCollector.removeNextBlockOfMessages(panelBend, buffer.getNumSamples());
+        externalBend =
+            externalBend || (metadata.numBytes == 3 && (metadata.data[0] & 0xf0) == 0xe0);
     if (externalBend)
         externalBendRevision.fetch_add(1);
     else
-        midiMessages.addEvents(panelBend, 0, buffer.getNumSamples(), 0);
-
-    keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
+        queuedMidi.addEvents(panelBendMidi, 0, buffer.getNumSamples(), 0);
+    if (queuePanic) {
+        queuedMidi.clear();
+        queuedMidi.addEvent(juce::MidiMessage::controllerEvent(1, 120, 0), 0);
+    }
     // MidiProcessor applies events immediately. Render the graph in segments
     // so those events are applied at their actual host-sample positions.
-    juce::MidiBuffer segmentMidi;
+    juce::MidiBuffer emptyMidi;
     int position = 0;
     const auto renderUntil = [&](int end) {
         if (end <= position)
             return;
         if (vcoNode != nullptr)
             static_cast<VCOProcessor*>(vcoNode->getProcessor())->applyPendingGeneratorChange();
-        if (!segmentMidi.isEmpty() && midiProcessorNode != nullptr) {
-            // The MIDI node controls generators through direct references, not
-            // audio connections: explicitly order it before audio rendering.
-            juce::AudioBuffer<float> noAudio;
-            bool panic = false;
-            for (const auto event : segmentMidi)
-                panic = panic || event.getMessage().isAllSoundOff();
-            midiProcessorNode->getProcessor()->processBlock(noAudio, segmentMidi);
-            if (panic) {
-                // Clear residual audio at the event boundary, without rewinding
-                // MIDI state or erasing a later note-on in the same event group.
-                vcfNode->getProcessor()->releaseResources();
-                modernVcfNode->getProcessor()->releaseResources();
-                vcaNode->getProcessor()->releaseResources();
-                outputOversampling->reset();
-            }
-        }
         for (int offset = position; offset < end;) {
             const int length = juce::jmin(processingCapacity, end - offset);
             juce::AudioBuffer<float> host(buffer.getArrayOfWritePointers(), buffer.getNumChannels(),
@@ -218,21 +219,60 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             juce::AudioBuffer<float> internal(internalAudio.getArrayOfWritePointers(),
                                               internalAudio.getNumChannels(), highLength);
             internal.clear();
-            audioGraph.processBlock(internal, segmentMidi);
-            segmentMidi.clear();
+            auto* envelope = static_cast<EGProcessor*>(egNode->getProcessor());
+            const int remaining = envelope->getReleaseSamplesRemaining();
+            if (remaining >= 0)
+                static_cast<VCOProcessor*>(vcoNode->getProcessor())
+                    ->getSoundGenerator()
+                    ->setReleaseSamplesRemaining(remaining);
+            audioGraph.processBlock(internal, emptyMidi);
             for (int channel = 0; channel < internal.getNumChannels(); ++channel)
                 juce::FloatVectorOperations::copy(high.getChannelPointer(channel),
                                                   internal.getReadPointer(channel), highLength);
             outputOversampling->processSamplesDown(hostBlock);
             offset += length;
         }
-        segmentMidi.clear();
         position = end;
     };
-    for (const auto metadata : midiMessages) {
+    // Merge non-owning host events with bounded GUI storage. Host events precede
+    // queued GUI events at the same position, as in JUCE's collector insertion.
+    auto hostEvent = midiMessages.cbegin();
+    auto guiEvent = queuedMidi.cbegin();
+    while (hostEvent != midiMessages.cend() || guiEvent != queuedMidi.cend()) {
+        const bool useHost = guiEvent == queuedMidi.cend() ||
+                             (hostEvent != midiMessages.cend() &&
+                              (*hostEvent).samplePosition <= (*guiEvent).samplePosition);
+        const auto metadata = useHost ? *hostEvent++ : *guiEvent++;
         const int eventPosition = juce::jlimit(0, buffer.getNumSamples(), metadata.samplePosition);
         renderUntil(eventPosition);
-        segmentMidi.addEvent(metadata.getMessage(), 0);
+        // Out-of-range events clamp to the block boundary and are applied after
+        // rendering, including zero-sample blocks. No event is silently dropped.
+        // Skip unsupported long messages without copying their payload.
+        if (metadata.numBytes <= 3 && midiProcessorNode != nullptr) {
+            static_cast<VCOProcessor*>(vcoNode->getProcessor())->applyPendingGeneratorChange();
+            const auto message = metadata.getMessage();
+            if (message.isNoteOnOrOff() || message.isAllNotesOff() || message.isAllSoundOff())
+                keyboardMirror.addMessageToQueue(message);
+            static_cast<MidiProcessor*>(midiProcessorNode->getProcessor())
+                ->processShortEvent(message);
+            if (message.isAllSoundOff()) {
+                vcfNode->getProcessor()->releaseResources();
+                modernVcfNode->getProcessor()->releaseResources();
+                vcaNode->getProcessor()->releaseResources();
+                outputOversampling->reset();
+            }
+        }
+    }
+    // Queue overflow is a fail-closed panic, including host note-ons in this block.
+    if (queuePanic && midiProcessorNode != nullptr) {
+        renderUntil(buffer.getNumSamples());
+        static_cast<MidiProcessor*>(midiProcessorNode->getProcessor())->releaseResources();
+        vcfNode->getProcessor()->releaseResources();
+        modernVcfNode->getProcessor()->releaseResources();
+        vcaNode->getProcessor()->releaseResources();
+        outputOversampling->reset();
+        keyboardMirror.addMessageToQueue(juce::MidiMessage::controllerEvent(1, 120, 0));
+        buffer.clear();
     }
     renderUntil(buffer.getNumSamples());
     midiMessages.clear();
@@ -251,7 +291,11 @@ int CS01AudioProcessor::getCurrentProgram() {
 }
 
 void CS01AudioProcessor::setCurrentProgram(int index) {
-    presetManager.setCurrentProgram(index);
+    const auto* messages = juce::MessageManager::getInstanceWithoutCreating();
+    if (messages != nullptr && messages->isThisTheMessageThread())
+        presetManager.setCurrentProgram(index);
+    else
+        presetManager.requestCurrentProgram(index);
 }
 
 const juce::String CS01AudioProcessor::getProgramName(int index) {
@@ -469,26 +513,48 @@ void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float
         return;
     }
 
-    // Graph mutations are deferred to the message thread. AsyncUpdater message
-    // posting itself is not guaranteed to be real-time safe.
+    // Publish only; the message-thread timer changes graph routing.
     if (parameterID == ParameterIds::lfoTarget) {
         requestedLfoTarget.store(static_cast<int>(newValue));
         pendingRoutingChange.store(true);
-        triggerAsyncUpdate();
         return;
     }
 
     if (parameterID == ParameterIds::filterType) {
         requestedFilterType.store(static_cast<int>(newValue));
         pendingRoutingChange.store(true);
-        triggerAsyncUpdate();
     }
 }
 
-void CS01AudioProcessor::handleAsyncUpdate() {
+void CS01AudioProcessor::timerCallback() {
+    presetManager.dispatchProgramNotifications();
+    keyboardMirrorMidi.clear();
+    const bool overflow = keyboardMirror.removeNextBlockOfMessages(keyboardMirrorMidi, 1);
+    mirroringKeyboard = true;
+    if (overflow)
+        keyboardState.reset();
+    keyboardState.processNextMidiBuffer(keyboardMirrorMidi, 0, 1, false);
+    mirroringKeyboard = false;
+
     if (!pendingRoutingChange.exchange(false))
         return;
 
     applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
                        juce::AudioProcessorGraph::UpdateKind::async);
+}
+
+void CS01AudioProcessor::handleNoteOn(juce::MidiKeyboardState*, int channel, int note,
+                                      float velocity) {
+    if (mirroringKeyboard.load() && juce::MessageManager::getInstance()->isThisTheMessageThread())
+        return;
+    auto message = juce::MidiMessage::noteOn(channel, note, velocity);
+    message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
+    midiMessageCollector.addMessageToQueue(message);
+}
+void CS01AudioProcessor::handleNoteOff(juce::MidiKeyboardState*, int channel, int note, float) {
+    if (mirroringKeyboard.load() && juce::MessageManager::getInstance()->isThisTheMessageThread())
+        return;
+    auto message = juce::MidiMessage::noteOff(channel, note);
+    message.setTimeStamp(juce::Time::getMillisecondCounterHiRes() * 0.001);
+    midiMessageCollector.addMessageToQueue(message);
 }

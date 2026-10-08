@@ -133,6 +133,8 @@ void ProgramPanel::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) {
         const int programIndex = programMenu.getSelectedId() - 1;  // 1-based to 0-based
         if (programIndex >= 0 && programIndex < audioProcessor.getNumPrograms()) {
             audioProcessor.setCurrentProgram(programIndex);
+            programMenu.setSelectedId(audioProcessor.getCurrentProgram() + 1,
+                                      juce::dontSendNotification);
         }
     }
 }
@@ -215,49 +217,55 @@ void ProgramPanel::showSavePresetDialog() {
         defaultName = audioProcessor.getProgramName(currentProgram);
     }
 
-    auto alertWindow = std::make_unique<juce::AlertWindow>(
+    if (saveDialog || overwriteDialog)
+        return;
+    saveDialog = std::make_unique<juce::AlertWindow>(
         "Save Preset", "Enter a name for the new preset:", juce::AlertWindow::NoIcon);
-    alertWindow->addTextEditor("presetName", defaultName, "Preset Name:");
-    alertWindow->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
-    alertWindow->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
-
-    // Store the AlertWindow pointer for access in callback
-    auto* alertWindowPtr = alertWindow.get();
-
-    alertWindow->enterModalState(
-        true,
-        juce::ModalCallbackFunction::create([this, programManager, alertWindowPtr](int result) {
-            if (result == 1) {
-                auto presetName = alertWindowPtr->getTextEditorContents("presetName");
-
-                if (presetName.isNotEmpty()) {
-                    // Check if preset already exists
-                    auto userPresetsDir = programManager->getUserPresetsDirectory();
-                    auto presetFile = userPresetsDir.getChildFile(presetName + ".xml");
-
-                    if (presetFile.exists()) {
-                        // Show overwrite confirmation
-                        juce::NativeMessageBox::showOkCancelBox(
-                            juce::MessageBoxIconType::QuestionIcon, "Overwrite Preset",
-                            "A preset named \"" + presetName +
-                                "\" already exists.\n\nDo you want to overwrite it?",
-                            this,
-                            juce::ModalCallbackFunction::create(
-                                [this, programManager, presetName](int overwriteResult) {
-                                    if (overwriteResult == 1) {  // Overwrite confirmed
-                                        this->savePresetWithName(programManager, presetName);
-                                    }
-                                }));
-                    } else {
-                        // No existing preset, save directly
-                        savePresetWithName(programManager, presetName);
-                    }
-                }
+    saveDialog->addTextEditor("presetName", defaultName, "Preset Name:");
+    saveDialog->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    saveDialog->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    const juce::Component::SafePointer<ProgramPanel> safePanel(this);
+    const juce::Component::SafePointer<juce::AlertWindow> safeDialog(saveDialog.get());
+    saveDialog->enterModalState(
+        true, juce::ModalCallbackFunction::create([safePanel, safeDialog](int result) {
+            auto* panel = safePanel.getComponent();
+            auto* dialog = safeDialog.getComponent();
+            if (!panel || !dialog)
+                return;
+            const auto name = dialog->getTextEditorContents("presetName");
+            panel->saveDialog.reset();
+            if (result != 1)
+                return;
+            auto* manager = panel->getProgramManager();
+            if (!manager)
+                return;
+            if (!ProgramManager::isValidPresetName(name)) {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                                       "Cannot Save",
+                                                       "Enter a valid single file name.");
+                return;
             }
+            if (!manager->getUserPresetsDirectory().getChildFile(name + ".xml").exists()) {
+                panel->savePresetWithName(manager, name);
+                return;
+            }
+            panel->overwriteDialog = std::make_unique<juce::AlertWindow>(
+                "Overwrite Preset", "Overwrite preset \"" + name + "\"?",
+                juce::AlertWindow::QuestionIcon);
+            panel->overwriteDialog->addButton("Overwrite", 1);
+            panel->overwriteDialog->addButton("Cancel", 0);
+            panel->overwriteDialog->enterModalState(
+                true, juce::ModalCallbackFunction::create([safePanel, name](int overwriteResult) {
+                    if (auto* owner = safePanel.getComponent()) {
+                        owner->overwriteDialog.reset();
+                        if (overwriteResult == 1)
+                            if (auto* currentManager = owner->getProgramManager())
+                                owner->savePresetWithName(currentManager, name);
+                    }
+                }),
+                false);
         }),
-        true);
-
-    alertWindow.release();  // AlertWindow will be deleted automatically
+        false);
 }
 
 void ProgramPanel::showRenamePresetDialog() {
@@ -305,7 +313,11 @@ void ProgramPanel::showRenamePresetDialog() {
 
 void ProgramPanel::savePresetWithName(ProgramManager* programManager,
                                       const juce::String& presetName) {
-    programManager->saveCurrentStateAsPreset(presetName);
+    if (!programManager->saveCurrentStateAsPreset(presetName)) {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Cannot Save",
+                                               "The preset could not be saved.");
+        return;
+    }
 
     // Find and select the saved preset BEFORE repopulating the menu
     const int saved = programManager->findProgram(presetName + ".xml", PresetType::User);

@@ -8,9 +8,10 @@ class EmpiricalVCFInputCoupling {
    public:
     static constexpr float cutoffHz = 20.0f;
     void prepare(double sampleRate) {
-        filter.reset();
         filter.coefficients =
             juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, cutoffHz);
+        // Initialise the new coefficient order before the first audio callback.
+        filter.reset();
     }
     void reset() {
         filter.reset();

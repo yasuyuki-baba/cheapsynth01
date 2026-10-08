@@ -95,18 +95,27 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
             addAndMakeVisible(button);
             button->setRadioGroupId(3);  // Group ID for LFO Target
             button->setClickingTogglesState(true);
-            button->onClick = [choiceParam, i] { *choiceParam = i; };
+            button->onClick = [this, choiceParam, i] {
+                *choiceParam = i;
+                updateChoiceState(
+                    choiceParam->getParameterIndex(),
+                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
+            };
         }
     }
     lfoTargetParam->addListener(this);
 
     // Initial update
-    parameterValueChanged(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
+    updateChoiceState(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
     bendRevision = processor.getExternalBendRevision();
     startTimerHz(120);
 }
 
 void ModulationComponent::timerCallback() {
+    if (choiceDirty.exchange(false, std::memory_order_acq_rel)) {
+        updateChoiceState(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
+    }
+
     if (!draggingMod) {
         modDepthSlider.setValue(
             processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load(),
@@ -134,6 +143,7 @@ void ModulationComponent::timerCallback() {
 }
 
 ModulationComponent::~ModulationComponent() {
+    stopTimer();
     pitchBendSlider.removeListener(this);
     modDepthSlider.removeListener(this);
     if (lfoTargetParam)
@@ -184,7 +194,11 @@ void ModulationComponent::resized() {
         button->setBounds(targets.removeFromTop(28));
 }
 
-void ModulationComponent::parameterValueChanged(int parameterIndex, float newValue) {
+void ModulationComponent::parameterValueChanged(int, float) {
+    choiceDirty.store(true, std::memory_order_release);
+}
+
+void ModulationComponent::updateChoiceState(int parameterIndex, float newValue) {
     if (parameterIndex == lfoTargetParam->getParameterIndex()) {
         if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam)) {
             lfoTargetButtons[choiceParam->getIndex()]->setToggleState(true,

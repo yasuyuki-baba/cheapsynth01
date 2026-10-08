@@ -22,7 +22,7 @@ void OriginalVCFProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     filter.prepare(sampleRate);
     egDepthControl.reset(sampleRate, 0.005);
     egDepthControl.setCurrentAndTargetValue(
-        apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load());
+        getCurrentParameterValue(apvts, ParameterIds::vcfEgDepth));
 
     // Pre-allocate buffer for modulation values to avoid reallocations per block
     if (samplesPerBlock > modulationBufferCapacity) {
@@ -70,11 +70,13 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Get parameters
     auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
     auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
-    auto egDepth = apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load();
+    auto egDepth = getCurrentParameterValue(apvts, ParameterIds::vcfEgDepth);
+    if (!std::isfinite(egDepth))
+        egDepth = 0.0f;
     egDepthControl.setTargetValue(egDepth);
     auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
     auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
-    auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
+    auto breathVcfDepth = getCurrentParameterValue(apvts, ParameterIds::breathVcf);
 
     // Cutoff frequency calculation
     float cutoff = calculateCutoffFrequency(cutoffParam);

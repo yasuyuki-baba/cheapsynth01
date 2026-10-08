@@ -18,6 +18,8 @@ class ISoundGenerator {
     virtual void changeNote(int midiNoteNumber) = 0;
     virtual void pitchWheelMoved(int newPitchWheelValue) = 0;
     virtual bool isActive() const = 0;
+    // Audio-thread contract: EG owns release duration in the whole graph.
+    virtual void setReleaseSamplesRemaining(int samples) {}
     virtual int getCurrentlyPlayingNote() const = 0;
     struct PlaybackState {
         bool held = false;

@@ -39,7 +39,7 @@ Feature requests are welcome! Use our feature request template to submit your id
 
 ### Requirements
 
-- CMake 3.15 or higher
+- CMake 3.22 or higher (required by JUCE 9.0.3)
 - C++20 compatible compiler
 - JUCE (automatically fetched by CMake)
 
