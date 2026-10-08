@@ -38,6 +38,7 @@ class ModulationComponent : public juce::Component,
 
     juce::Slider modDepthSlider;
     juce::Label modDepthLabel;
+    bool draggingMod = false;
 
     juce::OwnedArray<juce::ToggleButton> lfoTargetButtons;
     juce::Label lfoTargetLabel;
