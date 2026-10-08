@@ -55,7 +55,12 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(1);  // Group ID for waveform
             button->setClickingTogglesState(true);
-            button->onClick = [choiceParam, i] { *choiceParam = i; };
+            button->onClick = [this, choiceParam, i] {
+                *choiceParam = i;
+                updateChoiceState(
+                    choiceParam->getParameterIndex(),
+                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
+            };
         }
     }
     waveTypeParam->addListener(this);
@@ -73,21 +78,35 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(2);  // Group ID for feet
             button->setClickingTogglesState(true);
-            button->onClick = [choiceParam, i] { *choiceParam = i; };
+            button->onClick = [this, choiceParam, i] {
+                *choiceParam = i;
+                updateChoiceState(
+                    choiceParam->getParameterIndex(),
+                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
+            };
         }
     }
     feetParam->addListener(this);
 
     // Initial update
-    parameterValueChanged(waveTypeParam->getParameterIndex(), waveTypeParam->getValue());
-    parameterValueChanged(feetParam->getParameterIndex(), feetParam->getValue());
+    updateChoiceState(waveTypeParam->getParameterIndex(), waveTypeParam->getValue());
+    updateChoiceState(feetParam->getParameterIndex(), feetParam->getValue());
+    startTimerHz(60);
 }
 
 VCOComponent::~VCOComponent() {
+    stopTimer();
     if (waveTypeParam)
         waveTypeParam->removeListener(this);
     if (feetParam)
         feetParam->removeListener(this);
+}
+
+void VCOComponent::timerCallback() {
+    if (choiceDirty.exchange(false, std::memory_order_acq_rel)) {
+        updateChoiceState(waveTypeParam->getParameterIndex(), waveTypeParam->getValue());
+        updateChoiceState(feetParam->getParameterIndex(), feetParam->getValue());
+    }
 }
 
 void VCOComponent::paint(juce::Graphics& g) {
@@ -119,7 +138,11 @@ void VCOComponent::resized() {
         button->setBounds(bounds.removeFromTop(feetHeight).reduced(2));
 }
 
-void VCOComponent::parameterValueChanged(int parameterIndex, float newValue) {
+void VCOComponent::parameterValueChanged(int, float) {
+    choiceDirty.store(true, std::memory_order_release);
+}
+
+void VCOComponent::updateChoiceState(int parameterIndex, float newValue) {
     if (parameterIndex == waveTypeParam->getParameterIndex()) {
         if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(waveTypeParam)) {
             waveTypeButtons[choiceParam->getIndex()]->setToggleState(true,

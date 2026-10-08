@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "ProgramManager.h"
+#include "RealtimeMidiQueue.h"
 #include "UI/AudioDisplayFifo.h"
 
 #include <atomic>
@@ -12,7 +13,8 @@ class IFilter;
 
 class CS01AudioProcessor : public juce::AudioProcessor,
                            public juce::AudioProcessorValueTreeState::Listener,
-                           private juce::AsyncUpdater {
+                           private juce::Timer,
+                           private juce::MidiKeyboardStateListener {
    public:
     // Get current filter processor
     IFilter* getCurrentFilterProcessor();
@@ -75,10 +77,10 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     juce::MidiKeyboardState& getKeyboardState() {
         return keyboardState;
     }
-    juce::MidiMessageCollector& getMidiMessageCollector() {
+    RealtimeMidiQueue& getMidiMessageCollector() {
         return midiMessageCollector;
     }
-    juce::MidiMessageCollector& getPanelBendCollector() {
+    RealtimeMidiQueue& getPanelBendCollector() {
         return panelBendCollector;
     }
     unsigned getExternalBendRevision() const {
@@ -109,7 +111,7 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     }
     // Call only on the message thread; flush both routing and graph rendering updates.
     void flushPendingGraphChangesForTesting() {
-        handleUpdateNowIfNeeded();
+        timerCallback();
         audioGraph.rebuild();
     }
 
@@ -119,12 +121,17 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void applyFilterRouting(int filterType, int lfoTarget,
                             juce::AudioProcessorGraph::UpdateKind updateKind);
-    void handleAsyncUpdate() override;
+    void timerCallback() override;
     void updateVCAOutputConnections();
     void handleGeneratorTypeChanged();
     juce::MidiKeyboardState keyboardState;
-    juce::MidiMessageCollector midiMessageCollector;
-    juce::MidiMessageCollector panelBendCollector;
+    RealtimeMidiQueue midiMessageCollector;
+    RealtimeMidiQueue panelBendCollector;
+    juce::MidiBuffer panelBendMidi, queuedMidi, keyboardMirrorMidi;
+    RealtimeMidiQueue keyboardMirror;
+    std::atomic<bool> mirroringKeyboard{false};
+    void handleNoteOn(juce::MidiKeyboardState*, int channel, int note, float velocity) override;
+    void handleNoteOff(juce::MidiKeyboardState*, int channel, int note, float velocity) override;
     std::atomic<unsigned> externalBendRevision{0};
     juce::AudioProcessorGraph audioGraph;
     std::unique_ptr<juce::dsp::Oversampling<float>> outputOversampling;

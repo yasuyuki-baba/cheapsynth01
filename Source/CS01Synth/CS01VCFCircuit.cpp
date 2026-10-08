@@ -1,5 +1,7 @@
 #include "CS01Synth/CS01VCFCircuit.h"
 
+#include <cmath>
+
 CS01VCFCircuit::CS01VCFCircuit()
     : cutoff(1000.0f),
       resonance(0.1f),
@@ -39,9 +41,18 @@ void CS01VCFCircuit::setResonance(float newResonance) {
 }
 
 float CS01VCFCircuit::processSample(int channel, float sample) {
+    if (!std::isfinite(sample)) {
+        reset();
+        return 0.0f;
+    }
     const float coupledInput = inputCoupling.processSample(sample);
     const float filtered = model.processSample(coupledInput, cutoff, resonance);
-    return outputCoupling.processSample(filtered);
+    const float output = outputCoupling.processSample(filtered);
+    if (!std::isfinite(coupledInput) || !std::isfinite(filtered) || !std::isfinite(output)) {
+        reset();
+        return 0.0f;
+    }
+    return output;
 }
 
 void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
@@ -71,8 +82,9 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* c
     const float boundedResonance = juce::jlimit(0.0f, 1.0f, baseResonance);
     for (int i = 0; i < numSamples; ++i) {
         const float boundedCutoff = juce::jlimit(20.0f, 20000.0f, cutoffModulation[i]);
-        samples[i] = outputCoupling.processSample(model.processSample(
-            inputCoupling.processSample(samples[i]), boundedCutoff, boundedResonance));
+        cutoff = std::isfinite(boundedCutoff) ? boundedCutoff : originalCutoff;
+        resonance = std::isfinite(boundedResonance) ? boundedResonance : originalResonance;
+        samples[i] = processSample(0, samples[i]);
     }
     cutoff = originalCutoff;
     resonance = originalResonance;

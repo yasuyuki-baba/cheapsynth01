@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include <memory>
+#include <atomic>
 
 class CS01AudioProcessor;
 
@@ -22,6 +23,8 @@ class ModulationComponent : public juce::Component,
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
    private:
+    void updateChoiceState(int parameterIndex, float newValue);
+    std::atomic<bool> choiceDirty{true};
     void timerCallback() override;
     CS01AudioProcessor& processor;
 

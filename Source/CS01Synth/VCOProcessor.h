@@ -92,4 +92,5 @@ class VCOProcessor : public juce::AudioProcessor,
     std::unique_ptr<NoiseGenerator> noiseGenerator;
     ISoundGenerator* currentGenerator;  // Pointer to the currently selected generator
     std::atomic<bool> requestedNoiseMode{false};
+    int observedFeet = -1;  // audio-thread snapshot, including silent program application
 };

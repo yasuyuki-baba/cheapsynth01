@@ -65,10 +65,10 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Get parameters
     auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
     auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
-    auto egDepth = apvts.getRawParameterValue(ParameterIds::vcfEgDepth)->load();
+    auto egDepth = getCurrentParameterValue(apvts, ParameterIds::vcfEgDepth);
     auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
     auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
-    auto breathVcfDepth = apvts.getRawParameterValue(ParameterIds::breathVcf)->load();
+    auto breathVcfDepth = getCurrentParameterValue(apvts, ParameterIds::breathVcf);
 
     // Cutoff frequency calculation
     float cutoff = calculateCutoffFrequency(cutoffParam);

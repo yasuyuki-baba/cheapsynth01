@@ -2,6 +2,8 @@
 
 #include "MidiParameterValue.h"
 
+#include <cmath>
+
 NoiseGenerator::NoiseGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
 
 void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
@@ -17,18 +19,11 @@ void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
 
 void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
                                      int numSamples) {
+    updateReleaseDuration();
     // Only generate noise if note is on
     if (isActive()) {
-        // Process tail off if needed
-        if (tailOff) {
-            tailOffCounter += numSamples;
-
-            // Check if tail off is complete
-            if (tailOffCounter >= tailOffDuration) {
-                tailOff = false;
-                noteOn = false;
-            }
-        }
+        if (tailOff)
+            numSamples = juce::jmin(numSamples, juce::jmax(0, tailOffDuration - tailOffCounter));
 
         // Generate white noise
         for (int sample = 0; sample < numSamples; ++sample) {
@@ -38,6 +33,13 @@ void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int start
             for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
                 buffer.setSample(channel, startSample + sample, filteredNoise);
             }
+        }
+    }
+    if (tailOff) {
+        tailOffCounter += numSamples;
+        if (tailOffCounter >= tailOffDuration) {
+            tailOff = false;
+            noteOn = false;
         }
     }
     // If not active, nothing to do
@@ -53,13 +55,16 @@ void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int currentPi
 }
 
 void NoiseGenerator::stopNote(bool allowTailOff) {
+    graphOwnsRelease = false;
+    noteOn = false;
     if (allowTailOff) {
         // Start tail off
         tailOff = true;
 
         // Get release time from parameter (convert to samples)
-        float releaseSecs = getMidiParameterValue(apvts, ParameterIds::release);
-        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
+        releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
+        tailOffDuration =
+            static_cast<int>(std::ceil(static_cast<double>(releaseSeconds) * sampleRate));
         tailOffCounter = 0;
     } else {
         // Stop immediately
@@ -102,9 +107,37 @@ void NoiseGenerator::restorePlaybackState(const PlaybackState& state) {
     if (!state.held) {
         noteOn = false;
         tailOff = true;
+        releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
         tailOffCounter = 0;
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
         currentlyPlayingNote = 0;
+    }
+}
+
+void NoiseGenerator::setReleaseSamplesRemaining(int samples) {
+    graphOwnsRelease = true;
+    if (!tailOff)
+        return;
+    releaseSeconds = getMidiParameterValue(apvts, ParameterIds::release);
+    tailOffCounter = 0;
+    tailOffDuration = juce::jmax(0, samples);
+    if (samples <= 0) {
+        tailOff = false;
+        noteOn = false;
+    }
+}
+
+void NoiseGenerator::updateReleaseDuration() {
+    if (graphOwnsRelease)
+        return;
+    if (tailOff) {
+        const float requested = getMidiParameterValue(apvts, ParameterIds::release);
+        if (requested != releaseSeconds) {
+            releaseSeconds = requested;
+            tailOffCounter = 0;
+            tailOffDuration =
+                static_cast<int>(std::ceil(static_cast<double>(requested) * sampleRate));
+        }
     }
 }

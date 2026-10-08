@@ -3,8 +3,11 @@
 #include <JuceHeader.h>
 
 #include <memory>
+#include <atomic>
 
-class VCFComponent : public juce::Component, public juce::AudioProcessorParameter::Listener {
+class VCFComponent : public juce::Component,
+                     public juce::AudioProcessorParameter::Listener,
+                     private juce::Timer {
    public:
     VCFComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCFComponent() override;
@@ -17,6 +20,9 @@ class VCFComponent : public juce::Component, public juce::AudioProcessorParamete
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
    private:
+    void updateChoiceState(int parameterIndex, float newValue);
+    std::atomic<bool> choiceDirty{true};
+    void timerCallback() override;
     juce::AudioProcessorValueTreeState& valueTreeState;
 
     // Filter Type Selector (Integrated)

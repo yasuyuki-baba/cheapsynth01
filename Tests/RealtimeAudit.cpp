@@ -1,0 +1,64 @@
+#include "RealtimeAudit.h"
+
+#include <cstdlib>
+#include <new>
+#include <pthread.h>
+
+namespace realtimeAudit {
+thread_local bool enabled = false;
+thread_local std::size_t allocations = 0, deallocations = 0, locks = 0;
+}  // namespace realtimeAudit
+extern "C" {
+void* __real_malloc(std::size_t);
+void* __real_calloc(std::size_t, std::size_t);
+void* __real_realloc(void*, std::size_t);
+void __real_free(void*);
+int __real_pthread_mutex_lock(pthread_mutex_t*);
+void* __wrap_malloc(std::size_t size) {
+    if (realtimeAudit::enabled) {
+        ++realtimeAudit::allocations;
+    }
+    return __real_malloc(size);
+}
+void* __wrap_calloc(std::size_t count, std::size_t size) {
+    if (realtimeAudit::enabled)
+        ++realtimeAudit::allocations;
+    return __real_calloc(count, size);
+}
+void* __wrap_realloc(void* pointer, std::size_t size) {
+    if (realtimeAudit::enabled)
+        ++realtimeAudit::allocations;
+    return __real_realloc(pointer, size);
+}
+void __wrap_free(void* pointer) {
+    if (realtimeAudit::enabled && pointer)
+        ++realtimeAudit::deallocations;
+    __real_free(pointer);
+}
+int __wrap_pthread_mutex_lock(pthread_mutex_t* mutex) {
+    if (realtimeAudit::enabled)
+        ++realtimeAudit::locks;
+    return __real_pthread_mutex_lock(mutex);
+}
+}
+// Also catch STL allocations whose allocator lives in the shared C++ runtime.
+void* operator new(std::size_t size) {
+    if (void* pointer = __wrap_malloc(size ? size : 1))
+        return pointer;
+    throw std::bad_alloc();
+}
+void* operator new[](std::size_t size) {
+    return ::operator new(size);
+}
+void operator delete(void* pointer) noexcept {
+    __wrap_free(pointer);
+}
+void operator delete[](void* pointer) noexcept {
+    __wrap_free(pointer);
+}
+void operator delete(void* pointer, std::size_t) noexcept {
+    __wrap_free(pointer);
+}
+void operator delete[](void* pointer, std::size_t) noexcept {
+    __wrap_free(pointer);
+}

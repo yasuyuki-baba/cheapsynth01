@@ -18,7 +18,12 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(100);
             button->setClickingTogglesState(true);
-            button->onClick = [choiceParam, i] { *choiceParam = i; };
+            button->onClick = [this, choiceParam, i] {
+                *choiceParam = i;
+                updateChoiceState(
+                    choiceParam->getParameterIndex(),
+                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
+            };
         }
     }
     filterTypeParam->addListener(this);
@@ -59,7 +64,8 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
         *valueTreeState.getParameter(ParameterIds::vcfEgDepth), egDepthSlider);
 
     // Initial update
-    parameterValueChanged(filterTypeParam->getParameterIndex(), filterTypeParam->getValue());
+    updateChoiceState(filterTypeParam->getParameterIndex(), filterTypeParam->getValue());
+    startTimerHz(60);
     // Match the VCO faders without changing parameter ranges or values.
     cutoffSlider.setPopupDisplayEnabled(true, true, this);
     cutoffSlider.setSliderSnapsToMousePosition(false);
@@ -82,8 +88,15 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
 }
 
 VCFComponent::~VCFComponent() {
+    stopTimer();
     if (filterTypeParam)
         filterTypeParam->removeListener(this);
+}
+
+void VCFComponent::timerCallback() {
+    if (choiceDirty.exchange(false, std::memory_order_acq_rel)) {
+        updateChoiceState(filterTypeParam->getParameterIndex(), filterTypeParam->getValue());
+    }
 }
 
 void VCFComponent::paint(juce::Graphics& g) {
@@ -118,7 +131,11 @@ void VCFComponent::resized() {
     egDepthLabel.setJustificationType(juce::Justification::centred);
 }
 
-void VCFComponent::parameterValueChanged(int parameterIndex, float newValue) {
+void VCFComponent::parameterValueChanged(int, float) {
+    choiceDirty.store(true, std::memory_order_release);
+}
+
+void VCFComponent::updateChoiceState(int parameterIndex, float newValue) {
     if (parameterIndex == filterTypeParam->getParameterIndex()) {
         // Update UI state
         bool isModern = (newValue >= 0.5f);  // Assuming 0=Original, 1=Modern

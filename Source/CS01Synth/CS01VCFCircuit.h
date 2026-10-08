@@ -24,7 +24,8 @@ class CS01VCFCircuit {
     // Process a block of samples (more efficient)
     void processBlock(float* samples, int numSamples);
 
-    // Process a block of samples with multiple channels
+    // Legacy API shares one state across channels; production is strictly mono.
+    // Use one circuit instance per channel for independent channel state.
     void processBlock(float** channelData, int numChannels, int numSamples);
 
     // Process a block with per-sample cutoff modulation

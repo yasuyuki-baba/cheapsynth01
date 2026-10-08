@@ -108,6 +108,8 @@ Load the plugin in your DAW or launch the standalone application.
 
 ## License
 
-This project is released under the GNU General Public License v3. See the LICENSE file for details.
+The project source LICENSE is GPLv3. JUCE 9.0.3 is licensed under AGPLv3 or an
+applicable commercial JUCE licence; the distributor must resolve that route and
+provide the corresponding source/notices. See [distribution and licence notes](docs/Distribution.md).
 
 DSP architecture and modeling terminology: [responsibility boundaries](docs/DSP-responsibility-boundaries.md).

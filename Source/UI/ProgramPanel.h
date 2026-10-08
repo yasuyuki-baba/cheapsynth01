@@ -39,6 +39,8 @@ class ProgramPanel : public juce::Component, private juce::ComboBox::Listener, p
     juce::TextButton deleteButton{"Delete"};
     juce::TextButton renameButton{"Rename"};
     std::unique_ptr<juce::AlertWindow> renameDialog;
+    std::unique_ptr<juce::AlertWindow> saveDialog;
+    std::unique_ptr<juce::AlertWindow> overwriteDialog;
 
     // Add a label to show preset type
     juce::Label presetTypeLabel;

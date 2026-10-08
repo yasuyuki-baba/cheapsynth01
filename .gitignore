@@ -1,6 +1,9 @@
 # CMake build files
 build/
 build_tests/
+/build-*/
+/openbox.log
+__pycache__/
 
 # macOS specific
 .DS_Store
@@ -13,3 +16,6 @@ references/
 
 # Clinerules
 .clinerules/
+
+# Default test-runner report
+/test_results.xml

@@ -4,7 +4,14 @@
 
 #include "BinaryData.h"
 
+#include <cmath>
+
 ProgramManager::ProgramManager(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
+#if defined(CHEAPSYNTH_TEST_PRESET_ISOLATION)
+    static const auto testRoot = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                     .getChildFile("cheapsynth-tests-" + juce::Uuid().toString());
+    userDirectoryOverride = testRoot;
+#endif
     initializePresets();
     createUserPresetsDirectory();
     refreshUserPresets();
@@ -24,54 +31,99 @@ void ProgramManager::initializePresets() {
 }
 
 int ProgramManager::getNumPrograms() const {
-    return static_cast<int>(allPresets.size());
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    const int count = table ? static_cast<int>(table->programs.size()) : 0;
+    endCatalogueRead();
+    return count;
 }
 
 int ProgramManager::getCurrentProgram() const {
-    return currentProgram;
+    beginCatalogueRead();
+    const auto* selection = selectedProgram.load();
+    const auto* table = catalogue.load();
+    int index = 0;
+    if (selection && table)
+        for (size_t i = 0; i < table->programs.size(); ++i)
+            if (table->programs[i].filename == selection->filename &&
+                table->programs[i].type == selection->type) {
+                index = static_cast<int>(i);
+                break;
+            }
+    endCatalogueRead();
+    return index;
+}
+void ProgramManager::selectPublishedProgram(int index) {
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    if (table && index >= 0 && index < static_cast<int>(table->prepared.size()))
+        selectedProgram.store(&table->prepared[index]);
+    endCatalogueRead();
 }
 
 void ProgramManager::setCurrentProgram(int index) {
     if (index >= 0 && index < static_cast<int>(allPresets.size())) {
-        currentProgram = index;
         const auto& preset = allPresets[index];
 
         if (preset.type == PresetType::Factory) {
-            loadPresetFromBinaryData(preset.filename);
+            if (loadPresetFromBinaryData(preset.filename)) {
+                currentProgram = index;
+                selectPublishedProgram(index);
+            }
         } else {
             // Load user preset from file
             auto userPresetsDir = getUserPresetsDirectory();
             auto presetFile = userPresetsDir.getChildFile(preset.filename);
-            loadUserPresetFromFile(presetFile);
+            if (loadUserPresetFromFile(presetFile)) {
+                currentProgram = index;
+                selectPublishedProgram(index);
+            }
         }
     }
 }
 
 juce::String ProgramManager::getProgramName(int index) const {
-    if (index >= 0 && index < static_cast<int>(allPresets.size()))
-        return allPresets[index].name;
-    return {};
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    juce::String result;
+    if (table && index >= 0 && index < static_cast<int>(table->programs.size()))
+        result = table->programs[index].name;
+    endCatalogueRead();
+    return result;
 }
-
 PresetType ProgramManager::getPresetType(int index) const {
-    if (index >= 0 && index < static_cast<int>(allPresets.size()))
-        return allPresets[index].type;
-    return PresetType::Factory;
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    const auto type = table && index >= 0 && index < static_cast<int>(table->programs.size())
+                          ? table->programs[index].type
+                          : PresetType::Factory;
+    endCatalogueRead();
+    return type;
 }
-
 bool ProgramManager::isUserPreset(int index) const {
     return getPresetType(index) == PresetType::User;
 }
-
 int ProgramManager::findProgram(const juce::String& filename, PresetType type) const {
-    for (int i = 0; i < getNumPrograms(); ++i)
-        if (allPresets[i].filename == filename && allPresets[i].type == type)
-            return i;
-    return -1;
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    int found = -1;
+    if (table)
+        for (size_t i = 0; i < table->programs.size(); ++i)
+            if (table->programs[i].filename == filename && table->programs[i].type == type) {
+                found = static_cast<int>(i);
+                break;
+            }
+    endCatalogueRead();
+    return found;
 }
-
 juce::String ProgramManager::getProgramFilename(int index) const {
-    return index >= 0 && index < getNumPrograms() ? allPresets[index].filename : juce::String{};
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    juce::String result;
+    if (table && index >= 0 && index < static_cast<int>(table->programs.size()))
+        result = table->programs[index].filename;
+    endCatalogueRead();
+    return result;
 }
 
 void ProgramManager::loadFactoryPreset(int index) {
@@ -87,9 +139,9 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
     // Get parameter elements from XML
     if (xml != nullptr) {
         // Add program number
-        xml->setAttribute("program", currentProgram);
-        xml->setAttribute("programFilename", getProgramFilename(currentProgram));
-        xml->setAttribute("programIsUser", isUserPreset(currentProgram));
+        xml->setAttribute("program", getCurrentProgram());
+        xml->setAttribute("programFilename", getProgramFilename(getCurrentProgram()));
+        xml->setAttribute("programIsUser", isUserPreset(getCurrentProgram()));
 
         // Get parameter elements
         {
@@ -140,7 +192,8 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
                                                                             : PresetType::Factory);
                 currentProgram = identified >= 0 ? identified : 0;
             }
-            currentProgram = juce::jlimit(0, getNumPrograms() - 1, currentProgram);
+            currentProgram = juce::jlimit(0, getNumPrograms() - 1, currentProgram.load());
+            selectPublishedProgram(currentProgram.load());
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 
             // Restore values of parameters excluded from DAW session state
@@ -153,7 +206,7 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
     }
 }
 
-void ProgramManager::loadPresetFromBinaryData(const juce::String& filename) {
+bool ProgramManager::loadPresetFromBinaryData(const juce::String& filename) {
     // Generate resource name (replace dot in filename extension with underscore)
     auto resourceName = filename.replace(".", "_");
 
@@ -163,12 +216,13 @@ void ProgramManager::loadPresetFromBinaryData(const juce::String& filename) {
     if (dataSize > 0) {
         std::unique_ptr<juce::XmlElement> xmlState(juce::XmlDocument::parse(data));
         if (xmlState != nullptr) {
-            loadPresetFromXml(xmlState.get());
+            return loadPresetFromXml(xmlState.get());
         }
     }
+    return false;
 }
 
-void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
+bool ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
     if (xml != nullptr && xml->hasTagName(apvts.state.getType())) {
         // Save current values of parameters excluded from preset loading
         std::map<juce::String, float> persistentValues;
@@ -192,15 +246,19 @@ void ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
         for (auto* param : apvts.processor.getParameters()) {
             param->sendValueChangedMessageToListeners(param->getValue());
         }
+        return true;
     }
+    return false;
 }
 
-void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
+bool ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
+    if (!isValidPresetName(name))
+        return false;
     auto userPresetsDir = getUserPresetsDirectory();
 
     if (!userPresetsDir.exists()) {
         if (!createUserPresetsDirectory()) {
-            return;  // Failed to create directory
+            return false;  // Failed to create directory
         }
     }
 
@@ -228,11 +286,14 @@ void ProgramManager::saveCurrentStateAsPreset(const juce::String& name) {
         }
 
         // Save to file (will overwrite if exists)
-        if (xml->writeTo(presetFile)) {
+        juce::TemporaryFile temporary(presetFile);
+        if (xml->writeTo(temporary.getFile()) && temporary.overwriteTargetFileWithTemporary()) {
             // Add to user presets list and rebuild
             refreshUserPresets();
+            return true;
         }
     }
+    return false;
 }
 
 bool ProgramManager::deleteUserPreset(int index) {
@@ -255,7 +316,7 @@ bool ProgramManager::deleteUserPreset(int index) {
 }
 
 bool ProgramManager::renameUserPreset(int index, const juce::String& newName) {
-    if (!isUserPreset(index) || newName.isEmpty()) {
+    if (!isUserPreset(index) || !isValidPresetName(newName)) {
         return false;
     }
 
@@ -274,8 +335,11 @@ bool ProgramManager::renameUserPreset(int index, const juce::String& newName) {
 
     if (oldFile.moveFileTo(newFile)) {
         // Update the identity before rebuilding so a selected renamed preset is retained.
+        const bool wasSelected = getCurrentProgram() == index;
         allPresets[index].filename = newFilename;
         refreshUserPresets();
+        if (wasSelected)
+            selectPublishedProgram(findProgram(newFilename, PresetType::User));
         return true;
     }
 
@@ -301,6 +365,8 @@ void ProgramManager::refreshUserPresets() {
 }
 
 juce::File ProgramManager::getUserPresetsDirectory() const {
+    if (userDirectoryOverride != juce::File{})
+        return userDirectoryOverride;
     return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
         .getChildFile("CheapSynth01")
         .getChildFile("UserPresets");
@@ -312,8 +378,10 @@ bool ProgramManager::createUserPresetsDirectory() {
 }
 
 void ProgramManager::rebuildAllPresetsList() {
-    const auto selectedFilename = getProgramFilename(currentProgram);
-    const auto selectedType = getPresetType(currentProgram);
+    const int selection = getCurrentProgram();
+    const bool selectedValid = selection >= 0 && selection < static_cast<int>(allPresets.size());
+    const auto selectedFilename = selectedValid ? allPresets[selection].filename : juce::String{};
+    const auto selectedType = selectedValid ? allPresets[selection].type : PresetType::Factory;
     allPresets.clear();
 
     // Add factory presets first
@@ -325,6 +393,7 @@ void ProgramManager::rebuildAllPresetsList() {
     for (const auto& preset : userPresets) {
         allPresets.push_back(preset);
     }
+    publishCatalogue();
     const int selected = findProgram(selectedFilename, selectedType);
     if (selected >= 0) {
         currentProgram = selected;  // Do not reload: preserve edits to the current sound.
@@ -335,14 +404,15 @@ void ProgramManager::rebuildAllPresetsList() {
     }
 }
 
-void ProgramManager::loadUserPresetFromFile(const juce::File& file) {
+bool ProgramManager::loadUserPresetFromFile(const juce::File& file) {
     if (file.exists()) {
         juce::XmlDocument xmlDoc(file.loadFileAsString());
         std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
         if (xmlState != nullptr) {
-            loadPresetFromXml(xmlState.get());
+            return loadPresetFromXml(xmlState.get());
         }
     }
+    return false;
 }
 
 juce::String ProgramManager::generateUniquePresetName(const juce::String& baseName) const {
@@ -367,4 +437,129 @@ bool ProgramManager::isSessionExcludedParameter(const juce::String& paramId) con
 bool ProgramManager::isPresetExcludedParameter(const juce::String& paramId) const {
     return std::find(presetExcludedParameters.begin(), presetExcludedParameters.end(), paramId) !=
            presetExcludedParameters.end();
+}
+
+// Portable single filename: reject path syntax, control characters and Windows devices.
+bool ProgramManager::isValidPresetName(const juce::String& name) {
+    if (name.isEmpty() || name != name.trim() || name.endsWithChar('.') || name.length() > 120 ||
+        name.containsAnyOf("/\\:<>\"|?*") || name == "." || name == "..")
+        return false;
+    for (auto c : name)
+        if (c < 32 || c == 127)
+            return false;
+    const auto stem = name.upToFirstOccurrenceOf(".", false, false).toUpperCase();
+    if (stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL")
+        return false;
+    for (int i = 1; i <= 9; ++i)
+        if (stem == "COM" + juce::String(i) || stem == "LPT" + juce::String(i))
+            return false;
+    return true;
+}
+
+void ProgramManager::setUserPresetsDirectoryForTesting(const juce::File& directory) {
+    userDirectoryOverride = directory;
+    refreshUserPresets();
+}
+
+void ProgramManager::publishCatalogue() {
+    auto table = std::make_unique<Catalogue>();
+    table->programs = allPresets;
+    for (size_t i = 0; i < allPresets.size(); ++i) {
+        const auto& program = allPresets[i];
+        std::unique_ptr<juce::XmlElement> xml;
+        if (program.type == PresetType::Factory) {
+            int size = 0;
+            const auto resource = program.filename.replace(".", "_");
+            if (const auto* data = BinaryData::getNamedResource(resource.toRawUTF8(), size))
+                xml = juce::XmlDocument::parse(juce::String::fromUTF8(data, size));
+        } else {
+            xml =
+                juce::XmlDocument::parse(getUserPresetsDirectory().getChildFile(program.filename));
+        }
+        PreparedProgram prepared;
+        prepared.index = static_cast<int>(i);
+        prepared.filename = program.filename;
+        prepared.type = program.type;
+        prepared.valid = xml && xml->hasTagName(apvts.state.getType());
+        if (prepared.valid) {
+            // APVTS fills missing parameter nodes from each parameter's default.
+            // Include those defaults so cached host application matches replaceState.
+            for (auto* raw : apvts.processor.getParameters())
+                if (auto* parameter = dynamic_cast<juce::RangedAudioParameter*>(raw))
+                    if (!isPresetExcludedParameter(parameter->paramID))
+                        prepared.values.emplace_back(parameter, parameter->getDefaultValue());
+            const auto* parameters = xml->getChildByName("PARAMETERS");
+            if (!parameters)
+                parameters = xml.get();
+            for (auto* child : parameters->getChildIterator()) {
+                const auto id = child->getStringAttribute("id");
+                if (isPresetExcludedParameter(id))
+                    continue;
+                if (auto* parameter = apvts.getParameter(id)) {
+                    const float value = static_cast<float>(child->getDoubleAttribute("value"));
+                    if (!std::isfinite(value)) {
+                        prepared.valid = false;
+                        break;
+                    }
+                    for (auto& [target, normalized] : prepared.values)
+                        if (target == parameter)
+                            normalized = parameter->convertTo0to1(value);
+                }
+            }
+        }
+        table->prepared.push_back(std::move(prepared));
+    }
+    const auto* published = table.get();
+    catalogues.push_back(std::move(table));
+    catalogue.store(published);
+    reclaimCatalogues();
+}
+void ProgramManager::reclaimCatalogues() {
+    const auto activity = catalogueActivity.load();
+    const auto* current = catalogue.load();
+    const auto* pending = pendingProgram.load();
+    const auto* selected = selectedProgram.load();
+    // Pins and reader count must describe one quiescent interval. Also detect
+    // a reader that started AND finished while these snapshots were taken.
+    if (catalogueReaders.load() != 0 || catalogueActivity.load() != activity)
+        return;
+    std::erase_if(catalogues, [&](const auto& table) {
+        if (table.get() == current)
+            return false;
+        // A queued host request pins the table until the audio thread applies it.
+        for (const auto& program : table->prepared)
+            if (&program == pending || &program == selected)
+                return false;
+        return true;
+    });
+}
+void ProgramManager::requestCurrentProgram(int index) {
+    beginCatalogueRead();
+    const auto* table = catalogue.load();
+    if (table && index >= 0 && index < static_cast<int>(table->prepared.size()) &&
+        table->prepared[index].valid)
+        pendingProgram.store(&table->prepared[index]);
+    endCatalogueRead();
+}
+void ProgramManager::applyPendingProgram() {
+    beginCatalogueRead();
+    if (const auto* program = pendingProgram.exchange(nullptr)) {
+        const int index = findProgram(program->filename, program->type);
+        if (index < 0) {
+            endCatalogueRead();
+            return;
+        }
+        for (const auto& [parameter, value] : program->values)
+            parameter->setValue(value);  // standard JUCE parameter atomic stores; no listeners
+        selectedProgram.store(program);
+        currentProgram.store(index);
+        programNotifications.store(true);
+    }
+    endCatalogueRead();
+}
+void ProgramManager::dispatchProgramNotifications() {
+    if (programNotifications.exchange(false))
+        for (auto* parameter : apvts.processor.getParameters())
+            parameter->sendValueChangedMessageToListeners(parameter->getValue());
+    reclaimCatalogues();
 }

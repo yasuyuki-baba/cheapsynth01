@@ -5,6 +5,8 @@
 #include "Parameters.h"
 
 #include <vector>
+#include <atomic>
+#include <memory>
 
 //==============================================================================
 enum class PresetType { Factory, User };
@@ -23,10 +25,17 @@ class ProgramManager {
     ProgramManager(juce::AudioProcessorValueTreeState& apvts);
     ~ProgramManager();
 
+    void requestCurrentProgram(int index);
+    void applyPendingProgram();
+    void dispatchProgramNotifications();
+
     // プリセット操作メソッド
+    static bool isValidPresetName(const juce::String& name);
+    void setUserPresetsDirectoryForTesting(const juce::File& directory);
+
     void loadFactoryPreset(int index);
-    void loadPresetFromXml(const juce::XmlElement* xml);
-    void saveCurrentStateAsPreset(const juce::String& name);
+    bool loadPresetFromXml(const juce::XmlElement* xml);
+    bool saveCurrentStateAsPreset(const juce::String& name);
     bool deleteUserPreset(int index);
     bool renameUserPreset(int index, const juce::String& newName);
 
@@ -54,7 +63,38 @@ class ProgramManager {
     std::vector<Program> factoryPresets;
     std::vector<Program> userPresets;
     std::vector<Program> allPresets;  // Combined list for easy access
-    int currentProgram = 0;
+    std::atomic<int> currentProgram{0};
+    juce::File userDirectoryOverride;
+    struct PreparedProgram {
+        int index = 0;
+        bool valid = false;
+        juce::String filename;
+        PresetType type = PresetType::Factory;
+        std::vector<std::pair<juce::RangedAudioParameter*, float>> values;
+    };
+    struct Catalogue {
+        std::vector<Program> programs;
+        std::vector<PreparedProgram> prepared;
+    };
+    // Readers use an atomic count; only the non-RT writer allocates/reclaims.
+    mutable std::atomic<unsigned> catalogueReaders{0};
+    mutable std::atomic<uint64_t> catalogueActivity{0};
+    void beginCatalogueRead() const {
+        catalogueReaders.fetch_add(1);
+        catalogueActivity.fetch_add(1);
+    }
+    void endCatalogueRead() const {
+        catalogueActivity.fetch_add(1);
+        catalogueReaders.fetch_sub(1);
+    }
+    std::atomic<const Catalogue*> catalogue{nullptr};
+    std::atomic<const PreparedProgram*> pendingProgram{nullptr};
+    std::atomic<const PreparedProgram*> selectedProgram{nullptr};
+    void selectPublishedProgram(int index);
+    std::vector<std::unique_ptr<Catalogue>> catalogues;
+    std::atomic<bool> programNotifications{false};
+    void publishCatalogue();
+    void reclaimCatalogues();
 
     // プリセット読み込み時に除外するパラメータ（音量変化を防ぐため）
     const std::vector<juce::String> presetExcludedParameters = {
@@ -69,8 +109,8 @@ class ProgramManager {
     bool isPresetExcludedParameter(const juce::String& paramId) const;
 
     void initializePresets();
-    void loadPresetFromBinaryData(const juce::String& filename);
+    bool loadPresetFromBinaryData(const juce::String& filename);
     void rebuildAllPresetsList();
-    void loadUserPresetFromFile(const juce::File& file);
+    bool loadUserPresetFromFile(const juce::File& file);
     juce::String generateUniquePresetName(const juce::String& baseName) const;
 };

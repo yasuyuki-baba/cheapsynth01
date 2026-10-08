@@ -29,7 +29,7 @@ VCAProcessor::~VCAProcessor() {}
 void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     egDepthControl.reset(sampleRate, 0.005);
     egDepthControl.setCurrentAndTargetValue(
-        apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load());
+        getCurrentParameterValue(apvts, ParameterIds::vcaEgDepth));
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
     bufferInputCoupling.prepare(sampleRate, EmpiricalParameters::bufferCouplingReferencePole);
     outputCoupling.prepare(sampleRate, EmpiricalParameters::outputCouplingReferencePole);
@@ -92,10 +92,12 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     auto egInput = getBusBuffer(buffer, true, 1);
 
     // Get parameters
-    auto egDepth = apvts.getRawParameterValue(ParameterIds::vcaEgDepth)->load();
+    auto egDepth = getCurrentParameterValue(apvts, ParameterIds::vcaEgDepth);
+    if (!std::isfinite(egDepth))
+        egDepth = 0.0f;
     egDepthControl.setTargetValue(egDepth);
     auto breathInput = getMidiParameterValue(apvts, ParameterIds::breathInput);
-    auto breathVcaDepth = apvts.getRawParameterValue(ParameterIds::breathVca)->load();
+    auto breathVcaDepth = getCurrentParameterValue(apvts, ParameterIds::breathVca);
     auto volume = getMidiParameterValue(apvts, ParameterIds::volume);
     // Precompute nonlinear volume curve once per block
     float volumeGain = std::pow(volume, EmpiricalParameters::volumeExponent);
@@ -109,6 +111,12 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         // TP3: Get input sample
         float inputSample = audioData[sample];
+
+        if (!std::isfinite(inputSample) || !std::isfinite(egData[sample])) {
+            releaseResources();
+            outputData[sample] = 0.0f;
+            continue;
+        }
 
         // Apply empirical input coupling
         inputSample = empiricalInputCoupling.processSample(inputSample);
@@ -134,6 +142,10 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         outputSample = safetyHighFreqRolloff.processSample(outputSample);
 
         // TP5: Final output
+        if (!std::isfinite(outputSample)) {
+            releaseResources();
+            outputSample = 0.0f;
+        }
         outputData[sample] = outputSample;
     }
 }
