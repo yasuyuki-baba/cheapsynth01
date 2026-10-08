@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # Test project name
-project(CheapSynth01Tests VERSION 1.0.0 LANGUAGES C CXX)
+project(CheapSynth01Tests VERSION ${CheapSynth01_VERSION} LANGUAGES C CXX)
 
 # Include JUCE modules
 include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/JUCE.cmake)
