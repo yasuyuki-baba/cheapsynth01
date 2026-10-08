@@ -45,8 +45,9 @@ class VCOProcessorTest : public ::testing::Test {
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::modDepth, "Mod Depth", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
 
-        layout.add(std::make_unique<juce::AudioParameterBool>(ParameterIds::glissando, "Glissando",
-                                                              false));
+        // Match the production float parameter instead of an incompatible bool fixture.
+        layout.add(std::make_unique<juce::AudioParameterFloat>(ParameterIds::glissando, "Glissando",
+                                                               0.0f, 0.208f, 0.0f));
 
         // Add parameters required by ToneGenerator
         layout.add(std::make_unique<juce::AudioParameterFloat>(ParameterIds::pitchBend,

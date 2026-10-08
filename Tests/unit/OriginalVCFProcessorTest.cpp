@@ -43,8 +43,9 @@ class OriginalVCFProcessorTest : public ::testing::Test {
             ParameterIds::cutoff, "Cutoff",
             juce::NormalisableRange<float>(20.0f, 20000.0f, 0.01f, 0.3f), 1000.0f));
 
-        layout.add(std::make_unique<juce::AudioParameterBool>(ParameterIds::resonance, "Resonance",
-                                                              false));
+        // Match the production float parameter; MIDI reads its atomic float storage.
+        layout.add(std::make_unique<juce::AudioParameterFloat>(ParameterIds::resonance, "Resonance",
+                                                               0.0f, 1.0f, 0.0f));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             ParameterIds::vcfEgDepth, "VCF EG Depth", juce::NormalisableRange<float>(0.0f, 1.0f),
