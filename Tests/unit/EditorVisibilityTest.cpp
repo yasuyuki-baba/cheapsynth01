@@ -2,8 +2,59 @@
 
 #include "CS01AudioProcessor.h"
 #include "CS01AudioProcessorEditor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "Parameters.h"
 
 #include <gtest/gtest.h>
+
+TEST(EditorVisibilityTest, ModWheelFollowsMidiWithoutSendingControllerFeedback) {
+    CS01AudioProcessor processor;
+    processor.getMidiMessageCollector().reset(48000);
+    MidiProcessor midiProcessor(processor.getValueTreeState());
+    ModulationComponent controls(processor);
+    juce::Slider* mod = nullptr;
+    juce::Slider* bend = nullptr;
+    for (auto* child : controls.getChildren()) {
+        if (auto* slider = dynamic_cast<juce::Slider*>(child)) {
+            if (slider->getSliderStyle() != juce::Slider::LinearVertical)
+                continue;
+            if (slider->getMinimum() == 0.0)
+                mod = slider;
+            else
+                bend = slider;
+        }
+    }
+    ASSERT_NE(mod, nullptr);
+    ASSERT_NE(bend, nullptr);
+    auto receive = [&](int controller, int value) {
+        juce::AudioBuffer<float> audio(2, 64);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, value), 0);
+        midiProcessor.processBlock(audio, midi);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    };
+    receive(1, 64);
+    EXPECT_NEAR(mod->getValue(), 8192.0 / 16383.0, 0.001);
+    receive(33, 127);
+    EXPECT_NEAR(mod->getValue(), 8319.0 / 16383.0, 0.001);
+
+    // Bend dragging must not suspend the independent MOD display.
+    bend->onDragStart();
+    receive(1, 127);
+    EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
+    bend->onDragEnd();
+
+    mod->onDragStart();
+    receive(121, 0);
+    EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
+    mod->onDragEnd();
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    EXPECT_DOUBLE_EQ(mod->getValue(), 0.0);
+
+    juce::MidiBuffer feedback;
+    processor.getMidiMessageCollector().removeNextBlockOfMessages(feedback, 64);
+    EXPECT_TRUE(feedback.isEmpty());
+}
 
 TEST(EditorVisibilityTest, EnvelopeLabelsAreCenteredUnderTheirSliders) {
     CS01AudioProcessor processor;
