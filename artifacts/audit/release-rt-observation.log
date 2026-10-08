@@ -1,0 +1,27 @@
+Note: Google Test filter = WholeGraphObservationTest.Observation_DenseMidiShortBlocksAndGuiSwitchTailCost:WholeGraphObservationTest.Observation_RoutingSwitchSignalAndDualFilterCost:AuditRealtimeTest.*
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from AuditRealtimeTest
+[ RUN      ] AuditRealtimeTest.EntireCallbackHasNoHeapOperationsForDenseMidiAndGuiQueue
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44900 (including JUCE graph nodes and MessageManager thread checks)
+[       OK ] AuditRealtimeTest.EntireCallbackHasNoHeapOperationsForDenseMidiAndGuiQueue (34 ms)
+[ RUN      ] AuditRealtimeTest.FirstAndVariableLengthCallbacksReusePreparedGraphStorage
+[       OK ] AuditRealtimeTest.FirstAndVariableLengthCallbacksReusePreparedGraphStorage (4 ms)
+[----------] 2 tests from AuditRealtimeTest (38 ms total)
+
+[----------] 2 tests from WholeGraphObservationTest
+[ RUN      ] WholeGraphObservationTest.Observation_DenseMidiShortBlocksAndGuiSwitchTailCost
+graph-tail block=1 n=1000 p95_us=4.447 p99_us=6.179 max_us=95.405 program_switch_p99_us=5.649 program_switch_max_us=11.277 gui_edits=5 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=123.096 p99_us=224.56 max_us=1806.78 program_switch_p99_us=175.305 program_switch_max_us=280.215 gui_edits=67 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=373.144 p99_us=530.893 max_us=1152.95 program_switch_p99_us=469.41 program_switch_max_us=537.763 gui_edits=287 deadline_us=1333.33 (observation, not a deadline guarantee)
+[       OK ] WholeGraphObservationTest.Observation_DenseMidiShortBlocksAndGuiSwitchTailCost (392 ms)
+[ RUN      ] WholeGraphObservationTest.Observation_RoutingSwitchSignalAndDualFilterCost
+routing-signal peak=0.317756 max_sample_step=0.197058 switch_block_max_sample_step=0.170279 (no calibrated click/audibility threshold)
+routing-cost both_filter_inputs=0 p50_us=114.574 p99_us=379.665 max_us=604.686
+routing-cost both_filter_inputs=1 p50_us=117.789 p99_us=378.964 max_us=632.227
+[       OK ] WholeGraphObservationTest.Observation_RoutingSwitchSignalAndDualFilterCost (1210 ms)
+[----------] 2 tests from WholeGraphObservationTest (1603 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (1644 ms total)
+[  PASSED  ] 4 tests.
