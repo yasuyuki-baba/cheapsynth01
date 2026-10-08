@@ -5,7 +5,8 @@ The CMake product version is 0.3.0. Tag builds require `v0.3.0` (or `0.3.0`);
 asset set before publishing. Windows includes CLAP as well as VST3 and Standalone.
 Linux has Standalone/VST3/LV2/CLAP; macOS additionally has AU. A corresponding-source
 ZIP with JUCE/CLAP/GoogleTest sources and the build patch is also required. The workflow validates
-nonempty, readable ZIPs and required notices. These checks do not prove a plugin
+nonempty, readable ZIPs, required notices and matching product/source manifests.
+Packaging requires committed tracked source; Linux CI omits build RPATHs. These checks do not prove a plugin
 loads in every host or that its CPU/OS minimum matches a consumer machine.
 
 ## Installing ZIP products

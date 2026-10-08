@@ -69,6 +69,8 @@ jobs:
           fi
           if [ "$RUNNER_OS" == "Windows" ]; then
             cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCMAKE_SKIP_RPATH=ON
           else
             cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
           fi
