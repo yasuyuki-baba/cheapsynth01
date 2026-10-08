@@ -110,7 +110,10 @@ The measured callback probe covers C++ new/delete, malloc/calloc/realloc/free
 and pthread_mutex_lock calls linked into the Linux test executable. It does not
 cover every allocation inside shared libraries, all possible host automation
 callbacks, scheduling or system calls. JUCE graph nodes still acquire callback
-mutexes; standard JUCE slider/button attachments may post AsyncUpdater messages
+mutexes; the program entry point also uses JUCE 9.0.3's mutex-protected
+`isThisTheMessageThread` check once per request. The unprotected thread-ID getter
+is not substituted, because concurrent thread reassignment would race. Standard
+JUCE slider/button attachments may post AsyncUpdater messages
 when a host notifies them off the message thread. This work does not establish a
 lock-free callback or a hard deadline guarantee. See the audit report for measured
 counts, timing percentiles, build conditions and remaining work.

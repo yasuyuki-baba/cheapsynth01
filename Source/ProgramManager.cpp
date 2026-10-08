@@ -6,6 +6,16 @@
 
 #include <cmath>
 
+namespace {
+// Silent audio-side program/MIDI writes can leave APVTS's adapter cache behind.
+// replaceState compares against that cache, so synchronize it on the non-RT path
+// before replacement; otherwise a return to the cached old value can be skipped.
+void synchronizeParameterAdapters(juce::AudioProcessorValueTreeState& state) {
+    for (auto* parameter : state.processor.getParameters())
+        parameter->sendValueChangedMessageToListeners(parameter->getValue());
+}
+}  // namespace
+
 ProgramManager::ProgramManager(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {
 #if defined(CHEAPSYNTH_TEST_PRESET_ISOLATION)
     static const auto testRoot = juce::File::getSpecialLocation(juce::File::tempDirectory)
@@ -194,6 +204,7 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
             }
             currentProgram = juce::jlimit(0, getNumPrograms() - 1, currentProgram.load());
             selectPublishedProgram(currentProgram.load());
+            synchronizeParameterAdapters(apvts);
             apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 
             // Restore values of parameters excluded from DAW session state
@@ -233,6 +244,7 @@ bool ProgramManager::loadPresetFromXml(const juce::XmlElement* xml) {
         }
 
         // Replace ValueTree state
+        synchronizeParameterAdapters(apvts);
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
 
         // Restore values of parameters excluded from preset loading
