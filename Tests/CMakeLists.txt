@@ -59,6 +59,8 @@ target_sources(CheapSynth01Tests
         unit/AuditStabilityTest.cpp
         unit/DspStructureRegressionTest.cpp
         reference/DspBeforeRefactor.cpp
+        reference/ToneBeforeOptimization.cpp
+        unit/VcoOptimizationTest.cpp
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h

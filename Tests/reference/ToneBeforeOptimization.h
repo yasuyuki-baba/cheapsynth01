@@ -1,3 +1,4 @@
+// Frozen from f42b3a35c8161cf323b9aa42cb874dc8b584ac83 for exact VCO optimization regression.
 #pragma once
 
 #include <JuceHeader.h>
@@ -9,14 +10,14 @@
 #include "Parameters.h"
 
 /**
- * ToneGenerator - Responsible for sound generation and MIDI note handling
+ * BeforeVcoTone - Responsible for sound generation and MIDI note handling
  *
  * This class implements the ISoundGenerator interface and generates audio samples
  * based on MIDI note input and various synthesis parameters.
  */
-class ToneGenerator : public ISoundGenerator {
+class BeforeVcoTone : public ISoundGenerator {
    public:
-    ToneGenerator(juce::AudioProcessorValueTreeState& apvts);
+    BeforeVcoTone(juce::AudioProcessorValueTreeState& apvts);
     void setExternalOversampling(bool enabled) {
         externalOversampling = enabled;
     }
@@ -41,9 +42,6 @@ class ToneGenerator : public ISoundGenerator {
     void reset();
     void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample,
                          int numSamples) override;
-    // Input may alias output channel 0. Controls and LFO still advance per sample.
-    void renderModulatedBlock(juce::AudioBuffer<float>& outputBuffer, const float* modulation,
-                              float depth);
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
     // Sound generation methods
@@ -60,18 +58,6 @@ class ToneGenerator : public ISoundGenerator {
     float generateMasterSquareWave(float finalPitch);
 
     juce::AudioProcessorValueTreeState& apvts;
-    struct CachedControl {
-        CachedControl(juce::RangedAudioParameter* value);
-        float load() const;
-        juce::RangedAudioParameter* parameter;
-        juce::AudioParameterFloat* floating;
-        juce::AudioParameterInt* integer;
-        juce::AudioParameterChoice* choice;
-    };
-    // APVTS replaceState changes values, not parameter objects. Keep the same
-    // authoritative atomic reads, without repeated name lookup or RTTI.
-    CachedControl feetControl, waveformControl, pwmControl, modDepthControl, pitchControl;
-    CachedControl bendUpControl, bendDownControl, glissandoControl, releaseControl;
 
     // Note state
     int currentlyPlayingNote = 0;
