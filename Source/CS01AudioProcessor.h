@@ -54,6 +54,7 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     //==============================================================================
     int getNumPrograms() override;
     int getCurrentProgram() override;
+    // Host requests, on any thread, are applied at the next processBlock.
     void setCurrentProgram(int index) override;
     const juce::String getProgramName(int index) override;
     void changeProgramName(int index, const juce::String& newName) override;
