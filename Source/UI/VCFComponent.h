@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 #include <atomic>
 
@@ -31,19 +33,19 @@ class VCFComponent : public juce::Component,
 
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> cutoffAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> cutoffAttachment;
 
     // Resonance controls (swapped based on mode)
     juce::Slider resonanceSlider;
     juce::Label resonanceLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> resonanceAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> resonanceAttachment;
 
     juce::ToggleButton resonanceButton;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> resonanceButtonAttachment;
+    std::unique_ptr<CS01ButtonParameterAttachment> resonanceButtonAttachment;
 
     juce::Slider egDepthSlider;
     juce::Label egDepthLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> egDepthAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> egDepthAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VCFComponent)
 };

@@ -9,7 +9,7 @@ FilterTypeComponent::FilterTypeComponent(juce::AudioProcessorValueTreeState& apv
     filterTypeComboBox.addItem("Modern", 2);
     addAndMakeVisible(filterTypeComboBox);
 
-    filterTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+    filterTypeAttachment = std::make_unique<CS01ComboBoxParameterAttachment>(
         valueTreeState, ParameterIds::filterType, filterTypeComboBox);
 }
 

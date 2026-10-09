@@ -51,9 +51,9 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     bendDownLabel.setText("DOWN", juce::dontSendNotification);
     addAndMakeVisible(bendUpLabel);
     addAndMakeVisible(bendDownLabel);
-    bendUpAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+    bendUpAttachment = std::make_unique<CS01SliderParameterAttachment>(
         processor.getValueTreeState(), ParameterIds::pitchBendUpRange, bendUpSlider);
-    bendDownAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+    bendDownAttachment = std::make_unique<CS01SliderParameterAttachment>(
         processor.getValueTreeState(), ParameterIds::pitchBendDownRange, bendDownSlider);
 
     // Mod Depth Slider

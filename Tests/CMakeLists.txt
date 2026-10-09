@@ -61,6 +61,7 @@ target_sources(CheapSynth01Tests
         reference/DspBeforeRefactor.cpp
         reference/ToneBeforeOptimization.cpp
         unit/VcoOptimizationTest.cpp
+        unit/PollingAttachmentTest.cpp
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h

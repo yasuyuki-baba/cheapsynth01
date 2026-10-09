@@ -10,7 +10,7 @@ LFOComponent::LFOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     lfoSpeedLabel.setText("SPEED", juce::dontSendNotification);
     addAndMakeVisible(lfoSpeedLabel);
 
-    lfoSpeedAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    lfoSpeedAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::lfoSpeed), lfoSpeedSlider);
     // Match the VCO faders without changing parameter ranges or values.
     lfoSpeedSlider.setPopupDisplayEnabled(true, true, this);

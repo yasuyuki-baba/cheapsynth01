@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 
 class LFOComponent : public juce::Component {
@@ -16,5 +18,5 @@ class LFOComponent : public juce::Component {
     juce::Slider lfoSpeedSlider;
     juce::Label lfoSpeedLabel;
 
-    std::unique_ptr<juce::SliderParameterAttachment> lfoSpeedAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> lfoSpeedAttachment;
 };

@@ -237,3 +237,14 @@ with PWM, LFO and glissando. Timings are observations, with no performance pass
 threshold. Reuse `WholeGraphObservationTest` for complete-graph spectrum and dense
 MIDI/GUI/switch timing; run without concurrent builds. Conditions and limitations
 are recorded in [the audit report](../docs/Audit-stability.md).
+
+## Message-thread polling attachments
+
+`PollingAttachmentTest` checks deferred/coalesced worker automation, the latest
+value after an intervening GUI edit, silent MIDI-style writes, exact slider mapping
+against JUCE 9.0.3, formatting/defaults, balanced gestures, no feedback notification,
+and destruction during automation/before a timer tick.
+`PollingAttachmentRealtimeTest` counts allocation/free/mutex operations on a
+worker through isolated bindings and through the full editor, including the first
+host notification. Its ELF probes are intentionally excluded from sanitizer
+builds. Timings and callback-wide realtime limitations remain separate checks.
