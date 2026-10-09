@@ -112,11 +112,28 @@ TEST(SessionGraphTest, RestoresRoutingWithoutRestoringHeldNotes) {
         const auto& graph = restored.getAudioGraphForTesting();
         EXPECT_TRUE(graph.isConnected({{restored.getVcoNodeIdForTesting(), 0}, {selected, 0}}));
         EXPECT_TRUE(graph.isConnected({{selected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
-        EXPECT_FALSE(graph.isConnected({{unselected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_TRUE(graph.isConnected({{unselected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_TRUE(graph.isConnected({{restored.getVcoNodeIdForTesting(), 0}, {unselected, 0}}));
+        EXPECT_TRUE(graph.isConnected({{restored.getLfoNodeIdForTesting(), 0}, {unselected, 2}}));
         EXPECT_TRUE(graph.isConnected({{restored.getLfoNodeIdForTesting(), 0}, {selected, 2}}));
         midi.clear();
         buffer.clear();
         restored.processBlock(buffer, midi);
+        EXPECT_EQ(restored.getAppliedFilterTypeForTesting(), filter);
+        EXPECT_EQ(restored.getAppliedLfoTargetForTesting(), 1);
+        EXPECT_EQ(
+            static_cast<OriginalVCFProcessor*>(
+                graph.getNodeForId(restored.getOriginalFilterNodeIdForTesting())->getProcessor())
+                ->isRoutingOutputEnabledForTesting(),
+            filter == 0);
+        EXPECT_EQ(
+            static_cast<ModernVCFProcessor*>(
+                graph.getNodeForId(restored.getModernFilterNodeIdForTesting())->getProcessor())
+                ->isRoutingOutputEnabledForTesting(),
+            filter == 1);
+        EXPECT_FALSE(static_cast<VCOProcessor*>(
+                         graph.getNodeForId(restored.getVcoNodeIdForTesting())->getProcessor())
+                         ->isLfoRoutingEnabledForTesting());
         EXPECT_EQ(buffer.getMagnitude(0, 256), 0.0f);
         double energy = 0.0;
         for (int block = 0; block < 40; ++block) {
