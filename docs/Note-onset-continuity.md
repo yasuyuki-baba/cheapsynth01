@@ -107,8 +107,15 @@ still describe the initial implementation; listening of the EG update is pending
 macOS CI exposed a rounding regression in the fully open VCA path: adding the
 gate product changed floating-point contraction and broke the existing exact
 pre-refactor comparison. The fully open gate now uses the original expression;
-moving gates still scale only the non-EG gain. The bitwise regression keeps its
-original strict comparison. All eight focused VCA/structure and onset regressions
+moving gates apply a correction only to the non-EG gain. Keeping the original
+EG expression outside the gate branch also prevents optimized builds from
+hoisting its product and changing contraction. A standalone comparison with
+pre-change source under GCC `-O2`/`-O3 -mfma -ffp-contract=fast` found zero bit
+differences across 707,707 fully open samples. The moving-gate equation check
+stayed bounded, muted exactly at EG/gate zero, and differed from its independent
+double-precision solution by at most 4.31e-8 across another 707,707 cases.
+The bitwise regression keeps its original strict comparison.
+All 17 focused VCA/structure and onset regressions
 passed locally after this correction; Standalone/header builds and formatting
 also passed. CI retains full macOS output as an artifact and prints bounded
 failure diagnostics to avoid per-sample assertion floods.
