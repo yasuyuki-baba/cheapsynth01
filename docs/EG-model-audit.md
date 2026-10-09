@@ -1,5 +1,21 @@
 # CS-01 EG model: implementation decision
 
+## Follow-up: attack transcription needs correction
+
+The archived mapping below identifies Tr13 as PNP with its emitter at -9 V,
+base driven within the 0/-9 V rails, and activation by a low pin-10 output.
+Those statements do not describe a normally forward-operated PNP switch:
+the emitter cannot be above the base. Recheck Tr13 polarity, E/C terminals and
+the driving IC4 output pin in the original schematic. Do not silently change
+PNP to NPN: that would also reverse the stated drive polarity. The qualitative
+Attack-drive table below is conditional and must not be treated as settled
+hardware behavior until this mapping is resolved.
+
+Production now preserves a fixed provisional attack target across retriggers
+and changes active-stage speed without redefining the target. See
+[current EG policy](EG-stateful-model.md). This adopts residual-state handling,
+not the unresolved Tr13 mapping or illustrative nonlinear device parameters.
+
 ## High-resolution transcription (local overall-circuit PDF)
 
 The following is a passive connection transcription, not a claim about switch
