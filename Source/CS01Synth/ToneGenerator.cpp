@@ -168,17 +168,18 @@ void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int 
 }
 
 void ToneGenerator::renderModulatedBlock(juce::AudioBuffer<float>& outputBuffer,
-                                         const float* modulation, float depth) {
+                                         const float* modulation, float depth, bool freeRunning) {
     updateBlockRateParameters();
     auto* output = outputBuffer.getWritePointer(0);
     for (int i = 0; i < outputBuffer.getNumSamples(); ++i) {
         setLfoValue(modulation[i] * depth * 1.0f);
         output[i] = 0.0f;
-        // Match the old VCO's active check before its single-sample render call.
-        if (!isActive())
+        // Gated component rendering keeps its existing sample progression.
+        // The production graph runs upstream continuously and gates at the VCA.
+        if (!isActive() && !freeRunning)
             continue;
         updateReleaseDuration();
-        if (!isActive())
+        if (!isActive() && !freeRunning)
             continue;
         updateBlockRateParameters();
         output[i] += getNextSample();

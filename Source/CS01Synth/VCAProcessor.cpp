@@ -1,4 +1,5 @@
 #include "CS01Synth/VCAProcessor.h"
+#include "CS01Synth/EGProcessor.h"
 
 #include "MidiParameterValue.h"
 
@@ -128,9 +129,10 @@ void VCAProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         float egValue = egData[sample];
 
         // Process through IG02600 behavioral gain/nonlinearity
-        float outputSample =
-            vcaModel.processSample(inputSample, egValue, egDepthControl.getNextValue(), breathInput,
-                                   breathVcaDepth, volumeGain);
+        float outputSample = vcaModel.processSample(
+            inputSample, egValue, egDepthControl.getNextValue(), breathInput, breathVcaDepth,
+            volumeGain,
+            noteGateSource != nullptr ? noteGateSource->getNoteGateForSample(sample) : 1.0f);
 
         // Process through empirical buffer-input coupling and Tr7 coloration
         outputSample = tr7Buffer.processSample(bufferInputCoupling.processSample(outputSample));

@@ -28,7 +28,7 @@ while [ "$#" -gt 0 ]; do
                     GROUP_FILTER='ProgramManagerTest.*:PresetSelectionTest.*:ParameterVersionTest.*:ProductionStateTest.*:SessionGraphTest.*'
                     ;;
                 integration)
-                    GROUP_FILTER='AudioGraphTest.*:MidiResetGraphTest.*:MidiPanicGraphTest.*:MidiRealtimeGraphTest.*:SessionGraphTest.*:EnvelopeRangeTest.*:BendInputTest.*:ModulationRangeTest.*:WholeGraphObservationTest.*:OutputConversionTest.*'
+                    GROUP_FILTER='AudioGraphTest.*:NoteOnsetTest.*:MidiResetGraphTest.*:MidiPanicGraphTest.*:MidiRealtimeGraphTest.*:SessionGraphTest.*:EnvelopeRangeTest.*:BendInputTest.*:ModulationRangeTest.*:WholeGraphObservationTest.*:OutputConversionTest.*'
                     ;;
                 *)
                     echo "Unknown test group '$2'. Use audio, midi, ui, presets, or integration." >&2

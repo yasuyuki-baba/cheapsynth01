@@ -1,0 +1,76 @@
+{
+  "note": 45,
+  "frequency_hz": 110,
+  "attack_seconds": 0.001,
+  "stage_capture_rate_hz": 192000,
+  "stored_rate_hz": 48000,
+  "waveform_indices": {
+    "0": "triangle",
+    "1": "saw",
+    "2": "square",
+    "3": "pulse",
+    "4": "PWM"
+  },
+  "measurements": {
+    "0": {
+      "before": {
+        "vco_last_before_note": 0.0,
+        "vco_first_note_sample": 0.0,
+        "vco_note_boundary_step": 0.0
+      },
+      "after": {
+        "vco_last_before_note": 0.745809,
+        "vco_first_note_sample": 0.759537,
+        "vco_note_boundary_step": 0.013727999999999962
+      }
+    },
+    "1": {
+      "before": {
+        "vco_last_before_note": 0.0,
+        "vco_first_note_sample": 0.686003,
+        "vco_note_boundary_step": 0.686003
+      },
+      "after": {
+        "vco_last_before_note": 0.569666,
+        "vco_first_note_sample": 0.562295,
+        "vco_note_boundary_step": -0.007371000000000016
+      }
+    },
+    "2": {
+      "before": {
+        "vco_last_before_note": 0.0,
+        "vco_first_note_sample": 0.0,
+        "vco_note_boundary_step": 0.0
+      },
+      "after": {
+        "vco_last_before_note": 0.761756,
+        "vco_first_note_sample": 0.761756,
+        "vco_note_boundary_step": 0.0
+      }
+    },
+    "3": {
+      "before": {
+        "vco_last_before_note": 0.0,
+        "vco_first_note_sample": 0.795479,
+        "vco_note_boundary_step": 0.795479
+      },
+      "after": {
+        "vco_last_before_note": -0.795479,
+        "vco_first_note_sample": -0.795479,
+        "vco_note_boundary_step": 0.0
+      }
+    },
+    "4": {
+      "before": {
+        "vco_last_before_note": 0.0,
+        "vco_first_note_sample": 0.731125,
+        "vco_note_boundary_step": 0.731125
+      },
+      "after": {
+        "vco_last_before_note": 0.748587,
+        "vco_first_note_sample": 0.749106,
+        "vco_note_boundary_step": 0.0005190000000000472
+      }
+    }
+  }
+}

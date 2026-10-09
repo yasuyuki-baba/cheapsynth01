@@ -28,6 +28,10 @@ class VCOProcessor : public juce::AudioProcessor,
     void setExternalOversampling(bool enabled) {
         toneGenerator->setExternalOversampling(enabled);
     }
+    // The synth graph gates at the VCA, keeping upstream coupling/filter state alive.
+    void setFreeRunning(bool enabled) {
+        freeRunning = enabled;
+    }
     void releaseResources() override {}
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
@@ -94,6 +98,7 @@ class VCOProcessor : public juce::AudioProcessor,
 
    private:
     bool lfoRoutingEnabled = true;
+    bool freeRunning = false;
     juce::AudioProcessorValueTreeState& apvts;
     std::unique_ptr<ToneGenerator> toneGenerator;
     std::unique_ptr<NoiseGenerator> noiseGenerator;

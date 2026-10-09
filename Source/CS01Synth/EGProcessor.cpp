@@ -15,6 +15,8 @@ EGProcessor::~EGProcessor() {}
 void EGProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     stopEnvelopeImmediately();
     envelopeSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
+    noteGateBuffer.setSize(1, std::max(1, samplesPerBlock));
+    noteGateBuffer.clear();
     updateADSR();
 }
 
@@ -44,10 +46,18 @@ void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffe
 
     // Process mono output (channel 0) only
     auto* channelData = buffer.getWritePointer(0);
+    jassert(buffer.getNumSamples() <= noteGateBuffer.getNumSamples());
+    auto* noteGate = noteGateBuffer.getWritePointer(0);
 
     // Provisional exponential shaping; endpoints and stage durations are retained.
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         channelData[sample] = nextEnvelopeSample();
+        if (noteGateRemainingSamples > 0) {
+            noteGateLevel += noteGateIncrement;
+            if (--noteGateRemainingSamples == 0)
+                noteGateLevel = noteGateTarget;
+        }
+        noteGate[sample] = static_cast<float>(noteGateLevel);
     }
     if (buffer.getNumSamples() > 0)
         lastOutput = channelData[buffer.getNumSamples() - 1];
@@ -86,12 +96,24 @@ float EGProcessor::nextEnvelopeSample() {
 void EGProcessor::startEnvelope() {
     updateADSR();
     beginStage(Stage::attack, 1.0, settings.attack);
+    // A short implementation gate only for the non-EG part of VCA gain.
+    // The user-selected EG attack remains unchanged.
+    beginNoteGate(1.0, 0.001);
 }
 
 void EGProcessor::releaseEnvelope() {
     updateADSR();
-    if (stage != Stage::idle)
+    if (stage != Stage::idle) {
         beginStage(Stage::release, 0.0, settings.release);
+        beginNoteGate(0.0, settings.release);
+    }
+}
+
+void EGProcessor::beginNoteGate(double target, double seconds) {
+    noteGateTarget = target;
+    noteGateRemainingSamples =
+        std::max<int64_t>(1, static_cast<int64_t>(std::ceil(seconds * envelopeSampleRate)));
+    noteGateIncrement = (target - noteGateLevel) / noteGateRemainingSamples;
 }
 
 void EGProcessor::stopEnvelopeImmediately() {
@@ -99,6 +121,9 @@ void EGProcessor::stopEnvelopeImmediately() {
     level = 0.0;
     lastOutput = 0.0f;
     remainingSamples = 0;
+    noteGateLevel = noteGateTarget = noteGateIncrement = 0.0;
+    noteGateRemainingSamples = 0;
+    noteGateBuffer.clear();
 }
 
 void EGProcessor::updateADSR() {
@@ -113,10 +138,11 @@ void EGProcessor::updateADSR() {
     // edits never overwrite a running release; sustain changes slew via decay.
     if (stage == Stage::attack && next.attack != previous.attack)
         beginStage(Stage::attack, 1.0, next.attack);
-    else if (stage == Stage::release && next.release != previous.release)
+    else if (stage == Stage::release && next.release != previous.release) {
         beginStage(Stage::release, 0.0, next.release);
-    else if ((stage == Stage::decay || stage == Stage::sustain) &&
-             (next.sustain != previous.sustain ||
-              (stage == Stage::decay && next.decay != previous.decay)))
+        beginNoteGate(0.0, next.release);
+    } else if ((stage == Stage::decay || stage == Stage::sustain) &&
+               (next.sustain != previous.sustain ||
+                (stage == Stage::decay && next.decay != previous.decay)))
         beginStage(Stage::decay, next.sustain, next.decay);
 }
