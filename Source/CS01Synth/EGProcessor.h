@@ -95,9 +95,11 @@ class EGProcessor : public juce::AudioProcessor {
     double envelopeSampleRate = 44100.0;
     double level = 0.0, stageTarget = 0.0, stageEndpoint = 0.0;
     double stageCoefficient = 0.0;
+    double stageReferenceSeconds = 0.0;
     int64_t remainingSamples = 0;
     float lastOutput = 0.0f;
     void beginStage(Stage next, double endpoint, double seconds);
+    void updateStageTiming(double seconds);
     float nextEnvelopeSample();
     void beginNoteGate(double target, double seconds);
     juce::AudioBuffer<float> noteGateBuffer;

@@ -172,6 +172,203 @@ TEST_F(EGProcessorTest, StatefulEditsAndRetriggerDoNotJump) {
     EXPECT_LT(buffer.getSample(0, 0) - releasingLevel, 0.001f);
 }
 
+TEST_F(EGProcessorTest, RetriggerDuringAttackKeepsTheHeldTrajectory) {
+    // A second gate during the same charge must not slow its remaining rise.
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (double fraction : {0.2, 0.7, 0.95}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(fraction);
+            EGProcessor held(*apvts), retriggered(*apvts);
+            held.prepareToPlay(rate, 1);
+            retriggered.prepareToPlay(rate, 1);
+            held.startEnvelope();
+            retriggered.startEnvelope();
+            juce::AudioBuffer<float> a(1, 1), b(1, 1);
+            juce::MidiBuffer midi;
+            const double attack = apvts->getRawParameterValue(ParameterIds::attack)->load();
+            const int boundary = static_cast<int>(fraction * attack * rate);
+            for (int i = 0; i < static_cast<int>(rate * 0.45); ++i) {
+                if (i == boundary)
+                    retriggered.startEnvelope();
+                held.processBlock(a, midi);
+                retriggered.processBlock(b, midi);
+                ASSERT_NEAR(a.getSample(0, 0), b.getSample(0, 0), 2.0e-6f) << i;
+            }
+        }
+    }
+}
+
+TEST_F(EGProcessorTest, TimeEditsKeepIntegratedProgressInEveryMovingStage) {
+    // Independent continuous solution: speed changes integrate dt/T rather
+    // than resetting a new full duration or moving the branch target.
+    for (double rate : {44100.0, 48000.0, 96000.0, 192000.0}) {
+        for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(id.toStdString());
+            for (const auto& time :
+                 {ParameterIds::attack, ParameterIds::decay, ParameterIds::release}) {
+                auto* p = apvts->getParameter(time);
+                p->setValueNotifyingHost(p->convertTo0to1(0.1f));
+            }
+            apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.4f);
+            EGProcessor eg(*apvts);
+            eg.prepareToPlay(rate, 1);
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer midi;
+            const auto advance = [&](int samples) {
+                for (int i = 0; i < samples; ++i)
+                    eg.processBlock(buffer, midi);
+            };
+            eg.startEnvelope();
+            if (id == ParameterIds::decay)
+                advance(static_cast<int>(
+                    std::ceil(apvts->getRawParameterValue(ParameterIds::attack)->load() * rate)));
+            if (id == ParameterIds::release) {
+                advance(static_cast<int>(rate * 0.3));
+                eg.releaseEnvelope();
+            }
+            const double start = eg.getLastOutputForTesting();
+            const double endpoint = id == ParameterIds::attack  ? 1.0
+                                    : id == ParameterIds::decay ? 0.4
+                                                                : 0.0;
+            const int first = static_cast<int>(rate * 0.04);
+            const double oldTime = apvts->getRawParameterValue(id)->load();
+            advance(first);
+            auto* parameter = apvts->getParameter(id);
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(0.2f));
+            const double newTime = apvts->getRawParameterValue(id)->load();
+            const int second = static_cast<int>(rate * 0.06);
+            advance(second);
+            const double progress = first / (rate * oldTime) + second / (rate * newTime);
+            const double expected = start + (endpoint - start) * (1.0 - std::exp(-2.0 * progress)) /
+                                                (1.0 - std::exp(-2.0));
+            EXPECT_NEAR(eg.getLastOutputForTesting(), expected, 2.0e-5);
+            const int remaining = static_cast<int>(std::ceil((1.0 - progress) * newTime * rate));
+            advance(remaining + 1);
+            EXPECT_NEAR(eg.getLastOutputForTesting(), endpoint, 0.001);
+            if (id == ParameterIds::release) {
+                EXPECT_FALSE(eg.isActive());
+                EXPECT_FLOAT_EQ(eg.getNoteGateForSample(0), 0.0f);
+            }
+        }
+    }
+}
+
+TEST_F(EGProcessorTest, RetriggerFromReleaseUsesResidualThresholdTime) {
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        for (double releaseAge : {0.01, 0.05, 0.15}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(releaseAge);
+            auto* release = apvts->getParameter(ParameterIds::release);
+            release->setValueNotifyingHost(release->convertTo0to1(0.2f));
+            EGProcessor eg(*apvts);
+            eg.prepareToPlay(rate, 1);
+            juce::AudioBuffer<float> buffer(1, 1);
+            juce::MidiBuffer midi;
+            const auto advance = [&](int count) {
+                for (int i = 0; i < count; ++i)
+                    eg.processBlock(buffer, midi);
+            };
+            eg.startEnvelope();
+            advance(static_cast<int>(rate * 0.45));
+            eg.releaseEnvelope();
+            advance(static_cast<int>(rate * releaseAge));
+            const float initial = eg.getLastOutputForTesting();
+            ASSERT_GT(initial, 0.0f);
+            eg.startEnvelope();
+            EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), initial);
+            const double time = apvts->getRawParameterValue(ParameterIds::attack)->load();
+            const double target = 1.0 / (1.0 - std::exp(-2.0));
+            const double expected = time * 0.5 * std::log((target - initial) / (target - 1.0));
+            int count = 0;
+            do {
+                advance(1);
+                ++count;
+            } while (eg.getLastOutputForTesting() < 1.0f && count <= time * rate + 2);
+            EXPECT_NEAR(count / rate, expected, 2.0 / rate);
+            EXPECT_LT(count / rate, time);
+        }
+    }
+}
+
+TEST_F(EGProcessorTest, RepeatedSpeedEditsAndRetriggersArePartitionIndependent) {
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        const auto render = [&](int block) {
+            for (const auto& id :
+                 {ParameterIds::attack, ParameterIds::decay, ParameterIds::release}) {
+                auto* p = apvts->getParameter(id);
+                p->setValueNotifyingHost(p->convertTo0to1(0.1f));
+            }
+            EGProcessor eg(*apvts);
+            eg.prepareToPlay(rate, block);
+            juce::MidiBuffer midi;
+            std::vector<float> values;
+            const std::array boundaries{0, 200, 400, 600, 800, 1000, 1200, 30000};
+            for (size_t event = 0; event + 1 < boundaries.size(); ++event) {
+                if (event == 0 || event == 5)
+                    eg.startEnvelope();
+                if (event == 3 || event == 6)
+                    eg.releaseEnvelope();
+                if (event == 1 || event == 2 || event == 4) {
+                    const auto& id = event == 4 ? ParameterIds::release : ParameterIds::attack;
+                    auto* p = apvts->getParameter(id);
+                    p->setValueNotifyingHost(p->convertTo0to1(event == 2 ? 0.05f : 0.2f));
+                }
+                for (int offset = boundaries[event]; offset < boundaries[event + 1];) {
+                    const int count = std::min(block, boundaries[event + 1] - offset);
+                    juce::AudioBuffer<float> audio(1, count);
+                    eg.processBlock(audio, midi);
+                    for (int i = 0; i < count; ++i)
+                        values.push_back(audio.getSample(0, i));
+                    offset += count;
+                }
+            }
+            return values;
+        };
+        const auto reference = render(1);
+        for (int block : {7, 64, 256})
+            EXPECT_EQ(render(block), reference);
+        EXPECT_GT(reference[599], 0.0f);
+        EXPECT_FLOAT_EQ(reference.back(), 0.0f);
+    }
+}
+
+TEST_F(EGProcessorTest, ZeroSustainReleaseKeepsTheIndependentGateClock) {
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        apvts->getParameter(ParameterIds::sustain)->setValueNotifyingHost(0.0f);
+        for (const auto& id : {ParameterIds::attack, ParameterIds::decay, ParameterIds::release}) {
+            auto* p = apvts->getParameter(id);
+            p->setValueNotifyingHost(p->convertTo0to1(0.01f));
+        }
+        auto* release = apvts->getParameter(ParameterIds::release);
+        release->setValueNotifyingHost(release->convertTo0to1(0.1f));
+        EGProcessor eg(*apvts);
+        eg.prepareToPlay(rate, 1);
+        juce::AudioBuffer<float> buffer(1, 1);
+        juce::MidiBuffer midi;
+        const auto advance = [&](int count) {
+            for (int i = 0; i < count; ++i)
+                eg.processBlock(buffer, midi);
+        };
+        eg.startEnvelope();
+        advance(static_cast<int>(rate * 0.03));
+        ASSERT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.0f);
+        ASSERT_FLOAT_EQ(eg.getNoteGateForSample(0), 1.0f);
+        eg.releaseEnvelope();
+        advance(static_cast<int>(rate * 0.04));
+        ASSERT_TRUE(eg.isActive());
+        EXPECT_NEAR(eg.getNoteGateForSample(0), 0.6f, 0.001f);
+        release->setValueNotifyingHost(release->convertTo0to1(0.2f));
+        const int remaining = eg.getReleaseSamplesRemaining();
+        EXPECT_NEAR(remaining / rate, 0.12, 3.0 / rate);
+        advance(remaining - 1);
+        EXPECT_TRUE(eg.isActive());
+        advance(1);
+        EXPECT_FALSE(eg.isActive());
+        EXPECT_FLOAT_EQ(eg.getNoteGateForSample(0), 0.0f);
+    }
+}
+
 TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
         processor->prepareToPlay(rate, static_cast<int>(rate * 0.02));
@@ -337,7 +534,7 @@ TEST_F(EGProcessorTest, AttackAndDecayChangesDoNotAlterRunningRelease) {
 }
 
 TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
-    // Model policy: a changed release duration starts at the current level.
+    // Time edits retain both the current level and the existing branch target.
     // This is not a claim about the hardware's RC decay curve.
     for (double sampleRate : {44100.0, 48000.0, 96000.0}) {
         for (float duration : {0.05f, 0.2f}) {
@@ -353,6 +550,8 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
             juce::MidiBuffer midi;
             for (int i = 0; i < static_cast<int>(sampleRate * 0.025); ++i)
                 envelope.processBlock(buffer, midi);
+            const double releaseStart = buffer.getSample(0, 0);
+            const double branchTarget = releaseStart * (1.0 - 1.0 / (1.0 - std::exp(-2.0)));
             envelope.releaseEnvelope();
             for (int i = 0; i < static_cast<int>(sampleRate * 0.05); ++i)
                 envelope.processBlock(buffer, midi);
@@ -362,14 +561,14 @@ TEST_F(EGProcessorTest, ReleaseTimeChangeUsesCurrentLevelNotSustain) {
             envelope.processBlock(buffer, midi);
             EXPECT_TRUE(envelope.isActive());
             EXPECT_NEAR(buffer.getSample(0, 0),
-                        initial * (1.0 - (1.0 - std::exp(-2.0 / (duration * sampleRate))) /
-                                             (1.0 - std::exp(-2.0))),
+                        branchTarget +
+                            (initial - branchTarget) * std::exp(-2.0 / (duration * sampleRate)),
                         1.0e-5);
             const int halfway = static_cast<int>(duration * sampleRate * 0.5);
             for (int i = 1; i < halfway; ++i)
                 envelope.processBlock(buffer, midi);
-            EXPECT_NEAR(buffer.getSample(0, 0), provisionalHalfLevel(initial, 0.0f),
-                        initial * 0.003f);
+            EXPECT_NEAR(buffer.getSample(0, 0),
+                        branchTarget + (initial - branchTarget) * std::exp(-1.0), initial * 0.003f);
             for (int i = 0; i < static_cast<int>(duration * sampleRate * 0.6); ++i)
                 envelope.processBlock(buffer, midi);
             EXPECT_FALSE(envelope.isActive());
