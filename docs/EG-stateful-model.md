@@ -19,6 +19,9 @@ including upward moves. Unrelated edits do not alter an ongoing release.
 Immediate stop, resource release and prepare clear level and activity.
 
 Parameter identifiers, ranges and stored values are unchanged; sound changes.
+The production VCA also consumes a separate [note gate](Note-onset-continuity.md)
+for its non-EG gain while the oscillator runs continuously. This does not change
+the EG output or stage durations described here.
 Changing decay/attack repeatedly can delay completion, by explicit policy.
 No claims are made about physical switching voltages or measured timing.
 

@@ -62,9 +62,12 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     vcoNode =
         audioGraph.addNode(std::make_unique<VCOProcessor>(apvts));  // Default is ToneGenerator
     static_cast<VCOProcessor*>(vcoNode->getProcessor())->setExternalOversampling(true);
+    static_cast<VCOProcessor*>(vcoNode->getProcessor())->setFreeRunning(true);
     egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
     lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
     vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
+    static_cast<VCAProcessor*>(vcaNode->getProcessor())
+        ->setNoteGateSource(static_cast<EGProcessor*>(egNode->getProcessor()));
     vcfNode = audioGraph.addNode(std::make_unique<OriginalVCFProcessor>(apvts));
     modernVcfNode = audioGraph.addNode(std::make_unique<ModernVCFProcessor>(apvts));
 

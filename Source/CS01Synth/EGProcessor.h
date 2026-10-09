@@ -30,6 +30,11 @@ class EGProcessor : public juce::AudioProcessor {
     float getLastOutputForTesting() const {
         return lastOutput;
     }
+    // Parallel sample-wise note gate for the VCA's non-EG gain. The existing
+    // EG audio connection orders this producer before the VCA in the graph.
+    float getNoteGateForSample(int sample) const {
+        return noteGateBuffer.getSample(0, sample);
+    }
 
     // Methods to control ADSR from outside
     void startEnvelope();
@@ -94,6 +99,10 @@ class EGProcessor : public juce::AudioProcessor {
     float lastOutput = 0.0f;
     void beginStage(Stage next, double endpoint, double seconds);
     float nextEnvelopeSample();
+    void beginNoteGate(double target, double seconds);
+    juce::AudioBuffer<float> noteGateBuffer;
+    double noteGateLevel = 0.0, noteGateTarget = 0.0, noteGateIncrement = 0.0;
+    int64_t noteGateRemainingSamples = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
 };

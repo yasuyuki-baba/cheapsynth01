@@ -105,19 +105,20 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
         if (!lfoRoutingEnabled)
             lfoInput.clear();
         auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
-        toneGenerator->renderModulatedBlock(buffer, lfoInput.getReadPointer(0), modDepth);
+        toneGenerator->renderModulatedBlock(buffer, lfoInput.getReadPointer(0), modDepth,
+                                            freeRunning);
         return;
     }
 
     // Clear the buffer
     buffer.clear();
 
-    // Sound generation using the current generator
-    if (currentGenerator->isActive()) {
-        // Process mono output
+    // Both modes advance note bookkeeping; the graph's continuous mode also
+    // fills samples after a release deadline occurring inside this block.
+    if (freeRunning)
+        noiseGenerator->renderContinuousBlock(buffer, 0, buffer.getNumSamples());
+    else if (currentGenerator->isActive())
         currentGenerator->renderNextBlock(buffer, 0, buffer.getNumSamples());
-    }
-    // If not active, buffer remains cleared
 
     // Pass MIDI buffer through (processing is done in MidiProcessor)
 }

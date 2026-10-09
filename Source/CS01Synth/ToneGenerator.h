@@ -43,7 +43,7 @@ class ToneGenerator : public ISoundGenerator {
                          int numSamples) override;
     // Input may alias output channel 0. Controls and LFO still advance per sample.
     void renderModulatedBlock(juce::AudioBuffer<float>& outputBuffer, const float* modulation,
-                              float depth);
+                              float depth, bool freeRunning = false);
     void process(const juce::dsp::ProcessContextReplacing<float>& context);
 
     // Sound generation methods

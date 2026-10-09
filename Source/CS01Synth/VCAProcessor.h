@@ -6,6 +6,8 @@
 #include "Parameters.h"
 #include "CS01Synth/VCAEmpiricalStages.h"
 
+class EGProcessor;
+
 //==============================================================================
 class VCAProcessor : public juce::AudioProcessor {
    public:
@@ -20,6 +22,9 @@ class VCAProcessor : public juce::AudioProcessor {
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void setNoteGateSource(const EGProcessor* source) {
+        noteGateSource = source;
+    }
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override {
@@ -67,6 +72,7 @@ class VCAProcessor : public juce::AudioProcessor {
    private:
     //==============================================================================
     juce::AudioProcessorValueTreeState& apvts;
+    const EGProcessor* noteGateSource = nullptr;
 
     // Empirical second-order 40 Hz input coupling, not an RC reconstruction.
     juce::dsp::IIR::Filter<float> empiricalInputCoupling;

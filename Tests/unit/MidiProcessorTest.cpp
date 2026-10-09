@@ -136,9 +136,14 @@ TEST_F(MidiProcessorTest, HeldKeysKeepEnvelopeGateOpen) {
         processor->processBlock(unused, midi);
     };
     const auto render = [&](int samples) {
-        juce::AudioBuffer<float> output(1, samples);
-        envelope.processBlock(output, midi);
-        return output.getSample(0, samples - 1);
+        float last = 0.0f;
+        for (int offset = 0; offset < samples; offset += 256) {
+            const int count = std::min(256, samples - offset);
+            juce::AudioBuffer<float> output(1, count);
+            envelope.processBlock(output, midi);
+            last = output.getSample(0, count - 1);
+        }
+        return last;
     };
     send(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100));
     // Allow attack and decay to finish before checking gate continuity.

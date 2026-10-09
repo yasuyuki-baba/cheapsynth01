@@ -24,6 +24,7 @@ class NoiseGenerator : public ISoundGenerator {
     }
     void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
                          int numSamples) override;
+    void renderContinuousBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples);
 
     // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
@@ -39,6 +40,9 @@ class NoiseGenerator : public ISoundGenerator {
     int getCurrentlyPlayingNote() const override;
 
    private:
+    void renderBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples,
+                     bool freeRunning);
+    float getNextSample();
     juce::AudioProcessorValueTreeState& apvts;
     juce::Random random;
     juce::dsp::IIR::Filter<float> noiseFilter;

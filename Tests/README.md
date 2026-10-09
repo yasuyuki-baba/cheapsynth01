@@ -26,6 +26,8 @@ Tests the functionality of individual components. Each class has a dedicated tes
 Tests the interaction between multiple components.
 
 - **AudioGraphTest** - Tests for the complete audio graph functionality
+- **NoteOnsetTest** - Continuous upstream generation, silent VCA keying, and
+  optional onset WAV/stage captures; see [note onset continuity](../docs/Note-onset-continuity.md).
 
 ### Mock Objects (`mocks/`)
 

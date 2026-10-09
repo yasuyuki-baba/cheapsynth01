@@ -19,30 +19,39 @@ void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
 
 void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
                                      int numSamples) {
+    renderBlock(buffer, startSample, numSamples, false);
+}
+
+void NoiseGenerator::renderContinuousBlock(juce::AudioBuffer<float>& buffer, int startSample,
+                                           int numSamples) {
+    renderBlock(buffer, startSample, numSamples, true);
+}
+
+void NoiseGenerator::renderBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples,
+                                 bool freeRunning) {
     updateReleaseDuration();
-    // Only generate noise if note is on
-    if (isActive()) {
-        if (tailOff)
-            numSamples = juce::jmin(numSamples, juce::jmax(0, tailOffDuration - tailOffCounter));
+    const int activeSamples =
+        !isActive() ? 0
+        : tailOff   ? juce::jmin(numSamples, juce::jmax(0, tailOffDuration - tailOffCounter))
+                    : numSamples;
+    const int renderedSamples = freeRunning ? numSamples : activeSamples;
+    for (int sample = 0; sample < renderedSamples; ++sample) {
+        const float filteredNoise = getNextSample();
 
-        // Generate white noise
-        for (int sample = 0; sample < numSamples; ++sample) {
-            float whiteNoise = random.nextFloat() * 2.0f - 1.0f;
-            float filteredNoise = noiseFilter.processSample(whiteNoise);
-
-            for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
-                buffer.setSample(channel, startSample + sample, filteredNoise);
-            }
-        }
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+            buffer.setSample(channel, startSample + sample, filteredNoise);
     }
     if (tailOff) {
-        tailOffCounter += numSamples;
+        tailOffCounter += activeSamples;
         if (tailOffCounter >= tailOffDuration) {
             tailOff = false;
             noteOn = false;
         }
     }
-    // If not active, nothing to do
+}
+
+float NoiseGenerator::getNextSample() {
+    return noiseFilter.processSample(random.nextFloat() * 2.0f - 1.0f);
 }
 
 // INoteHandler implementation
