@@ -62,6 +62,9 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto egInput = getBusBuffer(buffer, true, 1);
     auto lfoInput = getBusBuffer(buffer, true, 2);
 
+    if (!routingInputEnabled)
+        audioInput.clear();
+
     // Get parameters
     auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
     auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
@@ -82,7 +85,8 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Get input and output data pointers (using mono channels)
     const auto* audioData = audioInput.getReadPointer(0);
     const auto* egData = egInput.getReadPointer(0);
-    const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
+    const auto* lfoData =
+        routingLfoEnabled && lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
 
     // Expect processingBuffer to be preallocated in prepareToPlay; avoid reallocating on audio
     // thread
@@ -123,4 +127,7 @@ void ModernVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Copy processed samples back to output efficiently
     buffer.copyFrom(0, 0, processingBuffer, 0, 0, numSamples);
+    // Keep the inactive model's zero-input history, but contribute exactly zero to VCA.
+    if (!routingOutputEnabled)
+        buffer.clear(0, 0, buffer.getNumSamples());
 }

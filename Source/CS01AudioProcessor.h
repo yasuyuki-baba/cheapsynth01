@@ -110,10 +110,26 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     juce::AudioProcessorGraph::NodeID getModernFilterNodeIdForTesting() const {
         return modernVcfNode->nodeID;
     }
-    // Call only on the message thread; flush both routing and graph rendering updates.
+#if defined(CHEAPSYNTH_ROUTING_REFERENCE)
+    // Non-RT test references only; set before prepareToPlay.
+    void useLegacyRoutingForTesting() {
+        legacyRoutingForTesting = true;
+    }
+    void useDualFilterInputForTesting(bool enabled) {
+        dualFilterInputForTesting = enabled;
+    }
+#endif
+    // Call only on the message thread; flush reference routing and graph rendering updates.
     void flushPendingGraphChangesForTesting() {
         timerCallback();
         audioGraph.rebuild();
+    }
+
+    int getAppliedFilterTypeForTesting() const {
+        return requestedFilterType.load();
+    }
+    int getAppliedLfoTargetForTesting() const {
+        return requestedLfoTarget.load();
     }
 
     juce::AudioProcessorValueTreeState apvts;
@@ -122,6 +138,14 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void applyFilterRouting(int filterType, int lfoTarget,
                             juce::AudioProcessorGraph::UpdateKind updateKind);
+    void applyAudioRouting();
+    bool usesLegacyRouting() const {
+#if defined(CHEAPSYNTH_ROUTING_REFERENCE)
+        return legacyRoutingForTesting;
+#else
+        return false;
+#endif
+    }
     void timerCallback() override;
     void updateVCAOutputConnections();
     void handleGeneratorTypeChanged();
@@ -152,7 +176,12 @@ class CS01AudioProcessor : public juce::AudioProcessor,
     // プログラム管理
     ProgramManager presetManager;
 
-    // Latest requested routing state; parameter callbacks only publish values here.
+    juce::AudioParameterChoice* filterChoice = nullptr;
+    juce::AudioParameterChoice* lfoChoice = nullptr;
+#if defined(CHEAPSYNTH_ROUTING_REFERENCE)
+    bool legacyRoutingForTesting = false, dualFilterInputForTesting = false;
+#endif
+    // Applied audio snapshot; reference mode retains the old message-thread snapshot.
     std::atomic<int> requestedFilterType{0};
     std::atomic<int> requestedLfoTarget{0};
     std::atomic<bool> pendingRoutingChange{false};

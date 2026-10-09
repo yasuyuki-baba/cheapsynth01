@@ -52,6 +52,9 @@ juce_add_console_app(CheapSynth01Tests
 # Generate JUCE header
 juce_generate_juce_header(CheapSynth01Tests)
 
+# Reference routing is compiled only into the test executable.
+target_compile_definitions(CheapSynth01Tests PRIVATE CHEAPSYNTH_ROUTING_REFERENCE=1)
+
 # Source files
 target_sources(CheapSynth01Tests
     PRIVATE
@@ -62,6 +65,7 @@ target_sources(CheapSynth01Tests
         reference/ToneBeforeOptimization.cpp
         unit/VcoOptimizationTest.cpp
         unit/PollingAttachmentTest.cpp
+        unit/RoutingSelectionTest.cpp
         mocks/MockTimer.h
         mocks/MockOscillator.h
         mocks/MockToneGenerator.h

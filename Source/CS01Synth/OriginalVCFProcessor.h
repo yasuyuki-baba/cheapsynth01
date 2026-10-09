@@ -66,6 +66,16 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
     void getStateInformation(juce::MemoryBlock& destData) override {}
     void setStateInformation(const void* data, int sizeInBytes) override {}
 
+    // Audio-thread-owned fixed-graph routing; standalone processors default enabled.
+    void setRouting(bool input, bool output, bool lfo) {
+        routingInputEnabled = input;
+        routingOutputEnabled = output;
+        routingLfoEnabled = lfo;
+    }
+    bool isRoutingOutputEnabledForTesting() const {
+        return routingOutputEnabled;
+    }
+
     // Implementation of IFilter interface
     ResonanceMode getResonanceMode() const override {
         return ResonanceMode::Toggle;
@@ -73,6 +83,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
 
    private:
     //==============================================================================
+    bool routingInputEnabled = true, routingOutputEnabled = true, routingLfoEnabled = true;
     juce::AudioProcessorValueTreeState& apvts;
     CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
     juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse

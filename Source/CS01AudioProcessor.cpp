@@ -19,6 +19,10 @@ CS01AudioProcessor::CS01AudioProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", createParameterLayout()),
       presetManager(apvts) {
+    filterChoice =
+        static_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::filterType));
+    lfoChoice =
+        static_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::lfoTarget));
     keyboardState.addListener(this);
     keyboardMirrorMidi.ensureSize(32768);
     startTimerHz(60);
@@ -78,6 +82,16 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     // Connection from VCA to audioOutputNode (automatically configured based on output bus layout)
     updateVCAOutputConnections();
 
+    if (!usesLegacyRouting()) {
+        audioGraph.addConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}});
+        audioGraph.addConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}});
+        audioGraph.addConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+        audioGraph.addConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}});
+        audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}});
+        audioGraph.addConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}});
+        audioGraph.addConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}});
+    }
+
     // Sidechain Paths
     // EG -> VCA (Sidechain)
     audioGraph.addConnection({{egNode->nodeID, 0}, {vcaNode->nodeID, 1}});
@@ -117,8 +131,29 @@ void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
         static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load()));
     requestedLfoTarget.store(
         static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()));
-    applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
-                       juce::AudioProcessorGraph::UpdateKind::sync);
+    if (usesLegacyRouting())
+        applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
+                           juce::AudioProcessorGraph::UpdateKind::sync);
+    else
+        applyAudioRouting();
+}
+
+void CS01AudioProcessor::applyAudioRouting() {
+    if (vcoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr)
+        return;
+    const int filter = filterChoice->getIndex();
+    const int target = lfoChoice->getIndex();
+    requestedFilterType.store(filter);
+    requestedLfoTarget.store(target);
+    bool bothInputs = false;
+#if defined(CHEAPSYNTH_ROUTING_REFERENCE)
+    bothInputs = dualFilterInputForTesting;
+#endif
+    static_cast<VCOProcessor*>(vcoNode->getProcessor())->setLfoRoutingEnabled(target == 0);
+    static_cast<OriginalVCFProcessor*>(vcfNode->getProcessor())
+        ->setRouting(filter == 0 || bothInputs, filter == 0, target == 1 && filter == 0);
+    static_cast<ModernVCFProcessor*>(modernVcfNode->getProcessor())
+        ->setRouting(filter == 1 || bothInputs, filter == 1, target == 1 && filter == 1);
 }
 
 void CS01AudioProcessor::applyFilterRouting(int filterType, int lfoTarget,
@@ -171,7 +206,9 @@ void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
     presetManager.applyPendingProgram();
-    // Graph topology changes are queued on the message thread by timerCallback().
+    // One authoritative routing snapshot per host callback, including empty blocks.
+    if (!usesLegacyRouting())
+        applyAudioRouting();
     queuedMidi.clear();
     panelBendMidi.clear();
     bool queuePanic = false;
@@ -529,6 +566,9 @@ void CS01AudioProcessor::timerCallback() {
         keyboardState.reset();
     keyboardState.processNextMidiBuffer(keyboardMirrorMidi, 0, 1, false);
     mirroringKeyboard = false;
+
+    if (!usesLegacyRouting())
+        return;
 
     // Read authoritative values on the message thread. Registering APVTS listeners
     // here would allocate ListenerList iterator storage on the first host notification.

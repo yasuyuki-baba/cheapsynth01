@@ -102,6 +102,8 @@ void VCOProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuff
     if (currentGenerator == toneGenerator.get()) {
         // LFO input is always mono (channel 0)
         auto lfoInput = getBusBuffer(buffer, true, 0);
+        if (!lfoRoutingEnabled)
+            lfoInput.clear();
         auto modDepth = getMidiParameterValue(apvts, ParameterIds::modDepth);
         toneGenerator->renderModulatedBlock(buffer, lfoInput.getReadPointer(0), modDepth);
         return;
