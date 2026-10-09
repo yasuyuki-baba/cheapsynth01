@@ -6,6 +6,12 @@ asset set before publishing. Windows includes CLAP as well as VST3 and Standalon
 Linux has Standalone/VST3/LV2/CLAP; macOS additionally has AU. A corresponding-source
 ZIP with JUCE/CLAP/GoogleTest sources and the build patch is also required. The workflow validates
 nonempty, readable ZIPs, required notices and matching product/source manifests.
+Both product and source manifests list SHA-256 for every file except the manifest
+itself, using relative paths with `/` on all platforms. Validation checks the actual
+contents, exact hash coverage (including empty files), unique paths and one manifest;
+changed, missing or extra files are rejected. Archive paths must remain relative
+and canonical. The Python regression fixtures run in the CI lint job before builds.
+These hashes check package consistency, not signing or reproducible-build identity.
 Packaging requires committed tracked source; Linux CI omits build RPATHs. These checks do not prove a plugin
 loads in every host or that its CPU/OS minimum matches a consumer machine.
 

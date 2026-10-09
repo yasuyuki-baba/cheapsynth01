@@ -58,8 +58,9 @@ if __name__ == '__main__':
                 raise RuntimeError(f'missing licence: {directory}')
             for number, license_path in enumerate(licenses):
                 shutil.copyfile(license_path, product / f'{label}-LICENSE-{number}.txt')
-        hashes = {str(path.relative_to(product)): hashlib.sha256(path.read_bytes()).hexdigest()
-                  for path in product.rglob('*') if path.is_file() and path.name != 'BUILD-INFO.json'}
+        hashes = {path.relative_to(product).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                  for path in product.rglob('*')
+                  if path.is_file() and path != product / 'BUILD-INFO.json'}
         (product / 'BUILD-INFO.json').write_text(json.dumps({
             'source_commit': source,
             'product_version': re.search(r'project\(CheapSynth01 VERSION (\d+\.\d+\.\d+)', (ROOT / 'CMakeLists.txt').read_text()).group(1),
