@@ -67,6 +67,9 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto egInput = getBusBuffer(buffer, true, 1);
     auto lfoInput = getBusBuffer(buffer, true, 2);
 
+    if (!routingInputEnabled)
+        audioInput.clear();
+
     // Get parameters
     auto cutoffParam = getMidiParameterValue(apvts, ParameterIds::cutoff);
     auto resonanceParam = getMidiParameterValue(apvts, ParameterIds::resonance);
@@ -89,7 +92,8 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Get pointers for mono processing
     const auto* egData = egInput.getReadPointer(0);
-    const auto* lfoData = lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
+    const auto* lfoData =
+        routingLfoEnabled && lfoInput.getNumSamples() > 0 ? lfoInput.getReadPointer(0) : nullptr;
     const auto* audioData = audioInput.getReadPointer(0);
     auto* outputData = buffer.getWritePointer(0);
 
@@ -146,4 +150,7 @@ void OriginalVCFProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Process using filter
     filter.processBlock(outputData, buffer.getNumSamples(), modulationBuffer, resonance);
+    // Keep the inactive model's zero-input history, but contribute exactly zero to VCA.
+    if (!routingOutputEnabled)
+        buffer.clear(0, 0, buffer.getNumSamples());
 }
