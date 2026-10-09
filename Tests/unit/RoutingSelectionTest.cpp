@@ -218,6 +218,7 @@ TEST(RoutingSelectionRealtimeTest, EveryCallbackCanSwitchWithoutHeapOperationsOr
     juce::AudioBuffer<float> storage(2, 64);
     juce::MidiBuffer midi;
     midi.ensureSize(32768);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
     auto* filter = p.apvts.getParameter(ParameterIds::filterType);
     auto* target = p.apvts.getParameter(ParameterIds::lfoTarget);
     std::size_t allocations = 0, frees = 0, locks = 0;
