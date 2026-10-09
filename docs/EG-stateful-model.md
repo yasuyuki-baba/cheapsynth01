@@ -70,3 +70,9 @@ remaining attack after releasing from several levels, check the independent
 continuous solution across speed edits in all moving stages, and compare repeated
 edits/retriggers across block sizes 1, 7, 64 and 256. A zero-sustain regression
 checks that release edits preserve the separate VCA gate's clock through silence.
+
+Validation of the residual-state update: all 270 tests from 58 suites passed in
+one run, including optional audio/stage captures. The Debug Standalone build,
+self-contained header checks, pinned clang-format, whitespace check and four
+independent EG decay algebra checks passed. No hardware/listening calibration
+is claimed by these checks.

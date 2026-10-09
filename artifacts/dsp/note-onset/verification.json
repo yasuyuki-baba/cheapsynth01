@@ -1,12 +1,12 @@
 {
-  "expected_cases": 265,
-  "passed_cases": 265,
+  "expected_cases": 270,
+  "passed_cases": 270,
   "missing_cases": [],
-  "test_execution": "All 265 cases passed in one run after rebasing onto main at 5f4053a, including both optional capture tests with CHEAPSYNTH_ONSET_OUTPUT set.",
+  "test_execution": "All 270 cases passed in one run after the residual-state EG update, including both optional capture tests with CHEAPSYNTH_ONSET_OUTPUT set. Captures were exported to the ignored build/note-onset/residual-eg-final directory.",
   "product": "Standalone build and check_headers passed",
   "format": "Pinned clang-format 21.1.7 and git diff --check passed",
   "equations": "4 EG decay algebra checks passed",
   "hardware_comparison": "not performed",
-  "listening": "Initial user listening was inconclusive; consistent audible improvement has not been established.",
-  "tested_source_commit": "b9141710fb9bae775655385a151db5a2a0c9612e"
+  "listening": "Initial listening of the upstream continuity change was inconclusive. Listening of the residual-state EG update is pending; click removal is not established.",
+  "tested_source_commit": "cb5d4a6dab279006c6e1e3eee22d6fe2a3bbe425"
 }

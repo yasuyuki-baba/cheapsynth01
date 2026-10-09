@@ -98,3 +98,8 @@ After rebasing onto `main` at `5f4053a`, all 265 cases passed in a single run,
 including both capture tests. The Standalone build, header checks, pinned
 formatter and four EG algebra checks also passed. The tested source commit
 is `b914171`; subsequent documentation records the inconclusive listening result.
+
+After the residual-state EG update (`cb5d4a6`), all 270 cases passed, including
+both optional capture tests. Current diagnostic captures are in the ignored
+`build/note-onset/residual-eg-final` directory. Archived comparison WAVs above
+still describe the initial implementation; listening of the EG update is pending.
