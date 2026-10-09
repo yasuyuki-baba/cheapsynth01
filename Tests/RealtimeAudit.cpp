@@ -1,6 +1,7 @@
 #include "RealtimeAudit.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstdlib>
 #include <new>
@@ -45,8 +46,11 @@ int __wrap_pthread_mutex_lock(pthread_mutex_t* mutex) {
     ++realtimeAudit::locks;
     // Test-only interposition: trylock preserves recursive acquisition semantics.
     // Successful acquisition replaces lock; the original caller still unlocks once.
-    if (pthread_mutex_trylock(mutex) == 0)
-        return 0;
+    const int attempt = pthread_mutex_trylock(mutex);
+    if (attempt == 0 || attempt == EOWNERDEAD)
+        return attempt;
+    if (attempt != EBUSY)
+        return __real_pthread_mutex_lock(mutex);
     ++realtimeAudit::contendedLocks;
     realtimeAudit::observedContentions.fetch_add(1);
     const auto start = std::chrono::steady_clock::now();
