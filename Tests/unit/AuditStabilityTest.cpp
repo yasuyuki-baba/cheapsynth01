@@ -372,13 +372,57 @@ TEST(AuditProgramTest, MessageThreadHostRequestsAreDeferredAndLatestValidRequest
     p.setCurrentProgram(2);
     p.setCurrentProgram(-1);
     p.setCurrentProgram(p.getNumPrograms());
-    EXPECT_EQ(p.getCurrentProgram(), 0);
+    EXPECT_EQ(p.getCurrentProgram(), 2);
     for (int i = 0; i < p.getParameters().size(); ++i)
         EXPECT_FLOAT_EQ(p.getParameters()[i]->getValue(), before[i]);
     render(p, 0);
     EXPECT_EQ(p.getCurrentProgram(), 2);
     for (int i = 0; i < p.getParameters().size(); ++i)
         EXPECT_NEAR(p.getParameters()[i]->getValue(), expected.getParameters()[i]->getValue(),
+                    1e-6f);
+}
+
+TEST(AuditProgramTest, WrapperCanReturnToCurrentSoundBeforeQueuedProgramIsApplied) {
+    CS01AudioProcessor p, expected;
+    p.prepareToPlay(48000, 64);
+    expected.getPresetManager().setCurrentProgram(0);
+    // Match JUCE VST3 ProgramChangeParameter::setNormalized's equality check.
+    for (int index : {1, 0})
+        if (index != p.getCurrentProgram())
+            p.setCurrentProgram(index);
+    EXPECT_EQ(p.getCurrentProgram(), 0);
+    render(p, 0);
+    EXPECT_EQ(p.getCurrentProgram(), 0);
+    for (int i = 0; i < p.getParameters().size(); ++i)
+        EXPECT_NEAR(p.getParameters()[i]->getValue(), expected.getParameters()[i]->getValue(),
+                    1e-6f);
+}
+
+TEST(AuditProgramTest, ReservedProgramCanBeSavedAndUiOrSessionLoadSupersedesIt) {
+    CS01AudioProcessor p, restored, expected;
+    p.prepareToPlay(48000, 64);
+    expected.getPresetManager().setCurrentProgram(1);
+    p.setCurrentProgram(1);
+    juce::MemoryBlock saved;
+    p.getStateInformation(saved);
+    restored.setStateInformation(saved.getData(), saved.getSize());
+    EXPECT_EQ(restored.getCurrentProgram(), 1);
+    for (int i = 0; i < restored.getParameters().size(); ++i)
+        EXPECT_NEAR(restored.getParameters()[i]->getValue(),
+                    expected.getParameters()[i]->getValue(), 1e-6f);
+    p.getPresetManager().setCurrentProgram(2);
+    expected.getPresetManager().setCurrentProgram(2);
+    render(p, 0);
+    EXPECT_EQ(p.getCurrentProgram(), 2);
+    for (int i = 0; i < p.getParameters().size(); ++i)
+        EXPECT_NEAR(p.getParameters()[i]->getValue(), expected.getParameters()[i]->getValue(),
+                    1e-6f);
+    p.setCurrentProgram(2);
+    p.setStateInformation(saved.getData(), saved.getSize());
+    render(p, 0);
+    EXPECT_EQ(p.getCurrentProgram(), 1);
+    for (int i = 0; i < p.getParameters().size(); ++i)
+        EXPECT_NEAR(p.getParameters()[i]->getValue(), restored.getParameters()[i]->getValue(),
                     1e-6f);
 }
 

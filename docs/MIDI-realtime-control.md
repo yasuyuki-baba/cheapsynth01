@@ -99,8 +99,11 @@ semantics and source/host compatibility before a separate routing redesign.
 Host program calls from any thread select an immutable, pre-parsed
 catalogue entry. The next audio callback applies the parameter values without XML,
 I/O or notifications; the message-thread timer sends current-value notifications.
-Latest valid request wins; selection and values change together at the next
-callback, including an empty block. The host entry point does not query the
+Latest valid request wins. The reserved selection is immediately visible to
+host queries; sound values apply at the next callback, including an empty block.
+Session capture before application serializes the reserved patch and identity
+together. A successful explicit UI/session load supersedes a queued request.
+The host entry point does not query the
 MessageManager or branch into UI loading. User files are cached at refresh/save/rename, so external file
 edits need a refresh. UI selections still validate and read the actual file before
 committing selection. Catalogues retain queued/selected entries and readers;
