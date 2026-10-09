@@ -96,10 +96,12 @@ and is not a sample-accurate filter/LFO switch. A fixed graph was not adopted in
 this patch: compare CPU with both filters processing nonzero input, test crossfade
 semantics and source/host compatibility before a separate routing redesign.
 
-Host program calls from non-message threads select an immutable, pre-parsed
+Host program calls from any thread select an immutable, pre-parsed
 catalogue entry. The next audio callback applies the parameter values without XML,
 I/O or notifications; the message-thread timer sends current-value notifications.
-Latest request wins. User files are cached at refresh/save/rename, so external file
+Latest valid request wins; selection and values change together at the next
+callback, including an empty block. The host entry point does not query the
+MessageManager or branch into UI loading. User files are cached at refresh/save/rename, so external file
 edits need a refresh. UI selections still validate and read the actual file before
 committing selection. Catalogues retain queued/selected entries and readers;
 allocation/reclamation happens on the message thread. Preset identity is filename
@@ -110,9 +112,9 @@ The measured callback probe covers C++ new/delete, malloc/calloc/realloc/free
 and pthread_mutex_lock calls linked into the Linux test executable. It does not
 cover every allocation inside shared libraries, all possible host automation
 callbacks, scheduling or system calls. JUCE graph nodes still acquire callback
-mutexes; the program entry point also uses JUCE 9.0.3's mutex-protected
-`isThisTheMessageThread` check once per request. The unprotected thread-ID getter
-is not substituted, because concurrent thread reassignment would race. Standard
+mutexes. The host program entry point avoids JUCE 9.0.3's mutex-protected
+`isThisTheMessageThread` entirely by separating it from the explicit editor path.
+The unprotected thread-ID getter is not used. Standard
 JUCE slider/button attachments may post AsyncUpdater messages
 when a host notifies them off the message thread. This work does not establish a
 lock-free callback or a hard deadline guarantee. See the audit report for measured

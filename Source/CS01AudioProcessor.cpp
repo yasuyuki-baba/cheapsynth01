@@ -291,11 +291,10 @@ int CS01AudioProcessor::getCurrentProgram() {
 }
 
 void CS01AudioProcessor::setCurrentProgram(int index) {
-    const auto* messages = juce::MessageManager::getInstanceWithoutCreating();
-    if (messages != nullptr && messages->isThisTheMessageThread())
-        presetManager.setCurrentProgram(index);
-    else
-        presetManager.requestCurrentProgram(index);
+    // Hosts may call this on any thread, including their message thread while
+    // holding audio locks. Never classify the caller or load XML/files here.
+    // The editor explicitly uses ProgramManager's non-RT loading path instead.
+    presetManager.requestCurrentProgram(index);
 }
 
 const juce::String CS01AudioProcessor::getProgramName(int index) {
