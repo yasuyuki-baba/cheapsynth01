@@ -248,3 +248,29 @@ and destruction during automation/before a timer tick.
 worker through isolated bindings and through the full editor, including the first
 host notification. Its ELF probes are intentionally excluded from sanitizer
 builds. Timings and callback-wide realtime limitations remain separate checks.
+
+## Audio-owned fixed routing
+
+`RoutingSelectionTest` checks choice application without servicing the message
+loop, including an empty callback; 36 stationary configurations at 44.1/48/96 kHz
+and blocks 1/7/64; and live Release extension/shortening with Tone/Noise switching.
+The stationary comparison covers 147,528 float values and the matched-switch
+comparison covers 64,000 samples. Equality is numerical float equality, including
+signed zero, rather than a claim of bitwise equality. Filter/LFO switches preserve
+the legacy transient; the test does not establish click-free switching.
+
+`CHEAPSYNTH_ROUTING_REFERENCE` is defined only for the test executable. It exposes
+the prior dynamic routing and the dual nonzero-input diagnostic for paired
+comparisons, not a product mode or parameter. The timing observation rotates
+legacy/fixed/dual-input trial order across 12 block/filter/target combinations;
+there is no timing pass threshold. Run performance observations without concurrent
+project builds or tests.
+
+`RoutingSelectionRealtimeTest` switches every callback with an active note at
+block lengths 0/1/16/64 and checks heap operations and unchanged topology. The
+Linux mutex probe distinguishes acquisition from observed EBUSY contention and
+measures the subsequent blocking wait. A deliberately held mutex validates that
+contention is detected; zero observed graph contention does not prove that graph
+locks cannot block in a host. Probe interposition is active only during counting,
+not ordinary timing observations. The two new ELF probe cases, like the five
+existing probes, are excluded from project sanitizer builds.
