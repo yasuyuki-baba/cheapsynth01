@@ -1,0 +1,11 @@
+{
+  "expected_cases": 223,
+  "passed_cases": 223,
+  "missing_cases": [],
+  "test_execution": "120 cases passed in initial run; 103 remaining cases ran after correcting legacy oversized-block test fixtures. Two optional capture tests passed separately with CHEAPSYNTH_ONSET_OUTPUT set.",
+  "product": "Standalone build and check_headers passed",
+  "format": "Pinned clang-format 21.1.7 and git diff --check passed",
+  "equations": "4 EG decay algebra checks passed",
+  "hardware_comparison": "not performed",
+  "listening": "user comparison pending"
+}

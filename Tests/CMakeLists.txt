@@ -88,6 +88,7 @@ target_sources(CheapSynth01Tests
         unit/ProgramPanelTest.cpp
         unit/AudioDisplayFifoTest.cpp
         integration/AudioGraphTest.cpp
+        integration/NoteOnsetTest.cpp
 )
 
 # Include source files to be tested

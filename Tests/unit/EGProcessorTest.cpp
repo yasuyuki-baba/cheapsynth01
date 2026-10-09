@@ -174,7 +174,7 @@ TEST_F(EGProcessorTest, StatefulEditsAndRetriggerDoNotJump) {
 
 TEST_F(EGProcessorTest, AttackAutomationPreservesLevelAndProgress) {
     for (double rate : {44100.0, 48000.0, 96000.0}) {
-        processor->prepareToPlay(rate, 256);
+        processor->prepareToPlay(rate, static_cast<int>(rate * 0.02));
         processor->startEnvelope();
         juce::MidiBuffer midi;
         juce::AudioBuffer<float> initial(1, static_cast<int>(rate * 0.02));
