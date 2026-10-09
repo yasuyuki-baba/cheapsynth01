@@ -16,6 +16,10 @@
 #include <thread>
 #include <vector>
 
+#if defined(CHEAPSYNTH_RT_AUDIT)
+#include <pthread.h>
+#endif
+
 TEST(RoutingSelectionTest, ChoiceChangesApplyOnAudioWithoutMessageLoopIncludingEmptyBlock) {
     CS01AudioProcessor p;
     p.prepareToPlay(48000, 64);
@@ -221,7 +225,8 @@ TEST(RoutingSelectionRealtimeTest, EveryCallbackCanSwitchWithoutHeapOperationsOr
     midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
     auto* filter = p.apvts.getParameter(ParameterIds::filterType);
     auto* target = p.apvts.getParameter(ParameterIds::lfoTarget);
-    std::size_t allocations = 0, frees = 0, locks = 0;
+    std::size_t allocations = 0, frees = 0, locks = 0, contended = 0;
+    std::uint64_t waits = 0, maximumWait = 0;
     bool correctSelection = true;
     std::thread audio([&] {
         for (int iteration = 0; iteration < 1000; ++iteration) {
@@ -235,6 +240,9 @@ TEST(RoutingSelectionRealtimeTest, EveryCallbackCanSwitchWithoutHeapOperationsOr
             allocations += realtimeAudit::allocations;
             frees += realtimeAudit::deallocations;
             locks += realtimeAudit::locks;
+            contended += realtimeAudit::contendedLocks;
+            waits += realtimeAudit::waitNanoseconds;
+            maximumWait = std::max(maximumWait, realtimeAudit::maximumWaitNanoseconds);
             correctSelection &= p.getAppliedFilterTypeForTesting() == iteration % 2 &&
                                 p.getAppliedLfoTargetForTesting() == (iteration / 2) % 2;
         }
@@ -246,5 +254,31 @@ TEST(RoutingSelectionRealtimeTest, EveryCallbackCanSwitchWithoutHeapOperationsOr
     EXPECT_EQ(p.getAudioGraphForTesting().getConnections(), connections);
     std::cout << "routing-callback switches=1000 allocations=" << allocations << " frees=" << frees
               << " locks=" << locks << " (host notification outside callback probe)\n";
+}
+
+TEST(RoutingSelectionRealtimeTest, ProbeDetectsDeliberateMutexContention) {
+    pthread_mutex_t mutex;
+    ASSERT_EQ(pthread_mutex_init(&mutex, nullptr), 0);
+    ASSERT_EQ(pthread_mutex_lock(&mutex), 0);
+    realtimeAudit::observedContentions.store(0);
+    std::size_t contentions = 0;
+    std::uint64_t waited = 0;
+    std::thread worker([&] {
+        realtimeAudit::begin();
+        pthread_mutex_lock(&mutex);
+        realtimeAudit::end();
+        contentions = realtimeAudit::contendedLocks;
+        waited = realtimeAudit::waitNanoseconds;
+        pthread_mutex_unlock(&mutex);
+    });
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (realtimeAudit::observedContentions.load() == 0 &&
+           std::chrono::steady_clock::now() < deadline)
+        std::this_thread::yield();
+    pthread_mutex_unlock(&mutex);
+    worker.join();
+    EXPECT_EQ(contentions, 1u);
+    EXPECT_GT(waited, 0u);
+    EXPECT_EQ(pthread_mutex_destroy(&mutex), 0);
 }
 #endif

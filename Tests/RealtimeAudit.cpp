@@ -1,12 +1,16 @@
 #include "RealtimeAudit.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <new>
 #include <pthread.h>
 
 namespace realtimeAudit {
 thread_local bool enabled = false;
-thread_local std::size_t allocations = 0, deallocations = 0, locks = 0;
+thread_local std::size_t allocations = 0, deallocations = 0, locks = 0, contendedLocks = 0;
+thread_local std::uint64_t waitNanoseconds = 0, maximumWaitNanoseconds = 0;
+std::atomic<std::size_t> observedContentions{0};
 }  // namespace realtimeAudit
 extern "C" {
 void* __real_malloc(std::size_t);
@@ -36,9 +40,24 @@ void __wrap_free(void* pointer) {
     __real_free(pointer);
 }
 int __wrap_pthread_mutex_lock(pthread_mutex_t* mutex) {
-    if (realtimeAudit::enabled)
-        ++realtimeAudit::locks;
-    return __real_pthread_mutex_lock(mutex);
+    if (!realtimeAudit::enabled)
+        return __real_pthread_mutex_lock(mutex);
+    ++realtimeAudit::locks;
+    // Test-only interposition: trylock preserves recursive acquisition semantics.
+    // Successful acquisition replaces lock; the original caller still unlocks once.
+    if (pthread_mutex_trylock(mutex) == 0)
+        return 0;
+    ++realtimeAudit::contendedLocks;
+    realtimeAudit::observedContentions.fetch_add(1);
+    const auto start = std::chrono::steady_clock::now();
+    const int result = __real_pthread_mutex_lock(mutex);
+    const auto waited =
+        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                       std::chrono::steady_clock::now() - start)
+                                       .count());
+    realtimeAudit::waitNanoseconds += waited;
+    realtimeAudit::maximumWaitNanoseconds = std::max(realtimeAudit::maximumWaitNanoseconds, waited);
+    return result;
 }
 }
 // Also catch STL allocations whose allocator lives in the shared C++ runtime.
