@@ -6,7 +6,10 @@ float IG02600BehavioralModel::processSample(float input, float egValue, float eg
                                             float breathInput, float breathDepth, float volumeGain,
                                             float noteGate) const {
     // Uncalibrated control composition retained from the existing implementation.
-    float controlVoltage = ((1.0f - egDepth) * noteGate) + (egValue * egDepth);
+    // Preserve the original arithmetic when fully open, including floating-point
+    // contraction/rounding on ARM. Only the moving gate needs the extra product.
+    float controlVoltage = noteGate == 1.0f ? (1.0f - egDepth) + (egValue * egDepth)
+                                            : ((1.0f - egDepth) * noteGate) + (egValue * egDepth);
     controlVoltage *= (1.0f - breathDepth) + (breathInput * breathDepth);
     float output = input * (controlVoltage * volumeGain);
 
