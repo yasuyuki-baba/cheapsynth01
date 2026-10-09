@@ -22,10 +22,13 @@ top-level segmented renderer. No audio-thread allocation is added.
 
 VCA control is now `(1-depth)*noteGate + depth*EG`. The additional note gate
 ramps up over 1 ms and releases linearly over the configured release duration.
-Retrigger and release-time edits start from its current level. This is an
+Retrigger and release-time edits start from its current level; release edits
+use the EG's remaining endpoint time so both gates finish together. This is an
 implementation policy, not a reconstructed circuit. At full EG depth, the gate
-does not affect gain: the existing attack/decay/sustain/release curve and timing
-remain intact. Below full depth, note-off now fades the non-EG gain rather than
+does not affect gain. The subsequent [residual-state EG update](EG-stateful-model.md)
+shortens retriggered attacks and preserves progress during time edits; fresh
+stage curves retain their existing provisional shape. Below full depth,
+note-off now fades the non-EG gain rather than
 holding it until the oscillator's release deadline and abruptly cutting it.
 All Sound Off and lifecycle reset clear the gate immediately.
 
