@@ -87,14 +87,22 @@ jobs:
           elif [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run -a bash ../scripts/run-linux-gui-tests.sh "$executable" --gtest_output=xml:test_results.xml
           else
-            "$executable" --gtest_output=xml:test_results.xml
+            status=0
+            "$executable" --gtest_output=xml:test_results.xml > test_output.log 2>&1 || status=$?
+            tail -n 30 test_output.log
+            if [ "$status" -ne 0 ]; then
+              python3 ../scripts/summarize-test-failures.py test_results.xml
+            fi
+            exit "$status"
           fi
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ runner.os }}
-          path: build/test_results.xml
+          path: |
+            build/test_results.xml
+            build/test_output.log
       - name: Upload products
         uses: actions/upload-artifact@v7
         with:
