@@ -150,3 +150,23 @@ cutoffと音源modeが変わらない判定を追加した。ケース・音声�
 同じ100×64密集callback試験のmutex取得は44,900→44,800回。
 残りはJUCEグラフであり、完全なRT安全性・締切保証ではない。
 追加でパラメータID/version hint、XML形式、DSPの音色・制御曲線は変更していない。
+
+## 追加修正：配布物の整合性検査（2026-10-09 JST）
+
+検査ソースは `0ec2ab1`。詳細は
+[package-integrity-followup.json](../artifacts/audit/package-integrity-followup.json)。
+従来の検査はCRCが正常な内容差し替えを拒否しなかった。拒否を期待する基準の1件が
+失敗することを再現し、同じケースが修正後に成功することを確認した。
+
+製品・対応ソースの両manifestへ全ファイルのSHA-256を付け、実内容と照合する。
+manifest自身を除く完全な一覧を要求し、欠落・混入・不正hash・重複path・曖昧なmanifestを拒否。
+Windowsでもhashのpathは `/` に統一する。タグの最終jobはcheckoutしたcommitを渡すため、
+versionと内部commitが揃った古いasset一式も公開前検査で拒否する。
+Python回帰をCI lintへ追加した。
+
+Python **22/22** 成功。Linuxの実製品4形式＋対応ソースの**5 ZIP**で全hashを照合した。
+実ZIP一式に別のsource commitを要求する負例も期待どおり拒否された。
+Windows/macOS形式の合成fixtureは実OS成果物の成功とは扱わない。GitHub Actions自体は未実行。
+本体C++とDSP試験は904da99から変更しておらず、C++回帰の追加再実行はしていない。
+hashの一致は梱包内容の整合性を示し、署名や再現可能ビルドの証明ではない。
+LICENSE・本番DSP・プリセット形式に変更なし。push・公開もしていない。
