@@ -1,0 +1,87 @@
+{
+  "date_utc": "2026-10-09T00:28:43.617324+00:00",
+  "source_commit": "904da992198ef7bd93e8e050faea34a286fcb540",
+  "environment_reference": "artifacts/audit/stability-results.json#environment",
+  "verification": [
+    {
+      "xml": "build/followup-final-all-debug.xml",
+      "summary": {
+        "tests": "242",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "138.305",
+        "timestamp": "2026-10-09T00:25:36.024",
+        "name": "AllTests"
+      },
+      "xml_sha256": "00b2433a1ac3b944f451d41841fac3d66e9b401b6adc033159e8cdd541e902b0",
+      "log": "/tmp/audit-followup-final-all-debug.log",
+      "log_sha256": "5f976c22904b1d633b931c0cc6bc69756c4664c73c192a546f5a1b05e8d11344",
+      "exit": 0
+    },
+    {
+      "xml": "build-release/followup-final-all-release.xml",
+      "summary": {
+        "tests": "242",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "35.412",
+        "timestamp": "2026-10-09T00:26:13.119",
+        "name": "AllTests"
+      },
+      "xml_sha256": "b70d60295fa58fdac4a0d3d9eb3682db537d6782a4f911acfd714e1cfa6f6885",
+      "log": "/tmp/audit-followup-final-all-release.log",
+      "log_sha256": "74f7ed72de5952d0c2d491c1b9ce5f1167713305bc794174e048d0247f36f972",
+      "exit": 0
+    },
+    {
+      "xml": "build-sanitized/followup-final-targeted-sanitized.xml",
+      "summary": {
+        "tests": "29",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "5.968",
+        "timestamp": "2026-10-09T00:26:25.853",
+        "name": "AllTests"
+      },
+      "xml_sha256": "998507abefae3f566e557e8ccb0fdf6eaf481ecc02160b45dd096407daec5884",
+      "log": "/tmp/audit-followup-final-targeted-sanitized.log",
+      "log_sha256": "ffc84bb70b0588adffec9f82d37712dd60c8330acfd832ea976cadb16f2a7b4d",
+      "exit": 0
+    }
+  ],
+  "rt_probe": {
+    "line": "RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)",
+    "prior_source_commit": "ec12e588f57b78fc199a001418a632463f2aa626",
+    "prior_lock_count": 44900,
+    "current_lock_count": 44800,
+    "isolated_host_requests": {
+      "requests": 204,
+      "threads": [
+        "message",
+        "worker"
+      ],
+      "allocations": 0,
+      "deallocations": 0,
+      "pthread_mutex_lock": 0
+    },
+    "limits": "ELF-linked allocation/lock hooks only, remaining JUCE graph locks; not a deadline guarantee"
+  },
+  "sanitizer_coverage": "52 project/test translation units instrumented; JUCE/GoogleTest/system libraries not instrumented. 29 changed-path cases only; the prior 236-case full sanitizer result belongs to ec12e58. RT probes not compiled into sanitizer.",
+  "intermediate_failure": {
+    "xml": "build/followup-final-targeted-debug.xml",
+    "summary": {
+      "tests": "32",
+      "failures": "1",
+      "disabled": "0",
+      "errors": "0",
+      "time": "5.305",
+      "timestamp": "2026-10-09T00:24:05.756",
+      "name": "AllTests"
+    },
+    "reason": "Existing user cache case expected applied-only program metadata. Updated to reserved identity while adding unchanged cutoff and source-mode assertions before audio application. Case retained."
+  },
+  "infrastructure_failure": "First targeted Xvfb attempt exited before Openbox initialization; rerun succeeded. Not a test assertion failure or crash proof."
+}
