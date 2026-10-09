@@ -1,0 +1,216 @@
+{
+  "date_utc": "2026-10-09T12:35:33.540022+00:00",
+  "source_commit": "5ac834fa4163c8f7e9e7905f6ce257a902deead9",
+  "baseline_commit": "57e9b300617696efab8246029702e2fbc885b874",
+  "environment_reference": "artifacts/audit/stability-results.json#environment",
+  "reproduction": {
+    "standard_juce_attachment_probe": {
+      "xml": "build/polling-juce-baseline.xml",
+      "summary": {
+        "tests": "1",
+        "failures": "1",
+        "disabled": "0",
+        "errors": "0",
+        "time": "0.028",
+        "timestamp": "2026-10-09T12:21:22.774",
+        "name": "AllTests"
+      },
+      "exit": 1,
+      "xml_sha256": "84737003bc14e57a0f781175808f352d0848a17836e52b7b3777d2456e5fe99c",
+      "log": "/tmp/polling-juce-baseline.log",
+      "log_sha256": "8953b74e692ac335e0d8dc57b81d92cf066d603b08217592aba8683dca4016a4",
+      "measurements": [
+        "Attachment worker probe: allocations=1 frees=0 locks=6003"
+      ],
+      "method": "Compiled a copy of the new test replacing the three binding types with JUCE 9.0.3 Slider/Button/ComboBoxParameterAttachment. Only the isolated worker probe was executed, not an old whole-editor/whole-graph build.",
+      "test_source_sha256": "2b8d5f18d33a62f8d218b63b0d311d984d9e1dbbe4645fdc17aa4bc6bb93cf1d"
+    },
+    "cold_host_notifications": {
+      "log": "/tmp/polling-targeted-debug.log",
+      "log_sha256": "9bf216d1f12df54c9168fe0aafb6c9ea05fe2c6cdd1c90f9c2077e865accef3e",
+      "phase": "Intermediate working tree with polling bindings but original APVTS subscriptions",
+      "before": "closed allocations=3 frees=0 locks=4530",
+      "after": "closed allocations=0 frees=0 locks=4530",
+      "cause": "First APVTS ListenerList iterator vector expansion in feet/filterType/lfoTarget notifications; subscriptions removed in favor of existing audio-side feet and message-side routing polls"
+    }
+  },
+  "verification": [
+    {
+      "xml": "build/polling-all-debug.xml",
+      "summary": {
+        "tests": "252",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "195.976",
+        "timestamp": "2026-10-09T12:26:19.128",
+        "name": "AllTests"
+      },
+      "xml_sha256": "0e908667d0c2999bcffde5a293d0a3dd843f7bfbe07f920988885a9ec4217a77",
+      "log": "/tmp/polling-all-debug2.log",
+      "log_sha256": "5a1a1af0c5b4ac5791809de94411ecf013c0c652748592fe54c1c22fc7934215",
+      "exit": 0
+    },
+    {
+      "xml": "build-release/polling-all-release.xml",
+      "summary": {
+        "tests": "252",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "62.277",
+        "timestamp": "2026-10-09T12:24:14.146",
+        "name": "AllTests"
+      },
+      "xml_sha256": "acec23279b3eaca36f7158f5008bf6fbcf4e47dad65ae0fc6f09248d27714234",
+      "log": "/tmp/polling-all-release.log",
+      "log_sha256": "a6b897ba4c61f5359ca3a22726c38b26ba029e9d7dd5d941753d859ddbe63d1e",
+      "exit": 0
+    },
+    {
+      "xml": "build-sanitized/polling-all-sanitized.xml",
+      "summary": {
+        "tests": "247",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "119.977",
+        "timestamp": "2026-10-09T12:30:59.725",
+        "name": "AllTests"
+      },
+      "xml_sha256": "49c483aa3e35ef10d42cc7f89efef67018ef7c981fb4910af6afad2c567779c6",
+      "log": "/tmp/polling-all-sanitized.log",
+      "log_sha256": "f63d9bae25556c80cdf51590ff53a8a3c8b569a09173478e307b3c3a85462fe8",
+      "exit": 0
+    },
+    {
+      "xml": "build/polling-targeted3-debug.xml",
+      "summary": {
+        "tests": "17",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "0.807",
+        "timestamp": "2026-10-09T12:21:23.044",
+        "name": "AllTests"
+      },
+      "xml_sha256": "d5837d8e72664f69d2b556473046451aa266f7e38ff212af88711afd1eab36e9",
+      "log": "/tmp/polling-targeted3-debug.log",
+      "log_sha256": "50f33f46374e8655b37d648297a25fae378743cbf882c0cc75d740c2c134acb1",
+      "exit": 0
+    },
+    {
+      "xml": "build-release/polling-quiet-release.xml",
+      "summary": {
+        "tests": "7",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "1.092",
+        "timestamp": "2026-10-09T12:33:40.166",
+        "name": "AllTests"
+      },
+      "xml_sha256": "d530db06b25d0dbed0eec6ecbe143c92369b28a7e3cf6d8fc43866ed8681fa29",
+      "log": "/tmp/polling-quiet-release.log",
+      "log_sha256": "fc980ef8dd5cdf405be40ee1dfec6db778177008516ae9be87af65209a1d6a61",
+      "exit": 0
+    }
+  ],
+  "sanitizer": {
+    "instrumented_source_count": 55,
+    "instrumentation_sha256": "7e3ae3e8178f45e57fa68c549ae9d3834b9ba11ee84dc5def593d1086a3263ea",
+    "not_instrumented": [
+      "JUCE modules",
+      "GoogleTest",
+      "system shared libraries"
+    ],
+    "excluded_cases": "Five ELF allocation/mutex probes: three existing AuditRealtimeTest and two new PollingAttachmentRealtimeTest",
+    "diagnostics_found": false
+  },
+  "new_cases": {
+    "gui": 5,
+    "realtime": 2,
+    "description": [
+      "Worker automation coalescing and message-thread callbacks",
+      "Exact slider mapping versus JUCE 9.0.3, text/defaults and balanced drag/closing gestures",
+      "Button/combo complete gestures and exactly one host notification",
+      "Host return to last polled value after a GUI edit and silent MIDI write",
+      "Destruction during automation and before timer tick",
+      "First worker binding notifications without heap operations",
+      "Whole editor adds no allocation/free/mutex operations to host automation"
+    ]
+  },
+  "performance": {
+    "conditions": "One standalone Release run after all project builds and regression tests finished; shared Linux CPU/ordinary priority, not isolated hardware",
+    "callback_blocks": [
+      1,
+      16,
+      64
+    ],
+    "callback_count_per_block": 1000,
+    "host_sample_rate": 48000,
+    "measurements": [
+      "RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)",
+      "Attachment worker probe: allocations=0 frees=0 locks=3000",
+      "Editor automation probe: closed allocations=0 frees=0 locks=4530; opened allocations=0 frees=0 locks=4530",
+      "Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=40.047",
+      "Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=38.0267",
+      "Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=42.7885",
+      "Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=40.4009",
+      "Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=82.8473",
+      "Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=79.9639",
+      "graph-tail block=1 n=1000 p95_us=2.994 p99_us=4.788 max_us=78.318 program_switch_p99_us=4.487 program_switch_max_us=19.36 gui_edits=3 deadline_us=20.8333 (observation, not a deadline guarantee)",
+      "graph-tail block=16 n=1000 p95_us=59.07 p99_us=116.826 max_us=267.795 program_switch_p99_us=102.755 program_switch_max_us=176.287 gui_edits=41 deadline_us=333.333 (observation, not a deadline guarantee)",
+      "graph-tail block=64 n=1000 p95_us=238.931 p99_us=1106.57 max_us=2229.82 program_switch_p99_us=349.168 program_switch_max_us=2210.77 gui_edits=210 deadline_us=1333.33 (observation, not a deadline guarantee)"
+    ],
+    "limitations": [
+      "GUI edits depend on wall clock, so no matched before/after workload claim",
+      "One run shows observations, not percentile certainty or a deadline guarantee",
+      "Block 1 and 64 maxima exceed their deadlines",
+      "Graph callback still locks; host parameter notification still locks",
+      "Interposition covers linked project/JUCE code, not every shared-library operation or system message API"
+    ]
+  },
+  "intermediate_failures": [
+    {
+      "kind": "targeted test run",
+      "tests": 16,
+      "failed_cases": 2,
+      "notes": "Slider test incorrectly assumed unsnapped proportion mapping equals the parameter snapped value; corrected to compare exact JUCE slider mapping, and scalar expected float precision. Real cold APVTS heap failure fixed by removing redundant subscriptions. Assertions/cases retained."
+    },
+    {
+      "kind": "Debug full-run launch",
+      "exit": 126,
+      "log": "/tmp/polling-all-debug.log",
+      "log_sha256": "91bba1d660cab702947adad55d804f2608e3361ee4a711a2e9f053f827cbe0dc",
+      "notes": "Launch overlapped a linker writing the executable; permission denied before tests. Re-run after build completion passed 252 cases."
+    },
+    {
+      "kind": "nonfinal build/format checks",
+      "notes": "Intermediate missing include/parameter identifier, private setValue call and const lambda capture compile errors corrected. VCF binding rename reformatted. Passing intermediate older binaries are not counted as current validation."
+    }
+  ],
+  "other_checks": {
+    "format_cpp_files": 107,
+    "clang_format": "21.1.7",
+    "check_headers": [
+      "Debug",
+      "Release"
+    ],
+    "git_diff_check": "passed"
+  },
+  "compatibility": {
+    "parameter_ids": "unchanged",
+    "version_hints": "unchanged",
+    "preset_format": "unchanged",
+    "dsp_equations_and_curves": "unchanged",
+    "display": "External changes read at 60 Hz; busy message loops can delay display further. GUI-to-host edits remain immediate."
+  },
+  "not_run": [
+    "Windows/macOS",
+    "Actual DAW or audio device",
+    "Fully instrumented JUCE/system",
+    "ThreadSanitizer",
+    "Hardware CS-01 calibration"
+  ]
+}

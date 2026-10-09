@@ -254,3 +254,79 @@ xvfb-run -a bash scripts/run-linux-gui-tests.sh \
 
 旧whole-graphは基準ソースのRelease executableで同じWholeGraphObservationTest filterを実行する。
 同一processのpaired VCO比較は凍結referenceを使うため、最新実行ファイルだけでも再実行できる。
+
+
+## 追加修正：ホスト通知からのUI投稿を除去（2026-10-09 JST）
+
+基準は `57e9b300617696efab8246029702e2fbc885b874`、
+本体・試験commitは `5ac834fa4163c8f7e9e7905f6ce257a902deead9`。
+詳細は [polling-notifications.json](../artifacts/audit/polling-notifications.json)、
+測定値は [polling-notifications.log](../artifacts/audit/polling-notifications.log)。
+
+JUCE 9.0.3のParameterAttachmentは非メッセージスレッドで
+`isThisTheMessageThread()` と `triggerAsyncUpdate()` を呼ぶ。
+同じworker回帰を標準JUCEのSlider/Button/ComboBox attachmentで実行すると、
+3,000通知で**確保1・解放0・mutex 6,003**となり、確保0を要求する1件が期待どおり失敗した。
+これはbindingを標準JUCE型へ置き換えてビルドした独立probeであり、
+旧main全体の再ビルド・旧whole-graph比較ではない。
+
+本番のSlider/Button/ComboBox bindingをmessage-thread所有のポーリングへ置換した。
+parameter listenerを登録せず、構築時に初期値、以後60 Hzで現在のparameter値を読む。
+音声側にメッセージ投稿やスレッド判定を追加していない。
+値域・独自skew/snapping・テキスト変換・default double-clickはJUCE 9.0.3と比較。
+GUI操作は即時にホストへ通知し、drag、Button/ComboBoxのcomplete gesture、
+APVTSのUndoManager、drag中の破棄でのgesture終了を保つ。
+外部変更の表示は約16.7 ms間隔、busyなmessage loopではさらに遅れる。DSPは待たない。
+
+GUI変更→次tick前にホストが前回観測値へ戻すケースでも最新値を表示するため、
+GUI書き込み後に観測cacheを無効化する。通知を伴わないMIDI値も直接観測する。
+worker通知のcoalescing・GUIに触らないこと・同時automation中の破棄・tick前の破棄を直接検証した。
+
+さらに中間実装の初回ホスト通知probeで、GUIを閉じた状態でも確保3回を検出。
+APVTSのfeet/filterType/lfoTarget ListenerListのiterator vectorが初回通知で拡張する。
+feetは既存音声側で毎回確認しているため、VCO/processorの冗長なAPVTS登録を除去。
+経路変更はprocessorの既存メッセージtimerで現在のfilterType/lfoTargetを読む。
+固定グラフ化は行わず、メッセージループ依存の切替契約を維持した。
+
+| 検証 | 件数 | 結果・制約 |
+|---|---:|---|
+| Debug --all | 252 | failures/errors/disabled = 0 |
+| Release --all | 252 | failures/errors/disabled = 0 |
+| project ASan/UBSan/LeakSanitizer --all | 247 | 検出なし。55 project/test cppを計装。JUCE/GoogleTest/systemは未計装、ELF probe 5件を除外 |
+| 対象GUI/format/RT回帰 | 17 | 全成功、新規GUI 5件＋RT 2件を含む |
+| 独立Release RT/whole-graph観測 | 7 | 全成功。他のprojectビルド・全回帰終了後に実行 |
+| header / format | Debug/Release、107 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+
+新binding単体の3,000 worker通知は**確保0・解放0・mutex 3,000**。
+残る3,000はJUCEのAudioProcessorParameter通知lockである。
+全parameterを100回変更するprocessorのprobeも、**初回を含め確保/解放0**。
+mutex 4,530回はGUI開/閉で同じで、エディタによる追加取得は0。
+このprobeは音声callback全体のlock-free保証ではない。
+
+既存whole-graphのMIDI密集・GUI編集・program切替（各block 1000 callbacks）の観測：
+
+| block | p95 µs | p99 µs | max µs | program切替p99 µs | program切替max µs | deadline µs |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 2.994 | 4.788 | 78.318 | 4.487 | 19.36 | 20.8333 |
+| 16 | 59.07 | 116.826 | 267.795 | 102.755 | 176.287 | 333.333 |
+| 64 | 238.931 | 1106.57 | 2229.82 | 349.168 | 2210.77 | 1333.33 |
+
+block 1/64のmaxは締切超過。今回1 runの観測であり、締切保証や分位値の確度を主張しない。
+GUI編集回数は壁時計依存で旧測定と厳密には一致しないため、
+この値から通知変更のCPU改善率を出さない。
+100×64 callbackの確保/解放0・mutex 44,800回は維持。
+JUCEグラフのlockと、ホスト通知自体のlockは残る。
+記録された6 spectrum条件のfolded-bin値は前回と同じ。実機忠実度の証明ではない。
+
+途中の対象16件では2件失敗した。Slider比例値をsnapping済みparameter値と直接比較した
+誤ったoracleは標準JUCE Sliderとの比較へ直し、float精度の期待値も実値へ合わせた。
+もう1件の初回APVTS確保は上記の登録除去で修正。ケース・判定を削除していない。
+最初のDebug全回帰起動はlinkerと重なりpermission denied（exit 126）となった。
+判定前の起動失敗として除外し、ビルド完了後に252件すべてを再実行した。
+中間のcompile/format不備も修正済みで、古い実行ファイルの成功を最新結果に加算していない。
+Windows/macOS・実DAW・実デバイス・全面JUCE計装・TSan・実機校正は未実行。
+
+再現filterは `PollingAttachmentTest.*:PollingAttachmentRealtimeTest.*`。
+全回帰は前述のXvfb手順に `--all` を指定する。
+この追加変更でもparameter ID/version hint、保存XML、DSPの数式・制御曲線に変更なし。
+通知の設計と寿命契約は [MIDI-realtime-control.md](MIDI-realtime-control.md)。
