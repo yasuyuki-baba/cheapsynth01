@@ -199,6 +199,18 @@ class ReleaseValidationTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'commit'):
                     release.validate('v0.3.0', assets, 'linux')
 
+    def test_assets_must_match_requested_release_commit(self):
+        with tempfile.TemporaryDirectory() as folder:
+            assets = fixture_assets(folder, 'linux')
+            release.validate('v0.3.0', assets, 'linux', source_commit='1' * 40)
+            with self.assertRaisesRegex(ValueError, 'requested source commit'):
+                release.validate('v0.3.0', assets, 'linux', source_commit='2' * 40)
+
+    def test_requested_commit_must_be_exact(self):
+        for commit in ('short', 'g' * 40, 123):
+            with self.subTest(commit=commit), self.assertRaisesRegex(ValueError, 'commit'):
+                release.validate('v0.3.0', source_commit=commit)
+
 
 if __name__ == '__main__':
     unittest.main()

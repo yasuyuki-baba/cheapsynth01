@@ -11,6 +11,8 @@ itself, using relative paths with `/` on all platforms. Validation checks the ac
 contents, exact hash coverage (including empty files), unique paths and one manifest;
 changed, missing or extra files are rejected. Archive paths must remain relative
 and canonical. The Python regression fixtures run in the CI lint job before builds.
+The final tag job passes its checked-out commit with `--source-commit` so an entire
+consistent set of older packages cannot substitute for the release revision.
 These hashes check package consistency, not signing or reproducible-build identity.
 Packaging requires committed tracked source; Linux CI omits build RPATHs. These checks do not prove a plugin
 loads in every host or that its CPU/OS minimum matches a consumer machine.
