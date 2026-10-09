@@ -617,13 +617,16 @@ TEST(AuditProgramTest, UserHostRequestsUsePreparedValuesAndRejectInvalidRefreshe
     manager.setCurrentProgram(0);
     render(processor, 64);
     EXPECT_FALSE(source(processor)->isNoiseMode());
+    const auto defaultCutoff = processor.apvts.getParameter(ParameterIds::cutoff)->getValue();
     juce::MemoryBlock defaultSession;
     processor.getStateInformation(defaultSession);
     // External edits do not introduce file I/O on a host/audio program request.
     ASSERT_TRUE(directory.getChildFile("Prepared.xml").replaceWithText("broken XML"));
     std::thread host([&] { processor.setCurrentProgram(index); });
     host.join();
-    EXPECT_EQ(processor.getCurrentProgram(), 0);
+    EXPECT_EQ(processor.getCurrentProgram(), index);
+    EXPECT_FLOAT_EQ(processor.apvts.getParameter(ParameterIds::cutoff)->getValue(), defaultCutoff);
+    EXPECT_FALSE(source(processor)->isNoiseMode());
     render(processor, 64);
     EXPECT_EQ(processor.getCurrentProgram(), index);
     EXPECT_FLOAT_EQ(processor.apvts.getParameter(ParameterIds::cutoff)->getValue(), savedCutoff);
