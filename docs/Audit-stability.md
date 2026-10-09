@@ -8,7 +8,7 @@ push、PR、リリース公開はしていない。
 
 以下の初回測定・テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
 主要実装はa280bb7、キャッシュ復元の補完は9db9a2c、試験用型の補正はec12e58。
-以後の報告・梱包commitでは本番DSPを変更しない。
+初回結果の報告・梱包commitでは本番DSPを変更していない。以後の追加修正は末尾に別記する。
 機械可読の条件・件数・ログハッシュは [stability-results.json](../artifacts/audit/stability-results.json)。
 XMLの時刻はUTC、ここでの日付はJSTである。
 
@@ -170,3 +170,87 @@ Windows/macOS形式の合成fixtureは実OS成果物の成功とは扱わない�
 本体C++とDSP試験は904da99から変更しておらず、C++回帰の追加再実行はしていない。
 hashの一致は梱包内容の整合性を示し、署名や再現可能ビルドの証明ではない。
 LICENSE・本番DSP・プリセット形式に変更なし。push・公開もしていない。
+
+
+## 追加修正：測定後のVCO最適化（2026-10-09 JST）
+
+本体・試験ソースは `386eded41921fbe94a76d4d2b09b7b060602e0cb`。
+比較基準は `f42b3a35c8161cf323b9aa42cb874dc8b584ac83`。
+whole-graph比較の旧Release実行ファイルは904da99のビルドであり、f42b3a3まで本体C++は同一。
+条件・件数・hash・3回分の測定値は
+[vco-optimization.json](../artifacts/audit/vco-optimization.json)、
+測定ログは [vco-performance.log](../artifacts/audit/vco-performance.log)。
+
+毎サンプル繰り返していたparameterの文字列検索とRTTIを、構築時に束縛したparameter objectへの参照に置き換えた。
+値は以前と同じ時点で毎回読むため、automation値をブロック単位に固定していない。
+Tone経路の1サンプルAPI呼出しを連続描画APIへまとめたが、LFO/PWM/glissando、
+active/tail判定、加算と符号付きゼロの扱いは同じ順序で進める。
+parameter ID・version hint・XML形式・制御曲線は変更していない。
+
+凍結した旧Tone描画器との比較は **480条件・3,932,160 float値のビット一致**。
+44.1/48/96 kHz、内部/外部oversampling、5波形、4 feet、1/7/64/255サンプル分割、
+連続LFO、ライブpitch/bend/PWM/wave/glissando/Release更新、Note Off/再発音、graph所有tailを含む。
+7 FactoryとsessionのValueTree置換後も、束縛先から現在の値を読むことを検証した。
+凍結referenceはYM10150/WaveformStrategiesを共有しているため、この試験はそれら自体の独立oracleではない。
+
+| 構成 | 件数 | 結果・制約 |
+|---|---:|---|
+| Debug --all | 245 | failures/errors/disabled = 0 |
+| Release --all | 245 | failures/errors/disabled = 0 |
+| project ASan/UBSan/LeakSanitizer --all | 242 | 全成功・検出なし。54 project/test cppを計装。JUCE/GoogleTest/systemは未計装、ELF確保・mutex probe 3件を除外 |
+| 独立Release観測 | 旧2件＋新6件 × 3回 | 全成功。旧→新を逐次実行、他のprojectビルド/試験を停止 |
+| header / format | Debug/Release、105 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+
+最初の比較はDebugビルドと並行したため、音声一致の検証は有効だが性能結論から除外した。
+以下は再測定3回の範囲。Linux共有仮想CPU・通常priority、cgroup 2 CPU枠。
+48 kHz host / 192 kHz processing、PWM、LFO depth 0.73。
+32 warm-up＋1000 measured blocks、各trialの旧/新順序を交互にする。
+VCO単体のmedianは各条件で約74–77%減少。p99・maxはスケジューリング等の影響を含み、締切保証ではない。
+
+| glissando | host block | 旧median µs | 新median µs | 新p99 µs | 新max µs |
+|---|---:|---:|---:|---:|---:|
+| 一定pitch | 1 | 1.563–1.573 | 0.370–0.390 | 0.551–0.581 | 16.966–286.803 |
+| 一定pitch | 16 | 20.511–20.592 | 5.268–5.278 | 18.378–44.838 | 80.541–2790.180 |
+| 一定pitch | 64 | 81.172–81.423 | 20.932–20.991 | 79.580–96.105 | 248.736–2554.170 |
+| 進行中 | 1 | 1.642–1.653 | 0.381–0.381 | 0.471–0.591 | 0.570–16.145 |
+| 進行中 | 16 | 21.683–21.883 | 5.368–5.398 | 42.474–68.814 | 178.980–353.033 |
+| 進行中 | 64 | 86.059–86.410 | 21.282–21.312 | 76.164–151.329 | 344.269–1499.360 |
+
+whole-graphの既存spectrum/processing試験も再利用した。
+下表は音声1秒を処理するmsの範囲で、callback締切の測定とは異なる。
+記録された6条件のfolded-bin値は旧/新で同じ。実機の音色忠実度の証明にはしない。
+
+| host Hz | waveform | 旧 ms/audio-second | 新 ms/audio-second |
+|---:|---:|---:|---:|
+| 44100 | 1 | 88.221–115.760 | 41.035–42.529 |
+| 44100 | 2 | 83.345–107.028 | 38.134–40.379 |
+| 48000 | 1 | 97.203–115.417 | 43.537–46.121 |
+| 48000 | 2 | 94.793–114.520 | 40.950–45.569 |
+| 96000 | 1 | 196.687–212.316 | 84.484–102.480 |
+| 96000 | 2 | 190.612–228.507 | 80.462–107.000 |
+
+MIDI密集・GUI同時操作・program切替の既存whole-graph試験（各block 1000 callbacks）の新実装結果：
+
+| host block | p95 µs | p99 µs | max µs | program切替p99 µs | program切替max µs |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 3.445–3.716 | 14.382–36.014 | 210.662–318.700 | 18.317–20.511 | 54.082–210.662 |
+| 16 | 88.934–117.627 | 154.573–602.970 | 351.145–1777.180 | 127.532–229.196 | 179.330–426.333 |
+| 64 | 251.830–408.206 | 384.190–1015.980 | 516.900–18019.600 | 279.461–619.495 | 338.140–877.714 |
+
+48 kHzの締切はblock 1/16/64で20.833/333.333/1333.333 µs。
+いずれも一部runでmaxが超えており、RT締切保証は達成していない。
+GUI編集回数は壁時計依存でrunごとに異なるため、同一GUI負荷を厳密に対にした測定ではない。
+100×64 callbackのprobeは確保/解放0、mutex取得44,800。
+残るJUCE graph mutex、APVTS attachmentの通知投稿、メッセージループ依存の経路切替は未解決。
+Windows/macOS・実DAW・実デバイス・全面JUCE計装・TSan・実機校正は今回も未実行。
+
+再現には既存Release test executableを使い、他のビルドを止めて次を3回逐次実行する：
+
+```sh
+xvfb-run -a bash scripts/run-linux-gui-tests.sh \
+  build-release/Tests/CheapSynth01Tests_artefacts/Release/CheapSynth01Tests \
+  --all --gtest_filter='VcoOptimizationTest.*:VcoOptimizationObservationTest.*:WholeGraphObservationTest.*:AuditRealtimeTest.*'
+```
+
+旧whole-graphは基準ソースのRelease executableで同じWholeGraphObservationTest filterを実行する。
+同一processのpaired VCO比較は凍結referenceを使うため、最新実行ファイルだけでも再実行できる。

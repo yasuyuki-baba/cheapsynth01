@@ -225,3 +225,15 @@ The audio group also includes `IG02610BehavioralModel*` and
 `IG05630BehavioralModelTest` suites. See
 [DSP responsibility boundaries](../docs/DSP-responsibility-boundaries.md) for
 coverage and the test-oracle maintenance policy.
+
+## VCO sample-equivalence and measured optimization
+
+`VcoOptimizationTest` compares exact float bits against the frozen Tone renderer
+from f42b3a3 across 480 configurations (3,932,160 samples), live controls, note/tail
+transitions, and preset/session replacement. The reference shares unchanged
+YM10150 and waveform strategies; it is not an independent oracle for those models.
+`VcoOptimizationObservationTest` alternates old/new timing order in each trial
+with PWM, LFO and glissando. Timings are observations, with no performance pass
+threshold. Reuse `WholeGraphObservationTest` for complete-graph spectrum and dense
+MIDI/GUI/switch timing; run without concurrent builds. Conditions and limitations
+are recorded in [the audit report](../docs/Audit-stability.md).
