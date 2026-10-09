@@ -40,6 +40,10 @@ this change does not claim every first-start transient is eliminated.
 reference at three host rates and all five waveforms, checks both filters and
 tone/noise sources for output silence at EG depths 0, 0.4 and 1, and checks
 sample-wise gate consistency across block sizes, retrigger and release edits.
+An additional noise test covers a release deadline inside a block, where the
+gated rendering API still stops but continuous graph rendering must fill the
+remaining samples. The current optimized modulated tone renderer and fixed
+audio-owned routing are retained.
 Existing envelope fixtures now respect their prepared block capacity: automation
 prepares its largest block (20 ms), and the held-key MIDI test renders its
 one-second waits in blocks of at most 256 samples.
@@ -62,7 +66,11 @@ Wave indices are triangle=0, saw=1, square=2, pulse=3, PWM=4.
 
 `artifacts/dsp/note-onset/comparison-wave-3.wav` and `comparison-wave-4.wav`
 contain four pre-change notes, 400 ms silence, then four changed notes, with no
-independent normalization. `onset-stages.png` shows the pulse's upstream step
+independent normalization. These archived captures describe the initial
+implementation on baseline `4f2e59d`, before integration with newer `main`
+changes; they are not an exact audio capture of the rebased PR. The optional
+capture tests can export audio and trajectories for the current implementation.
+`onset-stages.png` shows the pulse's upstream step
 and the changed continuously running signal. `boundary-measurements.json`
 records the samples around note-on. Raw WAV/CSV captures remain in the ignored
 `build/note-onset/before` and `build/note-onset/after` directories for inspection.
@@ -71,12 +79,19 @@ The measured upstream gate discontinuity is removed. The shortest EG attack
 still creates an amplitude transient; overall onset high-frequency energy is
 phase/timbre dependent and did not decrease for every waveform in these captures.
 Listening with the user's affected patch is still needed to establish whether
-their particular audible click is resolved. No matched hardware measurement or
-direct audio analysis of the linked YouTube videos is claimed.
+their particular audible click is resolved. Initial listening was inconclusive
+and did not establish a consistent audible improvement. No matched hardware
+measurement or direct audio analysis of the linked YouTube videos is claimed.
 
-All 223 registered cases were covered successfully across the initial passing
+Before integration with newer `main`, all 223 registered cases were covered
+successfully across the initial passing
 prefix, the continuation after the fixture correction, and the separately
 executed capture tests. Standalone compilation, self-contained header checks,
 pinned clang-format 21.1.7, `git diff --check`, and the four independent EG decay
 algebra checks passed. `artifacts/dsp/note-onset/verification.json` records this
 coverage and the outstanding listening/hardware limitations.
+
+After rebasing onto `main` at `5f4053a`, all 265 cases passed in a single run,
+including both capture tests. The Standalone build, header checks, pinned
+formatter and four EG algebra checks also passed. The tested source commit
+is `b914171`; subsequent documentation records the inconclusive listening result.
