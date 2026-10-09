@@ -1058,8 +1058,8 @@ TEST_F(AudioGraphTest, ProgramChangeEffect) {
     int newProgram = (initialProgram + 1) % numPrograms;
     processor->setCurrentProgram(newProgram);
 
-    // Host requests have the same deferred contract on every calling thread.
-    EXPECT_EQ(processor->getCurrentProgram(), initialProgram);
+    // Host selection is visible immediately; sound applies on the next callback.
+    EXPECT_EQ(processor->getCurrentProgram(), newProgram);
     juce::AudioBuffer<float> emptyBuffer(2, 0);
     processor->processBlock(emptyBuffer, midiBuffer);
 

@@ -50,7 +50,9 @@ int ProgramManager::getNumPrograms() const {
 
 int ProgramManager::getCurrentProgram() const {
     beginCatalogueRead();
-    const auto* selection = selectedProgram.load();
+    const auto* selection = pendingProgram.load();
+    if (!selection)
+        selection = selectedProgram.load();
     const auto* table = catalogue.load();
     int index = 0;
     if (selection && table)
@@ -79,6 +81,7 @@ void ProgramManager::setCurrentProgram(int index) {
             if (loadPresetFromBinaryData(preset.filename)) {
                 currentProgram = index;
                 selectPublishedProgram(index);
+                pendingProgram.store(nullptr);
             }
         } else {
             // Load user preset from file
@@ -87,6 +90,7 @@ void ProgramManager::setCurrentProgram(int index) {
             if (loadUserPresetFromFile(presetFile)) {
                 currentProgram = index;
                 selectPublishedProgram(index);
+                pendingProgram.store(nullptr);
             }
         }
     }
@@ -148,10 +152,28 @@ void ProgramManager::getStateInformation(juce::MemoryBlock& destData) {
 
     // Get parameter elements from XML
     if (xml != nullptr) {
+        // A host can save before the next audio callback. Capture the reserved
+        // patch and its identity together without applying it on this thread.
+        beginCatalogueRead();
+        const auto* pending = pendingProgram.load();
+        const auto* selection = pending ? pending : selectedProgram.load();
+        if (!selection)
+            if (const auto* table = catalogue.load(); table && !table->prepared.empty())
+                selection = &table->prepared.front();
+        auto* params = xml->getChildByName("PARAMETERS");
+        if (!params)
+            params = xml.get();
+        if (pending)
+            for (const auto& [parameter, value] : pending->values)
+                for (auto* child : params->getChildIterator())
+                    if (child->getStringAttribute("id") == parameter->paramID)
+                        child->setAttribute("value", parameter->convertFrom0to1(value));
         // Add program number
-        xml->setAttribute("program", getCurrentProgram());
-        xml->setAttribute("programFilename", getProgramFilename(getCurrentProgram()));
-        xml->setAttribute("programIsUser", isUserPreset(getCurrentProgram()));
+        const int index = selection ? findProgram(selection->filename, selection->type) : 0;
+        xml->setAttribute("program", juce::jmax(0, index));
+        xml->setAttribute("programFilename", selection ? selection->filename : juce::String{});
+        xml->setAttribute("programIsUser", selection && selection->type == PresetType::User);
+        endCatalogueRead();
 
         // Get parameter elements
         {
@@ -213,6 +235,7 @@ void ProgramManager::setStateInformation(const void* data, int sizeInBytes) {
                     param->setValueNotifyingHost(value);
                 }
             }
+            pendingProgram.store(nullptr);
         }
     }
 }
@@ -555,9 +578,10 @@ void ProgramManager::requestCurrentProgram(int index) {
 }
 void ProgramManager::applyPendingProgram() {
     beginCatalogueRead();
-    if (const auto* program = pendingProgram.exchange(nullptr)) {
+    if (const auto* program = pendingProgram.load()) {
         const int index = findProgram(program->filename, program->type);
         if (index < 0) {
+            pendingProgram.compare_exchange_strong(program, nullptr);
             endCatalogueRead();
             return;
         }
@@ -566,6 +590,9 @@ void ProgramManager::applyPendingProgram() {
         selectedProgram.store(program);
         currentProgram.store(index);
         programNotifications.store(true);
+        // Keep the reservation visible to host queries throughout application.
+        // Do not clear a newer request published while these values were copied.
+        pendingProgram.compare_exchange_strong(program, nullptr);
     }
     endCatalogueRead();
 }
