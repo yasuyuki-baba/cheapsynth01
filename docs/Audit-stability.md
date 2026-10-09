@@ -330,3 +330,96 @@ Windows/macOS・実DAW・実デバイス・全面JUCE計装・TSan・実機校�
 全回帰は前述のXvfb手順に `--all` を指定する。
 この追加変更でもparameter ID/version hint、保存XML、DSPの数式・制御曲線に変更なし。
 通知の設計と寿命契約は [MIDI-realtime-control.md](MIDI-realtime-control.md)。
+
+## 追加検証：filter/LFO経路の音声側選択（2026-10-10 JST）
+
+この段階の基準は `0de5c948297bf0ff15eadc9185c0fb5cb30aaca7`。
+当初監査対象/作業開始mainは引き続き `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`。
+基準実装の経路変更はメッセージtimerによる遅延グラフ変更であり、音声側の直接変更ではない。
+message loopを動かさずworkerからchoiceを変更してrenderする再現は、
+基準で1件失敗（実際の選択値2項目）、既存観測2件成功となった。
+
+既存グラフを維持して固定接続にし、各host callbackの先頭でpending programを適用した後、
+filterType/lfoTargetの現在値を読み、音声所有のinput/output/LFO maskを設定する。
+0サンプルcallbackでも適用する。GUIの60 Hz表示timerは音の切替を決めない。
+2つのchoice読取りは一括transactionではなく、任意sample内の切替を保証するものでもない。
+非選択フィルターは以前の未接続状態と同様、ゼロ入力と既存EG sidechainで状態を進め、
+VCAへ寄与する出力をゼロにする。両モデルの処理は残し、inactive状態履歴を保つ。
+グラフ全体の撤去・新規node・crossfadeは行っていない。
+
+本番変更commitは `360b547c158e03a7b4f63c47285fa04286b52d55`。
+最終テストsourceは `3d72d88a0ef53bd09328e5784b4c6a3e6ce0d6f3`。
+テスト限定macroで旧動的接続と両フィルター非ゼロ入力案を比較した。
+12条件（48 kHz、内部192 kHz、block 1/16/64、2filter×2target）の各modeを
+32 callback warmup後1000回、試行ごとに順序を交替して測定。
+試作の対象10件は全成功、通常CPU中央値が旧方式と同程度であり、
+両フィルター非ゼロ入力案の中央値負荷は増加したため、固定接続＋inactiveゼロ入力を採用した。
+この旧方式は製品の追加modeやparameterではない。
+
+出力比較は44.1/48/96 kHz、2filter×2target、block 1/7/64の36条件、
+147,528 float値で数値として完全一致した。符号付きゼロも含むbit一致の主張ではない。
+同じcallback時刻で切り替えた64,000 sampleも差0。
+その観測peak=0.305222、switch sample step=0.159228で、旧hard switchの過渡音を保つ。
+クリック解消、聴感評価、実機音色忠実度を達成したとは扱わない。
+Release延長・短縮、Tone/Noise切替、連続filter/LFO切替、block分割をwhole graphで検証した。
+parameter ID/version hint、保存XML、製品version、DSP数式・制御曲線、LICENSEに変更なし。
+
+| 検証 | 件数 | 結果・制約 |
+|---|---:|---|
+| Debug --all | 259 | failures/errors/disabled = 0 |
+| Release --all | 259 | failures/errors/disabled = 0 |
+| project ASan/UBSan/LeakSanitizer --all | 252 | 検出なし。56 project/test cppを計装。JUCE/GoogleTest/system未計装、ELF probe 7件除外 |
+| 独立Release観測 | 9 × 3回 | すべて成功。全build/回帰終了後、各runを順に実行 |
+| header / format | Debug/Release、108 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+
+毎callbackで切替するactive-note probe（block 0/1/16/64、1000 callbacks）は
+3回とも**確保0・解放0・mutex取得5,250・観測競合0・wait 0 ns**。
+host choice通知自体はcallback probe外。意図的な競合controlでは各runで1回、
+待ち501/922/281 nsを検出した。取得回数と待ちの有無を区別する。
+既存の密集MIDI/GUI queue callback probeも3回とも確保/解放0、mutex 44,800回。
+
+paired比較の代表値（target=VCO、3回の各run中央値の範囲、µs）：
+
+| block / filter | 旧動的経路 | 固定・inactiveゼロ入力 | 固定・両方非ゼロ入力 |
+|---|---:|---:|---:|
+| 64 / Original | 53.211–56.836 | 52.720–53.140 | 55.794–55.994 |
+| 64 / Modern | 44.838–44.958 | 44.247–44.397 | 55.885–55.924 |
+
+全12条件×3mode×3runのmedian/p99/maxはJSON/logに残す。
+中央値だけをCPU改善率や締切保証へ変換しない。scheduler等のばらつきと高いmaxは残る。
+
+既存whole-graphの密集MIDI・GUI編集・program切替（各run/block 1000 callbacks）、
+各列は3runの最小–最大、µs：
+
+| block | p95 | p99 | max | program切替p99 | program切替max | deadline |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 3.034–3.735 | 4.537–51.808 | 107.673–293.934 | 6.230–24.367 | 32.409–77.427 | 20.8333 |
+| 16 | 50.466–58.228 | 87.382–160.813 | 230.078–310.820 | 74.422–84.378 | 142.295–235.856 | 333.333 |
+| 64 | 231.230–337.079 | 315.156–538.534 | 1172.280–2365.860 | 280.284–390.651 | 317.751–2365.860 | 1333.33 |
+
+block 1では3runすべて、64では2runのmaxがdeadlineを超えた。
+GUI編集回数は壁時計に依存し旧測定と厳密には一致しない。
+短い試験の上位分位や平均からRT締切を保証しない。
+whole-graph spectrumの6条件も記録し、実機校正とは区別する。
+
+
+途中の全回帰はDebug/Release各259件中、SessionGraphTest 1件が失敗した。
+旧構造の「非選択フィルターは物理的に未接続」という期待値を、固定接続確認に変更し、
+復元後callbackのchoice値と選択側のみoutput maskが有効である判定を追加した。
+保持ノートが復元されず、次のNote Onで発音するケース・判定は維持して再実行した。
+試作buildのOriginalVCFProcessor include不足も修正してから検証した。
+失敗ケースの削除、音声判定の削除、古い実行ファイルによる成功扱いはしていない。
+
+Linux callback probeは有効な間だけpthread trylockのEBUSYを競合として数え、
+続く実際のblocking lockの待ち時間を測る。EOWNERDEADなどの戻り値契約を維持する。
+通常CPU観測はこのinterpositionを有効にしない。意図的に保持したmutexの競合1回と正の待ちを
+検出するcontrolも実行した。競合0という観測はホストでも待たない保証ではない。
+JUCEのgraph callback mutexとhost parameter通知mutexは残る。
+グラフ接続編集はautomationから除去したが、host bus-layout lifecycleの更新経路は残る。
+Windows/macOS、実DAW/デバイス、全面JUCE/GoogleTest/system計装、TSan、実機校正は未実行。
+JUCE商用ライセンス取得状況・配布ライセンス経路は作者の判断が引き続き必要。
+
+記録・再現条件は `artifacts/audit/routing-selection.json` と `.log`。
+全回帰は前述Xvfb手順に `--all`、対象は `RoutingSelectionTest.*:RoutingSelectionRealtimeTest.*`。
+性能観測はビルド/全回帰終了後に独立して3回実行した。
+平均や中央値をRT締切保証として扱わず、p99/maxを併記する。
