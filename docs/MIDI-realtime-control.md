@@ -90,15 +90,24 @@ change the next nonempty block's state. A zero-sample block applies host events
 without advancing DSP or draining the GUI queue. UI key highlighting follows
 host MIDI on the message-thread timer; it no longer locks keyboard state on audio.
 
-Choice UI listeners publish only atomic state. Routing reads the authoritative
-choice values on its message-thread timer, without APVTS listener registration.
-The VCO already polls feet when selecting its source on audio, so its redundant
-APVTS subscription is also removed. This avoids the first-notification iterator
-allocation in JUCE's ListenerList. Routing is still message-thread graph mutation,
-polled at 60 Hz; it depends on message-loop service,
-and is not a sample-accurate filter/LFO switch. A fixed graph was not adopted in
-this patch: compare CPU with both filters processing nonzero input, test crossfade
-semantics and source/host compatibility before a separate routing redesign.
+Choice UI listeners publish only atomic state. Production routing now reads the
+authoritative filterType/lfoTarget choices once at the beginning of every host
+callback, after applying a pending program, including zero-sample callbacks.
+There is no routing notification registration or audio-thread message posting.
+The two choices are separate reads, not an atomic transaction; changes take effect
+at the next callback rather than at an arbitrary sample within that callback.
+GUI display polling remains at 60 Hz and does not govern sound routing.
+
+The existing graph and nodes are retained, with fixed connections from VCO to
+both filters, both filters to VCA, and LFO to VCO and both filters. Audio-owned
+masks select the audible filter and modulation destination. The inactive filter
+advances with zero audio input and its existing EG sidechain, then clears its
+output, preserving the old disconnected-input history. Both models still run.
+A comparison with both filters receiving nonzero input showed increased cost;
+that variant is a test-only diagnostic. No crossfade or DSP curve change is
+introduced: the existing hard-switch transient is preserved. Host bus-layout
+changes still use the graph's lifecycle connection updates. Native JUCE graph
+callback mutexes remain; fixed routing does not make the callback lock-free.
 
 Host program calls from any thread select an immutable, pre-parsed
 catalogue entry. The next audio callback applies the parameter values without XML,
