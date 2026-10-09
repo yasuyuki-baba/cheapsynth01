@@ -59,7 +59,10 @@ def validate_hashes(archive, manifest, manifest_name, package):
             raise ValueError(f'{package}: hash mismatch for {name}')
 
 
-def validate(tag, assets=None, platform=None):
+def validate(tag, assets=None, platform=None, source_commit=None):
+    if source_commit is not None and (not isinstance(source_commit, str)
+                                     or not re.fullmatch('[0-9a-f]{40}', source_commit)):
+        raise ValueError('requested source commit must be an exact 40-digit commit')
     version = product_version()
     if tag.removeprefix('v') != version:
         raise ValueError(f'tag {tag!r} differs from product version {version}')
@@ -122,6 +125,8 @@ def validate(tag, assets=None, platform=None):
                 source_commits.add(commit)
         if len(source_commits) != 1:
             raise ValueError('binary/source packages refer to different source commits')
+        if source_commit is not None and source_commits != {source_commit}:
+            raise ValueError('assets do not match the requested source commit')
     print(f'version {version}: tag and supplied assets validated')
 
 
@@ -130,8 +135,9 @@ if __name__ == '__main__':
     parser.add_argument('--tag', required=True)
     parser.add_argument('--assets', type=Path)
     parser.add_argument('--platform', choices=EXPECTED)
+    parser.add_argument('--source-commit', help='require the exact source revision of this release')
     args = parser.parse_args()
     try:
-        validate(args.tag, args.assets, args.platform)
+        validate(args.tag, args.assets, args.platform, args.source_commit)
     except (ValueError, zipfile.BadZipFile) as error:
         parser.exit(1, f'{error}\n')

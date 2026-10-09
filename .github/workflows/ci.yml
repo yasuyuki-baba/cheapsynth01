@@ -160,7 +160,7 @@ jobs:
           merge-multiple: true
       - uses: actions/checkout@v6
       - name: Validate release assets
-        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME" --assets release-packages
+        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME" --assets release-packages --source-commit "$(git rev-parse HEAD)"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
