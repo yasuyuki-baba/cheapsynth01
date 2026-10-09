@@ -103,3 +103,12 @@ After the residual-state EG update (`cb5d4a6`), all 270 cases passed, including
 both optional capture tests. Current diagnostic captures are in the ignored
 `build/note-onset/residual-eg-final` directory. Archived comparison WAVs above
 still describe the initial implementation; listening of the EG update is pending.
+
+macOS CI exposed a rounding regression in the fully open VCA path: adding the
+gate product changed floating-point contraction and broke the existing exact
+pre-refactor comparison. The fully open gate now uses the original expression;
+moving gates still scale only the non-EG gain. The bitwise regression keeps its
+original strict comparison. All eight focused VCA/structure and onset regressions
+passed locally after this correction; Standalone/header builds and formatting
+also passed. CI retains full macOS output as an artifact and prints bounded
+failure diagnostics to avoid per-sample assertion floods.
