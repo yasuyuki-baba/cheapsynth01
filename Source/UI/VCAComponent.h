@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 
 class VCAComponent : public juce::Component {
@@ -16,5 +18,5 @@ class VCAComponent : public juce::Component {
     juce::Slider vcaEgDepthSlider;
     juce::Label vcaEgDepthLabel;
 
-    std::unique_ptr<juce::SliderParameterAttachment> vcaEgDepthAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> vcaEgDepthAttachment;
 };

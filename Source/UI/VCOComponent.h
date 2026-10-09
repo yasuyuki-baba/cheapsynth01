@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 #include <atomic>
 
@@ -24,11 +26,11 @@ class VCOComponent : public juce::Component,
     juce::AudioProcessorValueTreeState& valueTreeState;
     juce::Slider glissandoSlider;
     juce::Label glissandoLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> glissandoAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> glissandoAttachment;
 
     juce::Slider pitchSlider;
     juce::Label pitchLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> pitchAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> pitchAttachment;
 
     juce::OwnedArray<juce::ToggleButton> waveTypeButtons;
     juce::Label waveTypeLabel;
@@ -40,5 +42,5 @@ class VCOComponent : public juce::Component,
 
     juce::Slider pwmSpeedSlider;
     juce::Label pwmSpeedLabel;
-    std::unique_ptr<juce::SliderParameterAttachment> pwmSpeedAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> pwmSpeedAttachment;
 };

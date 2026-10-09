@@ -11,7 +11,7 @@ VCAComponent::VCAComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     vcaEgDepthSlider.setTooltip("Envelope control depth; percentage is not output gain.");
     addAndMakeVisible(vcaEgDepthLabel);
 
-    vcaEgDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    vcaEgDepthAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcaEgDepth), vcaEgDepthSlider);
     // Match the VCO faders without changing parameter ranges or values.
     vcaEgDepthSlider.setPopupDisplayEnabled(true, true, this);

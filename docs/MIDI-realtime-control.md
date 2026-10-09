@@ -90,8 +90,12 @@ change the next nonempty block's state. A zero-sample block applies host events
 without advancing DSP or draining the GUI queue. UI key highlighting follows
 host MIDI on the message-thread timer; it no longer locks keyboard state on audio.
 
-Choice UI and routing listeners publish only atomic state. Routing is still
-message-thread graph mutation, polled at 60 Hz; it depends on message-loop service,
+Choice UI listeners publish only atomic state. Routing reads the authoritative
+choice values on its message-thread timer, without APVTS listener registration.
+The VCO already polls feet when selecting its source on audio, so its redundant
+APVTS subscription is also removed. This avoids the first-notification iterator
+allocation in JUCE's ListenerList. Routing is still message-thread graph mutation,
+polled at 60 Hz; it depends on message-loop service,
 and is not a sample-accurate filter/LFO switch. A fixed graph was not adopted in
 this patch: compare CPU with both filters processing nonzero input, test crossfade
 semantics and source/host compatibility before a separate routing redesign.
@@ -117,8 +121,28 @@ cover every allocation inside shared libraries, all possible host automation
 callbacks, scheduling or system calls. JUCE graph nodes still acquire callback
 mutexes. The host program entry point avoids JUCE 9.0.3's mutex-protected
 `isThisTheMessageThread` entirely by separating it from the explicit editor path.
-The unprotected thread-ID getter is not used. Standard
-JUCE slider/button attachments may post AsyncUpdater messages
-when a host notifies them off the message thread. This work does not establish a
-lock-free callback or a hard deadline guarantee. See the audit report for measured
-counts, timing percentiles, build conditions and remaining work.
+The unprotected thread-ID getter is not used.
+
+All production slider/button/combo bindings now use
+`CS01PollingParameterAttachment`. They register no audio parameter listener.
+Their message-thread timers read `RangedAudioParameter::getValue()` at 60 Hz,
+including silent MIDI edits and applied program values. Initial values are read
+synchronously at construction. Incoming automation never accesses a control,
+posts a message or checks MessageManager through these bindings. Host display
+changes may lag one timer interval or longer when the message loop is busy;
+DSP and user edits do not wait for that tick.
+
+Slider ranges, custom mappings, snapping, text parsing/formatting and default
+double-click values preserve the JUCE 9.0.3 binding semantics. Slider drags issue
+balanced host gestures; button/combo edits issue complete gestures. APVTS
+constructors retain its UndoManager. A binding invalidates its last polled value
+after a GUI write: otherwise a host returning to that same old value before the
+next tick could leave the GUI displaying the intervening edit. Timers stop on
+message-thread destruction, and a drag gesture still active at closing is ended.
+The parameter and control must outlive their binding.
+
+This removes the production attachments' AsyncUpdater posting path, not JUCE's
+host parameter listener mutexes or the graph callback locks. The Linux probe does
+not interpose all system message APIs or shared-library allocation. This work
+does not establish a lock-free callback or a hard deadline guarantee. See the
+audit report for counts, timing percentiles, conditions and remaining work.

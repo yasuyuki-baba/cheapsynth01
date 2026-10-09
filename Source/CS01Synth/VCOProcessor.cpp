@@ -12,9 +12,8 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
       toneGenerator(std::make_unique<ToneGenerator>(apvts)),
       noiseGenerator(std::make_unique<NoiseGenerator>(apvts)),
       currentGenerator(nullptr) {
-    // Register as listener for feet parameter
-    apvts.addParameterListener(ParameterIds::feet, this);
-
+    // The audio-side source selection polls feet in applyPendingGeneratorChange().
+    // Avoid an APVTS ListenerList allocation on the first host notification.
     // Set the initial generator type based on current parameter value
     auto* feetParam =
         dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(ParameterIds::feet));
@@ -27,10 +26,7 @@ VCOProcessor::VCOProcessor(juce::AudioProcessorValueTreeState& vts, bool isNoise
                                    : static_cast<ISoundGenerator*>(toneGenerator.get());
 }
 
-VCOProcessor::~VCOProcessor() {
-    // Remove parameter listener
-    apvts.removeParameterListener(ParameterIds::feet, this);
-}
+VCOProcessor::~VCOProcessor() = default;
 
 void VCOProcessor::parameterChanged(const juce::String& parameterID, float newValue) {
     if (parameterID == ParameterIds::feet)

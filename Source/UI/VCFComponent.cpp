@@ -35,7 +35,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     cutoffLabel.setText("CUTOFF", juce::dontSendNotification);
     cutoffSlider.setTooltip("Base cutoff frequency before modulation.");
     addAndMakeVisible(cutoffLabel);
-    cutoffAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    cutoffAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::cutoff), cutoffSlider);
 
     resonanceSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -44,14 +44,13 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     resonanceLabel.setText("RES", juce::dontSendNotification);
     resonanceSlider.setTooltip("Resonance control amount, not a calibrated Q value.");
     addAndMakeVisible(resonanceLabel);
-    resonanceAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    resonanceAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::resonance), resonanceSlider);
 
     resonanceButton.setButtonText("HIGH");
     addChildComponent(resonanceButton);  // Initially hidden, shown in Original mode
-    resonanceButtonAttachment =
-        std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-            valueTreeState, ParameterIds::resonance, resonanceButton);
+    resonanceButtonAttachment = std::make_unique<CS01ButtonParameterAttachment>(
+        valueTreeState, ParameterIds::resonance, resonanceButton);
 
     egDepthSlider.setSliderStyle(juce::Slider::LinearVertical);
     egDepthSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -60,7 +59,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     egDepthSlider.setTooltip(
         "Envelope modulation depth; percentage represents the control amount.");
     addAndMakeVisible(egDepthLabel);
-    egDepthAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    egDepthAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcfEgDepth), egDepthSlider);
 
     // Initial update

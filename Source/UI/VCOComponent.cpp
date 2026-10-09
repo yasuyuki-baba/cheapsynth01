@@ -11,7 +11,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     glissandoLabel.setText("GLISS.", juce::dontSendNotification);
     glissandoSlider.setTooltip("Time per semitone (ms/st). Zero disables glissando.");
     addAndMakeVisible(glissandoLabel);
-    glissandoAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    glissandoAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::glissando), glissandoSlider);
 
     pitchSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -20,7 +20,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     pitchLabel.setText("PITCH", juce::dontSendNotification);
     pitchSlider.setTooltip("Fine tuning in cents; 100 cents = one semitone.");
     addAndMakeVisible(pitchLabel);
-    pitchAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    pitchAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::pitch), pitchSlider);
 
     pwmSpeedSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -28,7 +28,7 @@ VCOComponent::VCOComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     addAndMakeVisible(pwmSpeedSlider);
     pwmSpeedLabel.setText("PWM SPEED", juce::dontSendNotification);
     addAndMakeVisible(pwmSpeedLabel);
-    pwmSpeedAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    pwmSpeedAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::pwmSpeed), pwmSpeedSlider);
 
     juce::Slider* sliders[] = {&glissandoSlider, &pitchSlider, &pwmSpeedSlider};

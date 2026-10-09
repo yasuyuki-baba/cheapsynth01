@@ -10,6 +10,7 @@
 #include "CS01Synth/SynthConstants.h"
 #include "CS01Synth/VCAProcessor.h"
 #include "CS01Synth/VCOProcessor.h"
+#include "MidiParameterValue.h"
 #include "Parameters.h"
 #include "ParameterFormatting.h"
 
@@ -21,17 +22,11 @@ CS01AudioProcessor::CS01AudioProcessor()
     keyboardState.addListener(this);
     keyboardMirrorMidi.ensureSize(32768);
     startTimerHz(60);
-    apvts.addParameterListener(ParameterIds::lfoTarget, this);
-    apvts.addParameterListener(ParameterIds::filterType, this);
-    apvts.addParameterListener(ParameterIds::feet, this);
 }
 
 CS01AudioProcessor::~CS01AudioProcessor() {
     stopTimer();
     keyboardState.removeListener(this);
-    apvts.removeParameterListener(ParameterIds::lfoTarget, this);
-    apvts.removeParameterListener(ParameterIds::filterType, this);
-    apvts.removeParameterListener(ParameterIds::feet, this);
 }
 
 //==============================================================================
@@ -534,6 +529,15 @@ void CS01AudioProcessor::timerCallback() {
         keyboardState.reset();
     keyboardState.processNextMidiBuffer(keyboardMirrorMidi, 0, 1, false);
     mirroringKeyboard = false;
+
+    // Read authoritative values on the message thread. Registering APVTS listeners
+    // here would allocate ListenerList iterator storage on the first host notification.
+    const int filter = static_cast<int>(getCurrentParameterValue(apvts, ParameterIds::filterType));
+    const int target = static_cast<int>(getCurrentParameterValue(apvts, ParameterIds::lfoTarget));
+    const bool filterChanged = requestedFilterType.exchange(filter) != filter;
+    const bool targetChanged = requestedLfoTarget.exchange(target) != target;
+    if (filterChanged || targetChanged)
+        pendingRoutingChange.store(true);
 
     if (!pendingRoutingChange.exchange(false))
         return;
