@@ -72,5 +72,11 @@
         "vco_note_boundary_step": 0.0005190000000000472
       }
     }
+  },
+  "provenance": {
+    "baseline_revision": "4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900",
+    "changed_source": "Initial implementation before integration with newer main; not an exact rebased-PR capture",
+    "toolchain": "GCC 14, JUCE 9.0.3, Debug on Linux",
+    "wave_comparison": "Four baseline notes, 400 ms silence, four changed notes; no independent normalization"
   }
 }
