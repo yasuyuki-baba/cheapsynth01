@@ -54,6 +54,32 @@ TEST(NoteOnsetTest, NoteLifecycleKeepsUpstreamWaveformContinuous) {
     }
 }
 
+TEST(NoteOnsetTest, NoiseContinuesPastReleaseDeadlineInsideBlock) {
+    for (double rate : {44100.0, 48000.0, 96000.0}) {
+        CS01AudioProcessor owner;
+        auto& state = owner.getValueTreeState();
+        for (const auto& setting : std::array<std::pair<juce::String, float>, 2>{
+                 {{ParameterIds::feet, 4.0f}, {ParameterIds::release, 0.001f}}}) {
+            auto* p = state.getParameter(setting.first);
+            p->setValueNotifyingHost(p->convertTo0to1(setting.second));
+        }
+        VCOProcessor vco(state);
+        vco.setFreeRunning(true);
+        vco.prepareToPlay(rate * 4, 512);
+        vco.getSoundGenerator()->startNote(45, 1, 8192);
+        vco.getSoundGenerator()->stopNote(true);
+        juce::AudioBuffer<float> audio(1, 512);
+        juce::MidiBuffer midi;
+        audio.clear();
+        vco.processBlock(audio, midi);
+        EXPECT_FALSE(vco.getSoundGenerator()->isActive());
+        EXPECT_GT(audio.getRMSLevel(0, 384, 128), 1.0e-4f);
+        audio.clear();
+        vco.processBlock(audio, midi);
+        EXPECT_GT(audio.getRMSLevel(0, 0, 512), 1.0e-4f);
+    }
+}
+
 TEST(NoteOnsetTest, VcaMutesFreeRunningSourcesAtEveryEnvelopeDepth) {
     for (int filter : {0, 1}) {
         for (int feet : {2, 4}) {
