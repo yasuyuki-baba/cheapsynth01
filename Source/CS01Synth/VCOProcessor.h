@@ -68,6 +68,12 @@ class VCOProcessor : public juce::AudioProcessor,
     void setStateInformation(const void*, int) override {}
 
     // AudioProcessorValueTreeState::Listener implementation
+    void setLfoRoutingEnabled(bool enabled) {
+        lfoRoutingEnabled = enabled;
+    }
+    bool isLfoRoutingEnabledForTesting() const {
+        return lfoRoutingEnabled;
+    }
     void parameterChanged(const juce::String& parameterID, float newValue) override;
 
     // Call on the audio thread before MIDI events or rendering; never from the UI.
@@ -87,6 +93,7 @@ class VCOProcessor : public juce::AudioProcessor,
     }
 
    private:
+    bool lfoRoutingEnabled = true;
     juce::AudioProcessorValueTreeState& apvts;
     std::unique_ptr<ToneGenerator> toneGenerator;
     std::unique_ptr<NoiseGenerator> noiseGenerator;

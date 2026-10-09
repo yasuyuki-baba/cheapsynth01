@@ -5,6 +5,7 @@
 #include "CS01Synth/SynthConstants.h"
 #include "CS01Synth/VCOProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
 #include "MidiParameterValue.h"
 #include "Parameters.h"
 
@@ -1006,13 +1007,29 @@ TEST_F(AudioGraphTest, FilterAndLfoRoutingStayConsistent) {
             const auto lfo = processor.getLfoNodeIdForTesting();
             const auto vca = processor.getVcaNodeIdForTesting();
 
-            EXPECT_EQ(hasConnection(vco, 0, originalFilter, 0), filterType == 0);
-            EXPECT_EQ(hasConnection(originalFilter, 0, vca, 0), filterType == 0);
-            EXPECT_EQ(hasConnection(vco, 0, modernFilter, 0), filterType == 1);
-            EXPECT_EQ(hasConnection(modernFilter, 0, vca, 0), filterType == 1);
-            EXPECT_EQ(hasConnection(lfo, 0, vco, 0), lfoTarget == 0);
-            EXPECT_EQ(hasConnection(lfo, 0, originalFilter, 2), lfoTarget == 1 && filterType == 0);
-            EXPECT_EQ(hasConnection(lfo, 0, modernFilter, 2), lfoTarget == 1 && filterType == 1);
+            EXPECT_EQ(hasConnection(vco, 0, originalFilter, 0), true);
+            EXPECT_EQ(hasConnection(originalFilter, 0, vca, 0), true);
+            EXPECT_EQ(hasConnection(vco, 0, modernFilter, 0), true);
+            EXPECT_EQ(hasConnection(modernFilter, 0, vca, 0), true);
+            EXPECT_EQ(hasConnection(lfo, 0, vco, 0), true);
+            EXPECT_EQ(hasConnection(lfo, 0, originalFilter, 2), true);
+            EXPECT_EQ(hasConnection(lfo, 0, modernFilter, 2), true);
+            EXPECT_EQ(processor.getAppliedFilterTypeForTesting(), filterType);
+            EXPECT_EQ(processor.getAppliedLfoTargetForTesting(), lfoTarget);
+            EXPECT_EQ(static_cast<OriginalVCFProcessor*>(processor.getAudioGraphForTesting()
+                                                             .getNodeForId(originalFilter)
+                                                             ->getProcessor())
+                          ->isRoutingOutputEnabledForTesting(),
+                      filterType == 0);
+            EXPECT_EQ(
+                static_cast<ModernVCFProcessor*>(
+                    processor.getAudioGraphForTesting().getNodeForId(modernFilter)->getProcessor())
+                    ->isRoutingOutputEnabledForTesting(),
+                filterType == 1);
+            EXPECT_EQ(static_cast<VCOProcessor*>(
+                          processor.getAudioGraphForTesting().getNodeForId(vco)->getProcessor())
+                          ->isLfoRoutingEnabledForTesting(),
+                      lfoTarget == 0);
         }
     }
 
@@ -1357,6 +1374,8 @@ TEST(WholeGraphObservationTest, Observation_DenseMidiShortBlocksAndGuiSwitchTail
 TEST(WholeGraphObservationTest, Observation_RoutingSwitchSignalAndDualFilterCost) {
     constexpr int blockSize = 64;
     CS01AudioProcessor processor;
+    // Retain the original dynamic-graph observation as the comparison reference.
+    processor.useLegacyRoutingForTesting();
     processor.prepareToPlay(48000, blockSize);
     auto editor = std::unique_ptr<juce::AudioProcessorEditor>(processor.createEditor());
     juce::AudioBuffer<float> buffer(2, blockSize);
