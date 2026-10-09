@@ -253,7 +253,8 @@ TEST(RoutingSelectionRealtimeTest, EveryCallbackCanSwitchWithoutHeapOperationsOr
     EXPECT_EQ(frees, 0u);
     EXPECT_EQ(p.getAudioGraphForTesting().getConnections(), connections);
     std::cout << "routing-callback switches=1000 allocations=" << allocations << " frees=" << frees
-              << " locks=" << locks << " (host notification outside callback probe)\n";
+              << " locks=" << locks << " contended=" << contended << " wait_ns=" << waits
+              << " max_wait_ns=" << maximumWait << " (host notification outside callback probe)\n";
 }
 
 TEST(RoutingSelectionRealtimeTest, ProbeDetectsDeliberateMutexContention) {
@@ -279,6 +280,7 @@ TEST(RoutingSelectionRealtimeTest, ProbeDetectsDeliberateMutexContention) {
     worker.join();
     EXPECT_EQ(contentions, 1u);
     EXPECT_GT(waited, 0u);
+    std::cout << "routing-lock-control contended=" << contentions << " wait_ns=" << waited << "\n";
     EXPECT_EQ(pthread_mutex_destroy(&mutex), 0);
 }
 #endif
