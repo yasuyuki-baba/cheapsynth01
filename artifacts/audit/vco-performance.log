@@ -1,0 +1,86 @@
+RUN vco-quiet-before-1
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=88.2206
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=83.3453
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=98.4971
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=94.7935
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=196.687
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=190.612
+graph-tail block=1 n=1000 p95_us=5.759 p99_us=24.757 max_us=269.927 program_switch_p99_us=19.88 program_switch_max_us=57.667 gui_edits=5 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=117.978 p99_us=215.275 max_us=497.451 program_switch_p99_us=154.013 program_switch_max_us=267.693 gui_edits=70 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=463.97 p99_us=698.884 max_us=1376.55 program_switch_p99_us=787.213 program_switch_max_us=1376.55 gui_edits=307 deadline_us=1333.33 (observation, not a deadline guarantee)
+
+RUN vco-quiet-after-1
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)
+vco-paired gliss=0 host_block=1 n=1000 old_median_us=1.573 new_median_us=0.39 old_p99_us=2.774 new_p99_us=0.581 old_max_us=53.02 new_max_us=16.966 (observation, not a deadline)
+vco-paired gliss=0 host_block=16 n=1000 old_median_us=20.571 new_median_us=5.268 old_p99_us=127.683 new_p99_us=44.838 old_max_us=646.816 new_max_us=2790.18 (observation, not a deadline)
+vco-paired gliss=0 host_block=64 n=1000 old_median_us=81.172 new_median_us=20.932 old_p99_us=258.029 new_p99_us=79.58 old_max_us=775.19 new_max_us=248.736 (observation, not a deadline)
+vco-paired gliss=1 host_block=1 n=1000 old_median_us=1.642 new_median_us=0.381 old_p99_us=1.773 new_p99_us=0.471 old_max_us=23.546 new_max_us=0.57 (observation, not a deadline)
+vco-paired gliss=1 host_block=16 n=1000 old_median_us=21.683 new_median_us=5.389 old_p99_us=114.854 new_p99_us=42.474 old_max_us=256.657 new_max_us=178.98 (observation, not a deadline)
+vco-paired gliss=1 host_block=64 n=1000 old_median_us=86.059 new_median_us=21.312 old_p99_us=332.292 new_p99_us=79.67 old_max_us=1955.25 new_max_us=1499.36 (observation, not a deadline)
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=41.665
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=40.3786
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=43.5366
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=40.9499
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=86.1029
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=80.4617
+graph-tail block=1 n=1000 p95_us=3.445 p99_us=36.014 max_us=230.828 program_switch_p99_us=18.317 program_switch_max_us=54.082 gui_edits=4 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=96.256 p99_us=283.197 max_us=1440.57 program_switch_p99_us=127.532 program_switch_max_us=179.33 gui_edits=48 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=251.83 p99_us=384.19 max_us=516.9 program_switch_p99_us=279.461 program_switch_max_us=338.14 gui_edits=198 deadline_us=1333.33 (observation, not a deadline guarantee)
+
+RUN vco-quiet-before-2
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=104.259
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=92.6251
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=97.203
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=100.267
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=210.794
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=195.33
+graph-tail block=1 n=1000 p95_us=4.607 p99_us=14.962 max_us=519.274 program_switch_p99_us=7.972 program_switch_max_us=22.985 gui_edits=5 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=114.502 p99_us=226.972 max_us=410.91 program_switch_p99_us=128.274 program_switch_max_us=207.152 gui_edits=67 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=498.473 p99_us=712.205 max_us=1516.81 program_switch_p99_us=534.577 program_switch_max_us=775.511 gui_edits=316 deadline_us=1333.33 (observation, not a deadline guarantee)
+
+RUN vco-quiet-after-2
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)
+vco-paired gliss=0 host_block=1 n=1000 old_median_us=1.572 new_median_us=0.37 old_p99_us=1.793 new_p99_us=0.551 old_max_us=75.724 new_max_us=18.698 (observation, not a deadline)
+vco-paired gliss=0 host_block=16 n=1000 old_median_us=20.592 new_median_us=5.268 old_p99_us=122.995 new_p99_us=18.378 old_max_us=377.299 new_max_us=80.541 (observation, not a deadline)
+vco-paired gliss=0 host_block=64 n=1000 old_median_us=81.323 new_median_us=20.942 old_p99_us=289.427 new_p99_us=83.236 old_max_us=617.903 new_max_us=301.805 (observation, not a deadline)
+vco-paired gliss=1 host_block=1 n=1000 old_median_us=1.652 new_median_us=0.381 old_p99_us=2.944 new_p99_us=0.591 old_max_us=165.119 new_max_us=0.822 (observation, not a deadline)
+vco-paired gliss=1 host_block=16 n=1000 old_median_us=21.813 new_median_us=5.398 old_p99_us=217.648 new_p99_us=68.814 old_max_us=782.921 new_max_us=353.033 (observation, not a deadline)
+vco-paired gliss=1 host_block=64 n=1000 old_median_us=86.2 new_median_us=21.282 old_p99_us=300.072 new_p99_us=76.164 old_max_us=1106.07 new_max_us=344.269 (observation, not a deadline)
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=41.0354
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=38.134
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=43.7102
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=45.569
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=102.48
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=107
+graph-tail block=1 n=1000 p95_us=3.505 p99_us=14.382 max_us=210.662 program_switch_p99_us=19.429 program_switch_max_us=210.662 gui_edits=4 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=117.627 p99_us=602.97 max_us=1777.18 program_switch_p99_us=229.196 program_switch_max_us=426.333 gui_edits=55 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=408.206 p99_us=1015.98 max_us=1931.28 program_switch_p99_us=619.495 program_switch_max_us=877.714 gui_edits=233 deadline_us=1333.33 (observation, not a deadline guarantee)
+
+RUN vco-quiet-before-3
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=115.76
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=107.028
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=115.417
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=114.52
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=212.316
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=228.507
+graph-tail block=1 n=1000 p95_us=7.872 p99_us=93.321 max_us=394.16 program_switch_p99_us=119.861 program_switch_max_us=394.16 gui_edits=7 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=162.124 p99_us=463.99 max_us=2684.49 program_switch_p99_us=459.854 program_switch_max_us=1390.92 gui_edits=78 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=509.008 p99_us=800.067 max_us=1550.13 program_switch_p99_us=590.051 program_switch_max_us=619.044 gui_edits=325 deadline_us=1333.33 (observation, not a deadline guarantee)
+
+RUN vco-quiet-after-3
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)
+vco-paired gliss=0 host_block=1 n=1000 old_median_us=1.563 new_median_us=0.37 old_p99_us=2.885 new_p99_us=0.571 old_max_us=58.528 new_max_us=286.803 (observation, not a deadline)
+vco-paired gliss=0 host_block=16 n=1000 old_median_us=20.511 new_median_us=5.278 old_p99_us=183.778 new_p99_us=29.965 old_max_us=343.248 new_max_us=186.641 (observation, not a deadline)
+vco-paired gliss=0 host_block=64 n=1000 old_median_us=81.423 new_median_us=20.991 old_p99_us=275.876 new_p99_us=96.105 old_max_us=4648.14 new_max_us=2554.17 (observation, not a deadline)
+vco-paired gliss=1 host_block=1 n=1000 old_median_us=1.653 new_median_us=0.381 old_p99_us=2.454 new_p99_us=0.571 old_max_us=186.551 new_max_us=16.145 (observation, not a deadline)
+vco-paired gliss=1 host_block=16 n=1000 old_median_us=21.883 new_median_us=5.368 old_p99_us=125.129 new_p99_us=49.725 old_max_us=288.505 new_max_us=278.981 (observation, not a deadline)
+vco-paired gliss=1 host_block=64 n=1000 old_median_us=86.41 new_median_us=21.312 old_p99_us=285.13 new_p99_us=151.329 old_max_us=378.622 new_max_us=379.242 (observation, not a deadline)
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=42.5287
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=39.4112
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=46.1213
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=43.1479
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=84.4839
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=84.2165
+graph-tail block=1 n=1000 p95_us=3.716 p99_us=24.848 max_us=318.7 program_switch_p99_us=20.511 program_switch_max_us=104.358 gui_edits=4 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=88.934 p99_us=154.573 max_us=351.145 program_switch_p99_us=130.077 program_switch_max_us=184.678 gui_edits=43 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=296.718 p99_us=433.704 max_us=18019.6 program_switch_p99_us=408.847 program_switch_max_us=439.102 gui_edits=216 deadline_us=1333.33 (observation, not a deadline guarantee)
