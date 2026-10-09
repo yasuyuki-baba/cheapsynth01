@@ -341,7 +341,7 @@ TEST(AuditProgramTest, HostThreadRequestsApplyAtNextBlockAndMatchUiLoads) {
             parameter->setValueNotifyingHost(0.23f);
         for (auto* parameter : expected.getParameters())
             parameter->setValueNotifyingHost(0.23f);
-        expected.setCurrentProgram(index);
+        expected.getPresetManager().setCurrentProgram(index);
         std::thread host([&] { p.setCurrentProgram(index); });
         host.join();
         render(p, 0);
@@ -355,6 +355,31 @@ TEST(AuditProgramTest, HostThreadRequestsApplyAtNextBlockAndMatchUiLoads) {
         ASSERT_NE(xml, nullptr);
         EXPECT_EQ(xml->getIntAttribute("program"), index);
     }
+}
+
+TEST(AuditProgramTest, MessageThreadHostRequestsAreDeferredAndLatestValidRequestWins) {
+    CS01AudioProcessor p, expected;
+    p.prepareToPlay(48000, 64);
+    for (auto* parameter : p.getParameters())
+        parameter->setValueNotifyingHost(0.23f);
+    for (auto* parameter : expected.getParameters())
+        parameter->setValueNotifyingHost(0.23f);
+    expected.getPresetManager().setCurrentProgram(2);
+    std::vector<float> before;
+    for (auto* parameter : p.getParameters())
+        before.push_back(parameter->getValue());
+    p.setCurrentProgram(1);
+    p.setCurrentProgram(2);
+    p.setCurrentProgram(-1);
+    p.setCurrentProgram(p.getNumPrograms());
+    EXPECT_EQ(p.getCurrentProgram(), 0);
+    for (int i = 0; i < p.getParameters().size(); ++i)
+        EXPECT_FLOAT_EQ(p.getParameters()[i]->getValue(), before[i]);
+    render(p, 0);
+    EXPECT_EQ(p.getCurrentProgram(), 2);
+    for (int i = 0; i < p.getParameters().size(); ++i)
+        EXPECT_NEAR(p.getParameters()[i]->getValue(), expected.getParameters()[i]->getValue(),
+                    1e-6f);
 }
 
 TEST(AuditProgramTest, CatalogueRefreshAndHostRequestsCanRunConcurrently) {
@@ -383,6 +408,24 @@ TEST(AuditProgramTest, CatalogueRefreshAndHostRequestsCanRunConcurrently) {
 
 #if defined(CHEAPSYNTH_RT_AUDIT)
 #include "RealtimeAudit.h"
+TEST(AuditRealtimeTest, HostProgramRequestsHaveNoHeapOperationsOrLocksOnEitherThread) {
+    CS01AudioProcessor p;
+    auto check = [&] {
+        realtimeAudit::begin();
+        for (int index = 0; index < 100; ++index)
+            p.setCurrentProgram(index % 7);
+        p.setCurrentProgram(-1);
+        p.setCurrentProgram(10000);
+        realtimeAudit::end();
+        EXPECT_EQ(realtimeAudit::allocations, 0u);
+        EXPECT_EQ(realtimeAudit::deallocations, 0u);
+        EXPECT_EQ(realtimeAudit::locks, 0u);
+    };
+    check();
+    std::thread host(check);
+    host.join();
+}
+
 TEST(AuditRealtimeTest, EntireCallbackHasNoHeapOperationsForDenseMidiAndGuiQueue) {
     CS01AudioProcessor p;
     p.prepareToPlay(48000, 64);
@@ -413,8 +456,7 @@ TEST(AuditRealtimeTest, EntireCallbackHasNoHeapOperationsForDenseMidiAndGuiQueue
     EXPECT_EQ(allocations, 0u);
     EXPECT_EQ(frees, 0u);
     std::cout << "RT callback probe: allocation=" << allocations << " free=" << frees
-              << " pthread_mutex_lock=" << locks
-              << " (including JUCE graph nodes and MessageManager thread checks)\n";
+              << " pthread_mutex_lock=" << locks << " (including JUCE graph nodes)\n";
 }
 #endif
 

@@ -132,7 +132,10 @@ void ProgramPanel::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) {
     if (comboBoxThatHasChanged == &programMenu) {
         const int programIndex = programMenu.getSelectedId() - 1;  // 1-based to 0-based
         if (programIndex >= 0 && programIndex < audioProcessor.getNumPrograms()) {
-            audioProcessor.setCurrentProgram(programIndex);
+            if (auto* manager = getProgramManager())
+                manager->setCurrentProgram(programIndex);
+            else
+                audioProcessor.setCurrentProgram(programIndex);
             programMenu.setSelectedId(audioProcessor.getCurrentProgram() + 1,
                                       juce::dontSendNotification);
         }
@@ -322,7 +325,7 @@ void ProgramPanel::savePresetWithName(ProgramManager* programManager,
     // Find and select the saved preset BEFORE repopulating the menu
     const int saved = programManager->findProgram(presetName + ".xml", PresetType::User);
     if (saved >= 0)
-        audioProcessor.setCurrentProgram(saved);
+        programManager->setCurrentProgram(saved);
 
     // Now populate the menu - this will use the updated current program
     populateProgramMenu();
