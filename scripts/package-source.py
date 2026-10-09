@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import zipfile
 import json
+import hashlib
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,8 +44,16 @@ if __name__ == '__main__':
             'cmake/JuceGraphRealtimePatch.cmake applies the documented JUCE memory patch.\n')
         archive.writestr('ThirdPartyNotices.txt', 'See JUCE LICENSE.md/SPDX inventory, AGPL-3.0.txt,\n'
             'CLAP dependency licence files and docs/Distribution.md.\n')
+        hashes = {}
+        for entry in archive.infolist():
+            digest = hashlib.sha256()
+            with archive.open(entry) as member:
+                for chunk in iter(lambda: member.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            hashes[entry.filename] = digest.hexdigest()
         archive.writestr('BUILD-INFO.json', json.dumps({
             'source_commit': commit,
             'product_version': re.search(r'project\(CheapSynth01 VERSION (\d+\.\d+\.\d+)', (ROOT / 'CMakeLists.txt').read_text()).group(1),
             'juce_version': '9.0.3',
+            'sha256': hashes,
         }, indent=2) + '\n')
