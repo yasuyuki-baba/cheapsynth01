@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 #include <atomic>
 
@@ -32,8 +34,8 @@ class ModulationComponent : public juce::Component,
     juce::Label pitchBendLabel;
     juce::Slider bendUpSlider, bendDownSlider;
     juce::Label bendUpLabel, bendDownLabel;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> bendUpAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> bendDownAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> bendUpAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> bendDownAttachment;
     bool draggingBend = false;
     bool returningBend = false;
     double returnStarted = 0.0, returnPosition = 0.0;

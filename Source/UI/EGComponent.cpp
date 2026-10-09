@@ -9,7 +9,7 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     addAndMakeVisible(attackSlider);
     attackLabel.setText("A", juce::dontSendNotification);
     addAndMakeVisible(attackLabel);
-    attackAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    attackAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::attack), attackSlider);
 
     decaySlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -17,7 +17,7 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     addAndMakeVisible(decaySlider);
     decayLabel.setText("D", juce::dontSendNotification);
     addAndMakeVisible(decayLabel);
-    decayAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    decayAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::decay), decaySlider);
 
     sustainSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -25,7 +25,7 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     addAndMakeVisible(sustainSlider);
     sustainLabel.setText("S", juce::dontSendNotification);
     addAndMakeVisible(sustainLabel);
-    sustainAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    sustainAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::sustain), sustainSlider);
 
     releaseSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -33,7 +33,7 @@ EGComponent::EGComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeS
     addAndMakeVisible(releaseSlider);
     releaseLabel.setText("R", juce::dontSendNotification);
     addAndMakeVisible(releaseLabel);
-    releaseAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    releaseAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::release), releaseSlider);
     for (auto* label : {&attackLabel, &decayLabel, &sustainLabel, &releaseLabel})
         label->setJustificationType(juce::Justification::centred);

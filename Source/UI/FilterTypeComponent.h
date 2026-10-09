@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 
 class FilterTypeComponent : public juce::Component {
@@ -14,5 +16,5 @@ class FilterTypeComponent : public juce::Component {
    private:
     juce::AudioProcessorValueTreeState& valueTreeState;
     juce::ComboBox filterTypeComboBox;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterTypeAttachment;
+    std::unique_ptr<CS01ComboBoxParameterAttachment> filterTypeAttachment;
 };

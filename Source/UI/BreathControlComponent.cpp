@@ -10,7 +10,7 @@ BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeStat
     addAndMakeVisible(breathVcfSlider);
     breathVcfLabel.setText("VCF", juce::dontSendNotification);
     addAndMakeVisible(breathVcfLabel);
-    breathVcfAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    breathVcfAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::breathVcf), breathVcfSlider);
 
     breathVcaSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
@@ -18,7 +18,7 @@ BreathControlComponent::BreathControlComponent(juce::AudioProcessorValueTreeStat
     addAndMakeVisible(breathVcaSlider);
     breathVcaLabel.setText("VCA", juce::dontSendNotification);
     addAndMakeVisible(breathVcaLabel);
-    breathVcaAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    breathVcaAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::breathVca), breathVcaSlider);
     for (auto* slider : {&breathVcfSlider, &breathVcaSlider}) {
         slider->setPopupDisplayEnabled(true, true, this);

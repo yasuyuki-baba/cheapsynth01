@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "UI/PollingParameterAttachments.h"
+
 #include <memory>
 
 class VolumeComponent : public juce::Component {
@@ -16,5 +18,5 @@ class VolumeComponent : public juce::Component {
     juce::Slider volumeSlider;
     juce::Label volumeLabel;
 
-    std::unique_ptr<juce::SliderParameterAttachment> volumeAttachment;
+    std::unique_ptr<CS01SliderParameterAttachment> volumeAttachment;
 };

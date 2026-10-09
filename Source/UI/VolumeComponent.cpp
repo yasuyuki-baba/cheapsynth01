@@ -11,7 +11,7 @@ VolumeComponent::VolumeComponent(juce::AudioProcessorValueTreeState& apvts)
     volumeLabel.setText("MASTER", juce::dontSendNotification);
     addAndMakeVisible(volumeLabel);
 
-    volumeAttachment = std::make_unique<juce::SliderParameterAttachment>(
+    volumeAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::volume), volumeSlider);
     volumeSlider.setPopupDisplayEnabled(true, true, this);
     volumeSlider.setTooltip("Master knob position; percentage is not linear output gain.");
