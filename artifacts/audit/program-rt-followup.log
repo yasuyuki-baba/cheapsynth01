@@ -1,0 +1,2 @@
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)
+Isolated host request allocation/free/lock assertions: passed on message and worker threads.

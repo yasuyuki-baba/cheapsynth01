@@ -6,7 +6,7 @@
 リポジトリ内にAGENTS.mdはなく、CONTRIBUTING.md、Tests/README.md、JUCEの規約・ソースを確認した。
 push、PR、リリース公開はしていない。
 
-測定・最終テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
+以下の初回測定・テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
 主要実装はa280bb7、キャッシュ復元の補完は9db9a2c、試験用型の補正はec12e58。
 以後の報告・梱包commitでは本番DSPを変更しない。
 機械可読の条件・件数・ログハッシュは [stability-results.json](../artifacts/audit/stability-results.json)。
@@ -30,7 +30,7 @@ XMLの時刻はUTC、ここでの日付はJSTである。
 基準の保存GUIをクラッシュさせる試験は行っていない。
 最初の混在した古いビルドでの異常終了は無効な再現として除外した。
 
-## 最終検証
+## 初回修正の検証
 
 | 構成 | 件数 | 結果・制約 |
 |---|---:|---|
@@ -122,3 +122,31 @@ GPLv3 §13によるAGPL合成配布か、有効なJUCE商用ライセンスを�
 実機忠実度を達成したとは報告しない。校正には識別可能なCS-01個体/改版、電源・温度・部品状態、
 信号レベル、入力/出力負荷、breath制御電圧、波形/feet/EG設定、録音系の帯域・sample rate・不確かさ、
 生録音と測定点の対応が必要。許容誤差、個体差、制御曲線の基準は実機資料が得られるまで未解決。
+
+
+## 追加修正：ホストprogram経路（2026-10-09 JST）
+
+追加ソースは `904da992198ef7bd93e8e050faea34a286fcb540`。
+初回の数値・測定は上記commitの記録として維持する。最新結果は
+[program-rt-followup.json](../artifacts/audit/program-rt-followup.json)。
+
+`setCurrentProgram`のスレッド判定によるMessageManager mutexを撤去し、
+すべてのホスト要求を既存の不変キャッシュへ予約する。GUI選択・保存後の読込は
+ProgramManagerの明示的な非RT経路を使い、実ファイル検査と即時読み込みを維持した。
+JUCE VST3のProgramChangeParameterは現在のprogramと同じ要求を省略するため、
+予約した選択は即時に返す。音声値は次callback（空ブロックを含む）へ適用する。
+予約→元のprogramへの取消、最後の有効要求、無効index、適用前のsession保存を検証。
+保存時には予約した値とidentityを一緒にsnapshotし、保存形式は変更しない。
+成功したUI/session読込は以前の予約を取り消す。音声側は適用途中の新要求をCASで保護する。
+
+最終Debug **242/242**、Release **242/242**、変更経路のproject
+ASan/UBSan/LeakSanitizer **29/29** が成功。今回sanitizer全ケースの再実行はしていない。
+JUCE等の未計装範囲と、初回の236件の全sanitizer検証は別commitの記録である。
+既存User cache試験の適用前metadata期待値は予約選択へ揃え、代わりに適用前の
+cutoffと音源modeが変わらない判定を追加した。ケース・音声側判定を削除していない。
+最初のXvfb起動失敗は再実行で解消した環境起動失敗として記録した。
+
+ホスト要求単体は両スレッド計204回で確保/解放/mutex取得が0。
+同じ100×64密集callback試験のmutex取得は44,900→44,800回。
+残りはJUCEグラフであり、完全なRT安全性・締切保証ではない。
+追加でパラメータID/version hint、XML形式、DSPの音色・制御曲線は変更していない。
