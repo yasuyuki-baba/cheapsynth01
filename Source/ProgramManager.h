@@ -1,76 +1,42 @@
 #pragma once
-
-#include <JuceHeader.h>
-
 #include "Parameters.h"
-
+#include <filesystem>
+#include <mutex>
+#include <string>
+#include <string_view>
 #include <vector>
 
-//==============================================================================
 enum class PresetType { Factory, User };
-
 struct Program {
-    juce::String name;
-    juce::String filename;
-    PresetType type;
-
-    Program(const juce::String& n, const juce::String& f, PresetType t = PresetType::Factory)
-        : name(n), filename(f), type(t) {}
+    std::string name, filename;
+    PresetType type = PresetType::Factory;
 };
-
 class ProgramManager {
    public:
-    ProgramManager(juce::AudioProcessorValueTreeState& apvts);
-    ~ProgramManager();
-
-    // プリセット操作メソッド
-    void loadFactoryPreset(int index);
-    void loadPresetFromXml(const juce::XmlElement* xml);
-    void saveCurrentStateAsPreset(const juce::String& name);
-    bool deleteUserPreset(int index);
-    bool renameUserPreset(int index, const juce::String& newName);
-
-    // プログラム（プリセット）管理
-    int getNumPrograms() const;
+    explicit ProgramManager(cs01::ParameterState& p) : parameters(p) {
+        refreshUserPresets();
+    }
+    void setUserDirectory(std::filesystem::path directory);
+    std::vector<Program> programs() const;
     int getCurrentProgram() const;
-    void setCurrentProgram(int index);
-    juce::String getProgramName(int index) const;
-    PresetType getPresetType(int index) const;
-    bool isUserPreset(int index) const;
-    int findProgram(const juce::String& filename, PresetType type) const;
-    juce::String getProgramFilename(int index) const;
-
-    // ユーザープリセット管理
+    bool setCurrentProgram(int index);
+    bool loadPresetFromXml(std::string_view xml);
+    bool loadPresetFile(const std::filesystem::path& file);
+    bool saveCurrentStateAsPreset(std::string_view name);
+    bool deleteUserPreset(int index);
+    bool renameUserPreset(int index, std::string_view name);
     void refreshUserPresets();
-    juce::File getUserPresetsDirectory() const;
-    bool createUserPresetsDirectory();
-
-    // 状態の保存と復元
-    void getStateInformation(juce::MemoryBlock& destData);
-    void setStateInformation(const void* data, int sizeInBytes);
+    std::string getStateInformation() const;
+    bool setStateInformation(std::string_view state);
 
    private:
-    juce::AudioProcessorValueTreeState& apvts;
-    std::vector<Program> factoryPresets;
-    std::vector<Program> userPresets;
-    std::vector<Program> allPresets;  // Combined list for easy access
+    bool loadXml(std::string_view xml, bool session);
+    std::string serialize(bool session) const;
+    std::filesystem::path uniquePath(std::string_view name) const;
+    void refreshUnlocked();
+    cs01::ParameterState& parameters;
+    std::filesystem::path directory;
+    std::vector<Program> allPresets;
     int currentProgram = 0;
-
-    // プリセット読み込み時に除外するパラメータ（音量変化を防ぐため）
-    const std::vector<juce::String> presetExcludedParameters = {
-        ParameterIds::breathInput, ParameterIds::volume, ParameterIds::modDepth,
-        ParameterIds::pitchBend};
-
-    // DAWセッション保存時に除外するパラメータ（リアルタイム入力系のみ）
-    const std::vector<juce::String> sessionExcludedParameters = {
-        ParameterIds::breathInput, ParameterIds::pitchBend, ParameterIds::modDepth};
-
-    bool isSessionExcludedParameter(const juce::String& paramId) const;
-    bool isPresetExcludedParameter(const juce::String& paramId) const;
-
-    void initializePresets();
-    void loadPresetFromBinaryData(const juce::String& filename);
-    void rebuildAllPresetsList();
-    void loadUserPresetFromFile(const juce::File& file);
-    juce::String generateUniquePresetName(const juce::String& baseName) const;
+    mutable std::recursive_mutex mutex;
 };

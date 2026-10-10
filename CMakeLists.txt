@@ -1,208 +1,86 @@
-cmake_minimum_required(VERSION 3.15)
-
-# Project name and language settings
-project(CheapSynth01 VERSION 1.0.0 LANGUAGES C CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Set default build type to Debug
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-endif()
-
-# Include JUCE modules
-include(cmake/JUCE.cmake)
-
-# Add CLAP JUCE extensions
-add_subdirectory(libs/clap-juce-extensions EXCLUDE_FROM_ALL)
-
-# Compiler settings
+cmake_minimum_required(VERSION 3.20)
+project(CheapSynth01 VERSION 2.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Enable GUI support
-option(JUCE_HEADLESS_PLUGIN_CLIENT "Build in headless mode" OFF)
-
-# Option for standalone only build
-option(STANDALONE_ONLY "Build only standalone version for faster development" OFF)
-
-# Set plugin formats based on platform and build type
-if(STANDALONE_ONLY)
-    set(PLUGIN_FORMATS Standalone)
-    message(STATUS "STANDALONE_ONLY: Building standalone version only")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# iPlug2 and all linked libraries must agree on the MSVC runtime.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+option(BUILD_TESTING "Build DSP/state regression tests" ON)
+option(BUILD_PLUGINS "Build iPlug2 desktop products (Windows/macOS)" ON)
+option(STANDALONE_ONLY "Build only the standalone desktop product" OFF)
+set(IPLUG2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iPlug2" CACHE PATH "iPlug2 source checkout")
+include(FetchContent)
+set(tinyxml2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(tinyxml2 GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git GIT_TAG 10.0.0 GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(tinyxml2)
+set(PRESET_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/FactoryPresets.h")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(WRITE "${PRESET_HEADER}" "#pragma once\n#include <array>\nnamespace cs01 {\nstruct FactoryPreset { const char* name; const char* filename; const char* xml; };\ninline constexpr std::array<FactoryPreset,7> factoryPresets{{\n")
+set(PRESET_NAMES Default Flute Violin Trumpet Clavinet Solo_Synth_Lead Synth_Bass)
+foreach(preset IN LISTS PRESET_NAMES)
+    set(path "${CMAKE_CURRENT_SOURCE_DIR}/Source/Resources/Presets/${preset}.xml")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${path}")
+    file(READ "${path}" xml)
+    string(REPLACE "_" " " display "${preset}")
+    file(APPEND "${PRESET_HEADER}" "{\"${display}\",\"${preset}.xml\",R\"preset(${xml})preset\"},\n")
+endforeach()
+file(APPEND "${PRESET_HEADER}" "}};\n}\n")
+add_library(CheapSynth01Core STATIC
+    Source/SynthEngine.cpp Source/ProgramManager.cpp
+    Source/CS01Synth/ToneGenerator.cpp Source/CS01Synth/YM10150.cpp
+    Source/CS01Synth/NoiseGenerator.cpp Source/CS01Synth/EGProcessor.cpp
+    Source/CS01Synth/LFOProcessor.cpp Source/CS01Synth/MidiProcessor.cpp
+    Source/CS01Synth/OriginalVCFProcessor.cpp Source/CS01Synth/ModernVCFProcessor.cpp
+    Source/CS01Synth/VCAProcessor.cpp Source/CS01Synth/IG02600.cpp
+    Source/CS01Synth/CS01VCFCircuit.cpp Source/CS01Synth/CS01IIVCFCircuit.cpp
+    Source/CS01Synth/ExperimentalIG05630.cpp)
+set_target_properties(CheapSynth01Core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(CheapSynth01Core PUBLIC Source PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_link_libraries(CheapSynth01Core PRIVATE tinyxml2::tinyxml2)
+if(MSVC)
+    target_compile_options(CheapSynth01Core PRIVATE /W4)
 else()
-    set(PLUGIN_FORMATS Standalone VST3)
-    
+    target_compile_options(CheapSynth01Core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
+endif()
+if(BUILD_PLUGINS)
+    if(NOT APPLE AND NOT WIN32)
+        message(FATAL_ERROR "Supported desktop platforms are Windows and macOS.")
+    endif()
+    if(NOT EXISTS "${IPLUG2_DIR}/iPlug2.cmake")
+        message(FATAL_ERROR "Initialize iPlug2 with git submodule update --init libs/iPlug2")
+    endif()
+    if(NOT STANDALONE_ONLY AND NOT EXISTS "${IPLUG2_DIR}/Dependencies/IPlug/VST3_SDK/pluginterfaces/vst/ivstaudioprocessor.h")
+        message(FATAL_ERROR "VST3 SDK missing. Run bash scripts/setup-iplug2.sh")
+    endif()
+    set(IPLUG2_CXX_STANDARD 20 CACHE STRING "" FORCE)
+    include("${IPLUG2_DIR}/iPlug2.cmake")
+    option(IPLUG_DEPLOY_PLUGINS "Install products after building" OFF)
+    find_package(iPlug2 REQUIRED)
+    set(formats APP VST3 CLAP)
     if(APPLE)
-        list(APPEND PLUGIN_FORMATS AU)
+        list(APPEND formats AU)
     endif()
-    
-    if(NOT WIN32 OR UNIX)
-        list(APPEND PLUGIN_FORMATS LV2)
+    if(STANDALONE_ONLY)
+        set(formats APP)
+    elseif(NOT IPLUG2_CLAP_SUPPORTED)
+        message(FATAL_ERROR "CLAP SDK missing. Run bash scripts/setup-iplug2.sh")
     endif()
-    
-    message(STATUS "Building with plugin formats: ${PLUGIN_FORMATS}")
-endif()
-
-# JUCE plugin settings
-option(COPY_PLUGIN_AFTER_BUILD "Install plugin products after building" ON)
-juce_add_plugin(CheapSynth01
-    VERSION 1.0.0
-    COMPANY_NAME "Yasuyuki Baba"
-    IS_SYNTH TRUE
-    NEEDS_MIDI_INPUT TRUE
-    NEEDS_MIDI_OUTPUT FALSE
-    COPY_PLUGIN_AFTER_BUILD ${COPY_PLUGIN_AFTER_BUILD}
-    PLUGIN_MANUFACTURER_CODE BABA
-    PLUGIN_CODE CS01
-    LV2URI "http://github.com/yasuyukibaba/cheapsynth01"
-    FORMATS
-        ${PLUGIN_FORMATS}
-    PRODUCT_NAME "CheapSynth01"
-    BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01"
-    MODULES
-        juce_core
-        juce_events
-        juce_graphics
-        juce_gui_basics
-        juce_audio_basics
-        juce_audio_devices
-        juce_audio_formats
-        juce_audio_processors
-        juce_audio_plugin_client
-        juce_dsp
-)
-
-# Add resources
-juce_add_binary_data(CheapSynth01Resources
-    SOURCES
-        Source/Resources/Presets/Default.xml
-        Source/Resources/Presets/Flute.xml
-        Source/Resources/Presets/Violin.xml
-        Source/Resources/Presets/Trumpet.xml
-        Source/Resources/Presets/Clavinet.xml
-        Source/Resources/Presets/Solo_Synth_Lead.xml
-        Source/Resources/Presets/Synth_Bass.xml
-)
-
-# JUCE target settings
-target_compile_definitions(CheapSynth01
-    PRIVATE
-    JUCE_WEB_BROWSER=0
-    JUCE_USE_CURL=0
-    JUCE_VST3_CAN_REPLACE_VST2=0
-    JUCE_DISABLE_NATIVE_SCREEN_CAPTURE=1
-    JUCE_DISABLE_WEBKIT=1
-)
-
-# Compiler warning settings
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # Windows (MSVC) specific compiler options
-    target_compile_options(CheapSynth01
-        PRIVATE
-        /W4             # Warning level 4
-        /permissive-    # Enforce standards conformance
-        /wd4996        # Disable deprecated functions warnings
-        /MP             # Multi-processor compilation
-    )
-else()
-    # GCC/Clang (Unix) specific compiler options
-    target_compile_options(CheapSynth01
-        PRIVATE
-        -Wall           # All warnings
-        -Wextra         # Extra warnings
-        -Wpedantic      # Strict ISO C/C++
-        -Wno-deprecated-declarations  # Needed for JUCE compatibility
-        -Wno-error=deprecated-declarations
-        -Wno-unused-parameter  # Don't warn about unused parameters
-        -Wformat=2     # Stricter format checking
-        -fvisibility=hidden  # Better optimization/binary size
-    )
-    
-    # Extra optimization flags for non-Debug builds
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-        target_compile_options(CheapSynth01
-            PRIVATE
-            -ffunction-sections
-            -fdata-sections
-        )
+    iplug_add_plugin(CheapSynth01
+        SOURCES Source/CS01AudioProcessor.cpp Source/CS01AudioProcessor.h
+            Source/CS01AudioProcessorEditor.cpp resources/resource.h
+        RESOURCES resources/fonts/Roboto-Regular.ttf
+        FORMATS ${formats}
+        LINK CheapSynth01Core
+        DEFINES _USE_MATH_DEFINES)
+    if(WIN32)
+        foreach(format vst3 clap)
+            if(TARGET CheapSynth01-${format})
+                target_sources(CheapSynth01-${format} PRIVATE resources/main.rc)
+            endif()
+        endforeach()
     endif()
 endif()
-
-# Standalone settings
-juce_generate_juce_header(CheapSynth01)
-
-# Source files
-target_sources(CheapSynth01
-    PRIVATE
-        Source/CS01AudioProcessor.cpp
-        Source/CS01AudioProcessorEditor.cpp
-        Source/ProgramManager.cpp
-        Source/UI/ModulationComponent.cpp
-        Source/UI/VCOComponent.cpp
-        Source/UI/LFOComponent.cpp
-        Source/UI/VCFComponent.cpp
-        Source/UI/ProgramPanel.cpp
-        Source/UI/VCAComponent.cpp
-        Source/UI/EGComponent.cpp
-        Source/UI/BreathControlComponent.cpp
-        Source/UI/VolumeComponent.cpp
-        Source/UI/OscilloscopeComponent.cpp
-        Source/CS01Synth/ToneGenerator.cpp
-        Source/CS01Synth/YM10150.cpp
-        Source/CS01Synth/OriginalVCFProcessor.cpp
-        Source/CS01Synth/VCAProcessor.cpp
-        Source/CS01Synth/IG02600.cpp
-        Source/CS01Synth/VCOProcessor.cpp
-        Source/UI/CS01LookAndFeel.cpp
-        Source/CS01Synth/EGProcessor.cpp
-        Source/CS01Synth/LFOProcessor.cpp
-        Source/CS01Synth/MidiProcessor.cpp
-        Source/CS01Synth/ModernVCFProcessor.cpp
-        Source/CS01Synth/CS01IIVCFCircuit.cpp
-        Source/CS01Synth/ExperimentalIG05630.cpp
-        Source/CS01Synth/NoiseGenerator.cpp
-        Source/CS01Synth/CS01VCFCircuit.cpp
-        Source/UI/FilterTypeComponent.cpp
-)
-
-# Header search paths
-target_include_directories(CheapSynth01
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/Source"
-)
-
-# Link JUCE modules
-target_link_juce_modules(CheapSynth01)
-target_link_libraries(CheapSynth01 PUBLIC CheapSynth01Resources)
-
-message(STATUS "CheapSynth01 configuration complete!")
-
-# Add CLAP plugin support (only when not building standalone only)
-if(NOT STANDALONE_ONLY)
-    clap_juce_extensions_plugin(TARGET CheapSynth01
-        CLAP_ID "com.yasuyukibaba.cheapsynth01"
-        CLAP_FEATURES instrument synthesizer vintage analog
-        CLAP_MANUAL_URL "https://github.com/yasuyuki-baba/cheapsynth01"
-        CLAP_SUPPORT_URL "https://github.com/yasuyuki-baba/cheapsynth01/issues"
-    )
-    message(STATUS "CLAP plugin target added: CheapSynth01_CLAP")
-endif()
-
-# Keep tests enabled by default for local development.
-option(BUILD_TESTING "Build the test executable" ON)
 if(BUILD_TESTING)
+    enable_testing()
     add_subdirectory(Tests)
-endif()
-
-option(BUILD_HEADER_CHECKS "Compile project headers in isolation" ON)
-if(BUILD_HEADER_CHECKS)
-    include(cmake/HeaderChecks.cmake)
-    add_header_checks(CheapSynth01HeaderChecks CheapSynth01 "${CMAKE_CURRENT_SOURCE_DIR}/Source")
-    add_custom_target(check_headers DEPENDS CheapSynth01HeaderChecks)
-    if(BUILD_TESTING)
-        add_header_checks(CheapSynth01TestHeaderChecks CheapSynth01Tests "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
-        target_include_directories(CheapSynth01TestHeaderChecks PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
-        add_dependencies(check_headers CheapSynth01TestHeaderChecks)
-    endif()
 endif()

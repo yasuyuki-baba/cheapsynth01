@@ -44,7 +44,7 @@ float CS01VCFCircuit::processOutputStage(float sample) {
     // not 0.02 uF. Its effective load has not been established here.
     const float cutoffFreq = 8.0f;  // Uncalibrated model value, not an RC-derived target.
     const float alpha =
-        1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffFreq / outputStage.sampleRate);
+        1.0f / (1.0f + 2.0f * std::numbers::pi_v<float> * cutoffFreq / outputStage.sampleRate);
 
     // Clean DC blocking filter
     outputStage.prevOutput = alpha * (outputStage.prevOutput + sample - outputStage.prevInput);
@@ -54,11 +54,11 @@ float CS01VCFCircuit::processOutputStage(float sample) {
 }
 
 void CS01VCFCircuit::setCutoffFrequency(float newCutoff) {
-    cutoff = juce::jlimit(20.0f, 20000.0f, newCutoff);
+    cutoff = std::clamp(newCutoff, 20.0f, 20000.0f);
 }
 
 void CS01VCFCircuit::setResonance(float newResonance) {
-    resonance = juce::jlimit(0.0f, 1.0f, newResonance);
+    resonance = std::clamp(newResonance, 0.0f, 1.0f);
 }
 
 float CS01VCFCircuit::processSample(int channel, float sample) {
@@ -91,9 +91,9 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* c
                                   float baseResonance) {
     const float originalCutoff = cutoff;
     const float originalResonance = resonance;
-    const float boundedResonance = juce::jlimit(0.0f, 1.0f, baseResonance);
+    const float boundedResonance = std::clamp(baseResonance, 0.0f, 1.0f);
     for (int i = 0; i < numSamples; ++i) {
-        const float boundedCutoff = juce::jlimit(20.0f, 20000.0f, cutoffModulation[i]);
+        const float boundedCutoff = std::clamp(cutoffModulation[i], 20.0f, 20000.0f);
         samples[i] = processOutputStage(
             model.processSample(processInputStage(samples[i]), boundedCutoff, boundedResonance));
     }

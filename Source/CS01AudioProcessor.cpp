@@ -1,494 +1,133 @@
 #include "CS01AudioProcessor.h"
-
-#include "CS01AudioProcessorEditor.h"
-#include "CS01Synth/EGProcessor.h"
-#include "CS01Synth/IFilter.h"  // Explicit include
-#include "CS01Synth/LFOProcessor.h"
-#include "CS01Synth/MidiProcessor.h"
-#include "CS01Synth/ModernVCFProcessor.h"
-#include "CS01Synth/OriginalVCFProcessor.h"
-#include "CS01Synth/SynthConstants.h"
-#include "CS01Synth/VCAProcessor.h"
-#include "CS01Synth/VCOProcessor.h"
-#include "Parameters.h"
-#include "ParameterFormatting.h"
-
-//==============================================================================
-CS01AudioProcessor::CS01AudioProcessor()
-    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts(*this, nullptr, "Parameters", createParameterLayout()),
-      presetManager(apvts) {
-    apvts.addParameterListener(ParameterIds::lfoTarget, this);
-    apvts.addParameterListener(ParameterIds::filterType, this);
-    apvts.addParameterListener(ParameterIds::feet, this);
-}
-
-CS01AudioProcessor::~CS01AudioProcessor() {
-    cancelPendingUpdate();
-    apvts.removeParameterListener(ParameterIds::lfoTarget, this);
-    apvts.removeParameterListener(ParameterIds::filterType, this);
-    apvts.removeParameterListener(ParameterIds::feet, this);
-}
-
-//==============================================================================
-void CS01AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
-    midiMessageCollector.reset(sampleRate);
-    panelBendCollector.reset(sampleRate);
-    processingCapacity = juce::jmax(1, samplesPerBlock);
-    outputOversampling = std::make_unique<juce::dsp::Oversampling<float>>(
-        getMainBusNumOutputChannels(), Constants::oversamplingStages,
-        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
-    outputOversampling->initProcessing(processingCapacity);
-    outputOversampling->reset();
-    internalAudio.setSize(getMainBusNumOutputChannels(),
-                          processingCapacity * Constants::oversamplingFactor);
-
-    audioGraph.clear();
-
-    // 1. Add nodes
-    midiInputNode =
-        audioGraph.addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
-            juce::AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode));
-    audioOutputNode =
-        audioGraph.addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
-            juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
-    midiProcessorNode = audioGraph.addNode(std::make_unique<MidiProcessor>(apvts));
-    vcoNode =
-        audioGraph.addNode(std::make_unique<VCOProcessor>(apvts));  // Default is ToneGenerator
-    static_cast<VCOProcessor*>(vcoNode->getProcessor())->setExternalOversampling(true);
-    egNode = audioGraph.addNode(std::make_unique<EGProcessor>(apvts));
-    lfoNode = audioGraph.addNode(std::make_unique<LFOProcessor>(apvts));
-    vcaNode = audioGraph.addNode(std::make_unique<VCAProcessor>(apvts));
-    vcfNode = audioGraph.addNode(std::make_unique<OriginalVCFProcessor>(apvts));
-    modernVcfNode = audioGraph.addNode(std::make_unique<ModernVCFProcessor>(apvts));
-
-    // 2. Set bus layouts
-    audioOutputNode->getProcessor()->enableAllBuses();
-    // midiProcessorNode has no audio buses
-    vcoNode->getProcessor()->enableAllBuses();
-    egNode->getProcessor()->enableAllBuses();
-    lfoNode->getProcessor()->enableAllBuses();
-    vcaNode->getProcessor()->enableAllBuses();
-    vcfNode->getProcessor()->enableAllBuses();
-    modernVcfNode->getProcessor()->enableAllBuses();
-
-    // 3. Connect nodes. Dynamic audio and LFO routing is applied as one state below.
-    // Connection from VCA to audioOutputNode (automatically configured based on output bus layout)
-    updateVCAOutputConnections();
-
-    // Sidechain Paths
-    // EG -> VCA (Sidechain)
-    audioGraph.addConnection({{egNode->nodeID, 0}, {vcaNode->nodeID, 1}});
-    // EG -> VCF (Sidechain)
-    audioGraph.addConnection({{egNode->nodeID, 0}, {vcfNode->nodeID, 1}});
-    // EG -> ModernVCF (Sidechain)
-    audioGraph.addConnection({{egNode->nodeID, 0}, {modernVcfNode->nodeID, 1}});
-
-    // MIDI Path - Simplified: only midiInput -> midiProcessor
-    // No other MIDI connections needed as MidiProcessor directly controls ToneGenerator and
-    // EGProcessor
-    audioGraph.addConnection(
-        {{midiInputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex},
-         {midiProcessorNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex}});
-
-    // Set references to SoundGenerator and EGProcessor in MidiProcessor
-    auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
-    auto* vcoProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
-    auto* egProcessor = static_cast<EGProcessor*>(egNode->getProcessor());
-
-    if (midiProcessor != nullptr && vcoProcessor != nullptr && egProcessor != nullptr) {
-        // Set the sound generator
-        midiProcessor->setSoundGenerator(vcoProcessor->getSoundGenerator());
-        midiProcessor->setEGProcessor(egProcessor);
-
-        // Set up VCO generator type change callback
-        vcoProcessor->onGeneratorTypeChanged = [this]() { handleGeneratorTypeChanged(); };
+#include "Utf8Path.h"
+#include "IPlug_include_in_plug_src.h"
+#include "IPlugPaths.h"
+#include <limits>
+using namespace iplug;
+CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info)
+    : iplug::Plugin(info, MakeConfig(cs01::parameterCount, 1)) {
+    for (int i = 0; i < cs01::parameterCount; ++i) {
+        const auto& d = cs01::parameterDefinitions[i];
+        const int flags = (i == static_cast<int>(cs01::Param::PitchBend) ||
+                           i == static_cast<int>(cs01::Param::ModDepth))
+                              ? IParam::kFlagCannotAutomate
+                              : IParam::kFlagsNone;
+        if (d.integer)
+            GetParam(i)->InitInt(d.name.data(), static_cast<int>(d.initial),
+                                 static_cast<int>(d.minimum), static_cast<int>(d.maximum),
+                                 d.unit.data(), flags);
+        else
+            GetParam(i)->InitDouble(d.name.data(), d.initial, d.minimum, d.maximum, d.step,
+                                    d.unit.data(), flags, "", IParam::ShapePowCurve(1.0 / d.skew));
     }
-    // 4. Set graph's main bus layout and prepare
-    audioGraph.setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(),
-                                    sampleRate * Constants::oversamplingFactor,
-                                    processingCapacity * Constants::oversamplingFactor);
-    audioGraph.prepareToPlay(sampleRate * Constants::oversamplingFactor,
-                             processingCapacity * Constants::oversamplingFactor);
-
-    requestedFilterType.store(
-        static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load()));
-    requestedLfoTarget.store(
-        static_cast<int>(apvts.getRawParameterValue(ParameterIds::lfoTarget)->load()));
-    applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
-                       juce::AudioProcessorGraph::UpdateKind::sync);
-}
-
-void CS01AudioProcessor::applyFilterRouting(int filterType, int lfoTarget,
-                                            juce::AudioProcessorGraph::UpdateKind updateKind) {
-    if (vcoNode == nullptr || vcfNode == nullptr || modernVcfNode == nullptr ||
-        vcaNode == nullptr || lfoNode == nullptr)
-        return;
-
-    const bool useModernFilter = filterType != 0;
-    const bool targetVco = lfoTarget == 0;
-
-    const auto updateConnection =
-        [this, updateKind](const juce::AudioProcessorGraph::Connection& connection,
-                           bool shouldExist) {
-            const bool isConnected = audioGraph.isConnected(connection);
-            if (shouldExist && !isConnected) {
-                audioGraph.addConnection(connection, updateKind);
-            } else if (!shouldExist && isConnected) {
-                audioGraph.removeConnection(connection, updateKind);
-            }
-        };
-
-    updateConnection({{vcoNode->nodeID, 0}, {vcfNode->nodeID, 0}}, !useModernFilter);
-    updateConnection({{vcfNode->nodeID, 0}, {vcaNode->nodeID, 0}}, !useModernFilter);
-    updateConnection({{vcoNode->nodeID, 0}, {modernVcfNode->nodeID, 0}}, useModernFilter);
-    updateConnection({{modernVcfNode->nodeID, 0}, {vcaNode->nodeID, 0}}, useModernFilter);
-
-    updateConnection({{lfoNode->nodeID, 0}, {vcoNode->nodeID, 0}}, targetVco);
-    updateConnection({{lfoNode->nodeID, 0}, {vcfNode->nodeID, 2}}, !targetVco && !useModernFilter);
-    updateConnection({{lfoNode->nodeID, 0}, {modernVcfNode->nodeID, 2}},
-                     !targetVco && useModernFilter);
-}
-
-void CS01AudioProcessor::releaseResources() {
-    audioGraph.releaseResources();
-}
-
-bool CS01AudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-        layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::disabled())
-        return false;
-
-    return true;
-}
-
-void CS01AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
-                                      juce::MidiBuffer& midiMessages) {
-    juce::ScopedNoDenormals noDenormals;
-    // Graph topology changes are queued on the message thread by handleAsyncUpdate().
-    midiMessageCollector.removeNextBlockOfMessages(midiMessages, buffer.getNumSamples());
-    bool externalBend = false;
-    for (const auto metadata : midiMessages)
-        externalBend = externalBend || metadata.getMessage().isPitchWheel();
-    juce::MidiBuffer panelBend;
-    panelBendCollector.removeNextBlockOfMessages(panelBend, buffer.getNumSamples());
-    if (externalBend)
-        externalBendRevision.fetch_add(1);
-    else
-        midiMessages.addEvents(panelBend, 0, buffer.getNumSamples(), 0);
-
-    keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
-    // MidiProcessor applies events immediately. Render the graph in segments
-    // so those events are applied at their actual host-sample positions.
-    juce::MidiBuffer segmentMidi;
-    int position = 0;
-    const auto renderUntil = [&](int end) {
-        if (end <= position)
-            return;
-        if (vcoNode != nullptr)
-            static_cast<VCOProcessor*>(vcoNode->getProcessor())->applyPendingGeneratorChange();
-        if (!segmentMidi.isEmpty() && midiProcessorNode != nullptr) {
-            // The MIDI node controls generators through direct references, not
-            // audio connections: explicitly order it before audio rendering.
-            juce::AudioBuffer<float> noAudio;
-            bool panic = false;
-            for (const auto event : segmentMidi)
-                panic = panic || event.getMessage().isAllSoundOff();
-            midiProcessorNode->getProcessor()->processBlock(noAudio, segmentMidi);
-            if (panic) {
-                // Clear residual audio at the event boundary, without rewinding
-                // MIDI state or erasing a later note-on in the same event group.
-                vcfNode->getProcessor()->releaseResources();
-                modernVcfNode->getProcessor()->releaseResources();
-                vcaNode->getProcessor()->releaseResources();
-                outputOversampling->reset();
-            }
-        }
-        for (int offset = position; offset < end;) {
-            const int length = juce::jmin(processingCapacity, end - offset);
-            juce::AudioBuffer<float> host(buffer.getArrayOfWritePointers(), buffer.getNumChannels(),
-                                          offset, length);
-            host.clear();
-            juce::dsp::AudioBlock<float> hostBlock(host);
-            auto high = outputOversampling->processSamplesUp(hostBlock);
-            const int highLength = static_cast<int>(high.getNumSamples());
-            juce::AudioBuffer<float> internal(internalAudio.getArrayOfWritePointers(),
-                                              internalAudio.getNumChannels(), highLength);
-            internal.clear();
-            audioGraph.processBlock(internal, segmentMidi);
-            segmentMidi.clear();
-            for (int channel = 0; channel < internal.getNumChannels(); ++channel)
-                juce::FloatVectorOperations::copy(high.getChannelPointer(channel),
-                                                  internal.getReadPointer(channel), highLength);
-            outputOversampling->processSamplesDown(hostBlock);
-            offset += length;
-        }
-        segmentMidi.clear();
-        position = end;
+    GetParam(static_cast<int>(cs01::Param::WaveType))
+        ->InitEnum("Wave", 1, {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"});
+    GetParam(static_cast<int>(cs01::Param::Feet))
+        ->InitEnum("Feet", 2, {"32'", "16'", "8'", "4'", "WN"});
+    GetParam(static_cast<int>(cs01::Param::LfoTarget))->InitEnum("LFO Target", 0, {"VCO", "VCF"});
+    GetParam(static_cast<int>(cs01::Param::FilterType))
+        ->InitEnum("Filter", 0, {"Original", "Modern"});
+    WDL_String home;
+    UserHomePath(home);
+#ifdef OS_MAC
+    programs.setUserDirectory(std::filesystem::path(home.Get()) / "Library" /
+                              "Application Support" / "CheapSynth01" / "UserPresets");
+#elif defined OS_WIN
+    const char* roaming = std::getenv("APPDATA");
+    if (roaming && *roaming)
+        programs.setUserDirectory(cs01::utf8Path(roaming) / "CheapSynth01" / "UserPresets");
+#endif
+    programs.setCurrentProgram(0);
+    syncParameters();
+    // A single host preset; the panel manages factory/user XML presets separately.
+    MakeDefaultPreset("Default", 1);
+#if IPLUG_EDITOR
+    mMakeGraphicsFunc = [this]() {
+        return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS,
+                            GetScaleForScreen(PLUG_WIDTH, PLUG_HEIGHT));
     };
-    for (const auto metadata : midiMessages) {
-        const int eventPosition = juce::jlimit(0, buffer.getNumSamples(), metadata.samplePosition);
-        renderUntil(eventPosition);
-        segmentMidi.addEvent(metadata.getMessage(), 0);
+    mLayoutFunc = [this](igraphics::IGraphics* graphics) { layoutEditor(graphics); };
+#endif
+}
+void CS01AudioProcessor::OnParamChange(int index) {
+    if (index < 0 || index >= cs01::parameterCount)
+        return;
+    parameters.set(static_cast<cs01::Param>(index), static_cast<float>(GetParam(index)->Value()));
+#if IPLUG_DSP
+    if (index == static_cast<int>(cs01::Param::PitchBend))
+        pendingPanelBend.store(true);
+#endif
+}
+void CS01AudioProcessor::syncParameters(bool notifyHost) {
+    for (int i = 0; i < cs01::parameterCount; ++i) {
+        GetParam(i)->Set(parameters.get(static_cast<cs01::Param>(i)));
+        SendParameterValueFromDelegate(i, GetParam(i)->Value(), false);
+        if (notifyHost)
+            InformHostOfParamChange(i, GetParam(i)->GetNormalized());
     }
-    renderUntil(buffer.getNumSamples());
-    midiMessages.clear();
-
-    audioDisplayFifo.push(buffer);
 }
-
-//==============================================================================
-//==============================================================================
-int CS01AudioProcessor::getNumPrograms() {
-    return presetManager.getNumPrograms();
-}
-
-int CS01AudioProcessor::getCurrentProgram() {
-    return presetManager.getCurrentProgram();
-}
-
-void CS01AudioProcessor::setCurrentProgram(int index) {
-    presetManager.setCurrentProgram(index);
-}
-
-const juce::String CS01AudioProcessor::getProgramName(int index) {
-    return presetManager.getProgramName(index);
-}
-
-void CS01AudioProcessor::changeProgramName(int index, const juce::String& newName) {}
-
-//==============================================================================
-void CS01AudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    presetManager.getStateInformation(destData);
-}
-
-void CS01AudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
-    presetManager.setStateInformation(data, sizeInBytes);
-}
-
-//==============================================================================
-juce::AudioProcessorEditor* CS01AudioProcessor::createEditor() {
-    return new CS01AudioProcessorEditor(*this);
-}
-bool CS01AudioProcessor::hasEditor() const {
+bool CS01AudioProcessor::SerializeState(IByteChunk& chunk) const {
+    const auto xml = programs.getStateInformation();
+    chunk.PutBytes(xml.data(), static_cast<int>(xml.size()));
     return true;
 }
-
-//==============================================================================
-juce::AudioProcessorValueTreeState::ParameterLayout CS01AudioProcessor::createParameterLayout() {
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-
-    auto vcoGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "vco", "VCO", "|",
-        std::make_unique<juce::AudioParameterChoice>(
-            juce::ParameterID{ParameterIds::waveType, 1}, "Wave Type",
-            juce::StringArray{"Triangle", "Sawtooth", "Square", "Pulse", "PWM"}, 1),
-        std::make_unique<juce::AudioParameterChoice>(
-            juce::ParameterID{ParameterIds::feet, 1}, "Feet",
-            juce::StringArray{"32'", "16'", "8'", "4'", "WN"}, 2),
-        ParameterFormatting::makeFloat(
-            juce::ParameterID{ParameterIds::pwmSpeed, 1}, "PWM Speed",
-            // CS01J owner's manual, printed page 24. Taper remains approximate.
-            juce::NormalisableRange<float>(0.6f, 12.0f, 0.01f, 0.25f), 2.0f),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::pitch, 1}, "Pitch",
-                                       juce::NormalisableRange<float>(-1.0f, 1.0f, 0.001f), 0.0f),
-        ParameterFormatting::makeFloat(
-            juce::ParameterID{ParameterIds::glissando, 1}, "Glissando",
-            juce::NormalisableRange<float>(0.0f, Constants::maxGlissandoPerSemitoneSeconds, 0.001f,
-                                           0.5f),
-            0.0f));
-    layout.add(std::move(vcoGroup));
-
-    auto vcfGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "vcf", "VCF", "|",
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::cutoff, 1}, "Cutoff",
-                                       juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.3f),
-                                       20000.0f),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::resonance, 1}, "Resonance",
-                                       juce::NormalisableRange<float>(0.0f, 1.0f), 0.2f),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::vcfEgDepth, 1},
-                                       "VCF EG Depth", juce::NormalisableRange<float>(0.0f, 1.0f),
-                                       0.0f));
-    layout.add(std::move(vcfGroup));
-
-    auto vcaGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "vca", "VCA", "|",
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::vcaEgDepth, 1},
-                                       "VCA EG Depth", juce::NormalisableRange<float>(0.0f, 1.0f),
-                                       1.0f));
-    layout.add(std::move(vcaGroup));
-
-    auto egGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "eg", "EG", "|",
-        // Uncalibrated seconds range. Owner's manual specifies only S-L;
-        // skew is a UI mapping, not a measured A2M potentiometer taper.
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::attack, 1}, "Attack",
-                                       juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f),
-                                       0.1f),
-        // Uncalibrated decay duration; not derived from the circuit's RC constant.
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::decay, 1}, "Decay",
-                                       juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f),
-                                       0.1f),
-        // Normalized sustain level. Circuit audit identifies a B10K potentiometer.
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::sustain, 1}, "Sustain",
-                                       juce::NormalisableRange<float>(0.0f, 1.0f), 0.8f),
-        // Uncalibrated release duration; retain independently of envelope shape.
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::release, 1}, "Release",
-                                       juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f),
-                                       0.1f));
-    layout.add(std::move(egGroup));
-
-    auto lfoGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "lfo", "LFO", "|",
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::lfoSpeed, 1}, "LFO Speed",
-                                       juce::NormalisableRange<float>(0.8f, 21.0f, 0.01f, 0.3f),
-                                       5.0f),
-        std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{ParameterIds::lfoTarget, 1},
-                                                     "LFO Target", juce::StringArray{"VCO", "VCF"},
-                                                     0),
-        ParameterFormatting::makeFloat(
-            juce::ParameterID{ParameterIds::modDepth, 1}, "Mod Depth",
-            juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f,
-            juce::AudioParameterFloatAttributes().withAutomatable(false)));
-    layout.add(std::move(lfoGroup));
-
-    auto modGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "mod", "Modulation", "|",
-        ParameterFormatting::makeFloat(
-            juce::ParameterID{ParameterIds::pitchBend, 1}, "Pitch Bend",
-            juce::NormalisableRange<float>(-1.0f, 1.0f), 0.0f,
-            juce::AudioParameterFloatAttributes().withAutomatable(false)),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::breathVcf, 1}, "Breath VCF",
-                                       juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::breathVca, 1}, "Breath VCA",
-                                       juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f),
-        ParameterFormatting::makeInt(juce::ParameterID{ParameterIds::pitchBendUpRange, 1},
-                                     "Pitch Bend Up", 0, 12, 12),
-        ParameterFormatting::makeInt(juce::ParameterID{ParameterIds::pitchBendDownRange, 1},
-                                     "Pitch Bend Down", 0, 12, 0));
-    layout.add(std::move(modGroup));
-
-    auto globalGroup = std::make_unique<juce::AudioProcessorParameterGroup>(
-        "global", "Global", "|",
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::volume, 1}, "Volume",
-                                       juce::NormalisableRange<float>(0.0f, 1.0f), 0.7f),
-        ParameterFormatting::makeFloat(juce::ParameterID{ParameterIds::breathInput, 1},
-                                       "Breath Input", juce::NormalisableRange<float>(0.0f, 1.0f),
-                                       0.0f),
-        std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{ParameterIds::filterType, 1},
-                                                     "Filter Type",
-                                                     juce::StringArray{"Original", "Modern"}, 0));
-    layout.add(std::move(globalGroup));
-
-    return layout;
+int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
+    if (pos < 0 || pos >= chunk.Size())
+        return -1;
+    if (!programs.setStateInformation({reinterpret_cast<const char*>(chunk.GetData() + pos),
+                                       static_cast<size_t>(chunk.Size() - pos)}))
+        return -1;
+    syncParameters();
+#if IPLUG_DSP
+    pendingPanic.store(true);
+#endif
+#if IPLUG_EDITOR
+    updateProgramLabel();
+#endif
+    return chunk.Size();
 }
-
-//==============================================================================
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
-    return new CS01AudioProcessor();
+#if IPLUG_DSP
+void CS01AudioProcessor::OnReset() {
+    engine.prepare(GetSampleRate());
+    midi.clear();
+    pendingPanic.store(false);
+    SetLatency(SynthEngine::latency);
 }
-
-void CS01AudioProcessor::updateVCAOutputConnections() {
-    // Check if audio graph nodes are initialized
-    if (vcaNode == nullptr || audioOutputNode == nullptr) {
-        return;
-    }
-
-    // Remove existing connections
-    audioGraph.removeConnection({{vcaNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
-    audioGraph.removeConnection({{vcaNode->nodeID, 0}, {audioOutputNode->nodeID, 1}});
-
-    // Get current output bus configuration
-    auto outputLayout = getBusesLayout().getMainOutputChannelSet();
-
-    // Assuming CS01VCAProcessor always outputs mono
-    if (outputLayout == juce::AudioChannelSet::stereo()) {
-        // For stereo output, duplicate mono signal to both channels
-        audioGraph.addConnection({{vcaNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
-        audioGraph.addConnection({{vcaNode->nodeID, 0}, {audioOutputNode->nodeID, 1}});
-    } else  // For mono output
-    {
-        // For mono output, connect directly
-        audioGraph.addConnection({{vcaNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
-    }
+void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
+    midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
 }
-
-void CS01AudioProcessor::processorLayoutsChanged() {
-    // Call parent class processing
-    AudioProcessor::processorLayoutsChanged();
-
-    // Update connections if bus configuration has changed
-    if (audioOutputNode != nullptr && vcaNode != nullptr) {
-        updateVCAOutputConnections();
+void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
+    if (pendingPanic.exchange(false) || midi.takeOverflow())
+        engine.panic();
+    if (pendingPanelBend.exchange(false) && !midi.containsPitchBend(frames)) {
+        const float bend = parameters.get(cs01::Param::PitchBend);
+        const int value = 8192 + static_cast<int>(std::lround(bend * (bend >= 0 ? 8191 : 8192)));
+        engine.handleMidi(cs01::MidiMessage::pitchWheel(1, value));
     }
-}
-
-// Handler for VCOProcessor's generator type changes
-void CS01AudioProcessor::handleGeneratorTypeChanged() {
-    // Check if audio graph nodes are initialized
-    if (midiProcessorNode == nullptr || vcoNode == nullptr) {
-        return;
-    }
-
-    // Update the MidiProcessor's sound generator reference
-    auto* midiProcessor = static_cast<MidiProcessor*>(midiProcessorNode->getProcessor());
-    auto* vcoProcessor = static_cast<VCOProcessor*>(vcoNode->getProcessor());
-
-    if (midiProcessor != nullptr && vcoProcessor != nullptr) {
-        midiProcessor->setSoundGenerator(vcoProcessor->getSoundGenerator());
-    }
-}
-
-// Get current filter processor
-IFilter* CS01AudioProcessor::getCurrentFilterProcessor() {
-    auto filterType =
-        static_cast<int>(apvts.getRawParameterValue(ParameterIds::filterType)->load());
-
-    if (filterType == 0)  // Original
-    {
-        if (vcfNode != nullptr && vcfNode->getProcessor() != nullptr) {
-            return dynamic_cast<IFilter*>(vcfNode->getProcessor());
+    for (int i = 0; i < frames; ++i) {
+        while (!midi.empty() && midi.peek().offset <= i) {
+            engine.handleMidi(midi.peek().message);
+            midi.remove();
         }
-    } else  // Modern
-    {
-        if (modernVcfNode != nullptr && modernVcfNode->getProcessor() != nullptr) {
-            return dynamic_cast<IFilter*>(modernVcfNode->getProcessor());
+        const float output = engine.renderSample();
+        for (int channel = 0; channel < NOutChansConnected(); ++channel)
+            outputs[channel][i] = output;
+    }
+    midi.flush(frames);
+    // IParam::Set stores an atomic; host/UI notifications use iPlug2's deferred queue.
+    const unsigned changed = parameters.takeMidiChanges();
+    for (int i = 0; i < cs01::parameterCount; ++i)
+        if (changed & (1u << i)) {
+            const auto value = parameters.get(static_cast<cs01::Param>(i));
+            GetParam(i)->Set(value);
+            SendParameterValueFromAPI(i, value, false);
         }
-    }
-
-    return nullptr;
+    if (monitorEnabled.load() && NOutChansConnected() > 0)
+        scope.ProcessBlock(outputs, frames, Scope, 1);
 }
-
-void CS01AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue) {
-    if (parameterID == ParameterIds::feet) {
-        // VCOProcessor now handles the generator type change internally
-        // and notifies us via the callback we set up
-        return;
-    }
-
-    // Graph mutations are deferred to the message thread. AsyncUpdater message
-    // posting itself is not guaranteed to be real-time safe.
-    if (parameterID == ParameterIds::lfoTarget) {
-        requestedLfoTarget.store(static_cast<int>(newValue));
-        pendingRoutingChange.store(true);
-        triggerAsyncUpdate();
-        return;
-    }
-
-    if (parameterID == ParameterIds::filterType) {
-        requestedFilterType.store(static_cast<int>(newValue));
-        pendingRoutingChange.store(true);
-        triggerAsyncUpdate();
-    }
-}
-
-void CS01AudioProcessor::handleAsyncUpdate() {
-    if (!pendingRoutingChange.exchange(false))
-        return;
-
-    applyFilterRouting(requestedFilterType.load(), requestedLfoTarget.load(),
-                       juce::AudioProcessorGraph::UpdateKind::async);
+#endif
+void CS01AudioProcessor::OnIdle() {
+#if IPLUG_DSP
+    scope.TransmitData(*this);
+#endif
 }

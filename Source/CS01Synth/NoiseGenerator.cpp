@@ -1,46 +1,26 @@
 #include "CS01Synth/NoiseGenerator.h"
 
-#include "MidiParameterValue.h"
+NoiseGenerator::NoiseGenerator(cs01::ParameterState& parameters) : parameters(parameters) {}
 
-NoiseGenerator::NoiseGenerator(juce::AudioProcessorValueTreeState& apvts) : apvts(apvts) {}
-
-void NoiseGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
-    noiseFilter.prepare(spec);
-    sampleRate = spec.sampleRate;
-
-    // Limit frequency to not exceed Nyquist frequency
-    float cutoffFreq = std::min(12000.0f, static_cast<float>(spec.sampleRate * 0.45f));
-
-    *noiseFilter.coefficients =
-        *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(spec.sampleRate, cutoffFreq);
+void NoiseGenerator::prepare(double rate) {
+    sampleRate = rate;
+    noiseFilter.firstOrderLowPass(rate, std::min(12000.0, rate * .45));
+    randomState = 0x6d2b79f5u;
+    reset();
 }
-
-void NoiseGenerator::renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
-                                     int numSamples) {
-    // Only generate noise if note is on
-    if (isActive()) {
-        // Process tail off if needed
-        if (tailOff) {
-            tailOffCounter += numSamples;
-
-            // Check if tail off is complete
-            if (tailOffCounter >= tailOffDuration) {
-                tailOff = false;
-                noteOn = false;
-            }
-        }
-
-        // Generate white noise
-        for (int sample = 0; sample < numSamples; ++sample) {
-            float whiteNoise = random.nextFloat() * 2.0f - 1.0f;
-            float filteredNoise = noiseFilter.processSample(whiteNoise);
-
-            for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
-                buffer.setSample(channel, startSample + sample, filteredNoise);
-            }
-        }
+float NoiseGenerator::renderSample() {
+    if (!isActive())
+        return 0;
+    randomState ^= randomState << 13;
+    randomState ^= randomState >> 17;
+    randomState ^= randomState << 5;
+    const float noise = static_cast<float>(static_cast<double>(randomState) / 4294967295.0 * 2 - 1);
+    const float output = noiseFilter.processSample(noise);
+    if (tailOff && ++tailOffCounter >= tailOffDuration) {
+        tailOff = false;
+        noteOn = false;
     }
-    // If not active, nothing to do
+    return output;
 }
 
 // INoteHandler implementation
@@ -58,7 +38,7 @@ void NoiseGenerator::stopNote(bool allowTailOff) {
         tailOff = true;
 
         // Get release time from parameter (convert to samples)
-        float releaseSecs = getMidiParameterValue(apvts, ParameterIds::release);
+        float releaseSecs = parameters.get(ParameterIds::release);
         tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
         tailOffCounter = 0;
     } else {

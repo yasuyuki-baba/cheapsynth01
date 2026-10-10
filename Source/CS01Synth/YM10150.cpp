@@ -57,7 +57,7 @@ void YM10150::reset() {
         entry.second->reset();
 }
 float YM10150::generateWaveform(float masterSquare, float phase, float increment, float sampleRate,
-                                juce::dsp::Oscillator<double>& pwmLfo) {
+                                cs01::Oscillator& pwmLfo) {
     if (selected == nullptr)
         return masterSquare;
     return shapeOutput(

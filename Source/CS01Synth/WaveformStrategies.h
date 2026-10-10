@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/IWaveformStrategy.h"
 
@@ -49,7 +49,7 @@ class WaveformTimeConstants {
 class TriangleWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
+                   float& previousSample, cs01::Oscillator& pwmLfo) override {
         // Use internal state like other waveforms for independence
         timeConstants.update(sampleRate);
         triangleIntegrator += masterSquare * phaseIncrement * 8.0f;
@@ -66,7 +66,7 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
         float triangleWave = output * 1.2f;
 
         // Add slight harmonic coloration typical of CS-01
-        triangleWave += std::sin(triangleWave * juce::MathConstants<float>::pi) * 0.1f;
+        triangleWave += std::sin(triangleWave * std::numbers::pi_v<float>) * 0.1f;
 
         return triangleWave;
     }
@@ -88,7 +88,7 @@ class TriangleWaveformStrategy : public IWaveformStrategy {
 class SawtoothWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
+                   float& previousSample, cs01::Oscillator& pwmLfo) override {
         // Convert square to sawtooth using integration-like process
         timeConstants.update(sampleRate);
         sawtoothState += (masterSquare > 0 ? phaseIncrement : -phaseIncrement) * 2.0f;
@@ -98,7 +98,7 @@ class SawtoothWaveformStrategy : public IWaveformStrategy {
         float sawValue = 1.0f - (phase * 2.0f) + sawtoothState * 0.1f;
 
         // Emphasize higher harmonics (CS-01 characteristic)
-        return sawValue * 0.7f + std::sin(sawValue * juce::MathConstants<float>::pi) * 0.3f;
+        return sawValue * 0.7f + std::sin(sawValue * std::numbers::pi_v<float>) * 0.3f;
     }
 
     void reset() override {
@@ -116,7 +116,7 @@ class SawtoothWaveformStrategy : public IWaveformStrategy {
 class SquareWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
+                   float& previousSample, cs01::Oscillator& pwmLfo) override {
         // Use master square directly
         return masterSquare;
     }
@@ -128,7 +128,7 @@ class SquareWaveformStrategy : public IWaveformStrategy {
 class PulseWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
+                   float& previousSample, cs01::Oscillator& pwmLfo) override {
         // Generate pulse from master timing with ~25% duty cycle
         float t = phase;
         float pulseWidth = 0.25f;
@@ -149,11 +149,11 @@ class PulseWaveformStrategy : public IWaveformStrategy {
 class PWMWaveformStrategy : public IWaveformStrategy {
    public:
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
-                   float& previousSample, juce::dsp::Oscillator<double>& pwmLfo) override {
+                   float& previousSample, cs01::Oscillator& pwmLfo) override {
         // Generate PWM from master timing with LFO modulation
         float pwmModulation = pwmLfo.processSample(0.0f);
-        float pulseWidth = 0.5f + (pwmModulation * 0.4f);     // 10% to 90% range
-        pulseWidth = juce::jlimit(0.05f, 0.95f, pulseWidth);  // Safety clamp
+        float pulseWidth = 0.5f + (pwmModulation * 0.4f);   // 10% to 90% range
+        pulseWidth = std::clamp(pulseWidth, 0.05f, 0.95f);  // Safety clamp
 
         float t = phase;
         float value = (t < pulseWidth) ? 1.0f : -1.0f;

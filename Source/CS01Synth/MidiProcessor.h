@@ -1,6 +1,7 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/MidiMessage.h"
+#include "Parameters.h"
 
 #include <array>
 #include <atomic>
@@ -9,49 +10,14 @@
 class EGProcessor;
 class ISoundGenerator;
 
-class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
+class MidiProcessor {
    public:
-    MidiProcessor(juce::AudioProcessorValueTreeState& apvts);
-    ~MidiProcessor() override;
+    MidiProcessor(cs01::ParameterState& parameters);
+    ~MidiProcessor();
 
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override;
-    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
-
-    const juce::String getName() const override {
-        return "MIDI Processor";
-    }
-    juce::AudioProcessorEditor* createEditor() override {
-        return nullptr;
-    }
-    bool hasEditor() const override {
-        return false;
-    }
-    bool acceptsMidi() const override {
-        return true;
-    }
-    bool producesMidi() const override {
-        return false;
-    }
-    bool isMidiEffect() const override {
-        return false;
-    }
-    double getTailLengthSeconds() const override {
-        return 0.0;
-    }
-    int getNumPrograms() override {
-        return 1;
-    }
-    int getCurrentProgram() override {
-        return 0;
-    }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override {
-        return {};
-    }
-    void changeProgramName(int, const juce::String&) override {}
-    void getStateInformation(juce::MemoryBlock&) override {}
-    void setStateInformation(const void*, int) override {}
+    void prepareToPlay(double sampleRate, int samplesPerBlock);
+    void releaseResources();
+    void handleMidiEvent(const cs01::MidiMessage&);
 
     // Set sound generator
     void setSoundGenerator(ISoundGenerator* generator) {
@@ -97,20 +63,14 @@ class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
         Release,
         Count
     };
-    struct ControlState {
-        juce::RangedAudioParameter* parameter = nullptr;
-        std::atomic<bool> pending{false};
-    };
-    std::array<ControlState, static_cast<size_t>(Control::Count)> controls;
+    cs01::ParameterState& parameters;
     void updateParameter(Control control, float normalizedValue);
-    void timerCallback() override;
 
     // MIDI processing methods
-    void handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&);
-    void handleNoteOn(const juce::MidiMessage& midiMessage);
-    void handleNoteOff(const juce::MidiMessage& midiMessage);
-    void handlePitchWheel(const juce::MidiMessage& midiMessage);
-    void handleControllerMessage(const juce::MidiMessage& midiMessage);
+    void handleNoteOn(const cs01::MidiMessage& midiMessage);
+    void handleNoteOff(const cs01::MidiMessage& midiMessage);
+    void handlePitchWheel(const cs01::MidiMessage& midiMessage);
+    void handleControllerMessage(const cs01::MidiMessage& midiMessage);
 
     // 14bit CC parameter update methods
     void updateModulationParameter();
@@ -130,6 +90,4 @@ class MidiProcessor : public juce::AudioProcessor, private juce::Timer {
     int breathMSB = 0, breathLSB = 0;          // CC #2/#34
     int volumeMSB = 0, volumeLSB = 0;          // CC #7/#39
     int glissandoMSB = 0, glissandoLSB = 0;    // CC #5/#37
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiProcessor)
 };

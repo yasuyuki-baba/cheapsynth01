@@ -13,3 +13,7 @@ references/
 
 # Clinerules
 .clinerules/
+
+# Separate core/native migration builds
+build-*/
+/test_results.xml

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 /**
  * ISoundGenerator - Interface for sound generation with MIDI note handling
@@ -31,9 +31,8 @@ class ISoundGenerator {
     virtual void restorePlaybackState(const PlaybackState&) {}
 
     // Sound generation methods
-    virtual void prepare(const juce::dsp::ProcessSpec& spec) = 0;
-    virtual void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
-                                 int numSamples) = 0;
+    virtual void prepare(double sampleRate) = 0;
+    virtual float renderSample() = 0;
 
     // LFO modulation - with default implementation
     virtual void setLfoValue(float value) {}

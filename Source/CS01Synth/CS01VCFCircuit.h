@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/ExperimentalOriginalVCF.h"
 
@@ -37,12 +37,11 @@ class CS01VCFCircuit {
     // Input stage model
     struct InputStage {
         float prevSample = 0.0f;
-        juce::dsp::IIR::Filter<float> dcBlocker;
+        cs01::Biquad dcBlocker;
 
         void prepare(double sampleRate) {
             dcBlocker.reset();
-            dcBlocker.coefficients =
-                juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 20.0f);
+            dcBlocker.highPass(sampleRate, 20.0);
         }
 
         void reset() {
