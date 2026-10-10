@@ -54,8 +54,10 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     };
     auto fader = [g, parameterStyle](IRECT bounds, Param parameter, const char* title,
                                      int tag = kNoTag) {
-        auto* control = new HardwareSlider(bounds.GetPadded(-2.f, 0.f, -2.f, 0.f), index(parameter),
-                                           title, parameterStyle, true);
+        // iPlug2 fills empty labels with the parameter name; these use separate panel labels.
+        auto* control =
+            new HardwareSlider(bounds.GetPadded(-2.f, 0.f, -2.f, 0.f), index(parameter), title,
+                               parameterStyle.WithShowLabel(*title != '\0'), true);
         const auto help = std::string(cs01::definition(parameter).name) +
                           ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
                           "Click the value to type; double-click the slider to reset.";
