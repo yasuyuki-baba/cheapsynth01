@@ -20,7 +20,8 @@ slider caps with blue-green index stripes, printed scale marks and dark knobs
 with white pointers. A gray casing, charcoal panel and off-white section labels
 take visual cues from the [CS01 in Yamaha's collection](https://www.yamaha.com/en/about/experience/innovation-road/collection/detail/2008/).
 The header spells CheapSynth01 in outlined vector lettering with rounded joins
-and a slight slant; Synth uses filled lettering with fine horizontal stripes. No hardware photograph or Yamaha logo is bundled.
+and upright strokes; Synth uses filled lettering with fine horizontal stripes.
+No hardware photograph or Yamaha logo is bundled.
 Sliders and knobs display
 editable values, support fine adjustment and reset to defaults using their
 standard interaction. Bend ranges

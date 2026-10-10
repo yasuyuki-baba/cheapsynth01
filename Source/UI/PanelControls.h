@@ -24,7 +24,7 @@ class BrandMark final : public IControl {
         SetIgnoreMouse(true);
     }
     void Draw(IGraphics& g) override {
-        // Outline lettering retains the product name, with round joins and a slight slant.
+        // Outline lettering retains the product name, with round joins and upright strokes.
         const float scale = (mRECT.W() - 12.f) / 212.f;
         struct Outline {
             std::vector<std::pair<float, float>> points;
@@ -38,8 +38,7 @@ class BrandMark final : public IControl {
                           bool closed = false) {
             Outline outline{{}, closed, striped};
             for (const auto& [x, y] : points)
-                outline.points.emplace_back(mRECT.L + 5.f +
-                                                (offset + x + (28.f - y) * .09f) * scale,
+                outline.points.emplace_back(mRECT.L + 5.f + (offset + x) * scale,
                                             mRECT.T + 7.f + y * .85f);
             outlines.push_back(std::move(outline));
         };
