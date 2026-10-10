@@ -6,10 +6,10 @@ the removed biquad and cannot be regenerated from the current source tree.
 
 ## Meaning and limits
 
-These outputs are regression characterization: deterministic descriptions of
-the current model and its observed numeric behavior, useful for comparing a
-future code revision against this baseline. They are not correctness limits,
-and benchmark timings are machine, compiler and load dependent.
+These outputs include ideal analytic references and historical model observations.
+They provide comparisons rather than correctness limits and do not uniformly
+capture current production DSP. Benchmark timings are machine, compiler and
+load dependent.
 
 The archived VCF response used the former IG02610 biquad equation. Its harmonics
 CSV is a documented polynomial coloration estimate, not measured steady-state
@@ -19,7 +19,7 @@ the stage mask enumerates which are included. Its phase is the sum of the
 one-pole phase responses. Frequencies include the low notes associated with
 32-foot operation. VCO rows are ideal analytic Fourier references, rather than
 the oversampled YM10150 output. EG trajectory is a reproducible linear ADSR
-reference, not a capture of JUCE's stateful envelope implementation. Thus the
+reference, not a capture of the production stateful exponential EG. Thus the
 non-VCF CSVs are starting reference probes and not execution captures of the
 plugin.
 

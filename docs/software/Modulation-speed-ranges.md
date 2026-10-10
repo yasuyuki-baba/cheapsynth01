@@ -1,6 +1,8 @@
 # CS-01 modulation speed ranges
 
-Source: local `docs/tech/CS01J.pdf`, PDF page 13, printed page 24.
+Recorded source: the Japanese owner's manual previously stored as
+`docs/tech/CS01J.pdf`, PDF page 13 / printed page 24. The original is absent
+from this checkout; see [source availability](../hardware/Source-catalog.md).
 
 - LFO: 0.8–21 Hz.
 - PWM: 0.6–12 Hz.
@@ -14,4 +16,6 @@ Existing DAW automation using normalized positions may change frequency because
 the ranges changed; this is not a transparent automation-compatible update.
 DSP unit tests may retain broader test-only ranges to isolate stopped modulation.
 
-Endpoint/state-restoration tests do not establish modulation-period accuracy.
+Endpoint/state-restoration tests alone do not establish modulation-period accuracy.
+The separate 2 Hz PWM period check is described in
+[oversampling validation](Oversampling-validation.md); it does not cover the full range.

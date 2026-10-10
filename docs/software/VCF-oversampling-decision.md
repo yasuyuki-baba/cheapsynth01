@@ -16,7 +16,7 @@ segments before conversion to internal sample counts.
 A new integration test covers 44.1/48/96 kHz, partitions 7/64/256, preparation
 capacity 64, mid-block MIDI events, and release/reprepare reproducibility.
 It compares outputs within numerical tolerances, not hardware responses.
-The latest standalone build succeeds. Whole-graph observations and the latency
+The Standalone build passed at the recorded whole-graph implementation revision. Whole-graph observations and the latency
 reporting policy are recorded below; they do not establish total alias reduction.
 
 ## Output timing policy and final observations
@@ -51,9 +51,9 @@ at 44.1 kHz, cutoff 5 kHz, resonance 0.7, amplitude 0.01, input 10 kHz.
 Changing the digital biquad's internal rate changes its frequency warping;
 alias reduction must not be presented as a transparent filter replacement.
 
-## Production change
+## Historical biquad change
 
-The empirical input-level follower now preserves its 44.1 kHz time constant
+The empirical input-level follower was changed to preserve its 44.1 kHz time constant
 using pow(0.99, 44100 / processingRate). This is sample-rate consistency,
 not hardware calibration. No production VCF resampler was added.
 

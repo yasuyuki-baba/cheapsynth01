@@ -29,8 +29,10 @@ CPU benchmark or a real-time deadline guarantee; allocation counting was not don
 
 Selected bins still reach approximately -35 dBc for a 5 kHz sawtooth.
 Oversampling does not make all waveforms alias-free.
-The sample-wise implementation is retained; no block-processing optimization
-was justified by the VCO-only timing observation.
+The graph uses the optimized `ToneGenerator::renderModulatedBlock` path while
+advancing LFO/PWM/glissando and oscillator state sample by sample. The older
+VCO-only timing above does not measure that optimization; its exact comparisons
+and whole-graph observations are recorded in [the stability audit](Audit-stability.md).
 
 In tested high-note conditions output first exceeded 1e-5 within one period.
 This is an onset observation, not a latency measurement. IIR group delay depends
@@ -47,9 +49,12 @@ with 64/256-sample blocks. MIDI control is explicitly applied before graph audio
 rendering, since direct generator references do not impose graph execution order.
 A separate test verifies that mid-block note-off leaves earlier output unchanged
 and changes output after the event. The audit adds whole-graph release lifetime checks with partitions 1/7/64,
-Tone/Noise switching and depth 0/1. These distinguish source termination from
-filter/coupling/downsampling residual decay; they do not assert bitwise full-graph
-partition equivalence. No claim of complete sample-accurate
+Tone/Noise switching and depth 0/1. Those historical checks distinguished source
+termination from filter/coupling/downsampling residual decay. Production now
+keeps the selected source free-running and applies an independent VCA note gate;
+see [note onset continuity](Note-onset-continuity.md) for the current silence and
+transition checks. The historical release checks do not establish bitwise
+full-graph partition equivalence. No claim of complete sample-accurate
 envelope/modulation alignment is made. OS/device latency and hardware fidelity
 are outside these checks.
 Current audit conditions, source revision, commands and limitations: [Audit-stability.md](Audit-stability.md).

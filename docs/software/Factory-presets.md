@@ -1,7 +1,8 @@
 # Factory presets transcribed from the CS01 owner's manual
 
-Source: the supplied Japanese Yamaha CS01 owner's manual PDF
-(`d3af9c5b-8449-4b39-8f0d-d0521f2875a5.pdf`). Sound variations are on
+Recorded source: the supplied Japanese Yamaha CS01 owner's manual PDF,
+which is absent from this checkout; see [the source catalog](../hardware/Source-catalog.md).
+Sound variations are on
 printed pages 28–33 (PDF pages 15–18); the specifications are on printed
 page 24. The six existing named programs now use those diagrams. Default
 is an initialization patch, not a manual sound variation.

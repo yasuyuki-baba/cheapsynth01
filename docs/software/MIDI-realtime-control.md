@@ -154,4 +154,4 @@ This removes the production attachments' AsyncUpdater posting path, not JUCE's
 host parameter listener mutexes or the graph callback locks. The Linux probe does
 not interpose all system message APIs or shared-library allocation. This work
 does not establish a lock-free callback or a hard deadline guarantee. See the
-audit report for counts, timing percentiles, conditions and remaining work.
+[audit report](Audit-stability.md) for counts, timing percentiles, conditions and verification limits.

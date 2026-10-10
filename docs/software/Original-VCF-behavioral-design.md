@@ -4,9 +4,10 @@
 
 The external CS-01 wiring and the existence of the IG02610 filter IC are
 circuit facts. Existing Phase 2 response observations are software
-characterizations, not measurements of a physical unit. No Phase 2 benchmark
-or machine-readable measurement artifact is present in this repository
-checkout, and no hardware capture was supplied for this change. The filter
+characterizations, not measurements of a physical unit. Historical machine-readable
+comparisons are present under `artifacts/dsp/`; their source/toolchain provenance
+is incomplete, as recorded in `artifacts/dsp/provenance.json`. No matched hardware
+capture is recorded. The filter
 internal topology, cutoff law, resonance curve, and distortion remain
 unvalidated against an IG02610.
 
@@ -79,7 +80,7 @@ evidence.
 
 The processor maps EG, LFO, and breath modulation to semitone offsets and
 combines them with an `exp2` ratio before sending cutoff in hertz to the core.
-This gives the behavioral model a smooth exponential frequency response to
+This gives the behavioral model an exponential cutoff-frequency mapping for
 those controls. It is not a calibrated volts-per-octave or CV-to-bias law for
 IG02610; those mappings remain unknown.
 
@@ -107,8 +108,10 @@ The behavioral core is a topology-preserving-transform state-variable
 low-pass. Its integrator state does not depend on a stored biquad coefficient
 set, so cutoff can be changed every sample without coefficient history
 interpolation. The mapping uses one tangent and two `tanh` evaluations per
-sample. The state update is deterministic, double precision, and bounded by
-the selected cutoff interval. Compared with a linear TPT SVF, the nonlinear
+sample. The state update is deterministic and uses double precision; coefficient
+design uses a bounded cutoff interval, and the returned output has a safety clamp.
+These bounds do not independently prove that every internal state is bounded
+under arbitrary invalid inputs. Compared with a linear TPT SVF, the nonlinear
 feedback and integrator input make the response level dependent and generate
 additional harmonics. The extra nonlinear stage has a measurable CPU cost;
 updated same-machine compiled benchmarks are recorded below.
@@ -126,9 +129,8 @@ provisional: minimum/maximum damping, feedback drive, and integrator-input drive
 The unchanged maximum output is separately named in `SafetyParameters`; it is
 an implementation bound, not a calibration target.
 No repeatable hardware measurements calibrate these values. The processor's
-cutoff limits and
-two-position resonance control is inherited behavior, not claims about a control
-voltage law.
+cutoff limits and two-position resonance control are inherited behavior, not
+claims about a control voltage law.
 
 ## Validation coverage and limitations
 

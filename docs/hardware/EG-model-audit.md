@@ -102,8 +102,9 @@ it is not a measurement of logic thresholds or transistor saturation.
 These conditions expose an asynchronous feedback route from E through
 FF-S2/pin 14 and D38 to FF-S7/pin 8. Thus attack termination must be
 analyzed as a coupled latch/diode network, not just E crossing a comparator
-threshold. The conditional table below resolves diode polarity and the
-qualitative sequence, but valid gate/input voltage margins remain unproven.
+threshold. The conditional table below uses the recorded diode polarity to
+predict latch states. Valid gate/input voltage margins and the physical
+transistor switching sequence remain unproven.
 Pin 11 is not used by
 the transcribed EG paths; no connection is inferred for it here.
 
@@ -118,7 +119,9 @@ short between gate and pin 14. Its low voltage includes a forward diode
 drop; valid circuit input margins are not established.
 
 The following is a **conditional circuit prediction**, not measured gate
-timing. H is near ground and L is near -9 V; assume the gate and
+timing. Its storage-node branch column retains the intended interpretation;
+the inconsistent Tr13 mapping prevents establishing actual attack conduction.
+H is near ground and L is near -9 V; assume the gate and
 diode-clamped reset voltages satisfy IC4 input limits, and the transistor
 drives are sufficient. Tr8 and Tr13 are PNP; Tr9 and Tr11 are NPN.
 
@@ -130,12 +133,13 @@ drives are sufficient. Tr8 and Tr13 are PNP; Tr9 and Tr11 are NPN.
 | Gate H, E later leaves L | FF-S2 retains its set state; pin 14 remains L and keeps FF-S7 reset. | Decay/sustain branch persists; attack does not automatically restart |
 | Gate returns L during any phase | Pin 3 resets FF-S2 and D37 asserts FF-S7 reset independently of E. | Release branch selected under the drive assumptions above |
 
-This resolves the qualitative attack-to-decay feedback mechanism. It does
-not determine the voltage at which E asserts set, finite stage times,
+This describes a conditional latch feedback mechanism. It does not establish
+the physical attack-to-decay sequence or determine the voltage at which E
+asserts set, finite stage times,
 transistor voltage drops, or loaded sustain equilibrium. Power-up state
 and very short gate pulses also remain outside this settled-state table.
-Do not integrate this prediction as calibrated DSP until those quantities
-and the gate timing are established.
+These unresolved quantities and gate timing prevent treating this prediction
+as calibrated DSP.
 
 The manufacturer truth table explicitly gives **reset priority** when both
 asynchronous inputs are low. Do not substitute the simultaneous-assertion
@@ -170,11 +174,13 @@ PDF page 2 (printed page 575) specifies recommended supply voltage of 3--18 V
 relative to VSS and input voltage between VSS and VDD. Electrical tables use
 VSS = 0 V and supply points of 5, 10 and 15 V. These input-level specifications
 are not an exact E-node trip voltage, and must not be directly interpreted as
-absolute CS-01 voltages without identifying pins 5 and 13 in the circuit.
+absolute CS-01 voltages without accounting for the recorded ground/-9 V
+supply connections and their unmeasured operating voltages.
 
-The transcription does not fully establish pins 8, 3, 5 and 13 or all
-clock/J/K and inter-flip-flop connections. Previously mapped passive paths
-remain recorded separately from these unresolved connections.
+The table above records pins 8, 3, 5 and 13, fixed clock/J/K connections,
+and the D38 inter-flip-flop path. Their loaded voltages, input margins and
+switching timing remain unmeasured. The original drawing is absent from this
+checkout, so this review cannot independently verify that transcription.
 
 ### What can now be calculated, and what cannot
 

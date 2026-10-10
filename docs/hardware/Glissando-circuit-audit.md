@@ -69,4 +69,6 @@ three rates, and the reference output is checked for nonzero energy.
 These are application-driven parameter changes, not arbitrary sample-offset
 host automation within an unsegmented block.
 
-Debug and Release full suites pass: 135 tests each, exit code 0.
+Recorded validation at the time of this implementation: Debug and Release
+full suites passed 135 tests each, exit code 0. This is a historical count,
+not a new full-suite run for the current checkout.

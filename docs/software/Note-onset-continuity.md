@@ -100,8 +100,9 @@ formatter and four EG algebra checks also passed. The tested source commit
 is `b914171`; subsequent documentation records the inconclusive listening result.
 
 After the residual-state EG update (`cb5d4a6`), all 270 cases passed, including
-both optional capture tests. Current diagnostic captures are in the ignored
-`build/note-onset/residual-eg-final` directory. Archived comparison WAVs above
+both optional capture tests. That run wrote diagnostic captures to the ignored
+`build/note-onset/residual-eg-final` directory; those files are not tracked in
+the repository. Archived comparison WAVs above
 still describe the initial implementation; no listening result for the EG update is recorded.
 
 macOS CI exposed a rounding regression in the fully open VCA path: adding the

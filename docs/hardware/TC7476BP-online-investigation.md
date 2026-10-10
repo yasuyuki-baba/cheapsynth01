@@ -36,7 +36,8 @@ has priority when both are asserted. Guaranteed voltage limits do not establish
 an exact analog switching voltage in the CS-01 circuit.
 
 The [EG circuit audit](EG-model-audit.md) records the pin correspondence,
-conditional logic states and unresolved reset/supply/clock/J/K connections.
+conditional logic states and recorded reset/supply/clock/J/K connections.
+Loaded voltages and switching timing remain unverified.
 Its Tr13 attack-drive mapping is inconsistent as transcribed. A complete
 physical EG operating-state model is not established.
 
