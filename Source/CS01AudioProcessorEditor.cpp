@@ -73,11 +73,11 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         return g->AttachControl(control);
     };
     auto choices = [g, choiceStyle](IRECT bounds, Param parameter,
-                                    std::initializer_list<const char*> options) {
+                                    std::initializer_list<const char*> options, int tag = kNoTag) {
         auto* control = new IVRadioButtonControl(bounds, index(parameter), options, "", choiceStyle,
                                                  EVShape::Rectangle, EDirection::Vertical, 6.f);
         control->SetTooltip(cs01::definition(parameter).name.data());
-        return g->AttachControl(control);
+        return g->AttachControl(control, tag);
     };
     auto number = [g, style](IRECT bounds, Param parameter) {
         const auto& def = cs01::definition(parameter);
@@ -220,10 +220,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                                             choiceStyle));
     fader(column(6, 7), Param::Cutoff, "CUTOFF");
     fader(column(7, 8), Param::Resonance, "", Resonance);
-    g->AttachControl(new IVTabSwitchControl(column(7, 8, 195, 259), index(Param::Resonance),
-                                            {"LOW", "HIGH"}, "", choiceStyle, EVShape::Rectangle,
-                                            EDirection::Vertical),
-                     ResonanceHigh);
+    choices(column(7, 8, 195, 259), Param::Resonance, {"LOW", "HIGH"}, ResonanceHigh);
     parameterLabel(column(7, 8, 338, 370), "RES");
     fader(column(8, 9), Param::VcfEgDepth, "EG DEPTH");
     fader(column(9, 10), Param::VcaEgDepth, "EG DEPTH");

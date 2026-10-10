@@ -27,8 +27,9 @@ editable values, support fine adjustment and reset to defaults using their
 standard interaction. Bend ranges
 use number boxes with increment/decrement buttons and direct text entry.
 Tooltips describe the interactions. Waveform, feet and LFO target use radio
-buttons; Original VCF exposes LOW/HIGH tabs, while Modern VCF exposes a continuous
-fader. The LOW/HIGH tabs write normalized endpoints 0/1; the original filter
+buttons; Original VCF exposes LOW/HIGH radio buttons with the same styling,
+while Modern VCF exposes a continuous fader. The LOW/HIGH radio buttons write
+normalized endpoints 0/1; the original filter
 continues mapping them to its modeled resonance values 0.2/0.7. The header
 contains the MEMORY preset selector, save/rename/delete and XML import. Naming
 uses inline text entry in the preset display; factory rename/delete are disabled.
