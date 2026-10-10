@@ -1,8 +1,10 @@
 # DSP responsibility boundaries
 
 These production classes are provisional behavioral models, not verified internal
-IC reconstructions. This naming/stage refactor preserves algorithms, arithmetic
-order, constants, parameter mappings, routing, smoothing, and serialized state.
+IC reconstructions. The original naming/stage refactor preserved algorithms,
+arithmetic order, constants, parameter mappings, routing, smoothing and serialized
+state. The signal paths below include subsequent production changes; the dated
+refactor validation at the end remains a historical result.
 
 ## Signal paths
 
@@ -18,10 +20,10 @@ ModernVCFProcessor (controls and modulation at the graph processing rate)
      -> IG05630BehavioralModel (nonlinear four-pole behavioral filter + safety)
      -> unity external coupling (no additional stage)
 
-VCAProcessor (controls, EG-depth smoothing, panel volume mapping)
+VCAProcessor (controls, EG-depth smoothing, independent note gate, panel volume mapping)
   -> empiricalInputCoupling (40 Hz second-order high-pass)
   -> safetyDcBlocker (additional 20 Hz second-order high-pass)
-  -> IG02600BehavioralModel (EG/breath gain composition + empirical saturation)
+  -> IG02600BehavioralModel (EG/note-gate/breath gain composition + empirical saturation)
   -> EmpiricalVCACoupling (buffer-input coupling)
   -> Tr7EmpiricalBuffer (asymmetric gain + difference-based treble emphasis)
   -> EmpiricalVCACoupling (output coupling)
@@ -33,6 +35,20 @@ prepares the graph at the internal rate; individual VCF processors do not own
 oversampling stages. Original retains its empirical High/Low values 0.7f/0.2f
 and the 0.5f selection threshold. Both processors retain empirical modulation
 spans of 36 semitones for EG and 24 for LFO/breath.
+
+Production keeps the filter/LFO graph connections fixed and selects enabled
+inputs, outputs and modulation at the start of each host audio callback.
+Tone/noise generation is free-running in the graph, even when the VCA is silent.
+EGProcessor supplies both the envelope and a preallocated sample-wise note gate
+to VCAProcessor. The gate ramps up over 1 ms and releases over the configured
+release duration; a release-time edit uses the EG's recalculated remaining time.
+
+The VCA's conceptual envelope/depth blend is
+`(1 - depth) * noteGate + depth * EG`, before breath and volume scaling.
+The implementation preserves the original fully open-gate arithmetic and applies
+a correction only to the non-EG term while the gate moves. This protects the
+existing exact pre-refactor comparison. See [note onset continuity](Note-onset-continuity.md)
+and [the stateful EG policy](EG-stateful-model.md) for behavior and limitations.
 
 The wrapper names `CS01VCFCircuit` and `CS01IIVCFCircuit` remain. Their names
 identify the external circuit boundary, not a claim that the IC internals or
@@ -47,8 +63,8 @@ new safety stage is invented where the existing path is unity.
 - **BehavioralModel:** `IG02610BehavioralModel` owns the two-state nonlinear TPT
   behavior. `IG05630BehavioralModel` owns the two-section four-pole TPT cascade
   with one-sample resonant feedback; its internal topology is a software choice.
-  `IG02600BehavioralModel` owns the provisional normalized EG/breath gain and
-  saturation. These names do not assert internal IC topology knowledge.
+  `IG02600BehavioralModel` owns the provisional normalized EG/note-gate/breath
+  gain and saturation. These names do not assert internal IC topology knowledge.
 - **Empirical:** uncalibrated damping/Q, drive, resonance curves, coupling
   frequencies/poles, Tr7 gains/treble emphasis, and VCA saturation constants are
   explicit in the corresponding stages or `EmpiricalParameters`. VCA coupling
@@ -65,8 +81,15 @@ new safety stage is invented where the existing path is unity.
 Safety that depends on model states remains next to the state update. In
 particular, Modern resets its integrators on nonfinite output and keeps the
 unlimited output in its feedback state before limiting the returned sample.
-Original retains its existing finite-output substitution without resetting its
-integrators. Moving those guards into a generic wrapper would change semantics.
+The Original model itself retains finite-output substitution without resetting
+its integrators. Its `CS01VCFCircuit` wrapper additionally resets the model and
+both coupling stages on nonfinite input or a nonfinite observed intermediate
+or output, returning zero for that sample. The wrapper does not detect model
+values already replaced by the model's own guard.
+VCAProcessor resets its internal processing state on nonfinite audio/EG input
+and substitutes zero; nonfinite EG depth is replaced with zero before updating
+the depth ramp. Model guards and wrapper recovery cover different boundaries
+and must not be merged as if they had identical semantics.
 
 ## Preservation checks
 

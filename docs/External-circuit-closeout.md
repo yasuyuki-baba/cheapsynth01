@@ -4,11 +4,16 @@
 
 Production EG now uses explicit idle, attack, decay, sustain and release states
 with a stateful exponential recurrence and provisional curvature k = 2. Each
-moving stage begins at the current level and reaches its endpoint after the
-configured duration. Retriggers and active-stage edits preserve level continuity;
-sustain edits slew using decay time. Parameter identifiers, ranges and preset
-units remain unchanged. See [the current EG policy](EG-stateful-model.md) for
-implementation and regression coverage.
+moving stage retains its current level. A fresh attack from zero and newly
+entered decay/release use the configured reference duration; an attack
+retriggered from a residual level reaches its endpoint sooner because its
+provisional branch target is fixed. Active-stage time edits change the speed
+and recalculate the remaining threshold time without restarting a full stage
+or redefining its target. Sustain edits select a new decay branch.
+Parameter identifiers, ranges and preset units remain unchanged. See
+[the current EG policy](EG-stateful-model.md) for implementation and regression
+coverage, and [note onset continuity](Note-onset-continuity.md) for the separate
+VCA note gate and free-running sources.
 
 This software policy supersedes both the linear JUCE ADSR and the intermediate
 k = 0.5 output-shaping implementation. Neither the current curvature nor the
@@ -24,10 +29,18 @@ validation counts for the current implementation.
 ## Scope and decision
 
 This closes the currently supportable external-circuit analysis pass, not the
-reconstruction or hardware calibration of the CS-01. Production DSP, parameter
-ranges and presets are unchanged. Existing local schematics and manufacturer
-documents support connections and conditional equations, but do not provide all
-loaded device operating points needed for a calibrated replacement.
+reconstruction or hardware calibration of the CS-01. At the historical audit
+stage, production DSP, parameter ranges and presets were unchanged; subsequent
+software changes are summarized above. The schematics and manufacturer
+documents inspected then support connections and conditional equations, but
+do not provide all loaded device operating points needed for a calibrated
+replacement. Originals are absent from this checkout; see the
+[source catalog](Source-catalog.md).
+
+The later [EG circuit audit correction](EG-model-audit.md) flags an electrically
+inconsistent Tr13 attack-drive transcription. Recheck device polarity,
+terminals and IC4 output mapping before treating the archived conditional
+attack-drive sequence as established hardware behavior.
 
 ## Completed evidence and implementation work
 

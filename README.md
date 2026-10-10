@@ -20,7 +20,12 @@ CheapSynth01 is a JUCE-based software emulation of an early 80's compact monopho
 
 ## Signal Flow Architecture
 
-CheapSynth01 uses JUCE's AudioProcessorGraph to implement a modular synthesis architecture. The signal flow changes dynamically based on parameter settings.
+CheapSynth01 uses JUCE's AudioProcessorGraph with fixed filter and LFO connections.
+At the start of each host audio callback, parameter settings select the enabled
+filter path and modulation destination. The diagram shows the effective paths;
+the switches represent processor selection rather than graph rewiring.
+The complete synthesis graph runs at 4x the host sample rate, with IIR
+downsampling at the output.
 
 ```mermaid
 graph TD
@@ -45,6 +50,7 @@ graph TD
     EG --> |Modulation| VCA
     EG --> |Modulation| OriginalVCF
     EG --> |Modulation| ModernVCF
+    EG --> |Independent note gate| VCA
     
     LFO[LFO] --> LFOTarget{LFO Target}
     LFOTarget --> |VCO| VCOProc
@@ -57,20 +63,22 @@ graph TD
 ### Key Signal Paths:
 
 1. **Main Audio Path**:
-   - Sound Generation: VCO Processor managing Tone Generator and Noise Generator
+   - Sound Generation: VCO Processor managing free-running Tone and Noise generators; the selected source continues while the VCA is silent
    - Filtering: Either Original VCF (vintage) or Modern VCF
    - Amplification: VCA controls final output level
 
 2. **Control Paths**:
    - MIDI Processor: Interacts with VCO Processor via ISoundGenerator interface
    - Envelope Generator: Modulates both VCA (amplitude) and VCF (filter cutoff)
+   - Independent note gate: EGProcessor also gates the VCA's non-EG gain, keeping idle output silent when VCA EG depth is below one
    - LFO: Can be routed to either VCO (pitch modulation) or VCF (filter modulation)
    
-3. **Dynamic Routing**:
-   - Filter Type parameter switches between Original (vintage) and Modern filter types
+3. **Route Selection**:
+   - Filter Type parameter selects Original (vintage) or Modern input/output processing within the fixed graph
    - Each filter type has its own resonance control: Toggle mode for Original VCF and Continuous mode for Modern VCF
    - Feet parameter switches between Tone and Noise generators within the VCO Processor
    - LFO Target parameter determines modulation destination
+   - Filter and LFO selection is applied on the audio side once per host callback
 
 4. **Architecture Pattern**:
    - Centralized communication via CS01AudioProcessor
@@ -78,6 +86,12 @@ graph TD
    - Component decoupling using callback functions
 
 The architecture supports real-time parameter changes, allowing for expressive performances and sound design.
+
+For stage ownership and numerical recovery, see [DSP responsibility boundaries](docs/DSP-responsibility-boundaries.md).
+Envelope retriggers preserve residual state; active-stage time edits change
+speed without restarting a full stage. See the [EG policy](docs/EG-stateful-model.md)
+and [note onset continuity](docs/Note-onset-continuity.md) for the note gate,
+transition behavior and validation limits.
 
 ## Supported Platforms
 
