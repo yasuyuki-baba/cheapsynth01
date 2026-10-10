@@ -34,6 +34,23 @@ Products go into `build-native/out`. Installation is disabled by default; set
 Supported products are APP, VST3 and CLAP on both platforms, plus AUv2 on macOS.
 Development and CI testing target Windows and macOS.
 
+## Standalone audio and MIDI settings
+
+The APP product uses iPlug2's built-in Preferences dialog. Open
+`File > Preferences…` (`Ctrl+,`) on Windows or `CheapSynth01 > Preferences…`
+(`Cmd+,`) on macOS. Select the audio output device/channels, sample rate, buffer
+size and MIDI input device/channel there. The host saves settings to its
+`settings.ini` and restores them on the next launch. These settings belong to
+the standalone host; plugin formats use their DAW's device settings.
+
+The macOS SWELL dialog/menu definitions in `resources/main.rc_mac_*` are generated
+from the shared Windows resource script. Regenerate them after changing dialogs
+or menu commands:
+
+```sh
+perl libs/iPlug2/WDL/swell/swell_resgen.pl resources/main.rc
+```
+
 Read [the migration notes](docs/iPlug2-migration.md) before comparing sound or
 opening an existing project. Keep runtime DSP free of allocations and GUI/file
 operations. The engine processes mono internally and duplicates its final output

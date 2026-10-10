@@ -22,7 +22,11 @@
                             <menuItem isSeparatorItem="YES" id="236">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
-                            <menuItem title="Preferences…" tag="40006" keyEquivalent="," id="129"/>
+                            <menuItem title="Preferences…" tag="40006" keyEquivalent="," id="129">
+                                <connections>
+                                    <action selector="onSysMenuCommand:" target="450" id="preferences-action"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="143">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
