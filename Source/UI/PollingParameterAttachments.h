@@ -242,3 +242,48 @@ class CS01ComboBoxParameterAttachment : private juce::ComboBox::Listener {
 
     JUCE_DECLARE_NON_COPYABLE(CS01ComboBoxParameterAttachment)
 };
+
+// One binding owns an entire exclusive choice group. JUCE sends click callbacks
+// to the deselected radio button too; only the selected button may write a value.
+class CS01ChoiceButtonParameterAttachment {
+   public:
+    CS01ChoiceButtonParameterAttachment(juce::AudioParameterChoice& parameter,
+                                        juce::OwnedArray<juce::ToggleButton>& controls,
+                                        std::function<void(int)> onChoiceChanged = {},
+                                        juce::UndoManager* undo = nullptr)
+        : buttons(controls),
+          attachment(
+              parameter,
+              [this, onChoiceChanged](float value) {
+                  const int index = juce::roundToInt(value);
+                  for (int i = 0; i < buttons.size(); ++i)
+                      buttons[i]->setToggleState(i == index, juce::dontSendNotification);
+                  if (onChoiceChanged)
+                      onChoiceChanged(index);
+              },
+              undo) {
+        jassert(buttons.size() == parameter.choices.size());
+        for (int i = 0; i < buttons.size(); ++i) {
+            auto* button = buttons[i];
+            button->onClick = [this, button, i] {
+                if (button->getToggleState()) {
+                    attachment.setValueAsCompleteGesture(static_cast<float>(i));
+                    attachment.sendInitialUpdate();
+                }
+            };
+        }
+        attachment.sendInitialUpdate();
+        attachment.start();
+    }
+    ~CS01ChoiceButtonParameterAttachment() {
+        attachment.stop();
+        for (auto* button : buttons)
+            button->onClick = nullptr;
+    }
+
+   private:
+    juce::OwnedArray<juce::ToggleButton>& buttons;
+    CS01PollingParameterAttachment attachment;
+
+    JUCE_DECLARE_NON_COPYABLE(CS01ChoiceButtonParameterAttachment)
+};

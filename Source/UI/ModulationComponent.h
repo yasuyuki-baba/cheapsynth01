@@ -5,12 +5,10 @@
 #include "UI/PollingParameterAttachments.h"
 
 #include <memory>
-#include <atomic>
 
 class CS01AudioProcessor;
 
 class ModulationComponent : public juce::Component,
-                            public juce::AudioProcessorParameter::Listener,
                             public juce::Slider::Listener,
                             private juce::Timer {
    public:
@@ -21,12 +19,8 @@ class ModulationComponent : public juce::Component,
     void resized() override;
 
     void sliderValueChanged(juce::Slider* slider) override;
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
    private:
-    void updateChoiceState(int parameterIndex, float newValue);
-    std::atomic<bool> choiceDirty{true};
     void timerCallback() override;
     CS01AudioProcessor& processor;
 
@@ -47,5 +41,5 @@ class ModulationComponent : public juce::Component,
 
     juce::OwnedArray<juce::ToggleButton> lfoTargetButtons;
     juce::Label lfoTargetLabel;
-    juce::AudioProcessorParameter* lfoTargetParam = nullptr;
+    std::unique_ptr<CS01ChoiceButtonParameterAttachment> lfoTargetAttachment;
 };

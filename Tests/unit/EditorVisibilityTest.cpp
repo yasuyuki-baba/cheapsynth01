@@ -9,6 +9,8 @@
 
 #include <chrono>
 #include <cmath>
+#include <thread>
+#include <vector>
 
 TEST(EditorVisibilityTest, ModWheelFollowsMidiWithoutSendingControllerFeedback) {
     CS01AudioProcessor processor;
@@ -131,10 +133,10 @@ TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
     EXPECT_EQ(modern->getWidth(), 36);
     EXPECT_LE(original->getRight(), modern->getX());
     EXPECT_LE(modern->getBottom(), 22);
-    modern->onClick();
+    modern->setToggleState(true, juce::sendNotificationSync);
     EXPECT_TRUE(modern->getToggleState());
     EXPECT_FALSE(original->getToggleState());
-    original->onClick();
+    original->setToggleState(true, juce::sendNotificationSync);
     EXPECT_TRUE(original->getToggleState());
     EXPECT_FALSE(modern->getToggleState());
 }
@@ -275,4 +277,111 @@ TEST(EditorVisibilityTest, SoundSlidersHaveUniformSpacing) {
             EXPECT_NEAR(centres[i] - centres[i - 1], expected, 2.0);
         }
     }
+}
+
+namespace {
+void checkChoiceButtons(juce::Component& panel, juce::AudioParameterChoice& parameter,
+                        int groupId) {
+    std::vector<juce::ToggleButton*> buttons;
+    for (auto* child : panel.getChildren())
+        if (auto* button = dynamic_cast<juce::ToggleButton*>(child))
+            if (button->getRadioGroupId() == groupId)
+                buttons.push_back(button);
+    ASSERT_EQ(buttons.size(), static_cast<size_t>(parameter.choices.size()));
+    const auto matches = [&](int index) {
+        for (size_t i = 0; i < buttons.size(); ++i)
+            if (buttons[i]->getToggleState() != (static_cast<int>(i) == index))
+                return false;
+        return true;
+    };
+    EXPECT_TRUE(matches(parameter.getIndex()));
+    struct Spy : juce::AudioProcessorParameter::Listener {
+        void parameterValueChanged(int, float) override {
+            ++values;
+        }
+        void parameterGestureChanged(int, bool start) override {
+            start ? ++starts : ++ends;
+        }
+        int values = 0, starts = 0, ends = 0;
+    } spy;
+    parameter.addListener(&spy);
+    int expectedChanges = 0;
+    for (int cycle = 0; cycle < 2; ++cycle) {
+        for (int i = 0; i < static_cast<int>(buttons.size()); ++i) {
+            expectedChanges += parameter.getIndex() != i;
+            // Exercise JUCE's deselection notification to the previous button too.
+            buttons[i]->setToggleState(true, juce::sendNotificationSync);
+            EXPECT_EQ(parameter.getIndex(), i);
+            EXPECT_TRUE(matches(i));
+            EXPECT_EQ(spy.values, expectedChanges);
+            EXPECT_EQ(spy.starts, expectedChanges);
+            EXPECT_EQ(spy.ends, expectedChanges);
+        }
+    }
+    // MIDI-style writes do not notify parameter listeners.
+    std::thread worker([&] {
+        static_cast<juce::AudioProcessorParameter&>(parameter).setValue(
+            parameter.convertTo0to1(0.0f));
+    });
+    worker.join();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!matches(0) && std::chrono::steady_clock::now() < deadline)
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(10);
+    EXPECT_TRUE(matches(0));
+    EXPECT_EQ(spy.values, expectedChanges);
+    parameter.removeListener(&spy);
+}
+}  // namespace
+
+TEST(EditorVisibilityTest, ChoiceSwitchesStayExclusiveAndFollowSilentParameterWrites) {
+    CS01AudioProcessor processor;
+    VCOComponent oscillator(processor.apvts);
+    VCFComponent filter(processor.apvts);
+    ModulationComponent modulation(processor);
+    const auto check = [&](juce::Component& panel, const juce::String& id, int group) {
+        auto* parameter =
+            dynamic_cast<juce::AudioParameterChoice*>(processor.apvts.getParameter(id));
+        ASSERT_NE(parameter, nullptr);
+        checkChoiceButtons(panel, *parameter, group);
+    };
+    check(oscillator, ParameterIds::waveType, 1);
+    check(oscillator, ParameterIds::feet, 2);
+    check(modulation, ParameterIds::lfoTarget, 3);
+    check(filter, ParameterIds::filterType, 100);
+}
+
+TEST(EditorVisibilityTest, FilterChoiceSwapsResonanceControlsWithTheSelectedMode) {
+    CS01AudioProcessor processor;
+    auto* parameter = processor.apvts.getParameter(ParameterIds::filterType);
+    parameter->setValueNotifyingHost(0.0f);
+    VCFComponent filter(processor.apvts);
+    juce::ToggleButton* original = nullptr;
+    juce::ToggleButton* modern = nullptr;
+    juce::ToggleButton* high = nullptr;
+    juce::Slider* resonance = nullptr;
+    for (auto* child : filter.getChildren()) {
+        if (auto* button = dynamic_cast<juce::ToggleButton*>(child)) {
+            if (button->getButtonText() == "I")
+                original = button;
+            if (button->getButtonText() == "II")
+                modern = button;
+            if (button->getButtonText() == "HIGH")
+                high = button;
+        }
+        if (auto* slider = dynamic_cast<juce::Slider*>(child))
+            if (slider->getTooltip().startsWith("Resonance"))
+                resonance = slider;
+    }
+    ASSERT_NE(original, nullptr);
+    ASSERT_NE(modern, nullptr);
+    ASSERT_NE(high, nullptr);
+    ASSERT_NE(resonance, nullptr);
+    EXPECT_TRUE(high->isVisible());
+    EXPECT_FALSE(resonance->isVisible());
+    modern->setToggleState(true, juce::sendNotificationSync);
+    EXPECT_FALSE(high->isVisible());
+    EXPECT_TRUE(resonance->isVisible());
+    original->setToggleState(true, juce::sendNotificationSync);
+    EXPECT_TRUE(high->isVisible());
+    EXPECT_FALSE(resonance->isVisible());
 }

@@ -5,6 +5,8 @@
 #include "ParameterFormatting.h"
 #include "UI/CS01LookAndFeel.h"
 
+#include <functional>
+
 ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     // Pitch Bend Slider
     pitchBendSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -83,7 +85,7 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
     addAndMakeVisible(modDepthLabel);
 
     // LFO Target Buttons
-    lfoTargetParam = processor.getValueTreeState().getParameter(ParameterIds::lfoTarget);
+    auto* lfoTargetParam = processor.getValueTreeState().getParameter(ParameterIds::lfoTarget);
     jassert(lfoTargetParam != nullptr);
     addAndMakeVisible(lfoTargetLabel);
     lfoTargetLabel.setText("TARGET", juce::dontSendNotification);
@@ -95,27 +97,17 @@ ModulationComponent::ModulationComponent(CS01AudioProcessor& p) : processor(p) {
             addAndMakeVisible(button);
             button->setRadioGroupId(3);  // Group ID for LFO Target
             button->setClickingTogglesState(true);
-            button->onClick = [this, choiceParam, i] {
-                *choiceParam = i;
-                updateChoiceState(
-                    choiceParam->getParameterIndex(),
-                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
-            };
         }
     }
-    lfoTargetParam->addListener(this);
 
-    // Initial update
-    updateChoiceState(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
+    lfoTargetAttachment = std::make_unique<CS01ChoiceButtonParameterAttachment>(
+        *static_cast<juce::AudioParameterChoice*>(lfoTargetParam), lfoTargetButtons,
+        std::function<void(int)>{}, processor.getValueTreeState().undoManager);
     bendRevision = processor.getExternalBendRevision();
     startTimerHz(120);
 }
 
 void ModulationComponent::timerCallback() {
-    if (choiceDirty.exchange(false, std::memory_order_acq_rel)) {
-        updateChoiceState(lfoTargetParam->getParameterIndex(), lfoTargetParam->getValue());
-    }
-
     if (!draggingMod) {
         modDepthSlider.setValue(
             processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load(),
@@ -146,8 +138,6 @@ ModulationComponent::~ModulationComponent() {
     stopTimer();
     pitchBendSlider.removeListener(this);
     modDepthSlider.removeListener(this);
-    if (lfoTargetParam)
-        lfoTargetParam->removeListener(this);
 }
 
 void ModulationComponent::paint(juce::Graphics& g) {
@@ -192,21 +182,4 @@ void ModulationComponent::resized() {
     lfoTargetLabel.setBounds(targets.removeFromTop(22));
     for (auto* button : lfoTargetButtons)
         button->setBounds(targets.removeFromTop(28));
-}
-
-void ModulationComponent::parameterValueChanged(int, float) {
-    choiceDirty.store(true, std::memory_order_release);
-}
-
-void ModulationComponent::updateChoiceState(int parameterIndex, float newValue) {
-    if (parameterIndex == lfoTargetParam->getParameterIndex()) {
-        if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(lfoTargetParam)) {
-            lfoTargetButtons[choiceParam->getIndex()]->setToggleState(true,
-                                                                      juce::dontSendNotification);
-        }
-    }
-}
-
-void ModulationComponent::parameterGestureChanged(int parameterIndex, bool gestureIsStarting) {
-    // Not needed for this component
 }
