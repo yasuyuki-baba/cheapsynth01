@@ -68,8 +68,67 @@ oversampling nor PolyBLEP establishes alias-free output or hardware equivalence.
 After waveform generation, VCF/VCA/EG control the resulting tone as described in
 [the user guide](User-guide.md) and [DSP signal paths](DSP-responsibility-boundaries.md).
 
+## White-noise generation (WN)
+
+Feet = WN selects `NoiseGenerator`, independent of the shared tonal phase.
+For each sample, JUCE's pseudorandom generator produces a value in [0, 1),
+which is mapped to [-1, 1) and passed through a first-order IIR low-pass:
+
+```text
+rawNoise = 2 * random.nextFloat() - 1
+cutoff = min(12000 Hz, 0.45 * processingSampleRate)
+output = noiseLowPass(rawNoise)
+```
+
+In the production 4x graph the noise cutoff is 12 kHz at the documented
+44.1/48/96 kHz host rates. WN therefore means filtered random noise, not a flat
+spectrum through Nyquist. It bypasses the tonal strategies and their common
+`tanh` stage, then follows the selected VCF and VCA path. Note number and pitch
+bend are retained for note bookkeeping/source switching but do not tune the
+noise. Wave Type, PWM Speed and VCO pitch modulation do not shape this source;
+VCF modulation and EG/VCA controls still affect the resulting sound.
+
+While selected, production noise generation continues even when the VCA is
+silent. The inactive source is not rendered in parallel. A noise reset clears
+its IIR history and note bookkeeping but does not reseed the random generator;
+returning to WN does not replay a fixed sequence. The software does not identify
+or reconstruct a physical CS-01 noise circuit. The hardware interpretation and
+its evidence limits remain in [the YM10150 summary](../hardware/ymf10150.md).
+
+## Changing Wave Type or Feet while playing
+
+| Change | Phase and DSP state | Note/envelope behavior |
+| --- | --- | --- |
+| Wave Type, while tonal | Retains the common master phase. `selectWaveform` resets the outgoing strategy before selecting the incoming one; it does not reset all waveform state. | Does not send a new note or retrigger EG. |
+| Between 32', 16', 8' and 4' | Keeps the tonal generator and common phase; changes octave offset to -24, -12, 0 or +12 semitones relative to 8'. | Retains the held note or release and current glissando position. |
+| Tone to WN, or WN to Tone | Stops the old source, resets the incoming source's DSP/bookkeeping, then restores its playback state. Returning to Tone resets master phase, waveform states and PWM oscillator; entering WN clears its filter history. | Transfers held status, last note, pitch wheel and remaining release seconds. EG and its separate VCA gate are not restarted by this switch. |
+
+Wave Type reset is specifically of the **outgoing** strategy. Triangle and
+Sawtooth implement their own state reset. PWM's smoothing value is shared
+`YM10150::previousSample`, and its modulation phase belongs to `ToneGenerator`;
+neither is reset merely by Wave Type selection. The PWM modulation oscillator
+advances when PWM samples are generated, rather than continuously across all
+waveform choices. Full tonal reset clears these shared states.
+
+`VCOProcessor` applies Tone/WN selection at audio-side selection points before
+MIDI/render segments and at the start of its processing block. In the production
+tonal renderer, Wave Type and tonal Feet are read per sample. These are parameter
+reads, not a guarantee of arbitrary sample-offset host automation. Wave Type
+changes while WN is selected are picked up when tonal rendering resumes.
+
+Source switching preserves note/release bookkeeping, not the previous audio
+sample, tonal phase or fractional glissando progress: returning to Tone starts
+from the restored note after its reset. The production EG supplies the remaining
+release sample count to the selected source as rendering proceeds. Downstream
+VCF/VCA history is retained. There is no waveform/source crossfade, so phase
+retention or note-state transfer alone does not establish click-free switching.
+Existing held-note round-trip and graph release/source-switch regressions check
+lifecycle behavior; they are not a listening assessment of every transition.
+
 ## Implementation references
 
 - [ToneGenerator.cpp](../../Source/CS01Synth/ToneGenerator.cpp): pitch composition and generation order.
 - [YM10150.cpp](../../Source/CS01Synth/YM10150.cpp): master square, strategy selection and final shaping.
 - [WaveformStrategies.h](../../Source/CS01Synth/WaveformStrategies.h): per-waveform transformations and empirical state coefficients.
+- [NoiseGenerator.cpp](../../Source/CS01Synth/NoiseGenerator.cpp) and [header](../../Source/CS01Synth/NoiseGenerator.h): filtered random source, note bookkeeping and reset scope.
+- [VCOProcessor.cpp](../../Source/CS01Synth/VCOProcessor.cpp): source selection and playback-state transfer.
