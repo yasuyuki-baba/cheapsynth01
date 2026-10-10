@@ -1,56 +1,69 @@
-# 安定性監査・実装結果（2026-10-09 JST）
+# Stability audit and implementation results (2026-10-09 JST)
 
-各節は記載した日時・ソースでの測定記録であり、全節が現在の実装を説明するものではない。
-現在の構成は [DSP責任範囲](DSP-responsibility-boundaries.md)、
-[EGモデル](EG-stateful-model.md)、[発音境界](Note-onset-continuity.md) に記載する。
+Each section records measurements at its stated date and source revision; not
+all sections describe the current implementation. Current architecture is in
+[DSP responsibility boundaries](DSP-responsibility-boundaries.md),
+[the EG model](EG-stateful-model.md), and
+[note onset continuity](Note-onset-continuity.md).
 
-作業開始時のGitHub最新mainは `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`。
-監査対象と同一だった。ローカルの古いorigin/mainや既存ビルドを基準にはしていない。
+The latest GitHub main at the start of the audit was
+`4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`, identical to the audit target.
+A stale local origin/main or an existing build was not used as the baseline.
 
-以下の初回測定・テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
-主要実装はa280bb7、キャッシュ復元の補完は9db9a2c、試験用型の補正はec12e58。
-初回結果の報告・梱包commitでは本番DSPを変更していない。以後の追加修正は末尾に別記する。
-機械可読の条件・件数・ログハッシュは [stability-results.json](../../artifacts/audit/stability-results.json)。
-XMLの時刻はUTC、ここでの日付はJSTである。
+The initial measurements and tests below used source
+`ec12e588f57b78fc199a001418a632463f2aa626`.
+The main implementation was a280bb7, the cache-restoration follow-up was
+9db9a2c, and test parameter types were corrected in ec12e58.
+The initial reporting/packaging commit did not change production DSP.
+Subsequent corrections are recorded in separate sections below.
+Machine-readable conditions, counts and log hashes are in
+[stability-results.json](../../artifacts/audit/stability-results.json).
+XML timestamps are UTC; dates in this report are JST.
 
-## 再検証と修正
+## Reproduction and corrections
 
-| 指摘 | 監査基準mainでの判定・原因 | 修正・直接検証 |
+| Finding | Diagnosis on the audited main baseline | Correction and direct verification |
 |---|---|---|
-| 1 UI通知 | 非メッセージスレッドのChoice通知で直接UIを変更する。基準の再現試験も失敗 | 通知はatomicのdirty印のみ。60 Hz（既存Modulationは120 Hz）のメッセージスレッドTimerで最新値を読む。GUIクリックは同スレッドで即反映。worker通知、最新値、破棄後の通知を検証 |
-| 2 Save/Overwrite | raw this/manager捕捉を実コードで確認。旧監査の異常終了原因は未特定で、UAFの実証とは扱わない | パネル所有AlertWindowとSafePointerへ統一。入力中、入力完了待ち、確認中、確認完了待ちの4段階でエディタを閉じる試験 |
-| 3 Release寿命 | 48 kHz、50 msでNote Off、20 ms後に1秒へ変更すると音源が先に止まる。基準再現失敗 | EGの残り内部サンプル数を音源へ渡す。Tone/Noise、深さ0/1、分割1/7/64で延長・短縮・連続変更・音源切替、EGと音源のactive一致を検証 |
-| 4 MIDI/Noise終端 | N位置と0サンプルのイベント消失、Noiseのブロック越えを再現 | 通常範囲0..N-1。範囲外は0またはNへclampし、Nでは描画後に適用。空ブロックはホストイベントのみ適用してDSPを進めない。-1/N-1/N/N+1、同位置のOn/Off/CC120、SysEx混在の順序を検証。Noiseは残り数だけ生成 |
-| 5 プリセット | 保存結果を返さず、読み込み前に選択確定する経路を確認 | portableな単一ファイル名検査、boolの成功結果、一時ファイル置換、成功後の選択確定。壊れたXML、削除済みファイル、保存先が非空ディレクトリの場合、旧データ・選択を保護 |
-| 6 RT処理 | segment/panel MidiBuffer、長いメッセージコピー、collector/keyboardロック、通知投稿を確認。追加計測でJUCEグラフscratchとIIRの初回確保も発見 | 非所有のホストイベント走査、再利用ストレージ、2048短イベントの固定MPSCキュー、鍵盤の逆向き表示キュー。満杯/競合ではpanicで発音残りを防ぐ。再準備は世代破棄で行い、送受信・再準備の並行試験を追加 |
-| 7 program/経路 | JUCE VST3 ProgramChangeParameter・LV2 state経路はsetCurrentProgramを呼び、メッセージスレッド限定とは判断できない。グラフ変更は元々メッセージ側への遅延で、音声側の直変更ではない | Factory/Userを非RTで解析した不変カタログから次callbackで値適用。通知・解放はメッセージ側。選択はfilename/typeで保持。並行更新、7 Factory、Userキャッシュと不正XML更新を検証。UI/セッション復元前にはAPVTSの古いadapterキャッシュを同期 |
-| 8 数値回復 | Original入力結合へのNaN/Infで以後の有限入力でも戻らない。基準試験失敗。通常演奏のNaN発生は未証明 | 入力・モデル・出力結合をまとめてreset。VCAも異常audio/EGで内部状態をresetし、非有限depthでsmooth状態を汚染しない。回復後をfreshインスタンスと比較し、非ゼロの有限出力を確認 |
+| 1 UI notifications | Choice notifications outside the message thread directly modified the UI. The baseline reproduction test also failed. | Notifications only set an atomic dirty flag. A message-thread Timer reads current values at 60 Hz (the existing Modulation timer uses 120 Hz). GUI clicks apply immediately on that thread. Worker notifications, latest values and notifications after destruction were tested. |
+| 2 Save/Overwrite | Raw this/manager captures were confirmed in production code. The earlier audit's abnormal termination had no identified cause and was not treated as proof of a UAF. | Standardized on panel-owned AlertWindow and SafePointer. Editor closure was tested at 4 stages: during entry, pending entry completion, during confirmation and pending confirmation completion. |
+| 3 Release lifetime | At 48 kHz, Note Off at 50 ms followed 20 ms later by a change to 1 second stopped the source before the envelope. Baseline reproduction failed. | Pass the EG's remaining internal sample count to the source. Extension, shortening, repeated edits and source switching were tested with Tone/Noise, depths 0/1 and partitions 1/7/64, checking agreement between EG and source activity. |
+| 4 MIDI/Noise boundaries | Reproduced lost events at position N and in 0-sample blocks, and Noise rendering past a block boundary. | Normal positions are 0..N-1. Out-of-range positions clamp to 0 or N; N events apply after rendering. Empty blocks apply only host events without advancing DSP. Tested -1/N-1/N/N+1, same-position On/Off/CC120 and ordering with mixed SysEx. Noise generates only the remaining active samples. |
+| 5 Presets | Confirmed paths that returned no save result and committed selection before loading. | Portable single-filename validation, bool success results, temporary-file replacement and selection only after success. Corrupt XML, deleted files and a nonempty directory at the save destination preserve existing data/selection. |
+| 6 Realtime processing | Confirmed segment/panel MidiBuffer storage, long-message copies, collector/keyboard locks and notification posting. Additional probes found initial allocations in JUCE graph scratch storage and IIR processing. | Non-owning host-event traversal, reusable storage, a fixed MPSC queue of 2048 short events and a reverse keyboard-display queue. Full/contended queues request panic to prevent stuck notes. Re-preparation discards old generations; concurrent send/receive/reprepare tests were added. |
+| 7 Programs/routing | JUCE VST3 ProgramChangeParameter and LV2 state paths call setCurrentProgram, so message-thread-only use could not be assumed. Graph changes were already deferred to the message thread, not performed directly on audio. | Apply values on the next callback from an immutable Factory/User catalogue parsed outside realtime processing. Notify/reclaim on the message thread. Preserve selection by filename/type. Tested concurrent updates, 7 Factory programs, User caches and invalid XML updates. Synchronize stale APVTS adapter caches before UI/session restoration. |
+| 8 Numerical recovery | NaN/Inf into Original input coupling prevented recovery on subsequent finite input. The baseline test failed; NaN generation during normal playing was not established. | Reset input coupling, model and output coupling together. VCA also resets internal state on invalid audio/EG and prevents nonfinite depth from contaminating smoothing. Compare recovery with a fresh instance and check nonzero finite output. |
 
-基準ソースを新規コンパイルした7件は **7件とも期待どおり失敗**。
-境界MIDI、同位置順序、Release、Noise終端、Original数値回復、VCA数値回復、UI通知を再現した。
-基準の保存GUIをクラッシュさせる試験は行っていない。
-最初の混在した古いビルドでの異常終了は無効な再現として除外した。
+All **7 of 7 freshly compiled baseline cases failed as expected**.
+They reproduced boundary MIDI, same-position order, Release, Noise boundaries,
+Original recovery, VCA recovery and UI notifications.
+No test attempted to crash the baseline save GUI. The initial abnormal
+termination from a mixed stale build was excluded as an invalid reproduction.
 
-## 初回修正の検証
+## Initial correction validation
 
-| 構成 | 件数 | 結果・制約 |
+| Configuration | Count | Result and limits |
 |---|---:|---|
 | Debug --all | 238 | failures/errors/disabled = 0 |
 | Release --all | 238 | failures/errors/disabled = 0 |
-| project ASan + UBSan + LeakSanitizer --all | 236 | 全成功、ログに検出なし。52の本体/試験cppを計装。JUCE/GoogleTestのmodule objectは未計装。ELF確保・ロックprobeの2件を除外 |
-| Releaseの独立RT/whole-graph測定 | 4 | 全成功、exit 0。別のビルド/試験を停止して測定 |
-| Python配布検査 | 8 | 正常・欠落CLAP・通知欠落・version/commit不一致等の合成ZIP試験 |
-| EG式検査 | 4 | 成功。本番DSPやハードウェアの測定ではない |
-| header / format | 102 C++ filesのformat、check_headers | 成功。clang-format 21.1.7。diffの空白検査も成功 |
+| project ASan + UBSan + LeakSanitizer --all | 236 | All passed, no detections in logs. Instrumented 52 production/test cpp files. JUCE/GoogleTest module objects were not instrumented. Excluded 2 ELF allocation/lock probes. |
+| Independent Release RT/whole-graph measurements | 4 | All passed, exit 0. Other builds/tests were stopped during measurement. |
+| Python distribution validation | 8 | Synthetic ZIP cases including valid assets, missing CLAP, missing notices and version/commit mismatches. |
+| EG equation checks | 4 | Passed; not production DSP or hardware measurements. |
+| header / format | Formatting of 102 C++ files, check_headers | Passed with clang-format 21.1.7; diff whitespace checks also passed. |
 
-途中の失敗も除去・弱化していない。全体試験の初回2件（初回確保、並行音源切替）は修正後成功。
-Userキャッシュ→Factoryの追加試験でadapterキャッシュ不整合を発見し、セッション復元も含め修正した。
-最初のsanitizerは65件成功後、既存Original VCF試験のBool→Float不正downcastで停止。
-VCOのglissando fixtureにもBool代用があったため、両fixtureを本番Float型へ揃えた。
-ケース・判定条件は維持している。以前の当該VCF試験のHigh側観測を正常な本番測定とは扱わない。
-Windows/macOS、実DAW、実オーディオデバイス、全面的なJUCE計装、ThreadSanitizerは未実行。
+Intermediate failures were not removed or weakened. The first two full-suite
+failures (initial allocation and concurrent source switching) passed after fixes.
+An additional User-cache-to-Factory test exposed adapter-cache inconsistency;
+this was corrected for session restoration as well.
+The initial sanitizer run stopped after 65 passing cases at an invalid Bool-to-Float
+downcast in an existing Original VCF test. The VCO glissando fixture also used
+Bool as a substitute, so both fixtures were aligned with production Float types.
+Cases and acceptance criteria were retained. Earlier High-setting observations
+from that VCF test are not treated as valid production measurements.
+Windows/macOS, real DAWs/audio devices, full JUCE instrumentation and
+ThreadSanitizer were not run.
 
-再実行手順（依存関係はCONTRIBUTING.mdを参照）:
+Reproduction commands (dependencies are documented in CONTRIBUTING.md):
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DSTANDALONE_ONLY=ON -DCOPY_PLUGIN_AFTER_BUILD=OFF
@@ -65,163 +78,214 @@ python3 Tests/release_validation_test.py -v
 python3 Tests/eg_decay_equation_check.py -v
 ```
 
-今回の環境はDebian 13、GCC 14.2.0、CMake 3.31.6、JUCE 9.0.3、Linux 6.18.44、x86_64。
-AMD EPYC 9V74が3論理CPUとして見え、cgroup割当は2 CPU。GUIはXvfb/Openbox。
-依存ソースは別checkoutに取得済みの同じ固定JUCE/GoogleTestをFetchContent source overrideで使用した。
-JUCE原本は編集せず、検証済みcontextのCMakeレシピでgraph scratch再利用のoverrideをbuild内に生成した。
-アップグレード時は再監査を必須にしている。
+The environment was Debian 13, GCC 14.2.0, CMake 3.31.6, JUCE 9.0.3,
+Linux 6.18.44, x86_64. AMD EPYC 9V74 exposed 3 logical CPUs with a cgroup
+allocation of 2 CPUs. GUI tests used Xvfb/Openbox.
+The same pinned JUCE/GoogleTest sources already fetched in another checkout
+were supplied through FetchContent source overrides.
+JUCE originals were not edited; a CMake recipe with verified context generated
+a graph-scratch-reuse override inside the build. Upgrades require re-auditing.
 
-## RT・切替の測定と残存事項
+## Realtime and switching measurements and remaining limits
 
-48 kHz、全グラフ4x、各位置でNote On/CC/Off、各8ブロックでprogram変更、GUI操作を同時実行。
-各ブロック長1000回、通常優先度のstd::threadによる単回観測。
+At 48 kHz with the whole graph at 4x, Note On/CC/Off occurred at each position,
+programs changed every 8 blocks, and GUI operations ran concurrently.
+Each block size used 1000 callbacks in a single observation on a normal-priority
+std::thread.
 
-| ブロック長 | p95 µs | p99 µs | 最大 µs | program変更時p99/最大 µs | 期間 µs |
+| Block size | p95 µs | p99 µs | Maximum µs | Program-change p99/maximum µs | Period µs |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 4.447 | 6.179 | 95.405 | 5.649 / 11.277 | 20.833 |
 | 16 | 123.096 | 224.560 | 1806.780 | 175.305 / 280.215 | 333.333 |
 | 64 | 373.144 | 530.893 | 1152.950 | 469.410 / 537.763 | 1333.333 |
 
-最大値は1/16サンプルで期間を超えた。平均CPUを締切保証にしない。
-密集MIDI100×64callbackと初回/可変長/SysEx混在のprobeでは、検出対象の確保・解放は0。
-mutex取得は44,900回（グラフ44,800 + programスレッド確認100）。
-共有ライブラリ内部の全確保、aligned allocation、ホストwrapper全体のRT保証にはならない。
-JUCE 9.0.3のMessageManagerスレッド確認もmutexを使う。非保護getterへの置換は競合を招くため行わない。
-標準JUCE attachmentのホスト通知によるAsyncUpdater投稿も残る。
+Maximum times exceeded the period for 1/16-sample blocks. Average CPU cost
+is not a deadline guarantee.
+Dense MIDI across 100×64 callbacks and probes for first-use, variable-length
+and mixed SysEx processing detected 0 allocations/frees within probe coverage.
+Mutex acquisitions totaled 44,900 (44,800 graph + 100 program thread checks).
+This does not cover all shared-library allocations, aligned allocation or the
+complete host wrapper's realtime behavior.
+JUCE 9.0.3 MessageManager thread checks also use a mutex. Substituting an
+unprotected getter was rejected because it would introduce a race.
+Host notifications through standard JUCE attachments still posted AsyncUpdater messages.
 
-filter/lfo経路はTimer→メッセージ側のグラフ再構築で、sample-accurate切替ではない。
-保持音での切替ブロック最大隣接差は0.170279、全体peakは0.317756（校正済みの可聴閾値なし）。
-現グラフで両フィルタへ非ゼロ入力を追加した場合、64サンプルの中央値は114.574→117.789 µs（約2.8%増）。
-これは固定グラフ＋selector/crossfadeを完成した比較ではない。この監査段階では
-切替状態・追加ノードのCPU/互換性が未検証で、グラフを維持していた。
-この段階のVCOは1サンプルAPIと反復パラメータ更新を使用していた。後段に変更後の測定を記録する。
+Filter/LFO routing used Timer-driven graph rebuilding on the message thread;
+it was not sample-accurate switching.
+Held-note switching blocks had maximum adjacent-sample difference 0.170279
+and overall peak 0.317756, without a calibrated audibility threshold.
+Adding nonzero input to both filters in the current graph increased the
+64-sample median from 114.574 to 117.789 µs (about 2.8%).
+This was not a completed fixed-graph-plus-selector/crossfade comparison.
+At this audit stage, switching state and additional-node CPU/compatibility
+were unverified, so the graph was retained.
+The VCO then used a single-sample API and repeated parameter updates;
+post-change measurements are recorded later below.
 
-## 互換性、配布、資料
+## Compatibility, distribution and documentation
 
-パラメータID/version hint、XML構造・単位、Factory資源、live-control除外は維持。
-通常の有限入力でのDSP構造回帰はbit単位の一致を検証。音源寿命の延長/短縮と終端補正は意図した音への変更。
-非メッセージ側のprogramは次callbackへ適用し、GUI通知は60 Hz。外部Userファイル編集は一覧更新でキャッシュへ反映。
-新しい保存/renameはWindows予約名等を拒否するが、既存ファイルの読み込みを名前規則で排除しない。
-Original VCFの複数channel APIは一つの状態を共有する。本番mono契約を明記し、独立多声/多channelへ拡張していない。
+Parameter IDs/version hints, XML structure/units, Factory resources and
+live-control exclusions were retained. DSP structural regressions checked
+bitwise agreement for normal finite inputs. Source-lifetime extension/shortening
+and boundary corrections intentionally changed sound behavior.
+Programs requested outside the message thread applied on the next callback;
+GUI notifications ran at 60 Hz. External User-file edits reached the cache on
+list refresh. New saves/renames reject Windows-reserved names and similar invalid
+names, but existing files are not excluded from loading by these naming rules.
+The Original VCF multichannel API shares one state. The production mono contract
+was documented; independent polyphony/multichannel state was not added.
 
-Windows CLAP梱包を追加し、tag/製品version、全asset、通知、source commit一致を検査する。
-Linux実成果物はStandalone/VST3/LV2/CLAP、ELF x86_64、ローカル動的依存解決を確認。
-シンボル要件はGLIBC 2.38、GLIBCXX 3.4.32、CXXABI 1.3.15。古いLinuxへの互換性は未検証。
-ワークスペース絶対パスのRPATHは除去。Windows/macOSのCPU/OS下限・署名/公証は未確認。
-対応ソース、ライセンス、ファイルhash、runner情報を梱包する手順は [Distribution.md](Distribution.md)。
+Windows CLAP packaging was added, with checks for tag/product version, all
+assets, notices and source-commit consistency.
+Actual Linux products were Standalone/VST3/LV2/CLAP, ELF x86_64, with local
+dynamic dependencies resolved. Symbol requirements were GLIBC 2.38,
+GLIBCXX 3.4.32 and CXXABI 1.3.15. Older Linux compatibility was not tested.
+Workspace-absolute RPATHs were removed. Windows/macOS CPU/OS minima and
+signing/notarization were unverified. Corresponding-source, licence, file-hash
+and runner-information packaging is described in [Distribution.md](Distribution.md).
 
-既存CSVは [dsp-baselines.md](dsp-baselines.md) ですでに理想参照/過去実験と区別されていた。
-その分類を重複変更せず、[provenance.json](../../artifacts/dsp/provenance.json) に保存内容のhashと履歴commitを補った。
-履歴commitは測定時のソースcommitの証明ではなく、未記録の測定条件・toolchainはnullのままにした。
-新しい本番グラフ測定は今回のcommit・環境・手順付きで別保存した。
-VCOのみoversamplingする古い説明は、現行の全グラフ4xへ更新した。
+Existing CSVs were already distinguished as ideal references or historical
+experiments in [dsp-baselines.md](dsp-baselines.md). That classification was
+retained; saved-content hashes and historical commits were added to
+[provenance.json](../../artifacts/dsp/provenance.json).
+Historical commits do not prove the source revision used for measurement;
+unrecorded measurement conditions/toolchains remained null.
+New production-graph measurements were saved separately with this audit's
+commit, environment and commands. The earlier VCO-only oversampling explanation
+was updated to the current whole-graph 4x policy.
 
-LICENSEはGPLv3のまま。JUCE 9のAGPLv3／商用ライセンス状況は作者の判断が必要。
-GPLv3 §13によるAGPL合成配布か、有効なJUCE商用ライセンスを利用するかを確認し、配布条件を確定すること。
-商用ライセンスの保有は推測していない。通知や対応ソース梱包だけで適法性の確認を済ませたとはしない。
+LICENSE remained GPLv3. The JUCE 9 AGPLv3/commercial licensing route requires
+the author's decision: combined AGPL distribution under GPLv3 §13 or an
+applicable JUCE commercial licence. Commercial licence ownership was not
+assumed. Notices and corresponding-source packaging alone were not treated
+as confirmation of legal compliance.
 
-実機忠実度を達成したとは報告しない。校正には識別可能なCS-01個体/改版、電源・温度・部品状態、
-信号レベル、入力/出力負荷、breath制御電圧、波形/feet/EG設定、録音系の帯域・sample rate・不確かさ、
-生録音と測定点の対応が必要。許容誤差、個体差、制御曲線の基準は実機資料が得られるまで未解決。
+Hardware fidelity was not claimed. Calibration requires an identified CS-01
+unit/revision, supply/temperature/component condition, signal level, input/output
+loading, breath control voltage, waveform/feet/EG settings, recording bandwidth,
+sample rate/uncertainty and correspondence between raw recordings and measurement
+points. Tolerances, unit variation and control-curve references remain unresolved
+without hardware evidence.
 
+## Follow-up correction: host program path (2026-10-09 JST)
 
-## 追加修正：ホストprogram経路（2026-10-09 JST）
+The follow-up source was `904da992198ef7bd93e8e050faea34a286fcb540`.
+Initial values and measurements remain records of the earlier commit.
+Follow-up results are in
+[program-rt-followup.json](../../artifacts/audit/program-rt-followup.json).
 
-追加ソースは `904da992198ef7bd93e8e050faea34a286fcb540`。
-初回の数値・測定は上記commitの記録として維持する。最新結果は
-[program-rt-followup.json](../../artifacts/audit/program-rt-followup.json)。
+Removed the MessageManager mutex acquired by thread checks in `setCurrentProgram`;
+all host requests reserve entries in the existing immutable cache.
+GUI selection and loading after save use ProgramManager's explicit non-realtime
+path, preserving actual-file validation and immediate loading.
+JUCE VST3 ProgramChangeParameter skips requests for the current program, so the
+reserved selection is returned immediately. Audio values apply on the next
+callback, including empty blocks. Tests covered reservation cancellation back
+to the original program, latest valid request, invalid indices and session save
+before application. Saving snapshots reserved values and identity together
+without changing the format. Successful UI/session loads cancel prior reservations.
+Audio-side CAS protects new requests arriving during application.
 
-`setCurrentProgram`のスレッド判定によるMessageManager mutexを撤去し、
-すべてのホスト要求を既存の不変キャッシュへ予約する。GUI選択・保存後の読込は
-ProgramManagerの明示的な非RT経路を使い、実ファイル検査と即時読み込みを維持した。
-JUCE VST3のProgramChangeParameterは現在のprogramと同じ要求を省略するため、
-予約した選択は即時に返す。音声値は次callback（空ブロックを含む）へ適用する。
-予約→元のprogramへの取消、最後の有効要求、無効index、適用前のsession保存を検証。
-保存時には予約した値とidentityを一緒にsnapshotし、保存形式は変更しない。
-成功したUI/session読込は以前の予約を取り消す。音声側は適用途中の新要求をCASで保護する。
+Final Debug **242/242**, Release **242/242** and focused project
+ASan/UBSan/LeakSanitizer **29/29** passed. The full sanitizer suite was not
+rerun in this follow-up. Uninstrumented JUCE and other dependencies, and the
+initial full 236-case sanitizer validation, belong to the earlier commit.
+The existing User-cache test's pre-application metadata expectation was aligned
+with reserved selection; checks that cutoff and source mode remain unchanged
+before application were added instead. Cases and audio assertions were not
+removed. An initial Xvfb startup failure was recorded as an environment-startup
+failure resolved by rerunning.
 
-最終Debug **242/242**、Release **242/242**、変更経路のproject
-ASan/UBSan/LeakSanitizer **29/29** が成功。今回sanitizer全ケースの再実行はしていない。
-JUCE等の未計装範囲と、初回の236件の全sanitizer検証は別commitの記録である。
-既存User cache試験の適用前metadata期待値は予約選択へ揃え、代わりに適用前の
-cutoffと音源modeが変わらない判定を追加した。ケース・音声側判定を削除していない。
-最初のXvfb起動失敗は再実行で解消した環境起動失敗として記録した。
+Across both threads, 204 standalone host requests performed 0 allocations,
+frees or mutex acquisitions. The same dense 100×64 callback test reduced
+mutex acquisitions from 44,900 to 44,800. The remaining acquisitions belong
+to JUCE's graph; this is not full realtime safety or a deadline guarantee.
+This follow-up did not change parameter IDs/version hints, XML format, DSP
+timbre or control curves.
 
-ホスト要求単体は両スレッド計204回で確保/解放/mutex取得が0。
-同じ100×64密集callback試験のmutex取得は44,900→44,800回。
-残りはJUCEグラフであり、完全なRT安全性・締切保証ではない。
-追加でパラメータID/version hint、XML形式、DSPの音色・制御曲線は変更していない。
+## Follow-up correction: package integrity validation (2026-10-09 JST)
 
-## 追加修正：配布物の整合性検査（2026-10-09 JST）
+Validation source was `0ec2ab1`. Details are in
+[package-integrity-followup.json](../../artifacts/audit/package-integrity-followup.json).
+The previous validator accepted substituted contents with valid CRCs.
+A baseline case expecting rejection failed; the same case passed after correction.
 
-検査ソースは `0ec2ab1`。詳細は
-[package-integrity-followup.json](../../artifacts/audit/package-integrity-followup.json)。
-従来の検査はCRCが正常な内容差し替えを拒否しなかった。拒否を期待する基準の1件が
-失敗することを再現し、同じケースが修正後に成功することを確認した。
+Product and corresponding-source manifests now list SHA-256 for all files,
+checked against actual contents. Coverage must be complete except for the
+manifest itself; missing/extra files, invalid hashes, duplicate paths and ambiguous
+manifests are rejected. Hash paths use `/` on Windows too. The final tag job
+passes its checked-out commit, rejecting a complete older asset set whose version
+and internal commits agree with each other. Python regressions were added to CI lint.
 
-製品・対応ソースの両manifestへ全ファイルのSHA-256を付け、実内容と照合する。
-manifest自身を除く完全な一覧を要求し、欠落・混入・不正hash・重複path・曖昧なmanifestを拒否。
-Windowsでもhashのpathは `/` に統一する。タグの最終jobはcheckoutしたcommitを渡すため、
-versionと内部commitが揃った古いasset一式も公開前検査で拒否する。
-Python回帰をCI lintへ追加した。
+Python **22/22** passed. All hashes were verified across **5 ZIP** archives:
+4 actual Linux product formats plus corresponding source. A negative case
+requiring another source commit rejected the actual ZIP set as expected.
+Synthetic Windows/macOS fixtures were not treated as successful real-OS products;
+GitHub Actions itself was not run. Production C++ and DSP tests were unchanged
+from 904da99, so additional C++ regression runs were not performed.
+Hash agreement establishes package consistency, not signing or reproducible builds.
+LICENSE, production DSP and preset format were unchanged; nothing was pushed
+or published during that audit phase.
 
-Python **22/22** 成功。Linuxの実製品4形式＋対応ソースの**5 ZIP**で全hashを照合した。
-実ZIP一式に別のsource commitを要求する負例も期待どおり拒否された。
-Windows/macOS形式の合成fixtureは実OS成果物の成功とは扱わない。GitHub Actions自体は未実行。
-本体C++とDSP試験は904da99から変更しておらず、C++回帰の追加再実行はしていない。
-hashの一致は梱包内容の整合性を示し、署名や再現可能ビルドの証明ではない。
-LICENSE・本番DSP・プリセット形式に変更なし。push・公開もしていない。
+## Follow-up correction: VCO optimization after measurement (2026-10-09 JST)
 
+Production/test source was `386eded41921fbe94a76d4d2b09b7b060602e0cb`.
+The comparison baseline was `f42b3a35c8161cf323b9aa42cb874dc8b584ac83`.
+The old Release executable for whole-graph comparison was built from 904da99;
+production C++ was unchanged through f42b3a3.
+Conditions, counts, hashes and three runs of measurements are in
+[vco-optimization.json](../../artifacts/audit/vco-optimization.json);
+measurement logs are in [vco-performance.log](../../artifacts/audit/vco-performance.log).
 
-## 追加修正：測定後のVCO最適化（2026-10-09 JST）
+Repeated per-sample parameter-name searches and RTTI were replaced with
+parameter-object references bound at construction. Values are read at the same
+points as before; automation values are not frozen per block.
+Single-sample Tone API calls were combined into continuous rendering, retaining
+the order of LFO/PWM/glissando advancement, active/tail decisions, addition and
+signed-zero handling. Parameter IDs, version hints, XML format and control
+curves were unchanged.
 
-本体・試験ソースは `386eded41921fbe94a76d4d2b09b7b060602e0cb`。
-比較基準は `f42b3a35c8161cf323b9aa42cb874dc8b584ac83`。
-whole-graph比較の旧Release実行ファイルは904da99のビルドであり、f42b3a3まで本体C++は同一。
-条件・件数・hash・3回分の測定値は
-[vco-optimization.json](../../artifacts/audit/vco-optimization.json)、
-測定ログは [vco-performance.log](../../artifacts/audit/vco-performance.log)。
+Comparison with the frozen old Tone renderer established **bitwise agreement
+across 480 conditions and 3,932,160 float values**. Coverage included
+44.1/48/96 kHz, internal/external oversampling, 5 waveforms, 4 feet settings,
+1/7/64/255-sample partitions, continuous LFO, live pitch/bend/PWM/wave/glissando/
+Release edits, Note Off/retrigger and graph-owned tails.
+After ValueTree replacement by 7 Factory programs and session restoration,
+bound objects were verified to supply current values. The frozen reference
+shares YM10150/WaveformStrategies; it is not an independent oracle for those models.
 
-毎サンプル繰り返していたparameterの文字列検索とRTTIを、構築時に束縛したparameter objectへの参照に置き換えた。
-値は以前と同じ時点で毎回読むため、automation値をブロック単位に固定していない。
-Tone経路の1サンプルAPI呼出しを連続描画APIへまとめたが、LFO/PWM/glissando、
-active/tail判定、加算と符号付きゼロの扱いは同じ順序で進める。
-parameter ID・version hint・XML形式・制御曲線は変更していない。
-
-凍結した旧Tone描画器との比較は **480条件・3,932,160 float値のビット一致**。
-44.1/48/96 kHz、内部/外部oversampling、5波形、4 feet、1/7/64/255サンプル分割、
-連続LFO、ライブpitch/bend/PWM/wave/glissando/Release更新、Note Off/再発音、graph所有tailを含む。
-7 FactoryとsessionのValueTree置換後も、束縛先から現在の値を読むことを検証した。
-凍結referenceはYM10150/WaveformStrategiesを共有しているため、この試験はそれら自体の独立oracleではない。
-
-| 構成 | 件数 | 結果・制約 |
+| Configuration | Count | Result and limits |
 |---|---:|---|
 | Debug --all | 245 | failures/errors/disabled = 0 |
 | Release --all | 245 | failures/errors/disabled = 0 |
-| project ASan/UBSan/LeakSanitizer --all | 242 | 全成功・検出なし。54 project/test cppを計装。JUCE/GoogleTest/systemは未計装、ELF確保・mutex probe 3件を除外 |
-| 独立Release観測 | 旧2件＋新6件 × 3回 | 全成功。旧→新を逐次実行、他のprojectビルド/試験を停止 |
-| header / format | Debug/Release、105 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+| project ASan/UBSan/LeakSanitizer --all | 242 | All passed, no detections. Instrumented 54 project/test cpp files. JUCE/GoogleTest/system were not instrumented; excluded 3 ELF allocation/mutex probes. |
+| Independent Release observations | 2 old + 6 new cases × 3 runs | All passed. Old then new ran sequentially, with other project builds/tests stopped. |
+| header / format | Debug/Release, 105 C++ files | Passed with clang-format 21.1.7; diff whitespace checks passed. |
 
-最初の比較はDebugビルドと並行したため、音声一致の検証は有効だが性能結論から除外した。
-以下は再測定3回の範囲。Linux共有仮想CPU・通常priority、cgroup 2 CPU枠。
-48 kHz host / 192 kHz processing、PWM、LFO depth 0.73。
-32 warm-up＋1000 measured blocks、各trialの旧/新順序を交互にする。
-VCO単体のmedianは各条件で約74–77%減少。p99・maxはスケジューリング等の影響を含み、締切保証ではない。
+The first comparison ran alongside a Debug build. Audio-equivalence checks
+remained valid, but those timings were excluded from performance conclusions.
+The ranges below cover three repeated measurements on shared Linux virtual CPUs,
+normal priority, with a cgroup allocation of 2 CPUs.
+Settings were 48 kHz host / 192 kHz processing, PWM and LFO depth 0.73.
+Each trial used 32 warm-up + 1000 measured blocks, alternating old/new order.
+VCO-only medians decreased by approximately 74–77% in each condition.
+p99/max include scheduling and other effects; they are not deadline guarantees.
 
-| glissando | host block | 旧median µs | 新median µs | 新p99 µs | 新max µs |
+| Glissando | Host block | Old median µs | New median µs | New p99 µs | New maximum µs |
 |---|---:|---:|---:|---:|---:|
-| 一定pitch | 1 | 1.563–1.573 | 0.370–0.390 | 0.551–0.581 | 16.966–286.803 |
-| 一定pitch | 16 | 20.511–20.592 | 5.268–5.278 | 18.378–44.838 | 80.541–2790.180 |
-| 一定pitch | 64 | 81.172–81.423 | 20.932–20.991 | 79.580–96.105 | 248.736–2554.170 |
-| 進行中 | 1 | 1.642–1.653 | 0.381–0.381 | 0.471–0.591 | 0.570–16.145 |
-| 進行中 | 16 | 21.683–21.883 | 5.368–5.398 | 42.474–68.814 | 178.980–353.033 |
-| 進行中 | 64 | 86.059–86.410 | 21.282–21.312 | 76.164–151.329 | 344.269–1499.360 |
+| Fixed pitch | 1 | 1.563–1.573 | 0.370–0.390 | 0.551–0.581 | 16.966–286.803 |
+| Fixed pitch | 16 | 20.511–20.592 | 5.268–5.278 | 18.378–44.838 | 80.541–2790.180 |
+| Fixed pitch | 64 | 81.172–81.423 | 20.932–20.991 | 79.580–96.105 | 248.736–2554.170 |
+| In progress | 1 | 1.642–1.653 | 0.381–0.381 | 0.471–0.591 | 0.570–16.145 |
+| In progress | 16 | 21.683–21.883 | 5.368–5.398 | 42.474–68.814 | 178.980–353.033 |
+| In progress | 64 | 86.059–86.410 | 21.282–21.312 | 76.164–151.329 | 344.269–1499.360 |
 
-whole-graphの既存spectrum/processing試験も再利用した。
-下表は音声1秒を処理するmsの範囲で、callback締切の測定とは異なる。
-記録された6条件のfolded-bin値は旧/新で同じ。実機の音色忠実度の証明にはしない。
+Existing whole-graph spectrum/processing tests were reused.
+The following ranges are milliseconds to process one audio second, not callback
+deadline measurements. Folded-bin values in the 6 recorded conditions were
+identical for old/new; this does not establish hardware timbre fidelity.
 
-| host Hz | waveform | 旧 ms/audio-second | 新 ms/audio-second |
+| Host Hz | Waveform | Old ms/audio-second | New ms/audio-second |
 |---:|---:|---:|---:|
 | 44100 | 1 | 88.221–115.760 | 41.035–42.529 |
 | 44100 | 2 | 83.345–107.028 | 38.134–40.379 |
@@ -230,22 +294,27 @@ whole-graphの既存spectrum/processing試験も再利用した。
 | 96000 | 1 | 196.687–212.316 | 84.484–102.480 |
 | 96000 | 2 | 190.612–228.507 | 80.462–107.000 |
 
-MIDI密集・GUI同時操作・program切替の既存whole-graph試験（各block 1000 callbacks）の新実装結果：
+New implementation results from the existing whole-graph test with dense MIDI,
+concurrent GUI operations and program changes (1000 callbacks per block size):
 
-| host block | p95 µs | p99 µs | max µs | program切替p99 µs | program切替max µs |
+| Host block | p95 µs | p99 µs | Maximum µs | Program-change p99 µs | Program-change maximum µs |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 3.445–3.716 | 14.382–36.014 | 210.662–318.700 | 18.317–20.511 | 54.082–210.662 |
 | 16 | 88.934–117.627 | 154.573–602.970 | 351.145–1777.180 | 127.532–229.196 | 179.330–426.333 |
 | 64 | 251.830–408.206 | 384.190–1015.980 | 516.900–18019.600 | 279.461–619.495 | 338.140–877.714 |
 
-48 kHzの締切はblock 1/16/64で20.833/333.333/1333.333 µs。
-いずれも一部runでmaxが超えており、RT締切保証は達成していない。
-GUI編集回数は壁時計依存でrunごとに異なるため、同一GUI負荷を厳密に対にした測定ではない。
-100×64 callbackのprobeは確保/解放0、mutex取得44,800。
-残るJUCE graph mutex、APVTS attachmentの通知投稿、メッセージループ依存の経路切替は未解決。
-Windows/macOS・実DAW・実デバイス・全面JUCE計装・TSan・実機校正は今回も未実行。
+At 48 kHz, deadlines for blocks 1/16/64 are 20.833/333.333/1333.333 µs.
+Each block size exceeded its deadline in some runs; no realtime deadline
+guarantee was achieved. GUI edit counts depend on wall-clock time and vary
+between runs, so GUI load was not strictly paired.
+The 100×64 callback probe recorded 0 allocations/frees and 44,800 mutex acquisitions.
+JUCE graph mutexes, APVTS attachment notification posting and message-loop-dependent
+routing remained unresolved at this stage.
+Windows/macOS, real DAWs/devices, full JUCE instrumentation, TSan and hardware
+calibration were again not run.
 
-再現には既存Release test executableを使い、他のビルドを止めて次を3回逐次実行する：
+To reproduce, use the built Release test executable, stop other builds and
+execute the following three times sequentially:
 
 ```sh
 xvfb-run -a bash scripts/run-linux-gui-tests.sh \
@@ -253,174 +322,219 @@ xvfb-run -a bash scripts/run-linux-gui-tests.sh \
   --all --gtest_filter='VcoOptimizationTest.*:VcoOptimizationObservationTest.*:WholeGraphObservationTest.*:AuditRealtimeTest.*'
 ```
 
-旧whole-graphは基準ソースのRelease executableで同じWholeGraphObservationTest filterを実行する。
-同一processのpaired VCO比較は凍結referenceを使うため、最新実行ファイルだけでも再実行できる。
+The old whole-graph comparison uses the same WholeGraphObservationTest filter
+on a Release executable built from baseline source. The paired VCO comparison
+within one process uses the frozen reference and can run with the latest
+executable alone.
 
+## Follow-up correction: remove UI posting from host notifications (2026-10-09 JST)
 
-## 追加修正：ホスト通知からのUI投稿を除去（2026-10-09 JST）
+The baseline was `57e9b300617696efab8246029702e2fbc885b874`;
+production/test commit was `5ac834fa4163c8f7e9e7905f6ce257a902deead9`.
+Details are in [polling-notifications.json](../../artifacts/audit/polling-notifications.json),
+with measurements in [polling-notifications.log](../../artifacts/audit/polling-notifications.log).
 
-基準は `57e9b300617696efab8246029702e2fbc885b874`、
-本体・試験commitは `5ac834fa4163c8f7e9e7905f6ce257a902deead9`。
-詳細は [polling-notifications.json](../../artifacts/audit/polling-notifications.json)、
-測定値は [polling-notifications.log](../../artifacts/audit/polling-notifications.log)。
+JUCE 9.0.3 ParameterAttachment calls `isThisTheMessageThread()` and
+`triggerAsyncUpdate()` outside the message thread.
+Running the same worker regression with standard JUCE Slider/Button/ComboBox
+attachments produced **1 allocation, 0 frees and 6,003 mutex acquisitions** for
+3,000 notifications. One case requiring 0 allocations failed as expected.
+This was an independently built probe with bindings replaced by standard JUCE
+types, not a rebuild of the entire old main or an old whole-graph comparison.
 
-JUCE 9.0.3のParameterAttachmentは非メッセージスレッドで
-`isThisTheMessageThread()` と `triggerAsyncUpdate()` を呼ぶ。
-同じworker回帰を標準JUCEのSlider/Button/ComboBox attachmentで実行すると、
-3,000通知で**確保1・解放0・mutex 6,003**となり、確保0を要求する1件が期待どおり失敗した。
-これはbindingを標準JUCE型へ置き換えてビルドした独立probeであり、
-旧main全体の再ビルド・旧whole-graph比較ではない。
+Production Slider/Button/ComboBox bindings were replaced with message-thread-owned
+polling. They register no parameter listener, read initial values at construction
+and then read current parameter values at 60 Hz. Audio-side message posting or
+thread checks were not added.
+Ranges, custom skew/snapping, text conversion and double-click defaults were
+compared with JUCE 9.0.3. GUI operations immediately notify the host, preserving
+drag gestures, complete Button/ComboBox gestures, APVTS UndoManager and gesture
+completion when destroyed during a drag. External changes appear at approximately
+16.7 ms intervals, or later when the message loop is busy; DSP does not wait.
 
-本番のSlider/Button/ComboBox bindingをmessage-thread所有のポーリングへ置換した。
-parameter listenerを登録せず、構築時に初期値、以後60 Hzで現在のparameter値を読む。
-音声側にメッセージ投稿やスレッド判定を追加していない。
-値域・独自skew/snapping・テキスト変換・default double-clickはJUCE 9.0.3と比較。
-GUI操作は即時にホストへ通知し、drag、Button/ComboBoxのcomplete gesture、
-APVTSのUndoManager、drag中の破棄でのgesture終了を保つ。
-外部変更の表示は約16.7 ms間隔、busyなmessage loopではさらに遅れる。DSPは待たない。
+After a GUI write, the observation cache is invalidated so the latest value is
+shown even if the host returns to the previously observed value before the next
+tick. Silent MIDI values are also observed directly.
+Tests directly covered worker-notification coalescing, no GUI access from workers,
+destruction during concurrent automation and destruction before a tick.
 
-GUI変更→次tick前にホストが前回観測値へ戻すケースでも最新値を表示するため、
-GUI書き込み後に観測cacheを無効化する。通知を伴わないMIDI値も直接観測する。
-worker通知のcoalescing・GUIに触らないこと・同時automation中の破棄・tick前の破棄を直接検証した。
+An intermediate implementation's first host-notification probe also detected
+3 allocations with the GUI closed. APVTS feet/filterType/lfoTarget ListenerList
+iterator vectors grew on first notification. Since feet was already checked on
+audio, redundant VCO/processor APVTS registrations were removed.
+Routing changes used the processor's existing message timer to read current
+filterType/lfoTarget. The graph was not made fixed at this stage; the existing
+message-loop-dependent switching contract was retained.
 
-さらに中間実装の初回ホスト通知probeで、GUIを閉じた状態でも確保3回を検出。
-APVTSのfeet/filterType/lfoTarget ListenerListのiterator vectorが初回通知で拡張する。
-feetは既存音声側で毎回確認しているため、VCO/processorの冗長なAPVTS登録を除去。
-経路変更はprocessorの既存メッセージtimerで現在のfilterType/lfoTargetを読む。
-固定グラフ化は行わず、メッセージループ依存の切替契約を維持した。
-
-| 検証 | 件数 | 結果・制約 |
+| Check | Count | Result and limits |
 |---|---:|---|
 | Debug --all | 252 | failures/errors/disabled = 0 |
 | Release --all | 252 | failures/errors/disabled = 0 |
-| project ASan/UBSan/LeakSanitizer --all | 247 | 検出なし。55 project/test cppを計装。JUCE/GoogleTest/systemは未計装、ELF probe 5件を除外 |
-| 対象GUI/format/RT回帰 | 17 | 全成功、新規GUI 5件＋RT 2件を含む |
-| 独立Release RT/whole-graph観測 | 7 | 全成功。他のprojectビルド・全回帰終了後に実行 |
-| header / format | Debug/Release、107 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+| project ASan/UBSan/LeakSanitizer --all | 247 | No detections. Instrumented 55 project/test cpp files. JUCE/GoogleTest/system were not instrumented; excluded 5 ELF probes. |
+| Focused GUI/format/RT regressions | 17 | All passed, including 5 new GUI and 2 RT cases. |
+| Independent Release RT/whole-graph observations | 7 | All passed after other project builds/full regressions completed. |
+| header / format | Debug/Release, 107 C++ files | Passed with clang-format 21.1.7; diff whitespace checks passed. |
 
-新binding単体の3,000 worker通知は**確保0・解放0・mutex 3,000**。
-残る3,000はJUCEのAudioProcessorParameter通知lockである。
-全parameterを100回変更するprocessorのprobeも、**初回を含め確保/解放0**。
-mutex 4,530回はGUI開/閉で同じで、エディタによる追加取得は0。
-このprobeは音声callback全体のlock-free保証ではない。
+The new binding alone recorded **0 allocations, 0 frees and 3,000 mutex
+acquisitions** for 3,000 worker notifications. The remaining 3,000 are JUCE
+AudioProcessorParameter notification locks.
+The processor probe changing every parameter 100 times also recorded
+**0 allocations/frees, including the first notification**.
+Its 4,530 mutex acquisitions were identical with GUI open/closed; the editor
+added 0 acquisitions. This probe does not establish a lock-free audio callback.
 
-既存whole-graphのMIDI密集・GUI編集・program切替（各block 1000 callbacks）の観測：
+Observations from the existing whole-graph dense-MIDI/GUI-edit/program-change
+test (1000 callbacks per block size):
 
-| block | p95 µs | p99 µs | max µs | program切替p99 µs | program切替max µs | deadline µs |
+| Block | p95 µs | p99 µs | Maximum µs | Program-change p99 µs | Program-change maximum µs | Deadline µs |
 |---:|---:|---:|---:|---:|---:|---:|
 | 1 | 2.994 | 4.788 | 78.318 | 4.487 | 19.36 | 20.8333 |
 | 16 | 59.07 | 116.826 | 267.795 | 102.755 | 176.287 | 333.333 |
 | 64 | 238.931 | 1106.57 | 2229.82 | 349.168 | 2210.77 | 1333.33 |
 
-block 1/64のmaxは締切超過。今回1 runの観測であり、締切保証や分位値の確度を主張しない。
-GUI編集回数は壁時計依存で旧測定と厳密には一致しないため、
-この値から通知変更のCPU改善率を出さない。
-100×64 callbackの確保/解放0・mutex 44,800回は維持。
-JUCEグラフのlockと、ホスト通知自体のlockは残る。
-記録された6 spectrum条件のfolded-bin値は前回と同じ。実機忠実度の証明ではない。
+Maximum times for blocks 1/64 exceeded their deadlines. This was one run,
+without claims of deadline guarantees or reliable percentile estimates.
+Wall-clock-dependent GUI edit counts did not exactly match earlier measurements,
+so no CPU improvement percentage was inferred from the notification change.
+The 100×64 callback probe retained 0 allocations/frees and 44,800 mutex acquisitions.
+JUCE graph locks and host-notification locks remain.
+Folded-bin values for the 6 recorded spectrum conditions matched the previous
+run; this does not establish hardware fidelity.
 
-途中の対象16件では2件失敗した。Slider比例値をsnapping済みparameter値と直接比較した
-誤ったoracleは標準JUCE Sliderとの比較へ直し、float精度の期待値も実値へ合わせた。
-もう1件の初回APVTS確保は上記の登録除去で修正。ケース・判定を削除していない。
-最初のDebug全回帰起動はlinkerと重なりpermission denied（exit 126）となった。
-判定前の起動失敗として除外し、ビルド完了後に252件すべてを再実行した。
-中間のcompile/format不備も修正済みで、古い実行ファイルの成功を最新結果に加算していない。
-Windows/macOS・実DAW・実デバイス・全面JUCE計装・TSan・実機校正は未実行。
+Two of the 16 intermediate focused cases failed. An incorrect oracle compared
+Slider proportions directly with snapped parameter values; it was corrected to
+compare against a standard JUCE Slider, and float-precision expectations were
+aligned with actual values. The other first-use APVTS allocation was fixed by
+removing registrations as described above. Cases/assertions were not removed.
+The initial Debug full-regression launch overlapped with linking and returned
+permission denied (exit 126). It was excluded as a pre-test launch failure;
+all 252 cases were rerun after the build completed.
+Intermediate compile/format issues were also corrected; successes from stale
+executables were not added to the final results.
+Windows/macOS, real DAWs/devices, full JUCE instrumentation, TSan and hardware
+calibration were not run.
 
-再現filterは `PollingAttachmentTest.*:PollingAttachmentRealtimeTest.*`。
-全回帰は前述のXvfb手順に `--all` を指定する。
-この追加変更でもparameter ID/version hint、保存XML、DSPの数式・制御曲線に変更なし。
-通知の設計と寿命契約は [MIDI-realtime-control.md](MIDI-realtime-control.md)。
+The reproduction filter is `PollingAttachmentTest.*:PollingAttachmentRealtimeTest.*`.
+Full regressions use the earlier Xvfb commands with `--all`.
+This follow-up also retained parameter IDs/version hints, saved XML, DSP equations
+and control curves. Notification design and lifetime contracts are in
+[MIDI-realtime-control.md](MIDI-realtime-control.md).
 
-## 追加検証：filter/LFO経路の音声側選択（2026-10-10 JST）
+## Follow-up validation: audio-side filter/LFO routing selection (2026-10-10 JST)
 
-この段階の基準は `0de5c948297bf0ff15eadc9185c0fb5cb30aaca7`。
-当初監査対象/作業開始mainは引き続き `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`。
-基準実装の経路変更はメッセージtimerによる遅延グラフ変更であり、音声側の直接変更ではない。
-message loopを動かさずworkerからchoiceを変更してrenderする再現は、
-基準で1件失敗（実際の選択値2項目）、既存観測2件成功となった。
+The baseline at this stage was `0de5c948297bf0ff15eadc9185c0fb5cb30aaca7`.
+The original audit target/main at startup remained
+`4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`.
+Baseline routing changes were delayed graph changes from the message timer,
+not direct audio-side changes. A reproduction that changed choices on a worker
+and rendered without servicing the message loop failed 1 baseline case
+(covering 2 actual choice values), while 2 existing observations passed.
 
-既存グラフを維持して固定接続にし、各host callbackの先頭でpending programを適用した後、
-filterType/lfoTargetの現在値を読み、音声所有のinput/output/LFO maskを設定する。
-0サンプルcallbackでも適用する。GUIの60 Hz表示timerは音の切替を決めない。
-2つのchoice読取りは一括transactionではなく、任意sample内の切替を保証するものでもない。
-非選択フィルターは以前の未接続状態と同様、ゼロ入力と既存EG sidechainで状態を進め、
-VCAへ寄与する出力をゼロにする。両モデルの処理は残し、inactive状態履歴を保つ。
-グラフ全体の撤去・新規node・crossfadeは行っていない。
+The existing graph was retained with fixed connections. At the start of each
+host callback, after applying a pending program, current filterType/lfoTarget
+values select audio-owned input/output/LFO masks. This also applies to
+zero-sample callbacks. The GUI's 60 Hz display timer does not determine sound
+routing. The two choice reads are not one transaction and do not guarantee
+switching at arbitrary samples within a callback.
+Inactive filters advance with zero input and the existing EG sidechain, then
+clear their output contribution to VCA, preserving the old disconnected-input
+history. Both models continue processing. The whole graph was not removed;
+no new nodes or crossfade were added.
 
-本番変更commitは `360b547c158e03a7b4f63c47285fa04286b52d55`。
-最終テストsourceは `3d72d88a0ef53bd09328e5784b4c6a3e6ce0d6f3`。
-テスト限定macroで旧動的接続と両フィルター非ゼロ入力案を比較した。
-12条件（48 kHz、内部192 kHz、block 1/16/64、2filter×2target）の各modeを
-32 callback warmup後1000回、試行ごとに順序を交替して測定。
-試作の対象10件は全成功、通常CPU中央値が旧方式と同程度であり、
-両フィルター非ゼロ入力案の中央値負荷は増加したため、固定接続＋inactiveゼロ入力を採用した。
-この旧方式は製品の追加modeやparameterではない。
+The production change commit was `360b547c158e03a7b4f63c47285fa04286b52d55`.
+Final test source was `3d72d88a0ef53bd09328e5784b4c6a3e6ce0d6f3`.
+A test-only macro compared prior dynamic connections and a variant feeding
+nonzero input to both filters. Each mode in 12 conditions (48 kHz host,
+192 kHz internal, blocks 1/16/64, 2 filters × 2 targets) used 32 warm-up
+callbacks followed by 1000 measurements, rotating trial order.
+All 10 focused prototype cases passed. Normal CPU medians were comparable
+with the old routing; medians increased for the dual-nonzero-input variant,
+so fixed connections with inactive zero input were selected.
+The old routing is not an additional product mode or parameter.
 
-出力比較は44.1/48/96 kHz、2filter×2target、block 1/7/64の36条件、
-147,528 float値で数値として完全一致した。符号付きゼロも含むbit一致の主張ではない。
-同じcallback時刻で切り替えた64,000 sampleも差0。
-その観測peak=0.305222、switch sample step=0.159228で、旧hard switchの過渡音を保つ。
-クリック解消、聴感評価、実機音色忠実度を達成したとは扱わない。
-Release延長・短縮、Tone/Noise切替、連続filter/LFO切替、block分割をwhole graphで検証した。
-parameter ID/version hint、保存XML、製品version、DSP数式・制御曲線、LICENSEに変更なし。
+Output comparisons at 44.1/48/96 kHz, 2 filters × 2 targets and blocks 1/7/64
+covered 36 conditions and 147,528 float values with exact numerical agreement.
+This does not claim bitwise equality including signed zero.
+Switches at matched callback times also gave difference 0 across 64,000 samples.
+Observed peak=0.305222 and switch sample step=0.159228 preserve the old hard-switch
+transient. Click removal, listening quality and hardware timbre fidelity were
+not established.
+Whole-graph checks covered Release extension/shortening, Tone/Noise switching,
+repeated filter/LFO switching and block partitioning.
+Parameter IDs/version hints, saved XML, product version, DSP equations/control
+curves and LICENSE were unchanged.
 
-| 検証 | 件数 | 結果・制約 |
+| Check | Count | Result and limits |
 |---|---:|---|
 | Debug --all | 259 | failures/errors/disabled = 0 |
 | Release --all | 259 | failures/errors/disabled = 0 |
-| project ASan/UBSan/LeakSanitizer --all | 252 | 検出なし。56 project/test cppを計装。JUCE/GoogleTest/system未計装、ELF probe 7件除外 |
-| 独立Release観測 | 9 × 3回 | すべて成功。全build/回帰終了後、各runを順に実行 |
-| header / format | Debug/Release、108 C++ files | 成功。clang-format 21.1.7、diff空白検査成功 |
+| project ASan/UBSan/LeakSanitizer --all | 252 | No detections. Instrumented 56 project/test cpp files. JUCE/GoogleTest/system were not instrumented; excluded 7 ELF probes. |
+| Independent Release observations | 9 × 3 runs | All passed, each run executed sequentially after all builds/regressions completed. |
+| header / format | Debug/Release, 108 C++ files | Passed with clang-format 21.1.7; diff whitespace checks passed. |
 
-毎callbackで切替するactive-note probe（block 0/1/16/64、1000 callbacks）は
-3回とも**確保0・解放0・mutex取得5,250・観測競合0・wait 0 ns**。
-host choice通知自体はcallback probe外。意図的な競合controlでは各runで1回、
-待ち501/922/281 nsを検出した。取得回数と待ちの有無を区別する。
-既存の密集MIDI/GUI queue callback probeも3回とも確保/解放0、mutex 44,800回。
+An active-note probe switching every callback (blocks 0/1/16/64,
+1000 callbacks) recorded **0 allocations, 0 frees, 5,250 mutex acquisitions,
+0 observed contention and 0 ns wait** in each of three runs.
+Host choice notifications were outside the callback probe.
+Deliberate-contention controls detected 1 contention per run, with waits
+of 501/922/281 ns. Acquisition counts and blocking waits are distinguished.
+Existing dense-MIDI/GUI-queue callback probes also recorded 0 allocations/frees
+and 44,800 mutex acquisitions in all three runs.
 
-paired比較の代表値（target=VCO、3回の各run中央値の範囲、µs）：
+Representative paired comparisons (target=VCO, ranges of run medians over
+three runs, µs):
 
-| block / filter | 旧動的経路 | 固定・inactiveゼロ入力 | 固定・両方非ゼロ入力 |
+| Block / filter | Old dynamic routing | Fixed, inactive zero input | Fixed, both inputs nonzero |
 |---|---:|---:|---:|
 | 64 / Original | 53.211–56.836 | 52.720–53.140 | 55.794–55.994 |
 | 64 / Modern | 44.838–44.958 | 44.247–44.397 | 55.885–55.924 |
 
-全12条件×3mode×3runのmedian/p99/maxはJSON/logに残す。
-中央値だけをCPU改善率や締切保証へ変換しない。scheduler等のばらつきと高いmaxは残る。
+Median/p99/max for all 12 conditions × 3 modes × 3 runs are preserved in JSON/logs.
+Medians alone are not converted to CPU improvement percentages or deadline
+guarantees. Scheduler variation and high maxima remain.
 
-既存whole-graphの密集MIDI・GUI編集・program切替（各run/block 1000 callbacks）、
-各列は3runの最小–最大、µs：
+Existing whole-graph dense-MIDI/GUI-edit/program-change measurements used
+1000 callbacks per run/block. Each column gives minimum–maximum over three
+runs, in µs:
 
-| block | p95 | p99 | max | program切替p99 | program切替max | deadline |
+| Block | p95 | p99 | Maximum | Program-change p99 | Program-change maximum | Deadline |
 |---:|---:|---:|---:|---:|---:|---:|
 | 1 | 3.034–3.735 | 4.537–51.808 | 107.673–293.934 | 6.230–24.367 | 32.409–77.427 | 20.8333 |
 | 16 | 50.466–58.228 | 87.382–160.813 | 230.078–310.820 | 74.422–84.378 | 142.295–235.856 | 333.333 |
 | 64 | 231.230–337.079 | 315.156–538.534 | 1172.280–2365.860 | 280.284–390.651 | 317.751–2365.860 | 1333.33 |
 
-block 1では3runすべて、64では2runのmaxがdeadlineを超えた。
-GUI編集回数は壁時計に依存し旧測定と厳密には一致しない。
-短い試験の上位分位や平均からRT締切を保証しない。
-whole-graph spectrumの6条件も記録し、実機校正とは区別する。
+Maximum times exceeded deadlines in all three runs for block 1 and two runs
+for block 64. GUI edit counts depend on wall-clock time and do not exactly
+match the old measurements. Upper percentiles or means from short trials do
+not establish realtime deadline guarantees. The 6 whole-graph spectrum
+conditions were also recorded separately from hardware calibration.
 
+One SessionGraphTest failed in each intermediate Debug/Release full run of
+259 cases. The old expectation that inactive filters were physically disconnected
+was replaced with a fixed-connection check. Assertions were added for restored
+callback choice values and an output mask enabled only on the selected filter.
+The case/assertions that held notes are not restored and sound begins with the
+next Note On were retained and rerun. A missing OriginalVCFProcessor include
+in the prototype build was also fixed before validation.
+Failing cases or audio assertions were not removed, and stale-executable passes
+were not treated as final validation.
 
-途中の全回帰はDebug/Release各259件中、SessionGraphTest 1件が失敗した。
-旧構造の「非選択フィルターは物理的に未接続」という期待値を、固定接続確認に変更し、
-復元後callbackのchoice値と選択側のみoutput maskが有効である判定を追加した。
-保持ノートが復元されず、次のNote Onで発音するケース・判定は維持して再実行した。
-試作buildのOriginalVCFProcessor include不足も修正してから検証した。
-失敗ケースの削除、音声判定の削除、古い実行ファイルによる成功扱いはしていない。
+While enabled, the Linux callback probe counts pthread trylock EBUSY as contention
+and measures the wait for the subsequent actual blocking lock. Return-value
+contracts such as EOWNERDEAD are retained. Ordinary CPU observations do not
+enable this interposition. A control with a deliberately held mutex also detected
+1 contention and a positive wait. Observed zero contention does not guarantee
+that locks never wait in a host.
+JUCE graph callback mutexes and host parameter-notification mutexes remain.
+Graph connection editing was removed from automation, but host bus-layout
+lifecycle updates remain.
+Windows/macOS, real DAWs/devices, full JUCE/GoogleTest/system instrumentation,
+TSan and hardware calibration were not run. JUCE commercial-licence ownership
+and the distribution licensing route still require the author's decision.
 
-Linux callback probeは有効な間だけpthread trylockのEBUSYを競合として数え、
-続く実際のblocking lockの待ち時間を測る。EOWNERDEADなどの戻り値契約を維持する。
-通常CPU観測はこのinterpositionを有効にしない。意図的に保持したmutexの競合1回と正の待ちを
-検出するcontrolも実行した。競合0という観測はホストでも待たない保証ではない。
-JUCEのgraph callback mutexとhost parameter通知mutexは残る。
-グラフ接続編集はautomationから除去したが、host bus-layout lifecycleの更新経路は残る。
-Windows/macOS、実DAW/デバイス、全面JUCE/GoogleTest/system計装、TSan、実機校正は未実行。
-JUCE商用ライセンス取得状況・配布ライセンス経路は作者の判断が引き続き必要。
-
-記録・再現条件は `artifacts/audit/routing-selection.json` と `.log`。
-全回帰は前述Xvfb手順に `--all`、対象は `RoutingSelectionTest.*:RoutingSelectionRealtimeTest.*`。
-性能観測はビルド/全回帰終了後に独立して3回実行した。
-平均や中央値をRT締切保証として扱わず、p99/maxを併記する。
+Records and reproduction conditions are in `artifacts/audit/routing-selection.json`
+and `.log`. Full regressions use the earlier Xvfb commands with `--all`;
+focused tests use `RoutingSelectionTest.*:RoutingSelectionRealtimeTest.*`.
+Performance observations ran independently three times after builds/full
+regressions completed. Means/medians are not treated as realtime deadline
+guarantees; p99/max are reported alongside them.
