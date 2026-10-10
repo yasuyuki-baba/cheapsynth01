@@ -5,32 +5,18 @@
 
 # Historical experiment: VCF internal-rate experiment
 
-## Subsequent whole-graph implementation
+## Early whole-graph validation record
 
-The standalone VCF experiment decision below is historical. Production now
-runs the entire audio graph (including EG/LFO) at the shared internal rate,
-and downsamples once at the output. The graph VCO bypasses its local resampler
-to avoid a second factor of four. Host MIDI sample positions delimit rendering
-segments before conversion to internal sample counts.
+This experiment was followed by whole-graph oversampling. Its integration test
+covered 44.1/48/96 kHz, partitions 7/64/256, preparation capacity 64, mid-block
+MIDI events and release/reprepare reproducibility. Outputs were compared within
+numerical tolerances. The Standalone build passed at that implementation stage.
+Current rate, event handling and latency policy are described in
+[whole-graph oversampling](Oversampling-validation.md).
 
-A new integration test covers 44.1/48/96 kHz, partitions 7/64/256, preparation
-capacity 64, mid-block MIDI events, and release/reprepare reproducibility.
-It compares outputs within numerical tolerances, not hardware responses.
-The Standalone build passed at the recorded whole-graph implementation revision. Whole-graph observations and the latency
-reporting policy are recorded below; they do not establish total alias reduction.
-
-## Output timing policy and final observations
-
-Production reports zero host latency for this IIR implementation. This means no
-fixed compensable delay is declared, NOT that the output is physically delay-free.
-The graph synthesizes at the internal rate and uses only the downsampling audio
-path. JUCE's 4.43267-sample up/down latency must not be applied directly to this
-path. The down-path impulse peaks at sample 3; its energy centroid is 4.31957
-samples. Neither quantity is a frequency-independent delay. No fixed EG/audio
-offset is added: EG, LFO and audio share the internal clock before output conversion.
-
-Production does not implement a linear-phase FIR output converter or fixed
-host compensation for its frequency-dependent IIR delay.
+The historical down-path impulse peaked at sample 3 and had an energy centroid
+of 4.31957 samples. These are observations, not frequency-independent delays;
+JUCE's 4.43267-sample combined up/down figure does not describe this down-only path.
 
 Release whole-graph observations (editor closed, blocks of 256, A8, saw/square,
 CS-01 Low, cutoff 15 kHz) required roughly 58–70 ms per audio second at 44.1 kHz,

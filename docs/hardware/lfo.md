@@ -18,6 +18,6 @@ recorded. The TC7476BP analysis in this project concerns EG switching logic;
 it does not by itself establish an LFO topology or YM10150 integration.
 Unit-to-unit stability and thermal behavior have not been measured here.
 
-These interpretations are distinct from the production software LFO and are
-not treated as verified hardware topology. Source availability and attribution
-are recorded in [the source catalog](Source-catalog.md).
+The production software ranges are documented in the modulation guide above.
+The shared interpretation/evidence distinction is in
+[circuit evidence status](Circuit-evidence-status.md).

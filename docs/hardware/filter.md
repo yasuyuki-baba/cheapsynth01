@@ -17,8 +17,7 @@ Optional source provenance is recorded in [the source catalog](Source-catalog.md
 | Summing network | R51 22 kohm for cutoff, R52 68 kohm for LFO, R53/R54 33 kohm for EG/tracking, R55 470 ohm for attenuation. | Drawing, model and pin connections are unidentified; these values do not establish a CS-01 network. |
 | Frequency span | Roughly 20 Hz–20 kHz. | This was a range interpretation, not a recorded sweep. A hypothetical +10-octave shift of 20 Hz gives 20,480 Hz. |
 
-These claims describe background interpretations, not verified circuit facts.
-They do not establish IG02610/IG05630 equivalence, calibrated control scaling,
-or hardware resonance behavior. Current software architecture and its limits
+These related-product interpretations do not establish IG02610/IG05630
+equivalence. Current software architecture and its limits
 are documented in [Original VCF design](../software/Original-VCF-behavioral-design.md)
 and [CS-01II VCF model](../software/CS01II-VCF-model.md).

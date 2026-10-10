@@ -32,6 +32,7 @@ analysis rather than a step delegated to an unavailable original.
 
 | Document | Purpose |
 | --- | --- |
+| [User guide](software/User-guide.md) | Playing, controls/ranges/defaults, user presets and session behavior. |
 | [Factory presets](software/Factory-presets.md) | Owner's-manual panel readings, conversion and program usage. |
 | [MIDI implementation](software/MIDI-Implementation.md) | Supported messages, controls and panic behavior. |
 | [Distribution](software/Distribution.md) | ZIP installation, distribution contract and licensing decisions. |
@@ -48,22 +49,31 @@ analysis rather than a step delegated to an unavailable original.
 | [MIDI realtime control](software/MIDI-realtime-control.md) | Event handling, realtime flow and subsequent stability changes. |
 | [Modulation speed ranges](software/Modulation-speed-ranges.md) | LFO/PWM ranges, defaults and saved-state/automation implications. |
 
-### Validation evidence
+### Current validation coverage
 
-Test counts and measurements below belong to the documented run. For current
-test commands and coverage, use the [test guide](../Tests/README.md); for later
-audit results, use the [stability audit](software/Audit-stability.md).
+These describe current validation methods and their limits. Use the
+[test guide](../Tests/README.md) for commands and coverage. Any measured results
+retain their own source revision and conditions; historical runs are indexed below.
 
 | Document | Scope and reading guidance |
 | --- | --- |
-| [Stability audit](software/Audit-stability.md) | Dated fixes, reproduction, test results and realtime measurements; additions appear later in the file. |
 | [Whole-graph oversampling](software/Oversampling-validation.md) | Production oversampling policy and validation limits; includes historical VCO-only observations. |
-| [VCF internal-rate experiment](software/VCF-oversampling-decision.md) | Historical filter-only decision, superseded by whole-graph integration. |
-| [VCF panel validation](software/VCF-panel-validation.md) | Earlier biquad panel/precision measurements; use the Original VCF design for the current model. |
-| [VCF musical-model first pass](software/VCF-musical-model-validation.md) | Earlier biquad/coloration changes and their checks, preceding the current Original VCF model. |
 | [EG time-range validation](software/EG-time-range-validation.md) | Provisional parameter mapping and production duration checks. |
-| [EG control-link first pass](software/EG-control-link-validation.md) | EG-depth smoothing implementation and checks at that stage. |
 | [DSP baselines](software/dsp-baselines.md) | Characterization methods, ideal reference probes and archived comparisons; explains what can be regenerated. |
+
+### Historical validation records
+
+These retain measurements and validation of earlier source revisions. Current
+behavior is described in the implementation documents above; historical counts
+are not a current checkout test result.
+
+| Document | Recorded scope |
+| --- | --- |
+| [Stability audit](software/Audit-stability.md) | Dated fixes and measurements, grouped by tested source revision. |
+| [VCF internal-rate experiment](software/VCF-oversampling-decision.md) | Filter-only experiment and early whole-graph observations. |
+| [VCF panel validation](software/VCF-panel-validation.md) | Earlier biquad panel/precision measurements. |
+| [VCF musical-model first pass](software/VCF-musical-model-validation.md) | Earlier biquad/coloration implementation and validation. |
+| [EG control-link first pass](software/EG-control-link-validation.md) | Depth-ramp implementation and its original validation. |
 
 ## Hardware analysis
 

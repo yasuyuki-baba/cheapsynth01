@@ -187,7 +187,8 @@ it does not run clang-tidy static analysis.
 - Avoid dynamic memory allocation in audio threads
 - Perform heavy operations on the main thread
 - Target zero latency
-- Prefer float over double for floating point precision
+- Use float for audio interfaces; use double for state/coefficient calculations
+  where required for numerical precision. Preserve the model's established arithmetic.
 
 ### Sound Design
 
@@ -219,7 +220,7 @@ This project uses GitHub Actions for continuous integration. Pushes to `main`,
 tag pushes, all pull requests, and manual dispatches run the workflow:
 
 - Building the project on multiple platforms (Windows, macOS, Linux)
-- Running all tests
+- Running the default regression category; detailed `Observation_*` tests are excluded
 - Checking C++ formatting before platform builds
 - Generating XML test reports and uploading them as artifacts
 

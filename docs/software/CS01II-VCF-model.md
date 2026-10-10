@@ -22,11 +22,8 @@ Automated checks cover finite and bounded output during fast cutoff/resonance ch
 
 Historical CSVs under `artifacts/dsp` contain measurements made while the removed Legacy implementation still existed. They are retained as archival comparisons and cannot be regenerated from the current source tree. The previously cited `artifacts/characterization` directory is absent from this checkout. New runs characterize the single behavioral implementation; see [DSP baselines](dsp-baselines.md) for archive scope and provenance.
 
-## Hardware comparison limits
-
-No identified physical CS-01II/IG05630 measurements establish frequency response,
-resonance curve or onset, self-oscillation, level-dependent harmonics, or control
-transients. Damping, feedback and saturation parameters remain empirical.
+Evidence scope and the distinction between software checks and hardware
+calibration are summarized in [evidence status](../hardware/Circuit-evidence-status.md).
 
 See [DSP responsibility boundaries](DSP-responsibility-boundaries.md) for the
 production signal paths and safety ownership.
