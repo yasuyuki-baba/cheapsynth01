@@ -24,15 +24,16 @@ class BrandMark final : public IControl {
         SetIgnoreMouse(true);
     }
     void Draw(IGraphics& g) override {
-        // Original geometric lettering, drawn as vectors so it scales with the editor.
-        const float scale = (mRECT.W() - 8.f) / 174.f;
+        // The product name is always CheapSynth01, including the vector wordmark.
+        const float scale = (mRECT.W() - 8.f) / 190.f;
+        float offset = 0.f;
         auto stroke = [&](std::initializer_list<std::pair<float, float>> points,
                           bool closed = false) {
             g.PathClear();
             bool first = true;
             for (const auto& [x, y] : points) {
-                const float px = mRECT.L + 4.f + x * scale;
-                const float py = mRECT.T + 3.f + y;
+                const float px = mRECT.L + 4.f + (offset + x) * scale;
+                const float py = mRECT.T + 3.f + y * scale;
                 if (first)
                     g.PathMoveTo(px, py);
                 else
@@ -41,24 +42,81 @@ class BrandMark final : public IControl {
             }
             if (closed)
                 g.PathClose();
-            g.PathStroke(ink, 5.f);
+            g.PathStroke(ink, 2.f * scale);
         };
-        stroke({{40, 0}, {8, 0}, {2, 6}, {2, 22}, {8, 28}, {40, 28}});
-        stroke({{86, 0},
-                {52, 0},
-                {46, 6},
-                {46, 9},
-                {52, 14},
-                {80, 14},
-                {86, 20},
-                {86, 22},
-                {80, 28},
-                {46, 28}});
-        stroke({{100, 0}, {132, 0}, {138, 6}, {138, 22}, {132, 28}, {100, 28}, {94, 22}, {94, 6}},
-               true);
-        stroke({{150, 6}, {156, 0}, {160, 0}, {160, 28}});
-        stroke({{148, 28}, {174, 28}});
-        g.DrawText(text(10), "CheapSynth01", IRECT(mRECT.L, mRECT.T + 35.f, mRECT.R, mRECT.B));
+        for (char letter : std::string("CheapSynth01")) {
+            switch (letter) {
+                case 'C':
+                    stroke({{12, 0}, {2, 0}, {0, 2}, {0, 26}, {2, 28}, {12, 28}});
+                    break;
+                case 'h':
+                    stroke({{0, 0}, {0, 28}});
+                    stroke({{0, 12}, {2, 10}, {10, 10}, {12, 12}, {12, 28}});
+                    break;
+                case 'e':
+                    stroke({{12, 26},
+                            {10, 28},
+                            {2, 28},
+                            {0, 26},
+                            {0, 12},
+                            {2, 10},
+                            {10, 10},
+                            {12, 12},
+                            {12, 19},
+                            {0, 19}});
+                    break;
+                case 'a':
+                    stroke({{0, 10}, {10, 10}, {12, 12}, {12, 28}});
+                    stroke({{12, 18}, {2, 18}, {0, 20}, {0, 26}, {2, 28}, {10, 28}, {12, 26}});
+                    break;
+                case 'p':
+                    stroke({{0, 10}, {0, 34}});
+                    stroke({{0, 12},
+                            {2, 10},
+                            {10, 10},
+                            {12, 12},
+                            {12, 26},
+                            {10, 28},
+                            {2, 28},
+                            {0, 26}});
+                    break;
+                case 'S':
+                    stroke({{12, 0},
+                            {2, 0},
+                            {0, 2},
+                            {0, 12},
+                            {2, 14},
+                            {10, 14},
+                            {12, 16},
+                            {12, 26},
+                            {10, 28},
+                            {0, 28}});
+                    break;
+                case 'y':
+                    stroke({{0, 10}, {0, 24}, {2, 26}, {12, 26}});
+                    stroke({{12, 10}, {12, 32}, {10, 34}, {0, 34}});
+                    break;
+                case 'n':
+                    stroke({{0, 28}, {0, 10}});
+                    stroke({{0, 12}, {2, 10}, {10, 10}, {12, 12}, {12, 28}});
+                    break;
+                case 't':
+                    stroke({{4, 4}, {4, 26}, {6, 28}, {12, 28}});
+                    stroke({{0, 10}, {12, 10}});
+                    break;
+                case '0':
+                    stroke({{2, 0}, {10, 0}, {12, 2}, {12, 26}, {10, 28}, {2, 28}, {0, 26}, {0, 2}},
+                           true);
+                    break;
+                case '1':
+                    stroke({{2, 4}, {6, 0}, {8, 0}, {8, 28}});
+                    stroke({{2, 28}, {14, 28}});
+                    break;
+            }
+            offset += 16.f;
+        }
+        g.DrawText(text(8), "MICRO MONOPHONIC SYNTHESIZER",
+                   IRECT(mRECT.L, mRECT.T + 38.f, mRECT.R, mRECT.B));
     }
 };
 
