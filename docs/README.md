@@ -42,6 +42,7 @@ analysis rather than a step delegated to an unavailable original.
 | Document | Purpose |
 | --- | --- |
 | [DSP responsibility boundaries](software/DSP-responsibility-boundaries.md) | Production signal paths, empirical stages and safety ownership. |
+| [Waveform generation](software/Waveform-generation.md) | Shared pitch/phase/master square and the five tonal waveform transformations. |
 | [Original VCF model](software/Original-VCF-behavioral-design.md) | Current Original filter architecture, evidence and tradeoffs. |
 | [CS-01II VCF model](software/CS01II-VCF-model.md) | Current Modern filter's IG05630-inspired behavioral model. |
 | [Stateful EG model](software/EG-stateful-model.md) | Production envelope stages, residual-state retriggers, time-edit policy and provisional curvature. |
