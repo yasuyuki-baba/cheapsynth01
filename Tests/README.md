@@ -106,9 +106,6 @@ The MIDI pitch-bend and post-update glissando checks also stop after 64 complete
 periods. They retain their settling intervals, timeout limits, parameter
 combinations, and frequency tolerances; glissando frequency is measured from
 interpolated crossings instead of counting crossings in a fixed window.
-The breath VCA and VCF graph checks render 0.5 and 1 second respectively, retaining
-both block sizes, nonzero MIDI event offsets, and the 1% recovery power tolerance.
-Recovery measurements start after at least 80 ms (VCA) or 375 ms (VCF) of settling.
 
 This script performs the following:
 
@@ -121,33 +118,19 @@ This script performs the following:
 
 ### Continuous Integration
 
-The `ci.yml` workflow runs on pushes to `main`, tags, pull requests, weekly
-Monday runs (03:00 UTC), and manual dispatches. Its jobs are:
+The unified `ci.yml` workflow runs on pushes to `main`, tags, pull requests,
+and manual dispatches. After formatting passes, independent Linux, macOS, and
+Windows jobs configure one build directory with all product formats and tests
+enabled. Linux GUI tests run under Xvfb with Openbox; the runner waits for the
+window manager to initialize before opening dialogs. A failed OS job does not
+cancel the others.
+Tag builds use Release and create a GitHub release only after all OS jobs pass.
+The workflow:
 
-1. `lint`: formatting and release-packaging checks.
-2. `build`: independent Linux, macOS, and Windows builds of all products and the
-   test executable. The executable is uploaded once per platform and reused by
-   test jobs; no test job recompiles the project.
-3. `quick`: ordinary regressions on all three platforms, including GUI, state,
-   MIDI, representative DSP, and realtime safety checks.
-4. `extended`: the remaining five expensive DSP cases. PRs and `main` pushes run
-   this on Linux; weekly and tag runs use all three platforms. The two categories
-   are disjoint and together cover every default regression.
-5. Optional manual `observations`: Linux DSP characterization after both stages.
-6. Tag-only `create-release`: publish only after builds and both test stages pass
-   on every platform. Candidate packages are prepared by the build jobs.
-
-`--quick` and `--extended` are available through `run_tests.sh` and directly on the
-executable. The default still runs all regressions. Extended cases cover exhaustive
-pitch/feet tuning, PWM range timing, graph envelope timing, frozen VCO equivalence,
-and stationary routing equivalence. New regression cases default to quick coverage.
-An explicit Google Test filter continues to override the category selection.
-
-Manual dispatch defaults to the full OS matrix; clear `full_matrix` for the PR
-configuration. Enable `observations` for detailed DSP measurements. Normal CI
-excludes observations. Tag builds use Release; other runs use Debug. Reports are
-uploaded separately for each platform/category. A failed matrix job does not
-cancel its siblings. Linux GUI tests run under Xvfb with Openbox.
+1. Builds and runs tests on multiple platforms (Windows, macOS, Linux)
+2. Generates XML test reports
+3. Uploads test results as artifacts
+4. Uploads product artifacts; successful tag builds also publish release packages
 
 The current test status can be seen in the repository README badge or in the Actions tab on GitHub.
 
