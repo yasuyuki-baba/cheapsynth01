@@ -42,6 +42,9 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     auto label = [g](IRECT bounds, const char* title, float size = 11.f) {
         g->AttachControl(new ITextControl(bounds, title, text(size)));
     };
+    auto parameterLabel = [g, parameterStyle](IRECT bounds, const char* title) {
+        g->AttachControl(new ITextControl(bounds, title, parameterStyle.labelText));
+    };
     auto button = [g, style](IRECT bounds, const char* title, IActionFunction action,
                              int tag = kNoTag) {
         return g->AttachControl(new IVButtonControl(bounds, action, title, style), tag);
@@ -205,9 +208,9 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     fader(column(3, 4), Param::PwmSpeed, "PWM SPEED");
     choices(column(4, 5, 114, 274), Param::WaveType,
             {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"});
-    label(column(4, 5, 338, 370), "WAVEFORM", 10);
+    parameterLabel(column(4, 5, 338, 370), "WAVEFORM");
     choices(column(5, 6, 114, 274), Param::Feet, {"32'", "16'", "8'", "4'", "WN"});
-    label(column(5, 6, 338, 370), "FEET");
+    parameterLabel(column(5, 6, 338, 370), "FEET");
     const float filterX = origin + width * 6 / 14;
     g->AttachControl(new IPanelControl(IRECT(filterX + 48, 82, filterX + 120, 104), background));
     g->AttachControl(new IVTabSwitchControl(IRECT(filterX + 48, 82, filterX + 120, 104),
@@ -219,7 +222,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                                             {"LOW", "HIGH"}, "", choiceStyle, EVShape::Rectangle,
                                             EDirection::Vertical),
                      ResonanceHigh);
-    label(column(7, 8, 338, 370), "RES");
+    parameterLabel(column(7, 8, 338, 370), "RES");
     fader(column(8, 9), Param::VcfEgDepth, "EG DEPTH");
     fader(column(9, 10), Param::VcaEgDepth, "EG DEPTH");
     fader(column(10, 11), Param::Attack, "A");
