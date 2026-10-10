@@ -274,6 +274,9 @@ void CS01AudioProcessor::updateFilterControls() {
     const bool modern = GetParam(index(cs01::Param::FilterType))->Int() != 0;
     GetUI()->GetControlWithTag(Resonance)->Hide(!modern);
     GetUI()->GetControlWithTag(ResonanceHigh)->Hide(modern);
+    // The two controls overlap and have different bounds. Repaint the background
+    // and the complete panel after swapping them so the previous view is erased.
+    GetUI()->SetAllControlsDirty();
 }
 void CS01AudioProcessor::OnParamChangeUI(int param, EParamSource) {
     if (param == index(cs01::Param::FilterType))
