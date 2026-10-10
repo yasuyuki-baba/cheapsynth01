@@ -138,29 +138,17 @@ claims about a control voltage law.
 
 ## Validation coverage and limitations
 
-The new unit checks cover finite and bounded output under fast cutoff sweeps
-at 44.1, 48, and 96 kHz host rates (at the project's 4x internal rate), plus
-deterministic output independent of how a sequence is partitioned into
-blocks. Original VCF tests cover routing, finite output, modulation behavior, and
-bus/control routing. These checks do not validate measured frequency
-response, resonance peak, THD, cutoff modulation spectrum, or hardware tone.
-They also do not establish block-size consistency for the whole graph.
+Current unit/processor checks cover finite and bounded output under fast cutoff
+and resonance changes at 44.1/48/96 kHz host rates (4x internal rate),
+deterministic block partitioning, reset, level-dependent nonlinearity, routing
+and modulation behavior. They do not establish whole-graph partition invariance
+or measured hardware response/THD. The common distinction between software
+checks and circuit evidence is in [evidence status](../hardware/Circuit-evidence-status.md).
 
-The archived dual-model JSON and compiled comparisons in `artifacts/dsp/` were
-recorded before the Legacy implementation was removed. Their Python harness
-has also been removed, so these files are historical rather than regenerable
-current-source measurements. They compare model equations and filter-path
-timings, not hardware or whole-plugin performance.
-
-The focused compiled checks cover finite/bounded output at 44.1, 48, and 96 kHz
-host rates, deterministic block partitioning and reset, level-dependent
-nonlinearity, and routing. They are implementation checks, not hardware
-validation.
-
-These probes do not validate the complete EG/LFO/breath routing in a running
-graph or establish hardware behavior. No matched plugin/hardware capture with
-identified units and measurement conditions is recorded here; damping, drive
-and control parameters remain uncalibrated.
+The dual-model JSON and compiled comparisons below predate removal of Legacy.
+Their Python harness was also removed. They preserve filter-equation/path
+observations rather than reproducible current-source runs or whole-plugin results.
+[The DSP baseline guide](dsp-baselines.md) describes archive provenance and regeneration.
 
 Compiled response, harmonic, and CPU probes are recorded in
 `artifacts/dsp/original_vcf_cpp_response.csv`,
@@ -177,14 +165,11 @@ Debug difference larger than the Release difference. These are observational
 measurements, not cross-machine guarantees; CPU timing excludes processor-side
 modulation generation and whole-graph scheduling. The response and harmonic
 CSVs characterize the filter paths, not the whole plugin graph or hardware.
-No hardware validation is available; the chosen model is a product sound decision, not evidence of circuit accuracy.
 
 ## Current implementation status
 
-The behavioral model is now the sole Original VCF implementation following
-the user's listening evaluation; the previous implementation and A/B toggle
-have been removed. This is a product sound choice, not confirmation of hardware
-accuracy; no physical IG02610 comparison is available. Earlier CSV comparison
-artifacts remain archived and describe the code as it existed when measured.
+The behavioral model is the sole Original VCF implementation. The previous
+implementation and A/B toggle have been removed. The selection was a product
+sound choice supported by listening, not a measured physical IG02610 comparison.
 
 Current stage boundaries and safety ownership are described in [DSP responsibility boundaries](DSP-responsibility-boundaries.md).

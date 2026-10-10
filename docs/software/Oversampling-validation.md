@@ -8,6 +8,22 @@ standalone ToneGenerator API retains its separate local oversampler for unit tes
 JUCE polyphase IIR downsampling is used in production. FIR experiments are not
 evidence of the production filter's response.
 
+## Production output timing
+
+Production reports zero host latency: it declares no fixed compensable delay.
+The IIR output converter still has frequency-dependent delay. The graph generates
+at 4x the host rate and uses only the downsampling audio path; JUCE's combined
+up/down latency is not the delay of this synthesis path. EG, LFO and audio share
+the internal clock. No fixed EG/audio offset, host latency compensation or
+linear-phase FIR output converter is used.
+
+The graph processes MIDI events at their sample positions by rendering segments
+between events. Events at the end of a block affect the next nonempty block;
+empty callbacks apply host MIDI without advancing DSP. Filter/LFO destination
+choices are read once per host callback, after a pending program is applied.
+Thus MIDI event timing and destination-switch timing have different granularity.
+See [MIDI control flow](MIDI-realtime-control.md) for the detailed event contract.
+
 ## Automated checks
 
 - Production pitch: all five waveforms, three notes, four feet settings and
@@ -35,8 +51,7 @@ VCO-only timing above does not measure that optimization; its exact comparisons
 and whole-graph observations are recorded in [the stability audit](Audit-stability.md).
 
 In tested high-note conditions output first exceeded 1e-5 within one period.
-This is an onset observation, not a latency measurement. IIR group delay depends
-on frequency; no fixed host latency or EG alignment compensation was added.
+This is an onset observation, not a measurement of the output timing policy above.
 Glissando is tested against a separately scheduled semitone progression at all
 three sample rates. A 2 Hz PWM setting is tested using carrier-cycle means:
 0.5-second repetition is distinguished from a 0.25-second shift. This validates

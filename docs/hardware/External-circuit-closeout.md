@@ -1,25 +1,12 @@
 # External-circuit audit closeout
 
-## Subsequent provisional implementation
+## Current implementation boundary
 
-Production EG now uses explicit idle, attack, decay, sustain and release states
-with a stateful exponential recurrence and provisional curvature k = 2. Each
-moving stage retains its current level. A fresh attack from zero and newly
-entered decay/release use the configured reference duration; an attack
-retriggered from a residual level reaches its endpoint sooner because its
-provisional branch target is fixed. Active-stage time edits change the speed
-and recalculate the remaining threshold time without restarting a full stage
-or redefining its target. Sustain edits select a new decay branch.
-Parameter identifiers, ranges and preset units remain unchanged. See
-[the current EG policy](../software/EG-stateful-model.md) for implementation and regression
-coverage, and [note onset continuity](../software/Note-onset-continuity.md) for the separate
-VCA note gate and free-running sources.
-
-This software policy supersedes both the linear JUCE ADSR and the intermediate
-k = 0.5 output-shaping implementation. Neither the current curvature nor the
-intermediate shape is verified hardware behavior. Transistor operating points,
-slider taper, switching thresholds and output-buffer calibration remain incomplete.
-The unchanged-DSP decisions below refer to the historical audit phase.
+The [stateful EG policy](../software/EG-stateful-model.md) describes production
+stages, residual-state handling and active-stage edits. The independent VCA gate
+and free-running sources are in [note onset continuity](../software/Note-onset-continuity.md).
+These supersede the earlier linear ADSR and intermediate k = 0.5 output shaping.
+The unchanged-DSP decisions and counts below refer to the historical audit phase.
 
 Historical verification of the intermediate k = 0.5 implementation: 24
 EG/Envelope/RC tests passed after updating midpoint/slope expectations, and all

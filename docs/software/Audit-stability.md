@@ -6,9 +6,6 @@
 
 作業開始時のGitHub最新mainは `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`。
 監査対象と同一だった。ローカルの古いorigin/mainや既存ビルドを基準にはしていない。
-元checkoutは変更せず、独立worktreeの `fix/audit-stability` で実装した。
-リポジトリ内にAGENTS.mdはなく、CONTRIBUTING.md、Tests/README.md、JUCEの規約・ソースを確認した。
-push、PR、リリース公開はしていない。
 
 以下の初回測定・テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
 主要実装はa280bb7、キャッシュ復元の補完は9db9a2c、試験用型の補正はec12e58。

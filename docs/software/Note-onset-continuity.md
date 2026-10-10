@@ -71,12 +71,13 @@ Wave indices are triangle=0, saw=1, square=2, pulse=3, PWM=4.
 contain four pre-change notes, 400 ms silence, then four changed notes, with no
 independent normalization. These archived captures describe the initial
 implementation on baseline `4f2e59d`, before integration with newer `main`
-changes; they are not an exact audio capture of the rebased PR. The optional
+changes; they do not capture the subsequent integrated implementation. The optional
 capture tests can export audio and trajectories for the current implementation.
 `onset-stages.png` shows the pulse's upstream step
 and the changed continuously running signal. `boundary-measurements.json`
-records the samples around note-on. Raw WAV/CSV captures remain in the ignored
-`build/note-onset/before` and `build/note-onset/after` directories for inspection.
+records the samples around note-on. The run also wrote raw WAV/CSV captures to
+ignored `build/note-onset/before` and `build/note-onset/after` directories; those
+files are not tracked and are not required to read the archived results.
 
 The measured upstream gate discontinuity is removed. The shortest EG attack
 still creates an amplitude transient; overall onset high-frequency energy is

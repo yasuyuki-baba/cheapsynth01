@@ -152,8 +152,9 @@ Use Google Test's `TEST` for independent cases or `TEST_F` with a
 `::testing::Test` fixture for shared setup and teardown. For example:
 
 ```cpp
+#include "CS01Synth/SynthConstants.h"
+
 #include <gtest/gtest.h>
-#include "../../Source/CS01Synth/SynthConstants.h"
 
 TEST(SynthConstantsTest, OversamplingFactorMatchesStages) {
     EXPECT_EQ(Constants::oversamplingFactor,
