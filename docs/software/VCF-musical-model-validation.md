@@ -11,7 +11,7 @@
 Improve consistency of the existing provisional VCF without claiming custom-IC
 reconstruction. This pass retains the double-precision biquad and existing
 control mappings. EG redesign, VCA/breath smoothing and nonlinear resonance
-feedback are subsequent work, not implemented by this pass.
+feedback were outside the scope of this historical pass.
 
 ## Changes
 

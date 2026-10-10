@@ -11,7 +11,7 @@ non-shareable source details locally in `references/`. The
 ## Availability and provenance
 
 Inventory checked on 2026-10-10 JST: no external source PDFs are present under
-`references/` or `docs/tech/` in this checkout. The entries below describe sources
+`references/` or `docs/` in this checkout. The entries below describe sources
 cited by existing project documents, not newly reviewed originals. URLs are
 recorded acquisition leads and have not been checked during this organization
 pass. Earlier reports of local availability apply to their original audit.

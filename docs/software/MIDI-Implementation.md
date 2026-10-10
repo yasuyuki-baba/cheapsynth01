@@ -4,16 +4,15 @@
 
 | Function | Transmitted | Recognized | Remarks |
 |----------|-------------|------------|---------|
-| Basic Channel | X | 1-16 | |
-| Default | X | 1 | |
-| Changed | X | 1-16 | |
-| Mode | X | Mode 3 (Omni Off, Poly) | Actually Monophonic |
+| Basic Channel | X | 1-16 | All channels share one voice; no receive-channel filter |
+| Default / Changed Channel | X | X | No configurable receive-channel setting |
+| Voice Mode | X | Monophonic | Highest-note priority; MIDI mode-change messages are ignored |
 | Note Number | X | 0-127 | |
-| Velocity | X | X | |
+| Velocity | X | X | No amplitude response; zero-velocity Note On is handled as Note Off |
 | Aftertouch | X | X | |
 | Pitch Bend | X | O | 14-bit precision |
 | Control Change | X | O | See table below |
-| Program Change | X | X | |
+| Program Change | X | X | MIDI messages are ignored; host program API is supported separately |
 | System Exclusive | X | X | |
 
 **Legend**: O = Yes, X = No
@@ -33,7 +32,7 @@
 | 75 | Decay | 7-bit | 0-127 | |
 | 76 | LFO Speed | 7-bit | 0-127 | |
 | 79 | Release | 7-bit | 0-127 | |
-| 120 | All Sound Off | — | — | Immediately stops generators/EG and clears residual output state |
+| 120 | All Sound Off | — | — | Clears held notes, EG/note gate and residual output state |
 | 121 | Reset All Controllers | — | — | Centers bend, clears modulation/breath and their 14-bit caches; preserves notes, volume and patch |
 | 123 | All Notes Off | — | — | Clears held notes and starts normal release; repeated messages do not restart release |
 
@@ -44,7 +43,11 @@
 - All parameters update in real-time
 
 ## Panic and lifecycle behavior
-- Channel messages currently control the single shared monophonic voice; there is no per-channel voice allocation.
+- Channel messages control the single shared monophonic voice; note tracking and
+  14-bit controller caches are shared across channels. A matching note-off on any
+  channel releases that note number; there is no per-channel voice allocation.
+- All Sound Off resets note bookkeeping and output tails. The selected source
+  continues free-running in the production graph while the VCA is silent.
 - CC120/123 follow MIDI event positions. Events at the same position retain their input order.
 - Preparing/releasing the audio processor clears held-note state. Transport stop alone does not trigger panic, allowing live playing while stopped.
 - Sustain pedal (CC64) is not implemented; CC123 releases the shared gate directly.
