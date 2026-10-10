@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/ISoundGenerator.h"
 #include "CS01Synth/IWaveformStrategy.h"
@@ -16,10 +16,7 @@
  */
 class ToneGenerator : public ISoundGenerator {
    public:
-    ToneGenerator(juce::AudioProcessorValueTreeState& apvts);
-    void setExternalOversampling(bool enabled) {
-        externalOversampling = enabled;
-    }
+    ToneGenerator(cs01::ParameterState& parameters);
 
     // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
@@ -34,12 +31,10 @@ class ToneGenerator : public ISoundGenerator {
     int getCurrentlyPlayingNote() const override;
 
     // Audio processing methods
-    void prepare(const juce::dsp::ProcessSpec& spec) override;
+    void prepare(double sampleRate) override;
     void updateBlockRateParameters();
     void reset();
-    void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample,
-                         int numSamples) override;
-    void process(const juce::dsp::ProcessContextReplacing<float>& context);
+    float renderSample() override;
 
     // Sound generation methods
     float getNextSample();
@@ -54,7 +49,7 @@ class ToneGenerator : public ISoundGenerator {
     // Base waveform generation methods
     float generateMasterSquareWave(float finalPitch);
 
-    juce::AudioProcessorValueTreeState& apvts;
+    cs01::ParameterState& parameters;
 
     // Note state
     int currentlyPlayingNote = 0;
@@ -77,11 +72,6 @@ class ToneGenerator : public ISoundGenerator {
     YM10150 waveformModel;
     float sampleRate = 44100.0f;
     float internalSampleRate = 176400.0f;
-    juce::dsp::Oversampling<float> oversampling{
-        1, Constants::oversamplingStages,
-        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR};
-    juce::AudioBuffer<float> oversamplingBuffer{1, 1};
-    bool externalOversampling = false;
     float phase = 0.0f;
     float phaseIncrement = 0.0f;
     float leakyIntegratorState = 0.0f;
@@ -97,6 +87,6 @@ class ToneGenerator : public ISoundGenerator {
     Feet currentFeet = Feet::Feet8;
 
     // LFOs
-    juce::dsp::Oscillator<double> pwmLfo;
+    cs01::Oscillator pwmLfo;
     float lfoValue = 0.0f;
 };

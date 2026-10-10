@@ -1,4 +1,4 @@
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/CS01IIVCFCircuit.h"
 #include "CS01Synth/ExperimentalIG05630.h"
@@ -22,8 +22,8 @@ std::vector<float> render(double sampleRate, float cutoff, float resonance, doub
     std::vector<float> output(characterSamples);
     for (int i = 0; i < characterSamples; ++i) {
         const float input =
-            amplitude * static_cast<float>(std::sin(2.0 * juce::MathConstants<double>::pi * toneHz *
-                                                    i / sampleRate));
+            amplitude * static_cast<float>(
+                            std::sin(2.0 * std::numbers::pi_v<double> * toneHz * i / sampleRate));
         output[i] = circuit.processSample(0, input);
     }
     return output;
@@ -35,7 +35,7 @@ double amplitudeAt(const std::vector<float>& signal, double sampleRate, double f
     double cosine = 0.0;
     for (int i = characterSamples / 2; i < characterSamples; ++i) {
         const double phase =
-            2.0 * juce::MathConstants<double>::pi * frequency * harmonic * i / sampleRate;
+            2.0 * std::numbers::pi_v<double> * frequency * harmonic * i / sampleRate;
         sine += signal[i] * std::sin(phase);
         cosine += signal[i] * std::cos(phase);
     }
@@ -143,7 +143,8 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
         for (float resonance : {0.4f, 0.8f, 1.0f}) {
             for (float inputPeak : {0.05f, 0.5f}) {
                 constexpr float cutoff = 1000.0f;
-                const int cycles = juce::jmax(8, juce::roundToInt(440.0 * characterSamples / rate));
+                const int cycles =
+                    std::max(8, static_cast<int>(std::lround(440.0 * characterSamples / rate)));
                 const double frequency = cycles * rate / characterSamples;
                 {
                     const auto signal = render(rate, cutoff, resonance, frequency, inputPeak);
@@ -170,7 +171,7 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
             std::vector<float> source(sampleCount);
             for (int i = 0; i < sampleCount; ++i)
                 source[i] = 0.2f * static_cast<float>(std::sin(
-                                       i * 2.0 * juce::MathConstants<double>::pi * 220.0 / rate));
+                                       i * 2.0 * std::numbers::pi_v<double> * 220.0 / rate));
             {
                 auto input = source;
                 CS01IIVCFCircuit circuit;
@@ -181,8 +182,8 @@ TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
                     const float cutoff =
                         modulated
                             ? 1000.0f *
-                                  (1.0f + 0.8f * std::sin(i * 2.0f *
-                                                          juce::MathConstants<float>::pi / 8192.0f))
+                                  (1.0f +
+                                   0.8f * std::sin(i * 2.0f * std::numbers::pi_v<float> / 8192.0f))
                             : 1000.0f;
                     circuit.setCutoffFrequency(cutoff);
                     circuit.setResonance(0.8f);

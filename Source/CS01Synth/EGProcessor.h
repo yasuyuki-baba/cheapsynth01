@@ -1,23 +1,21 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "Parameters.h"
 
 //==============================================================================
-class EGProcessor : public juce::AudioProcessor {
+class EGProcessor {
    public:
     //==============================================================================
-    EGProcessor(juce::AudioProcessorValueTreeState& apvts);
-    ~EGProcessor() override;
+    EGProcessor(cs01::ParameterState& parameters);
+    ~EGProcessor();
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock);
+    void releaseResources();
 
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
-
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    float processSample();
 
     bool isActive() const {
         return stage != Stage::idle;
@@ -33,56 +31,14 @@ class EGProcessor : public juce::AudioProcessor {
     void releaseEnvelope();
 
     //==============================================================================
-    juce::AudioProcessorEditor* createEditor() override {
-        return nullptr;
-    }
-    bool hasEditor() const override {
-        return false;
-    }
-
-    //==============================================================================
-    const juce::String getName() const override {
-        return "EG";
-    }
-
-    bool acceptsMidi() const override {
-        return false;
-    }
-    bool producesMidi() const override {
-        return false;
-    }
-    bool isMidiEffect() const override {
-        return false;
-    }
-    double getTailLengthSeconds() const override {
-        return 0.0;
-    }
-
-    //==============================================================================
-    int getNumPrograms() override {
-        return 1;
-    }
-    int getCurrentProgram() override {
-        return 0;
-    }
-    void setCurrentProgram(int index) override {}
-    const juce::String getProgramName(int index) override {
-        return {};
-    }
-    void changeProgramName(int index, const juce::String& newName) override {}
-
-    //==============================================================================
-    void getStateInformation(juce::MemoryBlock& destData) override {}
-    void setStateInformation(const void* data, int sizeInBytes) override {}
-
    private:
     //==============================================================================
     void updateADSR();
 
-    juce::AudioProcessorValueTreeState& apvts;
+    cs01::ParameterState& parameters;
     enum class Stage { idle, attack, decay, sustain, release };
     Stage stage = Stage::idle;
-    juce::ADSR::Parameters settings;
+    cs01::EnvelopeSettings settings;
     double envelopeSampleRate = 44100.0;
     double level = 0.0, stageTarget = 0.0, stageEndpoint = 0.0;
     double stageCoefficient = 0.0;
@@ -90,6 +46,4 @@ class EGProcessor : public juce::AudioProcessor {
     float lastOutput = 0.0f;
     void beginStage(Stage next, double endpoint, double seconds);
     float nextEnvelopeSample();
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EGProcessor)
 };

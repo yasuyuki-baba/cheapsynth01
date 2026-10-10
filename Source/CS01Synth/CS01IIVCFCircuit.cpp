@@ -1,11 +1,11 @@
 #include "CS01Synth/CS01IIVCFCircuit.h"
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include <cmath>
 
 void CS01IIVCFCircuit::prepare(double sampleRate) {
-    maximumCutoff = juce::jmin(20000.0f, static_cast<float>(sampleRate) * 0.49f);
+    maximumCutoff = std::min(20000.0f, static_cast<float>(sampleRate) * 0.49f);
     model.prepare(sampleRate);
 }
 
@@ -16,7 +16,7 @@ void CS01IIVCFCircuit::reset() {
 void CS01IIVCFCircuit::setCutoffFrequency(float frequency) {
     if (!std::isfinite(frequency))
         frequency = 1000.0f;
-    model.setCutoffFrequency(juce::jlimit(20.0f, maximumCutoff, frequency));
+    model.setCutoffFrequency(std::clamp(frequency, 20.0f, maximumCutoff));
 }
 
 void CS01IIVCFCircuit::setResonance(float resonance) {
@@ -24,6 +24,6 @@ void CS01IIVCFCircuit::setResonance(float resonance) {
 }
 
 float CS01IIVCFCircuit::processSample(int channel, float sample) {
-    jassert(channel == 0);
+    (void)channel;  // The circuit is monophonic.
     return model.processSample(sample);
 }

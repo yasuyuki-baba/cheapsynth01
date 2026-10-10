@@ -6,51 +6,15 @@
 
 #include <typeinfo>
 
-MidiProcessor::MidiProcessor(juce::AudioProcessorValueTreeState& apvts)
-    : AudioProcessor(BusesProperties()) {  // No audio buses
-    static_assert(std::atomic<float>::is_always_lock_free);
-    static_assert(std::atomic<bool>::is_always_lock_free);
-    const std::array ids{
+MidiProcessor::MidiProcessor(cs01::ParameterState& p) : parameters(p) {}
+MidiProcessor::~MidiProcessor() = default;
+void MidiProcessor::updateParameter(Control control, float normalizedValue) {
+    constexpr std::array ids{
         ParameterIds::pitchBend, ParameterIds::modDepth,  ParameterIds::breathInput,
         ParameterIds::volume,    ParameterIds::glissando, ParameterIds::sustain,
         ParameterIds::resonance, ParameterIds::attack,    ParameterIds::cutoff,
         ParameterIds::decay,     ParameterIds::lfoSpeed,  ParameterIds::release};
-    for (size_t i = 0; i < controls.size(); ++i) {
-        auto* parameter = apvts.getParameter(ids[i]);
-        // Only the standard float class has the empty valueChanged hook we
-        // rely on. A future custom parameter must be audited before MIDI use.
-        if (parameter != nullptr && typeid(*parameter) == typeid(juce::AudioParameterFloat))
-            controls[i].parameter = parameter;
-        else
-            jassert(parameter == nullptr);
-    }
-    // Polling avoids AsyncUpdater's potentially blocking message post on the audio thread.
-    startTimerHz(60);
-}
-
-MidiProcessor::~MidiProcessor() {
-    stopTimer();
-}
-
-void MidiProcessor::updateParameter(Control control, float normalizedValue) {
-    auto& state = controls[static_cast<size_t>(control)];
-    if (state.parameter == nullptr)
-        return;
-    // Standard AudioParameterFloat::setValue only stores its atomic value and
-    // calls the empty valueChanged hook. DSP reads that value directly; APVTS's
-    // listener-maintained raw cache is deliberately deferred to the timer.
-    state.parameter->setValue(normalizedValue);
-    state.pending.store(true, std::memory_order_release);
-}
-
-void MidiProcessor::timerCallback() {
-    for (auto& state : controls) {
-        if (state.pending.exchange(false, std::memory_order_acquire)) {
-            // Notify the current value without writing a snapshot back. A MIDI
-            // update or host edit during dispatch cannot be rolled back here.
-            state.parameter->sendValueChangedMessageToListeners(state.parameter->getValue());
-        }
-    }
+    parameters.setNormalized(ids[static_cast<size_t>(control)], normalizedValue, true);
 }
 
 void MidiProcessor::prepareToPlay(double, int) {
@@ -64,22 +28,7 @@ void MidiProcessor::releaseResources() {
         egProcessor->stopEnvelopeImmediately();
 }
 
-void MidiProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-    // This processor does not process audio, so we must clear the buffer
-    // to prevent any leftover data from passing through.
-    buffer.clear();
-
-    // Process MIDI messages but don't generate output buffer
-    for (const auto metadata : midiMessages) {
-        auto message = metadata.getMessage();
-        handleMidiEvent(message, midiMessages);
-    }
-
-    // Clear MIDI buffer as we don't generate output MIDI messages
-    midiMessages.clear();
-}
-
-void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::MidiBuffer&) {
+void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
     if (midiMessage.isAllSoundOff()) {
         releaseResources();
     } else if (midiMessage.isAllNotesOff()) {
@@ -102,7 +51,7 @@ void MidiProcessor::handleMidiEvent(const juce::MidiMessage& midiMessage, juce::
     // Ignore other MIDI messages
 }
 
-void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage) {
+void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
     bool wasEmpty = activeNotes.none();
     activeNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
 
@@ -123,7 +72,7 @@ void MidiProcessor::handleNoteOn(const juce::MidiMessage& midiMessage) {
     }
 }
 
-void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage) {
+void MidiProcessor::handleNoteOff(const cs01::MidiMessage& midiMessage) {
     // An unmatched key release must not restart an already running release.
     if (!activeNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
         return;
@@ -145,7 +94,7 @@ void MidiProcessor::handleNoteOff(const juce::MidiMessage& midiMessage) {
     }
 }
 
-void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage) {
+void MidiProcessor::handlePitchWheel(const cs01::MidiMessage& midiMessage) {
     lastPitchWheelValue = midiMessage.getPitchWheelValue();
 
     // Set pitch wheel value to sound generator
@@ -155,8 +104,7 @@ void MidiProcessor::handlePitchWheel(const juce::MidiMessage& midiMessage) {
 
     const float displacement = static_cast<float>(lastPitchWheelValue - 8192);
     const float position = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
-    if (auto* parameter = controls[static_cast<size_t>(Control::PitchBend)].parameter)
-        updateParameter(Control::PitchBend, parameter->convertTo0to1(position));
+    updateParameter(Control::PitchBend, cs01::toNormalized(ParameterIds::pitchBend, position));
 }
 
 void MidiProcessor::updateModulationParameter() {
@@ -183,7 +131,7 @@ void MidiProcessor::updateGlissandoParameter() {
     updateParameter(Control::Glissando, normalizedValue);
 }
 
-void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage) {
+void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage) {
     const int controller = midiMessage.getControllerNumber();
     const int value = midiMessage.getControllerValue();
 
@@ -193,7 +141,7 @@ void MidiProcessor::handleControllerMessage(const juce::MidiMessage& midiMessage
         breathMSB = breathLSB = 0;
         updateModulationParameter();
         updateBreathParameter();
-        handlePitchWheel(juce::MidiMessage::pitchWheel(midiMessage.getChannel(), 8192));
+        handlePitchWheel(cs01::MidiMessage::pitchWheel(midiMessage.getChannel(), 8192));
         return;
     }
 

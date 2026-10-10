@@ -1,152 +1,54 @@
 #pragma once
-
-#include <JuceHeader.h>
-
+#include "IPlug_include_in_plug_hdr.h"
+// iPlug2 generates a format-specific bundle ID; retain JUCE's shared macOS ID.
+#ifdef OS_MAC
+#undef BUNDLE_ID
+#define BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01"
+#endif
+#include "Parameters.h"
 #include "ProgramManager.h"
-#include "UI/AudioDisplayFifo.h"
+#include "SynthEngine.h"
+#include "DSP/MidiQueue.h"
+#include "ISender.h"
+#if IPLUG_EDITOR
+#include "IControls.h"
+#endif
 
-#include <atomic>
-#include <memory>
-
-class IFilter;
-
-class CS01AudioProcessor : public juce::AudioProcessor,
-                           public juce::AudioProcessorValueTreeState::Listener,
-                           private juce::AsyncUpdater {
+class CS01AudioProcessor final : public iplug::Plugin {
    public:
-    // Get current filter processor
-    IFilter* getCurrentFilterProcessor();
-    //==============================================================================
-    CS01AudioProcessor();
-    ~CS01AudioProcessor() override;
-
-    //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override;
-
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
-
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
-
-    //==============================================================================
-    juce::AudioProcessorEditor* createEditor() override;
-    bool hasEditor() const override;
-
-    //==============================================================================
-    const juce::String getName() const override {
-        return "CheapSynth01";
-    }
-    bool acceptsMidi() const override {
-        return true;
-    }
-    bool producesMidi() const override {
-        return false;
-    }
-    bool isMidiEffect() const override {
-        return false;
-    }
-    double getTailLengthSeconds() const override {
-        return 0.0;
-    }
-
-    //==============================================================================
-    int getNumPrograms() override;
-    int getCurrentProgram() override;
-    void setCurrentProgram(int index) override;
-    const juce::String getProgramName(int index) override;
-    void changeProgramName(int index, const juce::String& newName) override;
-
-    //==============================================================================
-    void getStateInformation(juce::MemoryBlock& destData) override;
-    void setStateInformation(const void* data, int sizeInBytes) override;
-
-    // ProgramManager access
-    ProgramManager& getPresetManager() {
-        return presetManager;
-    }
-
-    void parameterChanged(const juce::String& parameterID, float newValue) override;
-    void processorLayoutsChanged() override;
-
-   public:
-    juce::AudioProcessorValueTreeState& getValueTreeState() {
-        return apvts;
-    }
-    juce::MidiKeyboardState& getKeyboardState() {
-        return keyboardState;
-    }
-    juce::MidiMessageCollector& getMidiMessageCollector() {
-        return midiMessageCollector;
-    }
-    juce::MidiMessageCollector& getPanelBendCollector() {
-        return panelBendCollector;
-    }
-    unsigned getExternalBendRevision() const {
-        return externalBendRevision.load();
-    }
-
-    AudioDisplayFifo& getAudioDisplayFifo() {
-        return audioDisplayFifo;
-    }
-
-    const juce::AudioProcessorGraph& getAudioGraphForTesting() const {
-        return audioGraph;
-    }
-    juce::AudioProcessorGraph::NodeID getVcoNodeIdForTesting() const {
-        return vcoNode->nodeID;
-    }
-    juce::AudioProcessorGraph::NodeID getLfoNodeIdForTesting() const {
-        return lfoNode->nodeID;
-    }
-    juce::AudioProcessorGraph::NodeID getVcaNodeIdForTesting() const {
-        return vcaNode->nodeID;
-    }
-    juce::AudioProcessorGraph::NodeID getOriginalFilterNodeIdForTesting() const {
-        return vcfNode->nodeID;
-    }
-    juce::AudioProcessorGraph::NodeID getModernFilterNodeIdForTesting() const {
-        return modernVcfNode->nodeID;
-    }
-    // Call only on the message thread; flush both routing and graph rendering updates.
-    void flushPendingGraphChangesForTesting() {
-        handleUpdateNowIfNeeded();
-        audioGraph.rebuild();
-    }
-
-    juce::AudioProcessorValueTreeState apvts;
-
+    explicit CS01AudioProcessor(const iplug::InstanceInfo& info);
+    bool SerializeState(iplug::IByteChunk& chunk) const override;
+    int UnserializeState(const iplug::IByteChunk& chunk, int startPos) override;
+    void OnParamChange(int index) override;
+    void OnIdle() override;
+#if IPLUG_DSP
+    void ProcessBlock(iplug::sample** inputs, iplug::sample** outputs, int frames) override;
+    void ProcessMidiMsg(const iplug::IMidiMsg& message) override;
+    void OnReset() override;
+#endif
+#if IPLUG_EDITOR
+    void OnUIOpen() override;
+    void OnUIClose() override;
+#endif
    private:
-    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    void applyFilterRouting(int filterType, int lfoTarget,
-                            juce::AudioProcessorGraph::UpdateKind updateKind);
-    void handleAsyncUpdate() override;
-    void updateVCAOutputConnections();
-    void handleGeneratorTypeChanged();
-    juce::MidiKeyboardState keyboardState;
-    juce::MidiMessageCollector midiMessageCollector;
-    juce::MidiMessageCollector panelBendCollector;
-    std::atomic<unsigned> externalBendRevision{0};
-    juce::AudioProcessorGraph audioGraph;
-    std::unique_ptr<juce::dsp::Oversampling<float>> outputOversampling;
-    juce::AudioBuffer<float> internalAudio;
-    int processingCapacity = 1;
-    AudioDisplayFifo audioDisplayFifo;
-    juce::AudioProcessorGraph::Node::Ptr midiInputNode;
-    juce::AudioProcessorGraph::Node::Ptr midiProcessorNode;
-    juce::AudioProcessorGraph::Node::Ptr audioOutputNode;
-    juce::AudioProcessorGraph::Node::Ptr vcoNode;
-    juce::AudioProcessorGraph::Node::Ptr egNode;
-    juce::AudioProcessorGraph::Node::Ptr lfoNode;
-    juce::AudioProcessorGraph::Node::Ptr vcaNode;
-    juce::AudioProcessorGraph::Node::Ptr vcfNode;
-    juce::AudioProcessorGraph::Node::Ptr modernVcfNode;
-
-    // プログラム管理
-    ProgramManager presetManager;
-
-    // Latest requested routing state; parameter callbacks only publish values here.
-    std::atomic<int> requestedFilterType{0};
-    std::atomic<int> requestedLfoTarget{0};
-    std::atomic<bool> pendingRoutingChange{false};
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CS01AudioProcessor)
+    enum ControlTag { ProgramLabel = 100, PresetName, Scope, Keyboard, Resonance };
+    void syncParameters(bool notifyHost = false);
+    cs01::ParameterState parameters;
+    ProgramManager programs{parameters};
+#if IPLUG_DSP
+    SynthEngine engine{parameters};
+    cs01::MidiQueue midi;
+    iplug::IBufferSender<1, 64, 512> scope{-100, 512};
+    std::atomic<bool> pendingPanic{false};
+    std::atomic<bool> pendingPanelBend{false};
+#endif
+    std::atomic<bool> monitorEnabled{false};
+#if IPLUG_EDITOR
+    void layoutEditor(iplug::igraphics::IGraphics* graphics);
+    void updateProgramLabel();
+    void updateFilterControls();
+    void reportPresetError();
+    void OnParamChangeUI(int index, iplug::EParamSource source) override;
+    WDL_String dialogFile, dialogPath;
+#endif
 };

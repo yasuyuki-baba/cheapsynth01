@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
 #include "CS01Synth/IFilter.h"         // Updated interface
@@ -9,63 +9,19 @@
 #include <atomic>
 
 //==============================================================================
-class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
+class OriginalVCFProcessor : public IFilter {
    public:
     //==============================================================================
-    OriginalVCFProcessor(juce::AudioProcessorValueTreeState& apvts);
-    ~OriginalVCFProcessor() override;
+    OriginalVCFProcessor(cs01::ParameterState& parameters);
+    ~OriginalVCFProcessor();
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock);
+    void releaseResources();
 
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
-
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    float processSample(float audio, float eg, float lfo);
 
     //==============================================================================
-    juce::AudioProcessorEditor* createEditor() override {
-        return nullptr;
-    }
-    bool hasEditor() const override {
-        return false;
-    }
-
-    //==============================================================================
-    const juce::String getName() const override {
-        return "Original VCF";
-    }
-
-    bool acceptsMidi() const override {
-        return false;
-    }
-    bool producesMidi() const override {
-        return false;
-    }
-    bool isMidiEffect() const override {
-        return false;
-    }
-    double getTailLengthSeconds() const override {
-        return 0.0;
-    }
-
-    //==============================================================================
-    int getNumPrograms() override {
-        return 1;
-    }
-    int getCurrentProgram() override {
-        return 0;
-    }
-    void setCurrentProgram(int index) override {}
-    const juce::String getProgramName(int index) override {
-        return {};
-    }
-    void changeProgramName(int index, const juce::String& newName) override {}
-
-    //==============================================================================
-    void getStateInformation(juce::MemoryBlock& destData) override {}
-    void setStateInformation(const void* data, int sizeInBytes) override {}
-
     // Implementation of IFilter interface
     ResonanceMode getResonanceMode() const override {
         return ResonanceMode::Toggle;
@@ -73,11 +29,9 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
 
    private:
     //==============================================================================
-    juce::AudioProcessorValueTreeState& apvts;
+    cs01::ParameterState& parameters;
     CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
-    juce::HeapBlock<float> modulationBuffer;  //  Buffer preallocated for reuse
-    int modulationBufferCapacity = 0;         // Capacity (in samples) of allocated modulationBuffer
-    juce::SmoothedValue<float> egDepthControl;
+    cs01::LinearRamp egDepthControl;
 
     // Cutoff frequency calculation function
     float calculateCutoffFrequency(float cutoffParam) {
@@ -86,7 +40,7 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
         const float maxFreq = 20000.0f;  // Maximum cutoff frequency
 
         // Verify input range (actual frequency value)
-        float cutoffFreq = juce::jlimit(minFreq, maxFreq, cutoffParam);
+        float cutoffFreq = std::clamp(cutoffParam, minFreq, maxFreq);
 
         return cutoffFreq;
     }
@@ -103,6 +57,4 @@ class OriginalVCFProcessor : public juce::AudioProcessor, public IFilter {
             return 0.2f;
         }
     }
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OriginalVCFProcessor)
 };

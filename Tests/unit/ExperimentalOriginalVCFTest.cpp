@@ -19,7 +19,7 @@ std::vector<float> renderFilter(double sampleRate, float cutoffHz, float resonan
     std::vector<float> audio(characterizationSamples);
     std::vector<float> cutoff(characterizationSamples, cutoffHz);
     for (int i = 0; i < characterizationSamples; ++i) {
-        const double phase = juce::MathConstants<double>::twoPi * frequencyHz * i / sampleRate;
+        const double phase = (2 * std::numbers::pi_v<double>)*frequencyHz * i / sampleRate;
         audio[i] = amplitude * static_cast<float>(std::sin(phase));
     }
     filter.processBlock(audio.data(), characterizationSamples, cutoff.data(), resonance);
@@ -33,7 +33,7 @@ double projectedAmplitude(const std::vector<float>& audio, double sampleRate, do
     const int begin = characterizationSamples / 2;
     for (int i = begin; i < characterizationSamples; ++i) {
         const double phase =
-            juce::MathConstants<double>::twoPi * frequencyHz * harmonic * i / sampleRate;
+            (2 * std::numbers::pi_v<double>)*frequencyHz * harmonic * i / sampleRate;
         sine += audio[i] * std::sin(phase);
         cosine += audio[i] * std::cos(phase);
     }
@@ -68,7 +68,7 @@ TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndep
         whole[i] = a.processSample(input, cutoff, 0.8f);
     }
     for (int block = 0; block < count; block += 37) {
-        for (int i = block; i < juce::jmin(block + 37, count); ++i) {
+        for (int i = block; i < std::min(block + 37, count); ++i) {
             const float input = std::sin(i * 0.071f);
             const float cutoff = 100.0f + static_cast<float>(i % 1200) * 12.0f;
             split[i] = b.processSample(input, cutoff, 0.8f);
@@ -99,10 +99,10 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreCpuComparison) {
         for (const bool modulated : {false, true}) {
             std::vector<float> source(sampleCount), cutoff(sampleCount);
             for (int i = 0; i < sampleCount; ++i) {
-                const double phase = i * 2.0 * juce::MathConstants<double>::pi * 220.0 / coreRate;
+                const double phase = i * 2.0 * std::numbers::pi_v<double> * 220.0 / coreRate;
                 source[i] = 0.2f * static_cast<float>(std::sin(phase));
                 const float modulation =
-                    0.25f * std::sin(i * 2.0f * juce::MathConstants<float>::pi / 4096.0f);
+                    0.25f * std::sin(i * 2.0f * std::numbers::pi_v<float> / 4096.0f);
                 cutoff[i] = modulated ? 1000.0f * (1.0f + modulation) : 1000.0f;
             }
 
@@ -133,8 +133,9 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
             for (const float resonance : {0.2f, 0.7f}) {
                 for (const double cutoffRatio : {0.5, 1.0, 2.0}) {
                     const double requestedHz = cutoffHz * cutoffRatio;
-                    const int cycles = juce::jmax(
-                        8, juce::roundToInt(requestedHz * characterizationSamples / coreRate));
+                    const int cycles =
+                        std::max(8, static_cast<int>(std::lround(
+                                        requestedHz * characterizationSamples / coreRate)));
                     const double frequencyHz = cycles * coreRate / characterizationSamples;
                     if (frequencyHz >= coreRate * 0.45)
                         continue;
@@ -156,7 +157,8 @@ TEST(ExperimentalOriginalVCFTest, Observation_CompiledCoreResponseAndHarmonics) 
         for (const float amplitude : {0.05f, 0.5f}) {
             constexpr float cutoffHz = 1000.0f;
             constexpr float resonance = 0.7f;
-            const int cycles = juce::roundToInt(440.0 * characterizationSamples / coreRate);
+            const int cycles =
+                static_cast<int>(std::lround(440.0 * characterizationSamples / coreRate));
             const double frequencyHz = cycles * coreRate / characterizationSamples;
             {
                 const auto audio =

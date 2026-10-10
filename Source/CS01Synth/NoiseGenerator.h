@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/ISoundGenerator.h"
 #include "Parameters.h"
@@ -13,17 +13,16 @@
  */
 class NoiseGenerator : public ISoundGenerator {
    public:
-    NoiseGenerator(juce::AudioProcessorValueTreeState& apvts);
+    NoiseGenerator(cs01::ParameterState& parameters);
     ~NoiseGenerator() override = default;
 
     // ISoundGenerator implementation - sound generation methods
-    void prepare(const juce::dsp::ProcessSpec& spec) override;
+    void prepare(double sampleRate) override;
     void reset() {
         noiseFilter.reset();
         stopNote(false);
     }
-    void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
-                         int numSamples) override;
+    float renderSample() override;
 
     // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
@@ -37,9 +36,9 @@ class NoiseGenerator : public ISoundGenerator {
     int getCurrentlyPlayingNote() const override;
 
    private:
-    juce::AudioProcessorValueTreeState& apvts;
-    juce::Random random;
-    juce::dsp::IIR::Filter<float> noiseFilter;
+    cs01::ParameterState& parameters;
+    uint32_t randomState = 0x6d2b79f5u;
+    cs01::Biquad noiseFilter;
 
     // Note state
     bool noteOn = false;

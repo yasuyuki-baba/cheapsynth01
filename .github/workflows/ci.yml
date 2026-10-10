@@ -1,26 +1,18 @@
-name: cheapsynth01-ci
-
+name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     tags: ['*']
   pull_request:
   workflow_dispatch:
-
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref_type != 'tag' }}
-
-permissions:
-  contents: read
-
-env:
-  BUILD_TYPE: ${{ github.ref_type == 'tag' && 'Release' || 'Debug' }}
-
 jobs:
   lint:
-    name: C++ formatting
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -30,116 +22,70 @@ jobs:
         run: python -m pip install clang-format==21.1.7
       - name: Check formatting
         run: bash scripts/check-format.sh
-
-  build-and-test:
-    name: Build and test (${{ matrix.platform }})
-    needs: lint
+  core:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: macos-latest
-            platform: macos
-          - os: windows-latest
-            platform: windows
+        os: [windows-latest, macos-latest]
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure core tests
+        run: cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+      - name: Build
+        run: cmake --build build-core --config ${{ matrix.configuration }} --parallel 2
+      - name: Test
+        run: ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype6-dev libx11-dev libxi-dev libxext-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev libxrender-dev libfontconfig1-dev libgtk-3-dev lv2-dev xvfb xauth openbox x11-utils
+          submodules: false
+      - name: Fetch iPlug2 and pinned plugin SDKs
+        run: bash scripts/setup-iplug2.sh
       - name: Configure
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get install -y ninja-build
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            command -v ninja >/dev/null || brew install ninja
-          fi
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
-          else
-            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
-          fi
-      - name: Build
-        run: cmake --build build --config "$BUILD_TYPE" --parallel 2
-      - name: Run tests
-        working-directory: build
-        run: |
-          executable="./Tests/CheapSynth01Tests_artefacts/$BUILD_TYPE/CheapSynth01Tests"
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            "$executable.exe" --gtest_output=xml:test_results.xml
-          elif [ "$RUNNER_OS" == "Linux" ]; then
-            xvfb-run -a bash ../scripts/run-linux-gui-tests.sh "$executable" --gtest_output=xml:test_results.xml
-          else
-            "$executable" --gtest_output=xml:test_results.xml
-          fi
-      - name: Upload test results
-        if: always()
+        run: cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -DBUILD_PLUGINS=ON -DIPLUG_DEPLOY_PLUGINS=OFF
+      - name: Build native products and core tests
+        run: cmake --build build-native --config Release --parallel 2
+      - name: Test core
+        run: ctest --test-dir build-native -C Release --output-on-failure
+      - name: Upload native products
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ runner.os }}
-          path: build/test_results.xml
-      - name: Upload products
-        uses: actions/upload-artifact@v7
-        with:
-          name: cheapsynth01-${{ matrix.platform }}
-          path: |
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
+          name: cheapsynth01-iplug2-${{ runner.os }}
+          path: build-native/out/
           if-no-files-found: error
-      - name: Package for release (Linux and macOS)
-        if: github.ref_type == 'tag' && runner.os != 'Windows'
-        env:
-          PLATFORM: ${{ matrix.platform }}
+      - name: Package native products for release
+        if: github.ref_type == 'tag'
         run: |
           mkdir -p release-packages
-          cd "build/CheapSynth01_artefacts/$BUILD_TYPE"
-          formats=(Standalone VST3 LV2 CLAP)
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            formats+=(AU)
-          fi
-          for format in "${formats[@]}"; do
-            zip -r "$GITHUB_WORKSPACE/release-packages/cheapsynth01-$PLATFORM-$(echo "$format" | tr '[:upper:]' '[:lower:]').zip" "$format/"
-          done
-      - name: Package for release (Windows)
-        if: github.ref_type == 'tag' && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -Path "release-packages" -ItemType Directory -Force
-          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build\CheapSynth01_artefacts\$env:BUILD_TYPE"
-          $releaseDir = Join-Path $env:GITHUB_WORKSPACE "release-packages"
-          Compress-Archive -Path "$buildDir\Standalone\*" -DestinationPath "$releaseDir\cheapsynth01-windows-standalone.zip" -Force
-          Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
-      - name: Upload release packages
+          cd build-native
+          cmake -E tar cf "../release-packages/cheapsynth01-${RUNNER_OS}.zip" --format=zip out
+      - name: Upload release package
         if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v7
         with:
-          name: cheapsynth01-${{ matrix.platform }}-packages
+          name: cheapsynth01-${{ runner.os }}-packages
           path: release-packages/*.zip
           if-no-files-found: error
           retention-days: 5
-
   create-release:
-    needs: build-and-test
+    needs: [lint, core, native]
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
-      - name: Download release packages
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           pattern: cheapsynth01-*-packages
           path: release-packages
@@ -149,7 +95,5 @@ jobs:
         with:
           files: release-packages/*.zip
           generate_release_notes: true
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

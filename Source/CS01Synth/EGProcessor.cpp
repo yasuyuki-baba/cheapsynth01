@@ -1,13 +1,9 @@
 #include "CS01Synth/EGProcessor.h"
 
-#include "MidiParameterValue.h"
-
 #include <cmath>
 
 //==============================================================================
-EGProcessor::EGProcessor(juce::AudioProcessorValueTreeState& apvts)
-    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      apvts(apvts) {}
+EGProcessor::EGProcessor(cs01::ParameterState& parameters) : parameters(parameters) {}
 
 EGProcessor::~EGProcessor() {}
 
@@ -22,39 +18,13 @@ void EGProcessor::releaseResources() {
     stopEnvelopeImmediately();
 }
 
-bool EGProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
-    if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::disabled())
-        return false;
-
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono())
-        return false;
-
-    return true;
-}
-
-void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-    juce::ScopedNoDenormals noDenormals;
+float EGProcessor::processSample() {
     updateADSR();
-
-    // CS01 is a mono synth, so only generate mono output
-    buffer.clear();
-
-    // Skip MIDI message processing (already processed in MidiProcessor)
-    // MIDI messages are processed by startEnvelope/releaseEnvelope methods
-
-    // Process mono output (channel 0) only
-    auto* channelData = buffer.getWritePointer(0);
-
-    // Provisional exponential shaping; endpoints and stage durations are retained.
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        channelData[sample] = nextEnvelopeSample();
-    }
-    if (buffer.getNumSamples() > 0)
-        lastOutput = channelData[buffer.getNumSamples() - 1];
+    lastOutput = nextEnvelopeSample();
+    return lastOutput;
 }
 
-// Each stage approaches an overshoot target exponentially and crosses its
-// endpoint at the configured duration. k=2 is provisional, not calibrated.
+// Exponential envelope shaping retained from the existing model.
 void EGProcessor::beginStage(Stage next, double endpoint, double seconds) {
     stage = next;
     stageEndpoint = endpoint;
@@ -80,7 +50,7 @@ float EGProcessor::nextEnvelopeSample() {
                 stage = Stage::sustain;
         }
     }
-    return static_cast<float>(juce::jlimit(0.0, 1.0, level));
+    return static_cast<float>(std::clamp(level, 0.0, 1.0));
 }
 
 void EGProcessor::startEnvelope() {
@@ -102,11 +72,11 @@ void EGProcessor::stopEnvelopeImmediately() {
 }
 
 void EGProcessor::updateADSR() {
-    juce::ADSR::Parameters next;
-    next.attack = getMidiParameterValue(apvts, ParameterIds::attack);
-    next.decay = getMidiParameterValue(apvts, ParameterIds::decay);
-    next.sustain = getMidiParameterValue(apvts, ParameterIds::sustain);
-    next.release = getMidiParameterValue(apvts, ParameterIds::release);
+    cs01::EnvelopeSettings next;
+    next.attack = parameters.get(ParameterIds::attack);
+    next.decay = parameters.get(ParameterIds::decay);
+    next.sustain = parameters.get(ParameterIds::sustain);
+    next.release = parameters.get(ParameterIds::release);
     const auto previous = settings;
     settings = next;
     // Edits restart only the affected stage from its current level. Unrelated

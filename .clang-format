@@ -1,11 +1,11 @@
 ---
 # CS01 Project Code Formatting Configuration
-# Based on Google Style with JUCE-specific modifications
+# Based on Google Style with project-specific modifications
 
 BasedOnStyle: Google
 
 # Indentation and spacing
-IndentWidth: 4                          # JUCE standard (vs Google's 2)
+IndentWidth: 4                          # project standard (vs Google's 2)
 UseTab: Never
 TabWidth: 4
 
@@ -19,7 +19,7 @@ BraceWrapping:
   BeforeElse: false
 
 # Includes - preserve manually grouped headers (see CONTRIBUTING.md)
-SortIncludes: false                     # Keep JUCE before other dependencies
+SortIncludes: false                     # Keep framework before other dependencies
 
 # Alignment
 AlignAfterOpenBracket: Align

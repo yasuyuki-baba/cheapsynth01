@@ -22,7 +22,8 @@ fi
 files=()
 while IFS= read -r -d '' file; do
     files+=("$file")
-done < <(git ls-files -z -- 'Source/*.cpp' 'Source/*.h' 'Tests/*.cpp' 'Tests/*.h')
+done < <(rg --files -0 Source Tests -g '*.cpp' -g '*.h' -g '!Tests/legacy-juce/**')
+files+=(config.h)
 
 if [[ "${#files[@]}" == 0 ]]; then
     echo "No tracked C++ files found." >&2
