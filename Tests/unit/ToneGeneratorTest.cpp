@@ -85,14 +85,15 @@ TEST(ManualPitchTest, MeasuredPitchAndMidiBend) {
                     generator.getNextSample();
                 std::vector<double> crossings;
                 double previous = generator.getNextSample();
-                for (int i = 0; i < static_cast<int>(rate * 0.5); ++i) {
+                // Measure 64 complete periods, retaining the half-second timeout.
+                for (int i = 0; i < static_cast<int>(rate * 0.5) && crossings.size() < 65u; ++i) {
                     const double value = generator.getNextSample();
                     ASSERT_TRUE(std::isfinite(value));
                     if (previous < 0 && value >= 0)
                         crossings.push_back(i - previous / (value - previous));
                     previous = value;
                 }
-                ASSERT_GE(crossings.size(), 3u);
+                ASSERT_EQ(crossings.size(), 65u);
                 const double measured =
                     rate * (crossings.size() - 1) / (crossings.back() - crossings.front());
                 const double bend = wheel == 0 ? -12.0 : (wheel == 16383 ? 12.0 : 0.0);
@@ -291,16 +292,21 @@ TEST(ToneGeneratorRealTest, RepeatedLiveGlissandoUpdatesArePartitionIndependent)
                 setDuration(blocked, duration);
             }
             // Compare periods after the zero-duration update, not absolute phase.
-            int crossings = 0;
+            std::vector<double> crossings;
             float previous = 0.0f;
             for (int i = 0; i < static_cast<int>(rate); ++i) {
                 const float sample = blocked.generator.getNextSample();
                 EXPECT_NEAR(sample, scalar.generator.getNextSample(), 1.0e-6);
                 if (i > static_cast<int>(rate * 0.1) && previous <= 0.0f && sample > 0.0f)
-                    ++crossings;
+                    crossings.push_back(i - 1.0 - previous / (sample - previous));
                 previous = sample;
+                if (crossings.size() == 65u)
+                    break;
             }
-            EXPECT_NEAR(crossings / 0.9, 440.0 * std::exp2(3.0 / 12.0), 2.0);
+            ASSERT_EQ(crossings.size(), 65u);
+            const double measured =
+                rate * (crossings.size() - 1) / (crossings.back() - crossings.front());
+            EXPECT_NEAR(measured, 440.0 * std::exp2(3.0 / 12.0), 2.0);
         }
     }
 }
@@ -361,7 +367,9 @@ TEST(ToneGeneratorRealTest, PwmManualRangePeriods) {
                 bool armed = false;
                 int sampleIndex = 0;
                 const int cycles = static_cast<int>(480.0 * 4.0 / frequency);
-                for (int cycle = 0; cycle < cycles; ++cycle) {
+                // Three crossings give two complete periods. Keep the original
+                // four-period limit so missing crossings fail without hanging.
+                for (int cycle = 0; cycle < cycles && crossings.size() < 3u; ++cycle) {
                     const int end = static_cast<int>((cycle + 1) * rate / 480.0);
                     double mean = 0.0;
                     const int count = end - sampleIndex;

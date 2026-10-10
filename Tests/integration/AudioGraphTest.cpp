@@ -560,7 +560,9 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
             juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
             double baselinePower = 0.0, mutedPower = 0.0;
             double recoveredPower = 0.0, recoveredReferencePower = 0.0;
-            for (int block = 0; block < 48000 / blockSize; ++block) {
+            // Half a second covers mute and recovery, including over 80 ms of
+            // output-coupling settling before the recovery power measurement.
+            for (int block = 0; block < 24000 / blockSize; ++block) {
                 juce::MidiBuffer ma, mb;
                 if (block == 0) {
                     ma.addEvent(juce::MidiMessage::noteOn(1, 69, 1.0f), 0);
@@ -571,7 +573,7 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
                     mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, 0), blockSize / 2);
                     mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, 0), blockSize / 2);
                 }
-                if (block == 36000 / blockSize) {
+                if (block == 18000 / blockSize) {
                     mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, 127), blockSize / 2);
                     mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, 127), blockSize / 2);
                 }
@@ -584,11 +586,11 @@ TEST_F(AudioGraphTest, BreathMidiReachesAudioOutput) {
                     if (!enabled) {
                         EXPECT_NEAR(b.getSample(0, i), a.getSample(0, i), 1.0e-6f);
                     }
-                    if (block * blockSize >= 24000 && block * blockSize < 35000) {
+                    if (block * blockSize >= 12000 && block * blockSize < 17500) {
                         baselinePower += std::pow(a.getSample(0, i), 2);
                         mutedPower += std::pow(b.getSample(0, i), 2);
                     }
-                    if (block * blockSize >= 44000) {
+                    if (block * blockSize >= 22000) {
                         recoveredReferencePower += std::pow(a.getSample(0, i), 2);
                         recoveredPower += std::pow(b.getSample(0, i), 2);
                     }
@@ -636,13 +638,15 @@ TEST_F(AudioGraphTest, BreathMidiControlsOriginalFilterAndRecovers) {
         }
         juce::AudioBuffer<float> a(2, blockSize), b(2, blockSize);
         double baseline = 0.0, opened = 0.0, recovered = 0.0, referenceRecovered = 0.0;
-        for (int block = 0; block < 96000 / blockSize; ++block) {
+        // One second covers open and recovery, with 375 ms of settling after
+        // the close event before measuring the recovered filter output.
+        for (int block = 0; block < 48000 / blockSize; ++block) {
             juce::MidiBuffer ma, mb;
             if (block == 0) {
                 ma.addEvent(juce::MidiMessage::noteOn(1, 93, 1.0f), 0);
                 mb.addEvent(juce::MidiMessage::noteOn(1, 93, 1.0f), 0);
             }
-            if (block == 10 || block == 48000 / blockSize) {
+            if (block == 10 || block == 24000 / blockSize) {
                 const int value = block == 10 ? 127 : 0;
                 mb.addEvent(juce::MidiMessage::controllerEvent(1, 2, value), blockSize / 2);
                 mb.addEvent(juce::MidiMessage::controllerEvent(1, 34, value), blockSize / 2);
@@ -654,11 +658,11 @@ TEST_F(AudioGraphTest, BreathMidiControlsOriginalFilterAndRecovers) {
             for (int i = 0; i < blockSize; ++i) {
                 ASSERT_TRUE(std::isfinite(b.getSample(0, i)));
                 const int sample = block * blockSize + i;
-                if (sample >= 24000 && sample < 44000) {
+                if (sample >= 12000 && sample < 22000) {
                     baseline += std::pow(a.getSample(0, i), 2);
                     opened += std::pow(b.getSample(0, i), 2);
                 }
-                if (sample >= 84000) {
+                if (sample >= 42000) {
                     referenceRecovered += std::pow(a.getSample(0, i), 2);
                     recovered += std::pow(b.getSample(0, i), 2);
                 }

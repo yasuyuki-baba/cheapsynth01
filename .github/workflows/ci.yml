@@ -5,7 +5,18 @@ on:
     branches: [main]
     tags: ['*']
   pull_request:
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: Run extended regressions on all platforms
+        type: boolean
+        default: true
+      observations:
+        description: Also run DSP observations on Linux
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,15 +44,15 @@ jobs:
       - name: Test release packaging checks
         run: python3 Tests/release_validation_test.py -v
 
-  build-and-test:
-    name: Build and test (${{ matrix.platform }})
+  build:
+    name: Build (${{ matrix.platform }})
     needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: linux
           - os: macos-latest
             platform: macos
@@ -70,39 +81,21 @@ jobs:
             command -v ninja >/dev/null || brew install ninja
           fi
           if [ "$RUNNER_OS" == "Windows" ]; then
-            cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+            cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCOPY_PLUGIN_AFTER_BUILD=OFF
           elif [ "$RUNNER_OS" == "Linux" ]; then
-            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCMAKE_SKIP_RPATH=ON
+            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCOPY_PLUGIN_AFTER_BUILD=OFF -DCMAKE_SKIP_RPATH=ON
           else
-            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
+            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCOPY_PLUGIN_AFTER_BUILD=OFF
           fi
       - name: Build
         run: cmake --build build --config "$BUILD_TYPE" --parallel 2
-      - name: Run tests
-        working-directory: build
-        run: |
-          executable="./Tests/CheapSynth01Tests_artefacts/$BUILD_TYPE/CheapSynth01Tests"
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            "$executable.exe" --gtest_output=xml:test_results.xml
-          elif [ "$RUNNER_OS" == "Linux" ]; then
-            xvfb-run -a bash ../scripts/run-linux-gui-tests.sh "$executable" --gtest_output=xml:test_results.xml
-          else
-            status=0
-            "$executable" --gtest_output=xml:test_results.xml > test_output.log 2>&1 || status=$?
-            tail -n 30 test_output.log
-            if [ "$status" -ne 0 ]; then
-              python3 ../scripts/summarize-test-failures.py test_results.xml
-            fi
-            exit "$status"
-          fi
-      - name: Upload test results
-        if: always()
+      - name: Upload test executable
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ runner.os }}
-          path: |
-            build/test_results.xml
-            build/test_output.log
+          name: test-executable-${{ matrix.platform }}
+          path: build/Tests/CheapSynth01Tests_artefacts/${{ env.BUILD_TYPE }}/CheapSynth01Tests*
+          if-no-files-found: error
+          retention-days: 5
       - name: Upload products
         uses: actions/upload-artifact@v7
         with:
@@ -153,10 +146,55 @@ jobs:
           if-no-files-found: error
           retention-days: 5
 
+  quick:
+    name: Quick (${{ matrix.platform }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      build_type: ${{ github.ref_type == 'tag' && 'Release' || 'Debug' }}
+      category: quick
+
+  extended:
+    name: Extended (${{ matrix.platform }})
+    needs: quick
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON((github.ref_type == 'tag' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full_matrix)) && '[{"os":"ubuntu-24.04","platform":"linux"},{"os":"macos-latest","platform":"macos"},{"os":"windows-latest","platform":"windows"}]' || '[{"os":"ubuntu-24.04","platform":"linux"}]') }}
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      build_type: ${{ github.ref_type == 'tag' && 'Release' || 'Debug' }}
+      category: extended
+
+  observations:
+    name: DSP observations (Linux)
+    needs: [quick, extended]
+    if: github.event_name == 'workflow_dispatch' && inputs.observations
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      os: ubuntu-24.04
+      platform: linux
+      build_type: Debug
+      category: observations
+
   create-release:
-    needs: build-and-test
+    needs: [build, quick, extended]
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
