@@ -31,7 +31,16 @@ class CS01AudioProcessor final : public iplug::Plugin {
     void OnUIClose() override;
 #endif
    private:
-    enum ControlTag { ProgramLabel = 100, PresetName, Scope, Keyboard, Resonance };
+    enum ControlTag {
+        ProgramLabel = 100,
+        PresetName,
+        Scope,
+        Keyboard,
+        Resonance,
+        ResonanceHigh,
+        RenamePreset,
+        DeletePreset
+    };
     void syncParameters(bool notifyHost = false);
     cs01::ParameterState parameters;
     ProgramManager programs{parameters};

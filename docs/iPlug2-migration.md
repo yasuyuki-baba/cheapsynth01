@@ -11,8 +11,15 @@ routing/source changes. Core parameters use lock-free atomics; MIDI notification
 are forwarded with iPlug2's deferred queue.
 
 `CS01AudioProcessor` is an iPlug2 plugin; the editor uses IGraphics. The panel
-provides all 24 sound/performance parameters, factory/user preset navigation,
-save/rename/delete, XML import, a 32-key keyboard and an optional output scope.
+restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
+and EG, with common sound-control columns, cyan indicators and vertical faders.
+Waveform, feet and LFO target use exclusive switches; Original VCF exposes a
+HIGH resonance switch, while Modern VCF exposes a continuous fader. The header
+contains the MEMORY preset selector, save/rename/delete and XML import. Naming
+uses inline text entry in the preset display; factory rename/delete are disabled.
+The optional 32-key keyboard and scope expand the panel to 1240×640. Corner
+resizing scales the panel. Breath input remains a MIDI/host parameter rather
+than a panel control, matching the former layout; all 24 host parameters remain.
 
 ## Audio differences
 
