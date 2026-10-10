@@ -2,6 +2,7 @@
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
 #include "UI/PanelControls.h"
+#include "IVNumberBoxControl.h"
 #endif
 #if IPLUG_EDITOR
 using namespace iplug;
@@ -19,14 +20,22 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     g->AttachTextEntryControl();
     g->AttachPopupMenuControl();
     g->EnableMouseOver(true);
+    g->EnableTooltips(true);
     g->AttachCornerResizer(EUIResizerMode::Scale, false);
     const auto style = DEFAULT_STYLE.WithDrawShadows(false)
                            .WithColor(kBG, background)
                            .WithColor(kFG, IColor(255, 24, 24, 24))
-                           .WithColor(kPR, cyan)
+                           .WithColor(kPR, IColor(255, 0, 90, 90))
+                           .WithColor(kX1, cyan)
                            .WithColor(kFR, dim)
                            .WithLabelText(text(11))
                            .WithValueText(text(11));
+    const auto parameterStyle = style.WithColor(kFG, IColor(255, 155, 155, 155))
+                                    .WithColor(kX1, cyan)
+                                    .WithLabelText(text(10).WithVAlign(EVAlign::Bottom))
+                                    .WithValueText(text(10).WithVAlign(EVAlign::Top))
+                                    .WithWidgetFrac(.85f);
+    const auto choiceStyle = style.WithValueText(text(10)).WithShowLabel(false);
     auto label = [g](IRECT bounds, const char* title, float size = 11.f) {
         g->AttachControl(new ITextControl(bounds, title, text(size)));
     };
@@ -37,9 +46,39 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     auto section = [g](IRECT bounds, const char* title) {
         g->AttachControl(new Section(bounds, title));
     };
-    auto fader = [g](IRECT bounds, Param parameter, const char* title, int tag = kNoTag,
-                     bool wheel = false) {
-        return g->AttachControl(new Fader(bounds, index(parameter), title, wheel), tag);
+    auto fader = [g, parameterStyle](IRECT bounds, Param parameter, const char* title,
+                                     int tag = kNoTag) {
+        auto* control = new IVSliderControl(bounds.GetPadded(-2.f, 0.f, -2.f, 0.f),
+                                            index(parameter), title, parameterStyle, true);
+        const auto help = std::string(cs01::definition(parameter).name) +
+                          ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
+                          "Click the value to type; double-click the slider to reset.";
+        control->SetTooltip(help.c_str());
+        return g->AttachControl(control, tag);
+    };
+    auto knob = [g, parameterStyle](IRECT bounds, Param parameter, const char* title) {
+        auto* control = new IVKnobControl(bounds, index(parameter), title, parameterStyle, true);
+        const auto help = std::string(cs01::definition(parameter).name) +
+                          ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
+                          "Click the value to type; double-click the knob to reset.";
+        control->SetTooltip(help.c_str());
+        return g->AttachControl(control);
+    };
+    auto choices = [g, choiceStyle](IRECT bounds, Param parameter,
+                                    std::initializer_list<const char*> options) {
+        auto* control = new IVRadioButtonControl(bounds, index(parameter), options, "", choiceStyle,
+                                                 EVShape::Ellipse, EDirection::Vertical, 6.f);
+        control->SetTooltip(cs01::definition(parameter).name.data());
+        return g->AttachControl(control);
+    };
+    auto number = [g, style](IRECT bounds, Param parameter) {
+        const auto& def = cs01::definition(parameter);
+        auto* control = new IVNumberBoxControl(bounds, index(parameter), nullptr, "",
+                                               style.WithShowLabel(false), true, def.initial,
+                                               def.minimum, def.maximum, "%0.0f", false);
+        control->SetTooltip(
+            "Pitch bend range in semitones. Double-click the value to type a number.");
+        g->AttachControl(control);
     };
     // Original 1240x400 panel: header at y=20, common sound columns at y=82.
     label(IRECT(20, 20, 205, 64), "CheapSynth01", 23);
@@ -132,22 +171,21 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         "", style, "KEYBOARD + MONITOR", "KEYBOARD + MONITOR"));
 
     section(IRECT(20, 82, 144, 231), "BREATH");
-    g->AttachControl(new Knob(IRECT(47, 105, 117, 164), index(Param::BreathVcf), "VCF"));
-    g->AttachControl(new Knob(IRECT(47, 164, 117, 223), index(Param::BreathVca), "VCA"));
+    knob(IRECT(28, 105, 136, 164), Param::BreathVcf, "VCF");
+    knob(IRECT(28, 164, 136, 223), Param::BreathVca, "VCA");
     section(IRECT(20, 231, 144, 380), "VOLUME");
-    g->AttachControl(new Knob(IRECT(38, 259, 126, 371), index(Param::Volume), "MASTER"));
+    knob(IRECT(28, 259, 136, 371), Param::Volume, "MASTER");
     section(IRECT(156, 82, 360, 380), "CONTROL");
     label(IRECT(167, 110, 248, 134), "BEND");
     label(IRECT(269, 110, 350, 134), "MOD");
-    fader(IRECT(167, 134, 248, 286), Param::PitchBend, "", kNoTag, true);
-    fader(IRECT(269, 134, 350, 286), Param::ModDepth, "", kNoTag, true);
+    fader(IRECT(167, 134, 248, 286), Param::PitchBend, "");
+    fader(IRECT(269, 134, 350, 286), Param::ModDepth, "");
     label(IRECT(167, 286, 248, 304), "UP");
-    g->AttachControl(new BendRange(IRECT(167, 304, 248, 326), index(Param::BendUp)));
+    number(IRECT(167, 304, 248, 326), Param::BendUp);
     label(IRECT(167, 326, 248, 344), "DOWN");
-    g->AttachControl(new BendRange(IRECT(167, 344, 248, 366), index(Param::BendDown)));
+    number(IRECT(167, 344, 248, 366), Param::BendDown);
     label(IRECT(269, 286, 350, 308), "TARGET");
-    g->AttachControl(
-        new Choices(IRECT(269, 308, 350, 364), index(Param::LfoTarget), {"VCO", "VCF"}));
+    choices(IRECT(269, 308, 350, 364), Param::LfoTarget, {"VCO", "VCF"});
 
     constexpr float origin = 372, width = 848;
     auto column = [](int left, int right, float top = 112, float bottom = 370) {
@@ -162,19 +200,21 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     fader(column(1, 2), Param::Glissando, "GLISS.");
     fader(column(2, 3), Param::Pitch, "PITCH");
     fader(column(3, 4), Param::PwmSpeed, "PWM SPEED");
-    g->AttachControl(new Choices(column(4, 5, 114, 274), index(Param::WaveType),
-                                 {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"}));
+    choices(column(4, 5, 114, 274), Param::WaveType,
+            {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"});
     label(column(4, 5, 338, 370), "WAVEFORM", 10);
-    g->AttachControl(
-        new Choices(column(5, 6, 114, 274), index(Param::Feet), {"32'", "16'", "8'", "4'", "WN"}));
+    choices(column(5, 6, 114, 274), Param::Feet, {"32'", "16'", "8'", "4'", "WN"});
     label(column(5, 6, 338, 370), "FEET");
     const float filterX = origin + width * 6 / 14;
     g->AttachControl(new IPanelControl(IRECT(filterX + 48, 82, filterX + 120, 104), background));
-    g->AttachControl(new Choices(IRECT(filterX + 48, 82, filterX + 120, 104),
-                                 index(Param::FilterType), {"I", "II"}, true));
+    g->AttachControl(new IVTabSwitchControl(IRECT(filterX + 48, 82, filterX + 120, 104),
+                                            index(Param::FilterType), {"I", "II"}, "",
+                                            choiceStyle));
     fader(column(6, 7), Param::Cutoff, "CUTOFF");
     fader(column(7, 8), Param::Resonance, "", Resonance);
-    g->AttachControl(new ResonanceSwitch(column(7, 8, 209, 245), index(Param::Resonance)),
+    g->AttachControl(new IVTabSwitchControl(column(7, 8, 195, 259), index(Param::Resonance),
+                                            {"LOW", "HIGH"}, "", choiceStyle, EVShape::Rectangle,
+                                            EDirection::Vertical),
                      ResonanceHigh);
     label(column(7, 8, 338, 370), "RES");
     fader(column(8, 9), Param::VcfEgDepth, "EG DEPTH");
