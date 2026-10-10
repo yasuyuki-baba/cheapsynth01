@@ -42,8 +42,8 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     auto label = [g](IRECT bounds, const char* title, float size = 11.f) {
         g->AttachControl(new ITextControl(bounds, title, text(size)));
     };
-    auto parameterLabel = [g, parameterStyle](IRECT bounds, const char* title) {
-        g->AttachControl(new ITextControl(bounds, title, parameterStyle.labelText));
+    auto parameterLabel = [g, parameterStyle](IRECT bounds, const char* title, int tag = kNoTag) {
+        g->AttachControl(new ITextControl(bounds, title, parameterStyle.labelText), tag);
     };
     auto button = [g, style](IRECT bounds, const char* title, IActionFunction action,
                              int tag = kNoTag) {
@@ -219,9 +219,9 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                                             index(Param::FilterType), {"I", "II"}, "",
                                             choiceStyle));
     fader(column(6, 7), Param::Cutoff, "CUTOFF");
-    fader(column(7, 8), Param::Resonance, "", Resonance);
+    fader(column(7, 8), Param::Resonance, "RES", Resonance);
     choices(column(7, 8, 195, 259), Param::Resonance, {"LOW", "HIGH"}, ResonanceHigh);
-    parameterLabel(column(7, 8, 338, 370), "RES");
+    parameterLabel(column(7, 8, 338, 370), "RES", ResonanceHighLabel);
     fader(column(8, 9), Param::VcfEgDepth, "EG DEPTH");
     fader(column(9, 10), Param::VcaEgDepth, "EG DEPTH");
     fader(column(10, 11), Param::Attack, "A");
@@ -273,6 +273,7 @@ void CS01AudioProcessor::updateFilterControls() {
     const bool modern = GetParam(index(cs01::Param::FilterType))->Int() != 0;
     GetUI()->GetControlWithTag(Resonance)->Hide(!modern);
     GetUI()->GetControlWithTag(ResonanceHigh)->Hide(modern);
+    GetUI()->GetControlWithTag(ResonanceHighLabel)->Hide(modern);
     // The two controls overlap and have different bounds. Repaint the background
     // and the complete panel after swapping them so the previous view is erased.
     GetUI()->SetAllControlsDirty();
