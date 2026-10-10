@@ -13,6 +13,19 @@ checkout. Earlier measurements are retained as dated supporting evidence, not
 as current implementation claims or a plan for future work. Analysis distinguishes
 recorded circuit facts, conditional equations and unverified interpretations.
 
+## Reading without external originals
+
+The explanations use values, connections, equations and assumptions recorded
+in this repository. Reading a manual, drawing or datasheet is not a prerequisite.
+External source locations and page numbers are optional provenance in
+[the source catalog](hardware/Source-catalog.md).
+
+A recorded finding preserves an earlier inspection; it is not a new inspection
+or a complete reproduction of its source. Calculated results state their input
+values and assumptions. Unverified interpretations and software policies are
+identified separately. Missing device behavior remains an explicit limit of the
+analysis rather than a step delegated to an unavailable original.
+
 ## Current software
 
 ### Usage and distribution
@@ -65,7 +78,7 @@ approximations. Their investigation outcomes are not hardware calibration.
 | [Circuit evidence status](hardware/Circuit-evidence-status.md) | Recorded evidence, source availability and limits of circuit conclusions. |
 | [EG circuit audit](hardware/EG-model-audit.md) | Circuit transcription, conditional equations and reasons calibration is deferred; production policy is in the stateful EG model. |
 | [External-circuit closeout](hardware/External-circuit-closeout.md) | Historical audit outcome, subsequent EG implementation and analysis limits. |
-| [TC7476BP investigation](hardware/TC7476BP-online-investigation.md) | Recorded datasheet inspection, retrieval history and analysis limits. |
+| [TC7476BP logic record](hardware/TC7476BP-online-investigation.md) | Pin assignment, truth table, supply limits and circuit-analysis boundary. |
 | [Glissando circuit audit](hardware/Glissando-circuit-audit.md) | Schematic evidence, unknowns and interim live-speed implementation. |
 | [Low-frequency circuit audit](hardware/Low-frequency-circuit-audit.md) | Coupling-network evidence and limitations of empirical low-frequency stages. |
 | [External source catalog](hardware/Source-catalog.md) | Source locations, cited pages and availability of original material in this checkout. |

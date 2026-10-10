@@ -1,11 +1,13 @@
 # CS-01 modulation speed ranges
 
-Recorded source: the Japanese owner's manual previously stored as
-`docs/tech/CS01J.pdf`, PDF page 13 / printed page 24. The original is absent
-from this checkout; see [source availability](../hardware/Source-catalog.md).
+Recorded owner's-manual rate endpoints, also used by the public parameters:
 
-- LFO: 0.8–21 Hz.
-- PWM: 0.6–12 Hz.
+- LFO (pitch/cutoff modulation): 0.8–21 Hz.
+- PWM (pulse-width modulation): 0.6–12 Hz.
+
+These numerical endpoints are preserved here; no external document is needed
+to interpret the ranges. Source provenance is in
+[the source catalog](../hardware/Source-catalog.md).
 
 The public parameters now use these ranges. Defaults remain 5 Hz and 2 Hz.
 Existing skew factors are retained as approximations, not measured potentiometer

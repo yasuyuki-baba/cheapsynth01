@@ -8,6 +8,15 @@ information from existing project documents; keep private inventories and
 non-shareable source details locally in `references/`. The
 [documentation guide](../README.md) indexes authored material.
 
+## Optional provenance, not a reading prerequisite
+
+Project documents preserve the relevant settings, connection tables, logic
+rules, numerical limits and calculation assumptions in their own text.
+This catalog records where those findings originated; the external files and
+URLs are not required to understand or use the project documentation.
+Preservation does not turn a conditional interpretation into a verified fact,
+and does not make the recorded extract a complete substitute for a datasheet.
+
 ## Availability and provenance
 
 Inventory checked on 2026-10-10 JST: no external source PDFs are present under
@@ -34,7 +43,7 @@ similarly named documents or compatible parts are interchangeable.
 
 | Source | Recorded acquisition lead or filename | Cited pages / revision | Local original and project analysis |
 | --- | --- | --- | --- |
-| Toshiba TC7476BP datasheet | Historical local path `docs/tech/TC7476BP.pdf`; [1988 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1988_Toshiba_TC4000_4500_5000_CMOS_Logic.pdf), [1985 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1985_Toshiba_C2MOS_Integrated_Circuits.pdf), [archive index](https://www.datasheetarchive.com/?q=tc7476bp). Earlier online retrievals failed or were unvalidated. | Local extract PDF 1–2 / printed 574–575: pinout, truth table and electrical limits. Equivalence of the online scans to the extract is not newly verified. | Absent. [Retrieval and verification history](TC7476BP-online-investigation.md), [datasheet-to-wiring audit](EG-model-audit.md). |
+| Toshiba TC7476BP datasheet | Historical local path `docs/tech/TC7476BP.pdf`; [1988 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1988_Toshiba_TC4000_4500_5000_CMOS_Logic.pdf), [1985 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1985_Toshiba_C2MOS_Integrated_Circuits.pdf), [archive index](https://www.datasheetarchive.com/?q=tc7476bp). Earlier retrievals of the 1988 scan failed; the 1985 scan returned HTTP 403. The archive index was located but its datasheet contents were not validated. | Local extract PDF 1–2 / printed 574–575: pinout, truth table and electrical limits. Equivalence of the online scans to the extract is not newly verified. | Absent. [Recorded logic and supply limits](TC7476BP-online-investigation.md), [datasheet-to-wiring audit](EG-model-audit.md). |
 | Toshiba 2SC1815 datasheet | [Recorded distributor-hosted manufacturer PDF](https://media.digikey.com/pdf/Data%20Sheets/Toshiba%20PDFs/2SC1815.pdf). | 2007-11-01, page 1. | Absent. [EG device analysis](EG-model-audit.md); quoted high-current conditions do not establish low-current EG operating points. |
 | IG02610/11 schematic interpretation | [Secondary reverse-engineering article](https://ss30m.blogspot.com/2020/05/fun-with-filters-pt2.html). | Article dated May 2020; no PDF page numbering. | No local copy. [Original VCF design](../software/Original-VCF-behavioral-design.md). Interpretation, not Yamaha documentation or measured hardware evidence. |
 | YM10150, LFO and IG00156 background sources | Technical summaries mention service manuals and community analysis without exact source identifiers for every claim. | Individual revisions, pages and thread URLs are not recorded. | No identified local originals. [YM10150](ymf10150.md), [LFO](lfo.md), [IG00156](filter.md). Claims without exact source attribution are unverified interpretations. |

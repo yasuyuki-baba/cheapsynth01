@@ -3,8 +3,8 @@
 This concerns IG00156 in related CS-series products, not the CS-01's IG02610
 or CS-01II's IG05630. The earlier summary attributed its claims to service
 material and community interpretation without exact model/page identifiers.
-No original supporting material is available in this checkout to verify them.
-Source availability is recorded in [the source catalog](Source-catalog.md).
+The claims and their limits are preserved below as unverified interpretations.
+Optional source provenance is recorded in [the source catalog](Source-catalog.md).
 
 ## Unverified claims retained from the earlier summary
 
