@@ -19,7 +19,9 @@ Drawing-only subclasses of IVSliderControl/IVKnobControl add rectangular dark
 slider caps with blue-green index stripes, printed scale marks and dark knobs
 with white pointers. A gray casing, charcoal panel and off-white section labels
 take visual cues from the [CS01 in Yamaha's collection](https://www.yamaha.com/en/about/experience/innovation-road/collection/detail/2008/).
-No hardware photograph or Yamaha logo is bundled. Sliders and knobs display
+The header uses original geometric vector lettering for CS01, with the
+CheapSynth01 name below it. No hardware photograph or Yamaha logo is bundled.
+Sliders and knobs display
 editable values, support fine adjustment and reset to defaults using their
 standard interaction. Bend ranges
 use number boxes with increment/decrement buttons and direct text entry.
