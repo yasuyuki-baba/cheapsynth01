@@ -13,7 +13,7 @@ CheapSynth01 is a JUCE-based software emulation of an early 80's compact monopho
 
 - Circuit-informed synthesis with documented modeling limitations
 - Six factory sounds transcribed from the CS01 owner's manual
-  ([panel readings and usage](docs/Factory-presets.md))
+  ([panel readings and usage](docs/software/Factory-presets.md))
 - Two filter types with different resonance control modes:
   - Original VCF with toggle resonance (High/Low)
   - Modern VCF with continuous resonance control
@@ -87,10 +87,10 @@ graph TD
 
 The architecture supports real-time parameter changes, allowing for expressive performances and sound design.
 
-For stage ownership and numerical recovery, see [DSP responsibility boundaries](docs/DSP-responsibility-boundaries.md).
+For stage ownership and numerical recovery, see [DSP responsibility boundaries](docs/software/DSP-responsibility-boundaries.md).
 Envelope retriggers preserve residual state; active-stage time edits change
-speed without restarting a full stage. See the [EG policy](docs/EG-stateful-model.md)
-and [note onset continuity](docs/Note-onset-continuity.md) for the note gate,
+speed without restarting a full stage. See the [EG policy](docs/software/EG-stateful-model.md)
+and [note onset continuity](docs/software/Note-onset-continuity.md) for the note gate,
 transition behavior and validation limits.
 
 ## Supported Platforms
@@ -116,9 +116,9 @@ For build instructions and development setup, please see [CONTRIBUTING.md](CONTR
 For a categorized index of usage, development, design and investigation material,
 see the [documentation guide](docs/README.md).
 
-See also the [MIDI implementation](docs/MIDI-Implementation.md),
-[test guide](Tests/README.md), [circuit-model limitations](docs/Circuit-model-unknowns.md),
-and [circuit evidence status](docs/Circuit-evidence-status.md).
+See also the [MIDI implementation](docs/software/MIDI-Implementation.md),
+[test guide](Tests/README.md), [circuit-model limitations](docs/hardware/Circuit-model-unknowns.md),
+and [circuit evidence status](docs/hardware/Circuit-evidence-status.md).
 Regression tests verify software behavior, not calibration against original hardware.
 
 Load the plugin in your DAW or launch the standalone application.
@@ -127,6 +127,6 @@ Load the plugin in your DAW or launch the standalone application.
 
 The project source LICENSE is GPLv3. JUCE 9.0.3 is licensed under AGPLv3 or an
 applicable commercial JUCE licence; the distributor must resolve that route and
-provide the corresponding source/notices. See [distribution and licence notes](docs/Distribution.md).
+provide the corresponding source/notices. See [distribution and licence notes](docs/software/Distribution.md).
 
-DSP architecture and modeling terminology: [responsibility boundaries](docs/DSP-responsibility-boundaries.md).
+DSP architecture and modeling terminology: [responsibility boundaries](docs/software/DSP-responsibility-boundaries.md).

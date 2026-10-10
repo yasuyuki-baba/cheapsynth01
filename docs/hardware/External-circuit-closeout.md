@@ -11,8 +11,8 @@ provisional branch target is fixed. Active-stage time edits change the speed
 and recalculate the remaining threshold time without restarting a full stage
 or redefining its target. Sustain edits select a new decay branch.
 Parameter identifiers, ranges and preset units remain unchanged. See
-[the current EG policy](EG-stateful-model.md) for implementation and regression
-coverage, and [note onset continuity](Note-onset-continuity.md) for the separate
+[the current EG policy](../software/EG-stateful-model.md) for implementation and regression
+coverage, and [note onset continuity](../software/Note-onset-continuity.md) for the separate
 VCA note gate and free-running sources.
 
 This software policy supersedes both the linear JUCE ADSR and the intermediate
@@ -55,7 +55,7 @@ sequence is not established hardware behavior.
 | Controls | Existing timing audit distinguishes software seconds/skew from hardware S-L markings | Position/resistance measurements and stage endpoint calibration |
 
 Detailed records: [EG circuit audit](EG-model-audit.md),
-[EG time-range validation](EG-time-range-validation.md), and
+[EG time-range validation](../software/EG-time-range-validation.md), and
 [low-frequency circuit audit](Low-frequency-circuit-audit.md).
 
 ## Verification performed

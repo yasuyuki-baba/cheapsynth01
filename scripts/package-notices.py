@@ -40,7 +40,7 @@ if __name__ == '__main__':
             'CheapSynth01: GPLv3 (LICENSE.txt).\n'
             'JUCE 9.0.3: AGPLv3 or applicable JUCE commercial licence.\n'
             'See JUCE-LICENSE.md and JUCE.spdx.json for the framework and bundled dependencies.\n'
-            'See docs/Distribution.md in corresponding source for the distributor decision.\n'
+            'See docs/software/Distribution.md in corresponding source for the distributor decision.\n'
             'CLAP and clap-helpers / clap-juce-extensions: see attached licence files.\n')
         shutil.copyfile(args.juce / 'LICENSE.md', product / 'JUCE-LICENSE.md')
         shutil.copyfile(args.juce / 'JUCE.spdx.json', product / 'JUCE.spdx.json')

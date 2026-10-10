@@ -24,10 +24,10 @@ establish internal transfer characteristics.
 | --- | --- | --- |
 | EG stage switching | Earlier TC7476BP inspection recorded the truth table and conditional reset/feedback mapping. Tr13 attack-drive polarity/terminal attribution is inconsistent as transcribed; actual thresholds, loaded logic levels and transient behavior are unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
 | EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
-| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](EG-time-range-validation.md) |
+| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](../software/EG-time-range-validation.md) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
 | Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `Source/CS01Synth/VCAProcessor.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
-| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Timing validation](EG-time-range-validation.md) |
+| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Timing validation](../software/EG-time-range-validation.md) |
 
 ## 3. Distinguish hardware unknowns from software properties
 
@@ -48,4 +48,4 @@ source availability and the limits of circuit conclusions.
 See [external-circuit closeout](External-circuit-closeout.md) for completed
 analysis, reproducible verification and its circuit-analysis limits. Audit completion is not hardware-model completion.
 
-For current production stage ownership and terminology, see [DSP responsibility boundaries](DSP-responsibility-boundaries.md).
+For current production stage ownership and terminology, see [DSP responsibility boundaries](../software/DSP-responsibility-boundaries.md).
