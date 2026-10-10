@@ -244,6 +244,9 @@ are recorded in [the audit report](../docs/Audit-stability.md).
 value after an intervening GUI edit, silent MIDI-style writes, exact slider mapping
 against JUCE 9.0.3, formatting/defaults, balanced gestures, no feedback notification,
 and destruction during automation/before a timer tick.
+`EditorVisibilityTest` also checks exclusive waveform/feet/LFO-target/filter
+switching, balanced host gestures, and silent parameter writes. Deselection
+callbacks must never write the previous choice back to the parameter.
 `PollingAttachmentRealtimeTest` counts allocation/free/mutex operations on a
 worker through isolated bindings and through the full editor, including the first
 host notification. Its ELF probes are intentionally excluded from sanitizer
