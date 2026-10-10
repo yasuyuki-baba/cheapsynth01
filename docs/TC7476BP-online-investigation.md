@@ -1,5 +1,11 @@
 # TC7476BP online investigation
 
+> Availability note (2026-10-10 JST): the local PDF described below was used
+> in the earlier audit but is absent from this checkout. This report preserves
+> that audit's findings and retrieval history. See the
+> [external source catalog](Source-catalog.md) for acquisition references;
+> no new source inspection or URL verification is claimed here.
+
 ## Outcome
 
 An alternative listing was located at Datasheet Archive:

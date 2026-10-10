@@ -1,5 +1,10 @@
 # CS-01 EG model: implementation decision
 
+> This document records circuit evidence and conditional model analysis.
+> For the current provisional production envelope policy, see
+> [Stateful provisional EG](EG-stateful-model.md). The equations below do not
+> establish hardware calibration of that software model.
+
 ## Follow-up: attack transcription needs correction
 
 The archived mapping below identifies Tr13 as PNP with its emitter at -9 V,

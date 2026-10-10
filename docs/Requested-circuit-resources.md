@@ -1,9 +1,11 @@
 # Requested Circuit Resources
 
 See [Circuit model unknowns](Circuit-model-unknowns.md) for unresolved details and
-current approximations. TC7476BP documentation has already been provided locally
-as `docs/tech/TC7476BP.pdf`. The items below require analysis and wiring mapping,
-not acquisition of a missing document. Local PDFs are not necessarily tracked.
+current approximations. The earlier audit used TC7476BP documentation supplied
+locally as `docs/tech/TC7476BP.pdf`; that PDF is absent from this checkout.
+See the [external source catalog](Source-catalog.md) for recorded sources
+and availability. Preserve the existing analysis; reproducing its source
+inspection requires obtaining the original material again.
 
 ## Priority 1: EG stage switching
 
@@ -27,8 +29,10 @@ not acquisition of a missing document. Local PDFs are not necessarily tracked.
 - Y-rank characteristics of 2SK30A and operating conditions of 2SC1815/2SA1015.
 - Panel potentiometer A-taper specifications and slider-position-to-time inspection values.
 
-Place materials in the repository's `docs/` directory. Record source, revision,
-and page numbers where available. Prefer manufacturer material; treat documents
+Keep external originals and private inventories locally under `references/`.
+Record only shareable source, revision and page information in
+[the catalog](Source-catalog.md).
+Keep authored analysis in `docs/`. Prefer manufacturer material; treat documents
 for other instruments or compatible parts as references, not proof of identical
 characteristics.
 

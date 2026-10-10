@@ -1,5 +1,7 @@
 # CS-01 low-frequency model audit
 
+Source availability and acquisition information: [external source catalog](Source-catalog.md).
+
 ## Scope
 
 Static comparison with the locally supplied CS-01 overall circuit diagram.
