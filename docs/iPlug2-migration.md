@@ -12,9 +12,16 @@ are forwarded with iPlug2's deferred queue.
 
 `CS01AudioProcessor` is an iPlug2 plugin; the editor uses IGraphics. The panel
 restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
-and EG, with common sound-control columns, cyan indicators and vertical faders.
-Waveform, feet and LFO target use exclusive switches; Original VCF exposes a
-HIGH resonance switch, while Modern VCF exposes a continuous fader. The header
+and EG, with common sound-control columns and cyan accents. Parameter controls
+use iPlug2's standard IVSliderControl, IVKnobControl, IVRadioButtonControl,
+IVTabSwitchControl and IVNumberBoxControl rather than replica faders/wheels or
+custom pointer handling. Sliders and knobs display editable values, support fine
+adjustment and reset to defaults using their standard interaction. Bend ranges
+use number boxes with increment/decrement buttons and direct text entry.
+Tooltips describe the interactions. Waveform, feet and LFO target use radio
+buttons; Original VCF exposes LOW/HIGH tabs, while Modern VCF exposes a continuous
+fader. The LOW/HIGH tabs write normalized endpoints 0/1; the original filter
+continues mapping them to its modeled resonance values 0.2/0.7. The header
 contains the MEMORY preset selector, save/rename/delete and XML import. Naming
 uses inline text entry in the preset display; factory rename/delete are disabled.
 The optional 32-key keyboard and scope expand the panel to 1240×640. Corner
