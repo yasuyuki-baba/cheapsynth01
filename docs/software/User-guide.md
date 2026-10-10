@@ -58,6 +58,9 @@ If no sound is heard, check the audio output/track monitoring, held note, Volume
 and Breath VCA/Input combination. Sustain zero with a short Decay produces a
 brief sound rather than a held tone. WN ignores the tonal waveform selection.
 
+For how the waveform choices use a shared source, see
+[waveform generation](Waveform-generation.md).
+
 ## Factory and user presets
 
 The MEMORY menu contains Default, six named factory sounds and user presets.
