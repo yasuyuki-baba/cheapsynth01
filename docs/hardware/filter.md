@@ -3,8 +3,8 @@
 > Related-product background: this summary concerns IG00156, not the CS-01's
 > IG02610 or CS-01II's IG05630. Do not transfer its topology or control values
 > to those devices without supporting evidence. For the production models, see
-> [Original VCF design](../Original-VCF-behavioral-design.md) and
-> [CS-01II VCF model](CS01II-VCF-model.md).
+> [Original VCF design](../software/Original-VCF-behavioral-design.md) and
+> [CS-01II VCF model](../software/CS01II-VCF-model.md).
 
 ## Short summary
 
@@ -44,4 +44,4 @@ every topology/control claim. Numerical control sensitivity, maximum Q,
 self-oscillation behavior and modulation spans are not verified IG02610 or
 IG05630 specifications. This related-product background does not establish
 CS-01 circuit equivalence. Source attribution is summarized in
-[the source catalog](../Source-catalog.md).
+[the source catalog](Source-catalog.md).

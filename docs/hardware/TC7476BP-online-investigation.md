@@ -42,6 +42,6 @@ physical EG operating-state model is not established.
 
 ## Current implementation boundary
 
-Production uses the [provisional stateful exponential EG](EG-stateful-model.md).
+Production uses the [provisional stateful exponential EG](../software/EG-stateful-model.md).
 The part-specific logic findings support conditional analysis; they do not
 calibrate software stage durations, curvature or transistor/FET operating points.

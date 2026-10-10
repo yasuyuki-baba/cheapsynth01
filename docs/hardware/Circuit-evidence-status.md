@@ -18,9 +18,9 @@ private inventories are local-only under `references/` and are excluded from Git
 
 ## Current software boundary
 
-Production uses a [stateful exponential EG](EG-stateful-model.md), provisional
+Production uses a [stateful exponential EG](../software/EG-stateful-model.md), provisional
 behavioral VCF/VCA models and empirical control curves. The independent
-[note gate](Note-onset-continuity.md), numerical recovery and regression tests
+[note gate](../software/Note-onset-continuity.md), numerical recovery and regression tests
 establish software behavior; they do not establish physical circuit equivalence.
 The 1 ms–2 s EG range is a reference-time mapping, not a measured hardware RC
 range. Retriggers retain residual state and time edits recalculate remaining time.

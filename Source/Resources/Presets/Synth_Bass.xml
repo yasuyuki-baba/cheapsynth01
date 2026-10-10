@@ -1,4 +1,4 @@
-<!-- CS01 owner's manual, printed page 33. Approximate panel positions; see docs/Factory-presets.md. -->
+<!-- CS01 owner's manual, printed page 33. Approximate panel positions; see docs/software/Factory-presets.md. -->
 <Parameters>
   <PARAM id="WAVE_TYPE" value="3"/>
   <PARAM id="FEET" value="0"/>

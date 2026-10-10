@@ -1,4 +1,4 @@
-"""Algebra checks for the conditional model in docs/EG-model-audit.md.
+"""Algebra checks for the conditional model in docs/hardware/EG-model-audit.md.
 
 Run with Python 3; no third-party dependencies. These checks do not establish
 transistor parameters, operating-region validity, or hardware fidelity.

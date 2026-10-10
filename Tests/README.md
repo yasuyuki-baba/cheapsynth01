@@ -27,7 +27,7 @@ Tests the interaction between multiple components.
 
 - **AudioGraphTest** - Tests for the complete audio graph functionality
 - **NoteOnsetTest** - Continuous upstream generation, silent VCA keying, and
-  optional onset WAV/stage captures; see [note onset continuity](../docs/Note-onset-continuity.md).
+  optional onset WAV/stage captures; see [note onset continuity](../docs/software/Note-onset-continuity.md).
 
 ### Mock Objects (`mocks/`)
 
@@ -46,7 +46,7 @@ python3 Tests/eg_decay_equation_check.py -v
 ```
 
 This is not invoked by the CMake runner. It checks the equations and an
-invalid-operating-region example documented in `docs/EG-model-audit.md`, not
+invalid-operating-region example documented in `docs/hardware/EG-model-audit.md`, not
 hardware fidelity or production DSP behavior.
 
 To run the tests, execute the following command from the project's root directory:
@@ -217,7 +217,7 @@ the expected count is reached, with a two-second monotonic timeout; this does
 not assume a timer callback arrives within 100 ms on every CI platform.
 `MidiRealtimeGraphTest` compares MIDI control changes with synchronous
 parameter changes in both filter paths before any notification tick, and checks
-session saving before dispatch. See [the control-flow design](../docs/MIDI-realtime-control.md).
+session saving before dispatch. See [the control-flow design](../docs/software/MIDI-realtime-control.md).
 
 ## DSP structural refactor coverage
 
@@ -225,7 +225,7 @@ session saving before dispatch. See [the control-flow design](../docs/MIDI-realt
 Original/Modern VCF wrappers and the VCA signal path at 44.1/48/96/192 kHz.
 The audio group also includes `IG02610BehavioralModel*` and
 `IG05630BehavioralModelTest` suites. See
-[DSP responsibility boundaries](../docs/DSP-responsibility-boundaries.md) for
+[DSP responsibility boundaries](../docs/software/DSP-responsibility-boundaries.md) for
 coverage and the test-oracle maintenance policy.
 
 ## VCO sample-equivalence and measured optimization
@@ -238,7 +238,7 @@ YM10150 and waveform strategies; it is not an independent oracle for those model
 with PWM, LFO and glissando. Timings are observations, with no performance pass
 threshold. Reuse `WholeGraphObservationTest` for complete-graph spectrum and dense
 MIDI/GUI/switch timing; run without concurrent builds. Conditions and limitations
-are recorded in [the audit report](../docs/Audit-stability.md).
+are recorded in [the audit report](../docs/software/Audit-stability.md).
 
 ## Message-thread polling attachments
 

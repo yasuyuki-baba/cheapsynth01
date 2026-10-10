@@ -43,7 +43,7 @@ if __name__ == '__main__':
             'See CONTRIBUTING.md and .github/workflows/ci.yml for build conditions.\n'
             'cmake/JuceGraphRealtimePatch.cmake applies the documented JUCE memory patch.\n')
         archive.writestr('ThirdPartyNotices.txt', 'See JUCE LICENSE.md/SPDX inventory, AGPL-3.0.txt,\n'
-            'CLAP dependency licence files and docs/Distribution.md.\n')
+            'CLAP dependency licence files and docs/software/Distribution.md.\n')
         hashes = {}
         for entry in archive.infolist():
             digest = hashlib.sha256()

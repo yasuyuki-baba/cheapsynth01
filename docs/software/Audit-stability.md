@@ -13,7 +13,7 @@ push、PR、リリース公開はしていない。
 以下の初回測定・テストのソースは `ec12e588f57b78fc199a001418a632463f2aa626`。
 主要実装はa280bb7、キャッシュ復元の補完は9db9a2c、試験用型の補正はec12e58。
 初回結果の報告・梱包commitでは本番DSPを変更していない。以後の追加修正は末尾に別記する。
-機械可読の条件・件数・ログハッシュは [stability-results.json](../artifacts/audit/stability-results.json)。
+機械可読の条件・件数・ログハッシュは [stability-results.json](../../artifacts/audit/stability-results.json)。
 XMLの時刻はUTC、ここでの日付はJSTである。
 
 ## 再検証と修正
@@ -114,7 +114,7 @@ Linux実成果物はStandalone/VST3/LV2/CLAP、ELF x86_64、ローカル動的�
 対応ソース、ライセンス、ファイルhash、runner情報を梱包する手順は [Distribution.md](Distribution.md)。
 
 既存CSVは [dsp-baselines.md](dsp-baselines.md) ですでに理想参照/過去実験と区別されていた。
-その分類を重複変更せず、[provenance.json](../artifacts/dsp/provenance.json) に保存内容のhashと履歴commitを補った。
+その分類を重複変更せず、[provenance.json](../../artifacts/dsp/provenance.json) に保存内容のhashと履歴commitを補った。
 履歴commitは測定時のソースcommitの証明ではなく、未記録の測定条件・toolchainはnullのままにした。
 新しい本番グラフ測定は今回のcommit・環境・手順付きで別保存した。
 VCOのみoversamplingする古い説明は、現行の全グラフ4xへ更新した。
@@ -132,7 +132,7 @@ GPLv3 §13によるAGPL合成配布か、有効なJUCE商用ライセンスを�
 
 追加ソースは `904da992198ef7bd93e8e050faea34a286fcb540`。
 初回の数値・測定は上記commitの記録として維持する。最新結果は
-[program-rt-followup.json](../artifacts/audit/program-rt-followup.json)。
+[program-rt-followup.json](../../artifacts/audit/program-rt-followup.json)。
 
 `setCurrentProgram`のスレッド判定によるMessageManager mutexを撤去し、
 すべてのホスト要求を既存の不変キャッシュへ予約する。GUI選択・保存後の読込は
@@ -158,7 +158,7 @@ cutoffと音源modeが変わらない判定を追加した。ケース・音声�
 ## 追加修正：配布物の整合性検査（2026-10-09 JST）
 
 検査ソースは `0ec2ab1`。詳細は
-[package-integrity-followup.json](../artifacts/audit/package-integrity-followup.json)。
+[package-integrity-followup.json](../../artifacts/audit/package-integrity-followup.json)。
 従来の検査はCRCが正常な内容差し替えを拒否しなかった。拒否を期待する基準の1件が
 失敗することを再現し、同じケースが修正後に成功することを確認した。
 
@@ -182,8 +182,8 @@ LICENSE・本番DSP・プリセット形式に変更なし。push・公開もし
 比較基準は `f42b3a35c8161cf323b9aa42cb874dc8b584ac83`。
 whole-graph比較の旧Release実行ファイルは904da99のビルドであり、f42b3a3まで本体C++は同一。
 条件・件数・hash・3回分の測定値は
-[vco-optimization.json](../artifacts/audit/vco-optimization.json)、
-測定ログは [vco-performance.log](../artifacts/audit/vco-performance.log)。
+[vco-optimization.json](../../artifacts/audit/vco-optimization.json)、
+測定ログは [vco-performance.log](../../artifacts/audit/vco-performance.log)。
 
 毎サンプル繰り返していたparameterの文字列検索とRTTIを、構築時に束縛したparameter objectへの参照に置き換えた。
 値は以前と同じ時点で毎回読むため、automation値をブロック単位に固定していない。
@@ -264,8 +264,8 @@ xvfb-run -a bash scripts/run-linux-gui-tests.sh \
 
 基準は `57e9b300617696efab8246029702e2fbc885b874`、
 本体・試験commitは `5ac834fa4163c8f7e9e7905f6ce257a902deead9`。
-詳細は [polling-notifications.json](../artifacts/audit/polling-notifications.json)、
-測定値は [polling-notifications.log](../artifacts/audit/polling-notifications.log)。
+詳細は [polling-notifications.json](../../artifacts/audit/polling-notifications.json)、
+測定値は [polling-notifications.log](../../artifacts/audit/polling-notifications.log)。
 
 JUCE 9.0.3のParameterAttachmentは非メッセージスレッドで
 `isThisTheMessageThread()` と `triggerAsyncUpdate()` を呼ぶ。

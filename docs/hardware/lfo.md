@@ -5,7 +5,7 @@
 The cited Japanese owner's manual gives an LFO speed range of 0.8–21 Hz and a
 separate PWM speed range of 0.6–12 Hz (PDF page 13 / printed page 24).
 The LFO target control selects VCO pitch or VCF cutoff modulation.
-[Modulation speed ranges](../Modulation-speed-ranges.md) records the software
+[Modulation speed ranges](../software/Modulation-speed-ranges.md) records the software
 parameters, defaults and saved-state implications.
 
 ## Internal implementation: unverified interpretation
@@ -19,4 +19,4 @@ Unit-to-unit stability and thermal behavior have not been measured here.
 
 These interpretations are distinct from the production software LFO and are
 not treated as verified hardware topology. Source availability and attribution
-are recorded in [the source catalog](../Source-catalog.md).
+are recorded in [the source catalog](Source-catalog.md).
