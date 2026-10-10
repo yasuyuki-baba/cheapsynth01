@@ -39,7 +39,8 @@ class CS01AudioProcessor final : public iplug::Plugin {
         Resonance,
         ResonanceHigh,
         RenamePreset,
-        DeletePreset
+        DeletePreset,
+        ResonanceHighLabel
     };
     void syncParameters(bool notifyHost = false);
     cs01::ParameterState parameters;
