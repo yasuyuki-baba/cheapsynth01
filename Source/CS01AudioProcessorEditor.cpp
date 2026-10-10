@@ -1,6 +1,9 @@
 #include "CS01AudioProcessor.h"
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
+#include "UI/PanelControls.h"
+#endif
+#if IPLUG_EDITOR
 using namespace iplug;
 using namespace iplug::igraphics;
 namespace {
@@ -9,110 +12,190 @@ constexpr int index(cs01::Param id) {
 }
 }  // namespace
 void CS01AudioProcessor::layoutEditor(IGraphics* g) {
-    g->AttachPanelBackground(IColor(255, 32, 34, 37));
+    using namespace cs01::ui;
+    using cs01::Param;
+    g->AttachPanelBackground(background);
     g->LoadFont("Roboto-Regular", ROBOTO_FN);
     g->AttachTextEntryControl();
     g->AttachPopupMenuControl();
     g->EnableMouseOver(true);
-    const auto style =
-        DEFAULT_STYLE.WithDrawShadows(false).WithColor(kFG, IColor(255, 218, 167, 91));
-    const IText text(17, IColor(255, 232, 227, 218), "Roboto-Regular");
-    g->AttachControl(new ITextControl(IRECT(20, 12, 1060, 47), "CheapSynth01", text.WithSize(28)));
-    g->AttachControl(new IVButtonControl(
-        IRECT(20, 55, 70, 90),
-        [this](IControl*) {
-            const int total = static_cast<int>(programs.programs().size());
-            if (programs.setCurrentProgram((programs.getCurrentProgram() + total - 1) % total)) {
-                syncParameters(true);
-                updateProgramLabel();
-            }
-        },
-        "<", style));
-    g->AttachControl(new ITextControl(IRECT(80, 55, 350, 90), "Default", text), ProgramLabel);
-    g->AttachControl(new IVButtonControl(
-        IRECT(355, 55, 405, 90),
-        [this](IControl*) {
-            const int total = static_cast<int>(programs.programs().size());
-            if (programs.setCurrentProgram((programs.getCurrentProgram() + 1) % total)) {
-                syncParameters(true);
-                updateProgramLabel();
-            }
-        },
-        ">", style));
-    g->AttachControl(new IEditableTextControl(IRECT(420, 55, 650, 90), "My preset", text,
-                                              IColor(255, 48, 50, 54)),
-                     PresetName);
-    g->AttachControl(new IVButtonControl(
-        IRECT(660, 55, 735, 90),
-        [this](IControl*) {
-            auto* name = static_cast<ITextControl*>(GetUI()->GetControlWithTag(PresetName));
-            if (!programs.saveCurrentStateAsPreset(name->GetStr()))
-                reportPresetError();
-        },
-        "Save", style));
-    g->AttachControl(new IVButtonControl(
-        IRECT(745, 55, 825, 90),
-        [this](IControl*) {
-            auto* name = static_cast<ITextControl*>(GetUI()->GetControlWithTag(PresetName));
-            if (!programs.renameUserPreset(programs.getCurrentProgram(), name->GetStr()))
+    g->AttachCornerResizer(EUIResizerMode::Scale, false);
+    const auto style = DEFAULT_STYLE.WithDrawShadows(false)
+                           .WithColor(kBG, background)
+                           .WithColor(kFG, IColor(255, 24, 24, 24))
+                           .WithColor(kPR, cyan)
+                           .WithColor(kFR, dim)
+                           .WithLabelText(text(11))
+                           .WithValueText(text(11));
+    auto label = [g](IRECT bounds, const char* title, float size = 11.f) {
+        g->AttachControl(new ITextControl(bounds, title, text(size)));
+    };
+    auto button = [g, style](IRECT bounds, const char* title, IActionFunction action,
+                             int tag = kNoTag) {
+        return g->AttachControl(new IVButtonControl(bounds, action, title, style), tag);
+    };
+    auto section = [g](IRECT bounds, const char* title) {
+        g->AttachControl(new Section(bounds, title));
+    };
+    auto fader = [g](IRECT bounds, Param parameter, const char* title, int tag = kNoTag,
+                     bool wheel = false) {
+        return g->AttachControl(new Fader(bounds, index(parameter), title, wheel), tag);
+    };
+    // Original 1240x400 panel: header at y=20, common sound columns at y=82.
+    label(IRECT(20, 20, 205, 64), "CheapSynth01", 23);
+    g->AttachControl(new IPanelControl(IRECT(226, 20, 786, 64), IColor(255, 35, 35, 35)));
+    label(IRECT(265, 20, 525, 35), "MEMORY", 10);
+    auto display = [this]() {
+        return static_cast<PresetDisplay*>(GetUI()->GetControlWithTag(ProgramLabel));
+    };
+    g->AttachControl(new PresetDisplay(
+                         IRECT(265, 36, 525, 59),
+                         [this]() {
+                             std::vector<std::string> names;
+                             for (const auto& program : programs.programs())
+                                 names.push_back(program.name);
+                             return names;
+                         },
+                         [this](int selected) {
+                             if (programs.setCurrentProgram(selected)) {
+                                 syncParameters(true);
+                                 updateProgramLabel();
+                                 updateFilterControls();
+                             }
+                         }),
+                     ProgramLabel);
+    button(IRECT(236, 36, 260, 59), "<", [this](IControl*) {
+        if (programs.setCurrentProgram(programs.getCurrentProgram() - 1)) {
+            syncParameters(true);
+            updateProgramLabel();
+            updateFilterControls();
+        }
+    });
+    button(IRECT(530, 36, 554, 59), ">", [this](IControl*) {
+        if (programs.setCurrentProgram(programs.getCurrentProgram() + 1)) {
+            syncParameters(true);
+            updateProgramLabel();
+            updateFilterControls();
+        }
+    });
+    button(IRECT(596, 36, 646, 59), "Save", [this, display](IControl*) {
+        display()->PromptName("My Preset", [this](const char* name) {
+            if (!programs.saveCurrentStateAsPreset(name))
                 reportPresetError();
             updateProgramLabel();
+        });
+    });
+    button(
+        IRECT(651, 36, 711, 59), "Rename",
+        [this, display](IControl*) {
+            const auto list = programs.programs();
+            display()->PromptName(
+                list[programs.getCurrentProgram()].name.c_str(), [this](const char* name) {
+                    if (!programs.renameUserPreset(programs.getCurrentProgram(), name))
+                        reportPresetError();
+                    updateProgramLabel();
+                });
         },
-        "Rename", style));
-    g->AttachControl(new IVButtonControl(
-        IRECT(835, 55, 915, 90),
+        RenamePreset);
+    button(
+        IRECT(716, 36, 776, 59), "Delete",
         [this](IControl*) {
             if (!programs.deleteUserPreset(programs.getCurrentProgram()))
                 reportPresetError();
             else
                 syncParameters(true);
             updateProgramLabel();
+            updateFilterControls();
         },
-        "Delete", style));
-    g->AttachControl(new IVButtonControl(
-        IRECT(925, 55, 1060, 90),
-        [this](IControl*) {
-            GetUI()->PromptForFile(dialogFile, dialogPath, EFileAction::Open, "xml",
-                                   [this](const WDL_String& file, const WDL_String&) {
-                                       if (!file.GetLength())
-                                           return;
-                                       if (programs.loadPresetFile(cs01::utf8Path(file.Get())))
-                                           syncParameters(true);
-                                       else
-                                           reportPresetError();
-                                   });
-        },
-        "Import XML", style));
-    // Every sound/performance parameter remains accessible in the panel.
-    for (int i = 0; i < cs01::parameterCount; ++i) {
-        const int row = i / 8, column = i % 8;
-        const IRECT bounds(20 + column * 130.f, 110 + row * 110.f, 140 + column * 130.f,
-                           210 + row * 110.f);
-        const auto& d = cs01::parameterDefinitions[i];
-        if (i == index(cs01::Param::WaveType) || i == index(cs01::Param::Feet) ||
-            i == index(cs01::Param::LfoTarget) || i == index(cs01::Param::FilterType))
-            g->AttachControl(new IVMenuButtonControl(bounds, i, d.name.data(), style));
-        else {
-            auto* control = new IVSliderControl(bounds, i, d.name.data(), style, true);
-            g->AttachControl(control, i == index(cs01::Param::Resonance) ? Resonance : kNoTag);
-        }
-    }
+        DeletePreset);
+    button(IRECT(866, 28, 972, 56), "Import XML", [this](IControl*) {
+        GetUI()->PromptForFile(dialogFile, dialogPath, EFileAction::Open, "xml",
+                               [this](const WDL_String& file, const WDL_String&) {
+                                   if (!file.GetLength())
+                                       return;
+                                   if (programs.loadPresetFile(cs01::utf8Path(file.Get()))) {
+                                       syncParameters(true);
+                                       updateFilterControls();
+                                   } else
+                                       reportPresetError();
+                               });
+    });
     g->AttachControl(new IVToggleControl(
-        IRECT(20, 445, 260, 477),
+        IRECT(1000, 20, 1220, 64),
         [this](IControl* control) {
-            const bool enabled = control->GetValue() > 0.5;
+            const bool enabled = control->GetValue() > .5;
             monitorEnabled.store(enabled);
             GetUI()->GetControlWithTag(Keyboard)->Hide(!enabled);
             GetUI()->GetControlWithTag(Scope)->Hide(!enabled);
+            GetUI()->Resize(PLUG_WIDTH, enabled ? 640 : 400, GetUI()->GetDrawScale());
         },
         "", style, "KEYBOARD + MONITOR", "KEYBOARD + MONITOR"));
-    g->AttachControl(new IVKeyboardControl(IRECT(20, 490, 745, 630), 41, 72), Keyboard)->Hide(true);
-    g->AttachControl(new IVScopeControl<1, 512>(IRECT(765, 490, 1060, 630), "Output", style), Scope)
+
+    section(IRECT(20, 82, 144, 231), "BREATH");
+    g->AttachControl(new Knob(IRECT(47, 105, 117, 164), index(Param::BreathVcf), "VCF"));
+    g->AttachControl(new Knob(IRECT(47, 164, 117, 223), index(Param::BreathVca), "VCA"));
+    section(IRECT(20, 231, 144, 380), "VOLUME");
+    g->AttachControl(new Knob(IRECT(38, 259, 126, 371), index(Param::Volume), "MASTER"));
+    section(IRECT(156, 82, 360, 380), "CONTROL");
+    label(IRECT(167, 110, 248, 134), "BEND");
+    label(IRECT(269, 110, 350, 134), "MOD");
+    fader(IRECT(167, 134, 248, 286), Param::PitchBend, "", kNoTag, true);
+    fader(IRECT(269, 134, 350, 286), Param::ModDepth, "", kNoTag, true);
+    label(IRECT(167, 286, 248, 304), "UP");
+    g->AttachControl(new BendRange(IRECT(167, 304, 248, 326), index(Param::BendUp)));
+    label(IRECT(167, 326, 248, 344), "DOWN");
+    g->AttachControl(new BendRange(IRECT(167, 344, 248, 366), index(Param::BendDown)));
+    label(IRECT(269, 286, 350, 308), "TARGET");
+    g->AttachControl(
+        new Choices(IRECT(269, 308, 350, 364), index(Param::LfoTarget), {"VCO", "VCF"}));
+
+    constexpr float origin = 372, width = 848;
+    auto column = [](int left, int right, float top = 112, float bottom = 370) {
+        return IRECT(origin + width * left / 14, top, origin + width * right / 14, bottom);
+    };
+    section(column(0, 1, 82, 380), "LFO");
+    section(column(1, 6, 82, 380), "VCO");
+    section(column(6, 9, 82, 380), "VCF");
+    section(column(9, 10, 82, 380), "VCA");
+    section(column(10, 14, 82, 380), "EG");
+    fader(column(0, 1), Param::LfoSpeed, "SPEED");
+    fader(column(1, 2), Param::Glissando, "GLISS.");
+    fader(column(2, 3), Param::Pitch, "PITCH");
+    fader(column(3, 4), Param::PwmSpeed, "PWM SPEED");
+    g->AttachControl(new Choices(column(4, 5, 114, 274), index(Param::WaveType),
+                                 {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"}));
+    label(column(4, 5, 338, 370), "WAVEFORM", 10);
+    g->AttachControl(
+        new Choices(column(5, 6, 114, 274), index(Param::Feet), {"32'", "16'", "8'", "4'", "WN"}));
+    label(column(5, 6, 338, 370), "FEET");
+    const float filterX = origin + width * 6 / 14;
+    g->AttachControl(new IPanelControl(IRECT(filterX + 48, 82, filterX + 120, 104), background));
+    g->AttachControl(new Choices(IRECT(filterX + 48, 82, filterX + 120, 104),
+                                 index(Param::FilterType), {"I", "II"}, true));
+    fader(column(6, 7), Param::Cutoff, "CUTOFF");
+    fader(column(7, 8), Param::Resonance, "", Resonance);
+    g->AttachControl(new ResonanceSwitch(column(7, 8, 209, 245), index(Param::Resonance)),
+                     ResonanceHigh);
+    label(column(7, 8, 338, 370), "RES");
+    fader(column(8, 9), Param::VcfEgDepth, "EG DEPTH");
+    fader(column(9, 10), Param::VcaEgDepth, "EG DEPTH");
+    fader(column(10, 11), Param::Attack, "A");
+    fader(column(11, 12), Param::Decay, "D");
+    fader(column(12, 13), Param::Sustain, "S");
+    fader(column(13, 14), Param::Release, "R");
+
+    auto* keyboard = new IVKeyboardControl(IRECT(20, 420, 808, 620), 41, 72);
+    keyboard->SetBlackToWhiteRatios(.6f, .6f);
+    g->AttachControl(keyboard, Keyboard)->Hide(true);
+    g->AttachControl(new IVScopeControl<1, 512>(IRECT(820, 420, 1220, 620), "Output",
+                                                style.WithColor(kFG, cyan)),
+                     Scope)
         ->Hide(true);
     g->SetQwertyMidiKeyHandlerFunc([g](const IMidiMsg& message) {
         if (auto* keyboard = g->GetControlWithTag(Keyboard))
             keyboard->OnMidi(message);
     });
+    monitorEnabled.store(false);
     updateProgramLabel();
     updateFilterControls();
 }
@@ -135,18 +218,16 @@ void CS01AudioProcessor::updateProgramLabel() {
                 .name.c_str());
         label->SetDirty(false);
     }
+    const bool user = list[programs.getCurrentProgram()].type == PresetType::User;
+    GetUI()->GetControlWithTag(RenamePreset)->SetDisabled(!user);
+    GetUI()->GetControlWithTag(DeletePreset)->SetDisabled(!user);
 }
 void CS01AudioProcessor::updateFilterControls() {
     if (!GetUI())
         return;
-    // Original resonance has two effective positions; the label explains its threshold.
-    if (auto* control = GetUI()->GetControlWithTag(Resonance)) {
-        auto* slider = static_cast<IVSliderControl*>(control);
-        slider->SetLabelStr(GetParam(index(cs01::Param::FilterType))->Int() == 0
-                                ? "Resonance Low/High"
-                                : "Resonance");
-        slider->SetDirty(false);
-    }
+    const bool modern = GetParam(index(cs01::Param::FilterType))->Int() != 0;
+    GetUI()->GetControlWithTag(Resonance)->Hide(!modern);
+    GetUI()->GetControlWithTag(ResonanceHigh)->Hide(modern);
 }
 void CS01AudioProcessor::OnParamChangeUI(int param, EParamSource) {
     if (param == index(cs01::Param::FilterType))
