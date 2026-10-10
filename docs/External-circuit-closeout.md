@@ -38,9 +38,9 @@ replacement. Originals are absent from this checkout; see the
 [source catalog](Source-catalog.md).
 
 The later [EG circuit audit correction](EG-model-audit.md) flags an electrically
-inconsistent Tr13 attack-drive transcription. Recheck device polarity,
-terminals and IC4 output mapping before treating the archived conditional
-attack-drive sequence as established hardware behavior.
+inconsistent Tr13 attack-drive transcription. Device polarity, terminals and
+IC4 output mapping are unresolved, so the archived conditional attack-drive
+sequence is not established hardware behavior.
 
 ## Completed evidence and implementation work
 
@@ -71,27 +71,16 @@ Detailed records: [EG circuit audit](EG-model-audit.md),
 These checks verify equations and software behavior, not measured sound or
 hardware timing. The Python checks are separate from the CMake test runner.
 
-## Evidence gates for the next implementation
+## Analysis limits
 
-1. Record gate-input, IC4 pin-7/pin-8/pin-14/pin-15, storage-node E and TP4
-   voltages across key-on, attack completion and key-off. Preserve both
-   steady-state levels and transition timing; do not substitute normalized EG.
-2. Establish applicable transistor/FET model parameters and temperature, with
-   provenance. Datasheet high-current beta or saturation test limits alone do
-   not identify low-current envelope behavior. Include IC4 output loading.
-3. Solve transistor junction currents and passive node balances together.
-   Check residuals and continuity across cutoff/saturation and near zero
-   current before using the result as a stage model.
-4. Measure slider position versus resistance and storage/output trajectories
-   at several A/D/R/S settings. Separate stage threshold time from RC constant
-   and buffer offset. Preserve parameter/preset compatibility explicitly.
-5. For audio coupling, establish source/load impedances or measured response
-   before changing empirical poles. Custom-IC-dependent loads remain outside
-   this external-only pass.
+- Gate, IC4, storage-node E and TP4 transition voltages/timing are not calibrated.
+- Transistor/FET parameters, temperature and IC4 output loading are not identified
+  for the envelope's operating points; high-current datasheet limits do not
+  establish low-current behavior.
+- Conditional junction-drop equations do not constitute a calibrated nonlinear
+  device model across cutoff, saturation or near-zero current.
+- Slider resistance curves, stage thresholds and buffer transfer are unmeasured.
+- Audio-coupling source/load impedances, including custom-IC inputs, remain unknown.
 
-Do not introduce guessed junction constants, arbitrary region thresholds or
-uncalibrated sustain targets into production merely to mark the work complete.
-When these evidence gates are met, add independently expected circuit tests,
-replace the corresponding approximation, rebuild, and run full regression and
-observation categories. Until then, retain the provisional stateful exponential EG and its software
-regressions; do not describe its curvature as hardware-calibrated.
+Production retains the provisional stateful exponential EG. Its software
+regressions and curvature do not establish hardware calibration.

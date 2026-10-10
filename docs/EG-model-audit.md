@@ -5,16 +5,16 @@
 > [Stateful provisional EG](EG-stateful-model.md). The equations below do not
 > establish hardware calibration of that software model.
 
-## Follow-up: attack transcription needs correction
+## Attack transcription: unresolved inconsistency
 
 The archived mapping below identifies Tr13 as PNP with its emitter at -9 V,
 base driven within the 0/-9 V rails, and activation by a low pin-10 output.
 Those statements do not describe a normally forward-operated PNP switch:
-the emitter cannot be above the base. Recheck Tr13 polarity, E/C terminals and
-the driving IC4 output pin in the original schematic. Do not silently change
-PNP to NPN: that would also reverse the stated drive polarity. The qualitative
-Attack-drive table below is conditional and must not be treated as settled
-hardware behavior until this mapping is resolved.
+the emitter cannot be above the base. Tr13 polarity, E/C terminals and the
+driving IC4 output-pin attribution are unresolved in this transcription. A PNP
+to NPN substitution would also reverse the stated drive polarity; it is not an
+established correction. The qualitative attack-drive table below is conditional,
+not settled hardware behavior.
 
 Production now preserves a fixed provisional attack target across retriggers
 and changes active-stage speed without redefining the target. See
@@ -84,9 +84,8 @@ it is not a measurement of logic thresholds or transistor saturation.
   a 47 kohm resistor pulls this collector node toward -9 V.
 - Pin 8 has a 1 Mohm pull toward ground. D37 connects the gate-input
   side to this reset network; D38 connects pin 14 to the same network.
-  Do not replace the network with a direct wire or an assumed Boolean OR:
-  diode orientation, voltage drops and loaded input levels must be included
-  before assigning its logic level.
+  This is not a direct wire or an established Boolean OR: diode orientation,
+  voltage drops and loaded input levels affect its logic level.
 - The separate IC4 symbol ties pins 1, 4, 5 and 6 to ground, and pins
   9, 12, 13 and 16 to -9 V. Both clock inputs are therefore fixed;
   ordinary clocked J/K transitions are not the intended stage mechanism.
@@ -116,7 +115,7 @@ side. Both anodes connect to the pin-8/1 Mohm reset node. A sufficiently
 low gate or pin-14 output can therefore sink current from the pull-up
 through its diode. This is a low-asserting reset network, not a direct
 short between gate and pin 14. Its low voltage includes a forward diode
-drop, so valid input margins still require verification.
+drop; valid circuit input margins are not established.
 
 The following is a **conditional circuit prediction**, not measured gate
 timing. H is near ground and L is near -9 V; assume the gate and
@@ -173,9 +172,9 @@ VSS = 0 V and supply points of 5, 10 and 15 V. These input-level specifications
 are not an exact E-node trip voltage, and must not be directly interpreted as
 absolute CS-01 voltages without identifying pins 5 and 13 in the circuit.
 
-The next targeted circuit transcription is pins 8, 3, 5 and 13, followed by
-the remaining clock/J/K and inter-flip-flop connections. This is a specific
-missing-connection list, not a request to reinspect all previously mapped paths.
+The transcription does not fully establish pins 8, 3, 5 and 13 or all
+clock/J/K and inter-flip-flop connections. Previously mapped passive paths
+remain recorded separately from these unresolved connections.
 
 ### What can now be calculated, and what cannot
 
@@ -190,7 +189,8 @@ mapping the verified IC4 asynchronous behavior to the remaining reset and
 supply connections, gate polarity and the E-node switching threshold together
 with transistor/FET operating points. The two
 timing branches cannot safely be assumed to alternate as a conventional
-software ADSR without that derivation. Keep production integration deferred.
+software ADSR on the recorded evidence. No circuit-derived production
+integration is established.
 
 The production EG uses the [stateful exponential software model](EG-stateful-model.md).
 Its lifecycle, stage timing and parameter-update behavior are implemented and
@@ -219,11 +219,10 @@ A time constant also differs from a finite stage duration: an ideal exponential
 never reaches its target exactly. A termination threshold and conversion from
 the existing time parameters would therefore be additional assumptions.
 
-Do not silently introduce an arbitrary overshoot target, threshold, or taper and
-call it circuit-derived. Before integration, document each charging/discharging
-path, its component values, loading assumptions and stage transitions. Then test
-the complete state machine, automation, retriggering and compatibility with the
-existing presets. No production sound change is made by this experiment.
+The overshoot target, threshold and taper of the current software model are
+provisional. Passive paths and isolated RC checks do not establish loaded
+charging/discharging trajectories or the complete physical state machine.
+No production sound change was made by this isolated-RC experiment.
 
 ## Loading experiment
 
@@ -312,9 +311,9 @@ Tr11 additionally loads this node during decay. Consequently neither a
 fixed 0.7 V drop nor the unloaded wiper voltage establishes the loaded
 storage-node sustain equilibrium. Tr11 needs its own current/voltage model.
 
-The next quantitative task is to bound Tr12 base loading and Tr11/Tr9
-branch behavior from device data or measurements. These equations do not
-authorize changing the production ADSR, UI time units or preset meanings.
+Tr12 base loading and Tr11/Tr9 branch behavior are not quantitatively
+established from device data or measurements. These equations do not define
+the production envelope, UI time units or preset meanings.
 
 ### Tr12 loading: solvable forward-active approximation
 
@@ -447,15 +446,12 @@ An algebraic solution with negative Tr12 emitter current is explicitly a
 counterexample to extending the forward-active approximation. Passing these
 tests does not validate the assumed transistor operating regions.
 
-Before replacing this approximation with a current-dependent device model,
-record the provenance and applicability of its junction-current parameters,
-forward/reverse transport parameters, temperature and IC4 output loading.
-Solve base, collector and emitter currents simultaneously with the passive
-node balances; do not clamp a negative collector current to zero or switch
-between fixed drops using an arbitrary voltage threshold. Check node-current
-residuals, continuity near zero current and region changes, and sensitivity
-to uncertain parameters before comparing trajectories with measurements.
-No calibrated nonlinear device model is supplied by this audit yet.
+No calibrated current-dependent device model is supplied by this audit.
+Junction-current parameters, forward/reverse transport, temperature and IC4
+output loading are not identified for these operating points. Node-current
+residuals, continuity at region changes and parameter sensitivity have not been
+validated against a complete physical device model. Fixed-drop algebra checks
+do not establish those properties.
 
 ## Circuit-path identification status
 
@@ -474,20 +470,15 @@ Do not infer those states from the presence of a gate signal alone.
 | EG output | Storage-node-to-output transfer and polarity | Buffer wiring and TP4 waveform direction transcribed; quantitative transfer unresolved |
 
 This table distinguishes passive connections from missing operating-state
-evidence. No ON/OFF states or analog thresholds should be filled from guesswork.
+evidence. Unidentified ON/OFF states and analog thresholds remain unknown.
 
-## Decision and bounded next step
+## Current software and analysis boundary
 
-Keep the provisional stateful exponential EG and its regression tests. Its
-software curvature is not evidence of hardware calibration. Stop adding generic
-RC tests as a substitute for identifying the circuit. The next circuit-model
-step is to bound the transistor branch voltages, sustain-reference loading,
-and IC4 switching voltage. Conditional logic states and reduced stage equations
-are now recorded above, but they are not calibrated circuit behavior. The passive
-transcription above already supplies the identified paths; repeating overview
-image inspection is not the next step. Record any specific unresolved junction
-or missing logic connection before requesting further source inspection.
+Production uses the [provisional stateful exponential EG](EG-stateful-model.md).
+Its software curvature and regression tests do not establish hardware calibration.
+The recorded passive paths, conditional logic states and reduced stage equations
+are distinct from unresolved transistor branch voltages, sustain loading and
+IC4 switching voltage. The Tr13 attack-drive inconsistency remains explicit.
 
-The existing RC tests remain experimental mathematical checks, not evidence of
-CS-01 envelope fidelity. This audit is complete as an implementation decision;
-the circuit reconstruction itself is incomplete.
+The RC tests are experimental mathematical checks, not evidence of CS-01
+hardware envelope fidelity. The circuit reconstruction is incomplete.

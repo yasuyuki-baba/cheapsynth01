@@ -13,7 +13,7 @@ filter or MIDI extensions.
 | YM10150: keyboard and gate | Keyboard inputs and EG gate path | Key priority, retrigger conditions, transition state | Highest-note priority and legato gate retention; consistency tests do not prove hardware behavior | `Source/CS01Synth/MidiProcessor.cpp` |
 | YM10150: glissando | GLS connections to 22 kohm, A1M, and 0.022 uF components transcribed | Oscillation thresholds, division, resistance-to-semitone timing, phase during adjustment | Maximum 208 ms per semitone with a provisional control curve; changes preserve fractional step progress | `Source/CS01Synth/ToneGenerator.cpp` |
 | IG02610: VCF | External control/audio paths and High/Low selection | Internal topology, control-to-cutoff relationship, loading, resonance, distortion | TPT state-variable behavioral core with nonlinear feedback; damping/drive values and modulation depth are provisional | `Source/CS01Synth/IG02610BehavioralModel.h`, `Source/CS01Synth/CS01VCFCircuit.cpp`, `Source/CS01Synth/OriginalVCFProcessor.cpp` and `.h` |
-| IG02600: VCA | External audio, EG, and breath paths | Control-voltage-to-gain relationship, input combination, saturation, loading | Multiplied EG/breath gains and custom saturation; intermediate curves remain unresolved | `Source/CS01Synth/IG02600BehavioralModel.cpp`, `Source/CS01Synth/VCAEmpiricalStages.h`, `Source/CS01Synth/VCAProcessor.cpp` |
+| IG02600: VCA | External audio, EG, and breath paths | Control-voltage-to-gain relationship, input combination, saturation, loading | Provisional EG/independent-note-gate/breath gain composition and custom saturation; physical transfer curves remain unresolved | `Source/CS01Synth/IG02600BehavioralModel.cpp`, `Source/CS01Synth/VCAEmpiricalStages.h`, `Source/CS01Synth/VCAProcessor.cpp` |
 
 Implementation paths are relative to the repository root. Pinouts alone do not
 establish internal transfer characteristics.
@@ -22,7 +22,7 @@ establish internal transfer characteristics.
 
 | Target | Unresolved details / current treatment | Detailed record |
 | --- | --- | --- |
-| EG stage switching | Local TC7476BP truth table and asynchronous reset/feedback wiring mapped; conditional attack/decay/release sequence identified. Actual input thresholds, loaded logic levels and transient behavior remain unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
+| EG stage switching | Earlier TC7476BP inspection recorded the truth table and conditional reset/feedback mapping. Tr13 attack-drive polarity/terminal attribution is inconsistent as transcribed; actual thresholds, loaded logic levels and transient behavior are unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
 | EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
 | EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](EG-time-range-validation.md) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
@@ -38,20 +38,14 @@ establish internal transfer characteristics.
 - Missing internal specifications do not invalidate established external wiring,
   component values, or manufacturer operating instructions. Retain that evidence.
 
-## 4. Update sequence when evidence becomes available
+## 4. Circuit evidence status
 
-1. Record exact part number, source, and page; map the evidence to external wiring.
-2. Identify which unresolved item it resolves.
-3. Define control laws, units, and timing first; test independent expected values.
-4. Replace approximations and check presets, performance state, and timbral effects.
-
-See [Requested resources](Requested-circuit-resources.md) for evidence needs.
-Creating this inventory did not change production audio processing.
+[The evidence status](Circuit-evidence-status.md) summarizes recorded findings,
+source availability and the limits of circuit conclusions.
 
 ## 5. External-circuit audit closeout
 
 See [external-circuit closeout](External-circuit-closeout.md) for completed
-analysis, reproducible verification and the remaining evidence required before
-production changes. Audit completion is not hardware-model completion.
+analysis, reproducible verification and its circuit-analysis limits. Audit completion is not hardware-model completion.
 
 For current production stage ownership and terminology, see [DSP responsibility boundaries](DSP-responsibility-boundaries.md).

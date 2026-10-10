@@ -17,7 +17,10 @@ these ranges would be a usability choice, not verified circuit calibration.
 
 The timing audit originally retained the linear ADSR. Production now uses the
 [stateful exponential EG](EG-stateful-model.md), with the same ranges and seconds
-units. Parameter mappings and software stage durations are regression-tested;
+units. The configured time is a fresh-stage reference; residual-state retriggers
+and active-stage time edits use recalculated remaining time. The duration checks
+below describe controlled stage-entry conditions, not all retrigger trajectories.
+Parameter mappings and software stage durations are regression-tested;
 curvature k = 2 and hardware calibration remain provisional.
 Existing envelope tests cover sample-rate scaling and stage behavior, but
 do not establish hardware agreement.
@@ -35,7 +38,7 @@ Minimum, midpoint and maximum settings are checked at 44.1, 48, 96, 192 and
 384 kHz. The numerical acceptance criterion is 1% of the configured duration
 plus two samples, not a hardware tolerance. This includes high internal rates
 but is not an end-to-end synth graph timing measurement. Maximum-error
-aggregation and a tighter numerical error budget remain future work.
+aggregation and a tighter numerical error budget are not established by this report.
 
 ## Full graph timing check
 

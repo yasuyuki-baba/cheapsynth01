@@ -41,7 +41,7 @@ DAW loading require their own checks. There is no signing/notarization step in t
 workflow. Do not describe these packages as signed/notarized without inspecting
 actual assets (`codesign`/`spctl` on macOS; Authenticode on Windows).
 
-## Licensing decision required before release
+## Licensing status and distribution requirements
 
 The repository LICENSE remains GPLv3. JUCE **9.0.3** uses AGPLv3 or a JUCE commercial
 licence, as confirmed by its LICENSE.md and module headers. The author's commercial
@@ -50,10 +50,10 @@ the AGPL requirements apply to the combined work. A GPLv3-only badge must not be
 read as replacing JUCE's terms. Alternatively, the distributor must establish an
 applicable commercial JUCE licence. No licence acquisition or compliance is assumed.
 
-Before publishing, the author must choose and document the applicable route, supply
-corresponding source for the exact binaries (including JUCE, CLAP dependencies,
-patches and build scripts), and include the applicable full licence texts and
-third-party notices. Preserve JUCE's SPDX inventory and the licences of its bundled
+The applicable licensing route is not documented as resolved here. Distribution
+requirements include corresponding source for the exact binaries (including
+JUCE, CLAP dependencies, patches and build scripts), applicable full licence
+texts, third-party notices, JUCE's SPDX inventory and the licences of bundled
 codecs/fonts/graphics dependencies. GPLv3/AGPLv3 availability of an arbitrary branch
 is insufficient when it does not reconstruct the distributed binaries.
 
@@ -62,4 +62,5 @@ upstream dependency licence files, CLAP licences and
 source revision information into each format archive. This improves traceability;
 it does not certify that every dependency obligation or commercial licence condition
 has been satisfied. LICENSE is deliberately unchanged. The release workflow remains
-subject to the author's licensing decision; this task does not publish a release.
+dependent on the applicable licensing route; these package checks do not
+establish legal compliance.

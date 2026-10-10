@@ -70,7 +70,7 @@ can allocate for long MIDI messages (including SysEx copies).
 `MidiKeyboardState::processNextMidiBuffer` take JUCE critical-section locks.
 Graph routing uses `AsyncUpdater::triggerAsyncUpdate` from parameter listeners,
 whose message posting can block. These existing paths and state/preset operations
-need independent realtime audits. General host automation still uses
+were not resolved by that historical MIDI-notification change. General host automation still uses
 JUCE's normal synchronous parameter listeners; this patch defers notifications
 originating specifically from MIDI. Existing DSP parameter lookups and
 coefficient work are unchanged. This refactor does not establish that the whole

@@ -26,9 +26,9 @@ cutoffs and Low/High without resetting state, checks finite bounded output,
 and checks decay after silence. The amplitude bound is a safety criterion,
 not a hardware specification or a guarantee of click-free switching.
 
-No production coefficients were changed. Outstanding: internal-rate peak and
-gain sweep at actual panel positions, and comparison with circuit information
-if IC control characteristics become available.
+No production coefficients were changed in this initial pass. Internal-rate
+panel observations were added in the section below; no hardware-calibrated
+cutoff or resonance comparison is recorded.
 
 ## Internal-rate panel observations
 
@@ -43,8 +43,8 @@ At a 48 kHz host and midpoint cutoff, Low measured +2.339 dB at 1802 Hz;
 High measured +7.464 dB at 2002 Hz. These are maxima among the chosen probes,
 not precise resonance peak locations. At minimum cutoff the coupling high-pass
 stages also affect the response. Float coefficient precision at very low
-cutoffs/high internal rates requires separate analysis before interpreting
-sample-rate differences as analog behavior. No calibration change was made.
+cutoffs/high internal rates is a numerical limitation; the observed sample-rate
+differences do not establish analog behavior. No calibration change was made.
 
 The new observation test and live-control test pass in Debug and Release.
 Full-suite results from before this observation addition were 144/144;
@@ -68,4 +68,5 @@ coefficient diagnosis is an isolated mathematical check; it does not yet
 assert the production core's low-frequency error against an independent
 complete transfer function. Input coupling still uses a float high-pass.
 Consequently neither full low-frequency calibration nor all precision
-effects are claimed resolved. Standalone rebuild/listening remains pending.
+effects are claimed resolved. This historical validation did not include a
+Standalone rebuild or listening result.

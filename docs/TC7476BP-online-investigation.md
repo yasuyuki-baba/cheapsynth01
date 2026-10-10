@@ -6,7 +6,7 @@
 > [external source catalog](Source-catalog.md) for acquisition references;
 > no new source inspection or URL verification is claimed here.
 
-## Outcome
+## Historical online retrieval results
 
 An alternative listing was located at Datasheet Archive:
 https://www.datasheetarchive.com/?q=tc7476bp
@@ -23,44 +23,25 @@ https://www.bitsavers.org/components/toshiba/_dataBook/1985_Toshiba_C2MOS_Integr
 Opening this second scan returned HTTP 403. Neither index entry establishes
 the pinout or truth table.
 
-## Local evidence and scope of this record
+## Recorded local source inspection
 
-The local file `docs/tech/TC7476BP.pdf` is available for the next pinout and
-truth-table audit. The failed online retrievals above describe the earlier
-online investigation, not the current availability of local source material.
-They must not be used as a reason to repeat archive searches or overview reads.
+The earlier audit used the supplied `docs/tech/TC7476BP.pdf`. That file is absent
+from this checkout. The failed online retrievals above are historical acquisition
+results, not a current source inspection.
 
-`docs/EG-model-audit.md` now contains a passive transcription of IC4-related
-connections. Passive wiring alone does not establish asynchronous logic states
-or an exact analog switching voltage. The remaining work is to record the
-datasheet-to-wiring correspondence explicitly, with page references and any
-unresolved connections, rather than infer it from catalog descriptions.
+The recorded visual check covered PDF page 1 / printed page 574 (part-specific
+pin assignment and truth table), and PDF page 2 / printed page 575 (recommended
+operating conditions and electrical limits). Set/reset are active-low and reset
+has priority when both are asserted. Guaranteed voltage limits do not establish
+an exact analog switching voltage in the CS-01 circuit.
 
-## Local datasheet verification
+The [EG circuit audit](EG-model-audit.md) records the pin correspondence,
+conditional logic states and unresolved reset/supply/clock/J/K connections.
+Its Tr13 attack-drive mapping is inconsistent as transcribed. A complete
+physical EG operating-state model is not established.
 
-The local PDF has now been visually checked: PDF page 1 / printed page 574
-contains the part-specific pin assignment and truth table; PDF page 2 / printed
-page 575 contains recommended operating conditions and electrical limits.
-Set and reset are active-low, and reset has priority when both are asserted.
-The pin-by-pin correspondence, truth-table summary and conditional drive states
-are recorded in `docs/EG-model-audit.md` under IC4 datasheet-to-wiring
-correspondence. Remaining reset, supply and clock/J/K wiring is explicitly
-listed there; this is not yet a complete EG state model.
+## Current implementation boundary
 
-## Evidence checklist
-
-- Verified: actual TC7476BP pin diagram and truth table (not substitutes).
-- Verified: active-low set/reset and reset-priority simultaneous assertion.
-- Supply and input-voltage limits; guaranteed logic thresholds must not be
-  treated as an exact analog switching voltage.
-- Correspondence between those pins and the CS-01 IC4 wiring.
-
-## Implementation decision
-
-IC-specific logic is now supported by the local datasheet, not the catalog
-description. An analog threshold or EG stage duration is still not established.
-Keep the current regression-tested provisional stateful exponential EG (see
-[EG-stateful-model.md](EG-stateful-model.md)) until the remaining wiring and operating
-states can be validated. This investigation changes no
-audio behavior and adds no executable test because no new circuit behavior
-has been established.
+Production uses the [provisional stateful exponential EG](EG-stateful-model.md).
+The part-specific logic findings support conditional analysis; they do not
+calibrate software stage durations, curvature or transistor/FET operating points.

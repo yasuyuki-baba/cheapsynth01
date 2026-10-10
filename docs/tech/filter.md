@@ -36,13 +36,12 @@ Documentation cites a maximum Q around 10. Importantly, the circuit design and f
 
 Combined modulation ranges (reported LFO ±3 octaves; EG depth data from related CS models up to +10 octaves) imply an intended design capable of sweeping effectively across the audible band. Taking a conservative base cutoff of ~20 Hz and adding a +10-octave sweep reaches ~20 kHz, matching the practical audible range. LFO modulation, with ±3 octaves, supports dramatic but controlled sweeping when the user engages modulation depth.
 
-### Practical guidance for emulation or modification
+### References and confidence
 
-- Preserve the summing/attenuation architecture: simply driving the VCF control pin with large voltages will not replicate the original’s response; you must emulate the weighted summing and final attenuation.
-- Respect the non-oscillating resonance: attempts to force self-oscillation will produce behavior that diverges from the intended CS-character.
-- For digital emulation: implement a narrow control input mapping and scale sources into that window, maintain a 12 dB/octave SVF topology, and reproduce the Q behavior with a capped resonance parameter.
-
-### References & notes on confidence
-
-- Primary sources: CS service manuals and schematic extracts (see references within repository). Where direct datasheet numbers for IG00156 are not available, circuit trace measurements and related model documentation were used to form estimates — such points are labeled “Estimated” in the detailed reference footnotes.
-- Confidence: Many design points (12 dB/oct, summing network, LFO/EG coupling) are confirmed from service schematics; numeric figures for extreme modulation ranges are supported by related model documentation and community findings (confidence: medium-high).
+The earlier summary attributes these figures to CS-series service material and
+community interpretation, but does not identify exact pages or sources for
+every topology/control claim. Numerical control sensitivity, maximum Q,
+self-oscillation behavior and modulation spans are not verified IG02610 or
+IG05630 specifications. This related-product background does not establish
+CS-01 circuit equivalence. Source attribution is summarized in
+[the source catalog](../Source-catalog.md).
