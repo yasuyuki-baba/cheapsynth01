@@ -41,8 +41,9 @@ loaded device operating points needed for a calibrated replacement.
 | Audio coupling | Existing low-frequency audit distinguishes empirical poles from schematic evidence | Source/load impedances, including custom-IC inputs |
 | Controls | Existing timing audit distinguishes software seconds/skew from hardware S-L markings | Position/resistance measurements and stage endpoint calibration |
 
-Detailed records: `EG-model-audit.md`, `EG-time-range-validation.md`, and
-`../references/cs01-low-frequency-audit.md`.
+Detailed records: [EG circuit audit](EG-model-audit.md),
+[EG time-range validation](EG-time-range-validation.md), and
+[low-frequency circuit audit](Low-frequency-circuit-audit.md).
 
 ## Verification performed
 

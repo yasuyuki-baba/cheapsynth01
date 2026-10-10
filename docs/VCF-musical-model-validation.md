@@ -1,5 +1,11 @@
 # VCF musical-model validation: first implementation pass
 
+> Historical implementation pass: this report describes the earlier biquad and
+> output-coloration model. The current Original VCF uses a nonlinear TPT
+> state-variable model; see [Original VCF behavioral design](Original-VCF-behavioral-design.md)
+> and [DSP responsibility boundaries](DSP-responsibility-boundaries.md).
+> Test counts and before/after measurements below belong to this earlier pass.
+
 ## Goal and scope
 
 Improve consistency of the existing provisional VCF without claiming custom-IC

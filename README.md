@@ -99,6 +99,9 @@ For build instructions and development setup, please see [CONTRIBUTING.md](CONTR
 
 ## Usage
 
+For a categorized index of usage, development, design and investigation material,
+see the [documentation guide](docs/README.md).
+
 See also the [MIDI implementation](docs/MIDI-Implementation.md),
 [test guide](Tests/README.md), [circuit-model limitations](docs/Circuit-model-unknowns.md),
 and [requested circuit resources](docs/Requested-circuit-resources.md).

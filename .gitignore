@@ -11,8 +11,8 @@ __pycache__/
 # Backup files
 *.bak
 
-# Documentation
-references/
+# Local-only external materials and private inventories
+/references/
 
 # Clinerules
 .clinerules/

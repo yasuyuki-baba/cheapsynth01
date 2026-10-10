@@ -1,5 +1,11 @@
 # Yamaha CS-Series VCF (IG00156) — Technical Summary
 
+> Related-product background: this summary concerns IG00156, not the CS-01's
+> IG02610 or CS-01II's IG05630. Do not transfer its topology or control values
+> to those devices without supporting evidence. For the production models, see
+> [Original VCF design](../Original-VCF-behavioral-design.md) and
+> [CS-01II VCF model](CS01II-VCF-model.md).
+
 ## Short summary
 
 The CS-series VCF (implemented with Yamaha’s IG00156 family IC) is a 12 dB/octave state-variable filter designed for musical, smooth frequency shaping across the audible band. Its control input is extremely sensitive (reported to scale the full cutoff range within ~0.25 V), so front-panel controls and modulation sources are scaled through a precision summing network. The filter supports strong resonance (Q up to ~10) without self-oscillation and, together with generous modulation ranges (eg. LFO ±3 octaves, EG up to ~+10 octaves in related models), enables practical coverage of roughly 20 Hz — 20 kHz depending on panel settings and modulation.

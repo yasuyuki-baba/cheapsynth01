@@ -1,5 +1,11 @@
 # CS-01 VCF panel validation
 
+> Historical validation: the biquad implementation and test counts described
+> here precede the current Original VCF model. For current architecture and
+> validation coverage, see [Original VCF behavioral design](Original-VCF-behavioral-design.md)
+> and [DSP responsibility boundaries](DSP-responsibility-boundaries.md).
+> The measurements below characterize the implementation at the time of each run.
+
 The production cutoff range is 20-20000 Hz with skew 0.3 and 1 Hz steps.
 Before quantization its normalized position p maps to
 20 + 19980 * p^(1/0.3). The midpoint is about 2002 Hz.
