@@ -118,7 +118,7 @@ see the [documentation guide](docs/README.md).
 
 See also the [MIDI implementation](docs/MIDI-Implementation.md),
 [test guide](Tests/README.md), [circuit-model limitations](docs/Circuit-model-unknowns.md),
-and [requested circuit resources](docs/Requested-circuit-resources.md).
+and [circuit evidence status](docs/Circuit-evidence-status.md).
 Regression tests verify software behavior, not calibration against original hardware.
 
 Load the plugin in your DAW or launch the standalone application.

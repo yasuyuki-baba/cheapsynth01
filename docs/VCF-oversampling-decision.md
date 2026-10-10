@@ -21,7 +21,7 @@ reporting policy are recorded below; they do not establish total alias reduction
 
 ## Output timing policy and final observations
 
-Keep host-reported latency at zero for this IIR implementation. This means no
+Production reports zero host latency for this IIR implementation. This means no
 fixed compensable delay is declared, NOT that the output is physically delay-free.
 The graph synthesizes at the internal rate and uses only the downsampling audio
 path. JUCE's 4.43267-sample up/down latency must not be applied directly to this
@@ -29,9 +29,8 @@ path. The down-path impulse peaks at sample 3; its energy centroid is 4.31957
 samples. Neither quantity is a frequency-independent delay. No fixed EG/audio
 offset is added: EG, LFO and audio share the internal clock before output conversion.
 
-If exact host compensation is required, implement and test a linear-phase FIR
-output converter with explicitly derived down-path delay, including fractional
-sample handling. This remains a separate improvement, not a completed feature.
+Production does not implement a linear-phase FIR output converter or fixed
+host compensation for its frequency-dependent IIR delay.
 
 Release whole-graph observations (editor closed, blocks of 256, A8, saw/square,
 CS-01 Low, cutoff 15 kHz) required roughly 58–70 ms per audio second at 44.1 kHz,
@@ -71,6 +70,3 @@ not hardware calibration. No production VCF resampler was added.
 - Selected spectral bins do not establish total alias power.
 - Standalone VCF comparisons do not cover VCO square/saw inputs. Subsequent
   whole-graph representative output and CPU observations are listed above.
-
-Before integration, compare those inputs and decide explicitly whether to
-preserve the existing response or adopt a different filter discretization.

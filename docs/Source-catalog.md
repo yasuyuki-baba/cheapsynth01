@@ -37,24 +37,17 @@ similarly named documents or compatible parts are interchangeable.
 | Toshiba TC7476BP datasheet | Historical local path `docs/tech/TC7476BP.pdf`; [1988 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1988_Toshiba_TC4000_4500_5000_CMOS_Logic.pdf), [1985 databook](https://www.bitsavers.org/components/toshiba/_dataBook/1985_Toshiba_C2MOS_Integrated_Circuits.pdf), [archive index](https://www.datasheetarchive.com/?q=tc7476bp). Earlier online retrievals failed or were unvalidated. | Local extract PDF 1–2 / printed 574–575: pinout, truth table and electrical limits. Equivalence of the online scans to the extract is not newly verified. | Absent. [Retrieval and verification history](TC7476BP-online-investigation.md), [datasheet-to-wiring audit](EG-model-audit.md). |
 | Toshiba 2SC1815 datasheet | [Recorded distributor-hosted manufacturer PDF](https://media.digikey.com/pdf/Data%20Sheets/Toshiba%20PDFs/2SC1815.pdf). | 2007-11-01, page 1. | Absent. [EG device analysis](EG-model-audit.md); quoted high-current conditions do not establish low-current EG operating points. |
 | IG02610/11 schematic interpretation | [Secondary reverse-engineering article](https://ss30m.blogspot.com/2020/05/fun-with-filters-pt2.html). | Article dated May 2020; no PDF page numbering. | No local copy. [Original VCF design](Original-VCF-behavioral-design.md). Interpretation, not Yamaha documentation or measured hardware evidence. |
-| YM10150, LFO and IG00156 background sources | Technical summaries mention service manuals and community analysis without exact source identifiers for every claim. | Individual revisions, pages and thread URLs are not recorded. | No identified local originals. [YM10150](tech/ymf10150.md), [LFO](tech/lfo.md), [IG00156](tech/filter.md). Trace these claims to specific originals before using them as implementation evidence. |
+| YM10150, LFO and IG00156 background sources | Technical summaries mention service manuals and community analysis without exact source identifiers for every claim. | Individual revisions, pages and thread URLs are not recorded. | No identified local originals. [YM10150](tech/ymf10150.md), [LFO](tech/lfo.md), [IG00156](tech/filter.md). Claims without exact source attribution are unverified interpretations. |
 
-For evidence still needed, including IG02610, IG02600, YM10150, device operating
-points and potentiometer curves, see [requested circuit resources](Requested-circuit-resources.md)
-and [unresolved circuit details](Circuit-model-unknowns.md).
+[Circuit evidence status](Circuit-evidence-status.md) and
+[unresolved circuit details](Circuit-model-unknowns.md) describe the limits of
+recorded findings for IC internals, device operating points and control curves.
 
-## Adding or restoring source material
+## Storage and sharing boundary
 
-1. Place the external original under `references/` with an identifiable filename.
-2. Record exact local filenames and private acquisition details in a local
-   inventory under `references/`. Add only shareable title, publisher, revision,
-   source URL and page information to this catalog.
-3. State whether the original has actually been inspected. Record a file hash
-   when needed to identify the exact scan or revision used in an audit.
-4. Put transcriptions, calculations and implementation decisions in `docs/`,
-   linking them to the corresponding catalog entry. Preserve historical source
-   filenames in old reports when they explain provenance.
-
-Nothing under `references/` is included by ordinary Git staging. A catalog entry alone
-does not make a document available to another checkout; record that limitation
-when sharing analysis.
+Authored explanations and analysis are tracked under `docs/`. External originals
+and private inventories are local-only under `references/`; ordinary Git staging
+excludes the entire directory. This catalog contains shareable source information
+from project documents. A catalog entry does not make an original available to
+another checkout. Historical filenames identify the source used in the recorded
+analysis, not a promise of current local availability.

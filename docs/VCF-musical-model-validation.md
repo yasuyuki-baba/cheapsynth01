@@ -30,7 +30,8 @@ feedback are subsequent work, not implemented by this pass.
 This is still output coloration following a linear resonant filter, not
 saturation inside a resonance feedback loop. It intentionally changes some
 large-signal behavior. Per-sample coefficient calculation and standard tanh
-require later performance evaluation; small-signal timing is not a CPU benchmark.
+were not evaluated for whole-plugin performance in this pass; small-signal
+timing is not a CPU benchmark.
 
 ## Reproducible checks
 
@@ -48,6 +49,6 @@ matching small-signal points. Maximum difference in printed gains was about
 temporary files are not permanent fixtures or hardware calibration data.
 
 No comparison WAV files or listening judgment are supplied by this pass.
-The remaining adoption criteria include large-signal listening, modulation
-clicks, low-end balance, CPU cost and whether feedback saturation is actually
-needed. Do not infer musical superiority solely from passing safety tests.
+This pass does not establish large-signal listening quality, modulation-click
+behavior, low-end balance, whole-plugin CPU cost or a hardware need for feedback
+saturation. Passing safety tests does not establish musical superiority.

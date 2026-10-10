@@ -60,8 +60,8 @@ The branch update adopts the capacitor-state principle that changing resistance
 changes speed without resetting stored voltage or redefining the drive target.
 It does not integrate illustrative Ebers-Moll coefficients as device calibration.
 The previous Tr13 transcription (PNP, emitter at -9 V, low-output activation)
-is electrically inconsistent with a normal forward-operated PNP switch and must
-be rechecked against the original schematic, including the output-pin mapping.
+is electrically inconsistent with a normal forward-operated PNP switch; device
+polarity, terminals and output-pin mapping are unresolved in the recorded analysis.
 The attack target, k=2 curve, 1 ms–2 s ranges and control taper remain provisional.
 This update does not establish click removal or hardware timing agreement.
 

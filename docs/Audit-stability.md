@@ -1,5 +1,9 @@
 # 安定性監査・実装結果（2026-10-09 JST）
 
+各節は記載した日時・ソースでの測定記録であり、全節が現在の実装を説明するものではない。
+現在の構成は [DSP責任範囲](DSP-responsibility-boundaries.md)、
+[EGモデル](EG-stateful-model.md)、[発音境界](Note-onset-continuity.md) に記載する。
+
 作業開始時のGitHub最新mainは `4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900`。
 監査対象と同一だった。ローカルの古いorigin/mainや既存ビルドを基準にはしていない。
 元checkoutは変更せず、独立worktreeの `fix/audit-stability` で実装した。
@@ -91,9 +95,9 @@ JUCE 9.0.3のMessageManagerスレッド確認もmutexを使う。非保護getter
 filter/lfo経路はTimer→メッセージ側のグラフ再構築で、sample-accurate切替ではない。
 保持音での切替ブロック最大隣接差は0.170279、全体peakは0.317756（校正済みの可聴閾値なし）。
 現グラフで両フィルタへ非ゼロ入力を追加した場合、64サンプルの中央値は114.574→117.789 µs（約2.8%増）。
-これは固定グラフ＋selector/crossfadeを完成した比較ではない。切替状態・クロスフェード方針・追加ノードの
-CPU/互換性試験が必要なため、この変更ではグラフを撤去しなかった。
-VCOの1サンプルAPIや反復パラメータ更新も、LFO/PWM/glissando進行を保つ別の最適化候補として残した。
+これは固定グラフ＋selector/crossfadeを完成した比較ではない。この監査段階では
+切替状態・追加ノードのCPU/互換性が未検証で、グラフを維持していた。
+この段階のVCOは1サンプルAPIと反復パラメータ更新を使用していた。後段に変更後の測定を記録する。
 
 ## 互換性、配布、資料
 

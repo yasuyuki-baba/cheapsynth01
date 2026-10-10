@@ -22,12 +22,12 @@ behavior, not agreement with the instrument.
 - Buffer and line-output coupling are modeled with empirical first-order poles.
   Their sample-rate scaling is tested, but their hardware values remain uncalibrated.
 
-## Verification limits and next steps
+## Verification limits
 
-Do not introduce assertions that these empirical cutoffs are hardware targets.
-Keep the existing convergence, coefficient-precision and cascade consistency
-tests. Establish source/load impedances or obtain measured line-output responses
-before replacing the low-frequency network. A single isolated passive RC section
-is first-order; a second-order replacement requires additional justification.
+Empirical cutoff values are not hardware targets. Existing convergence,
+coefficient-precision and cascade-consistency checks validate software behavior.
+Source/load impedances and measured line-output responses are not established.
+A single isolated passive RC section is first-order; the software second-order
+stages are not a circuit-derived replacement on the available evidence.
 
 No audio coefficients were changed during this audit.

@@ -125,8 +125,8 @@ The named values in `IG02610BehavioralModel::EmpiricalParameters` are
 provisional: minimum/maximum damping, feedback drive, and integrator-input drive.
 The unchanged maximum output is separately named in `SafetyParameters`; it is
 an implementation bound, not a calibration target.
-They should be grouped with future calibration data and replaced only when
-repeatable measurements support new values. The processor's cutoff limits and
+No repeatable hardware measurements calibrate these values. The processor's
+cutoff limits and
 two-position resonance control is inherited behavior, not claims about a control
 voltage law.
 
@@ -152,11 +152,9 @@ nonlinearity, and routing. They are implementation checks, not hardware
 validation.
 
 These probes do not validate the complete EG/LFO/breath routing in a running
-graph or establish hardware behavior. Capture current-model plugin stimuli
-with documented metadata (sample rate, oversampling, cutoff, resonance, input
-level, block size, and build type) and compare them against measurements from
-multiple hardware units. Calibrate one behavioral parameter group at a time
-and keep the source measurements with each machine-readable result.
+graph or establish hardware behavior. No matched plugin/hardware capture with
+identified units and measurement conditions is recorded here; damping, drive
+and control parameters remain uncalibrated.
 
 Compiled response, harmonic, and CPU probes are recorded in
 `artifacts/dsp/original_vcf_cpp_response.csv`,
@@ -175,7 +173,7 @@ modulation generation and whole-graph scheduling. The response and harmonic
 CSVs characterize the filter paths, not the whole plugin graph or hardware.
 No hardware validation is available; the chosen model is a product sound decision, not evidence of circuit accuracy.
 
-## Recommendation
+## Current implementation status
 
 The behavioral model is now the sole Original VCF implementation following
 the user's listening evaluation; the previous implementation and A/B toggle

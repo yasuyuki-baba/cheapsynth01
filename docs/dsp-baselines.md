@@ -27,11 +27,9 @@ Hardware calibration means comparing the model with controlled measurements
 of an identified physical CS-01, with documented instrument, loading, signal
 level, component condition and uncertainty. These files do not establish CS-01
 hardware accuracy: several model stages are explicitly empirical, and the
-response/harmonic/VCO/EG probes above include idealized references. When
-measured hardware data becomes available, preserve raw measurements and
-metadata separately, then align sample rate, input level, control settings,
-loading and measurement bandwidth before plotting residuals against these
-model outputs. Never treat a model-to-model match as hardware validation.
+response/harmonic/VCO/EG probes above include idealized references. No matched
+hardware measurements with identified units, loading and measurement bandwidth
+are recorded here. A model-to-model match is not hardware validation.
 
 ## Archived VCF comparisons
 

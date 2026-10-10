@@ -34,14 +34,12 @@ Changing PVR7 changes the timing resistance during operation. Updating speed
 only on a new note is a software simplification, not supported by the external
 connections. The timing phase behavior during a resistance change remains unknown.
 
-## Missing information and implementation decision
+## Analysis limits
 
-Needed: YM10150 GLS timing equation, oscillator thresholds/divider, and the
-PVR7 taper specification (including physical slider orientation).
-Keep the existing numerical range pending these details; do not substitute RC
-products directly for step times or claim the squared law is circuit-derived.
-An interim live-speed implementation should be explicitly labeled an approximation
-and tested separately for pitch continuity and sample-rate-independent timing.
+The YM10150 GLS timing equation, oscillator thresholds/divider and PVR7 taper
+(including physical slider orientation) are not established. RC products alone
+do not define semitone step times. The software range and squared control law
+are provisional rather than circuit-derived.
 
 ## Interim live-speed implementation
 

@@ -1,5 +1,10 @@
 # EG control-link first pass
 
+> Historical implementation record: these results cover the depth-ramp change.
+> Current VCA gain also includes an independent note gate; see
+> [DSP responsibility boundaries](DSP-responsibility-boundaries.md) and
+> [note onset continuity](Note-onset-continuity.md).
+
 OriginalVCFProcessor and VCAProcessor now ramp EG depth over 5 ms using the
 processing sample rate. Preparation initializes the ramp at the actual stored
 value, avoiding a startup fade. The EG signal itself is not smoothed: its attack,
@@ -21,4 +26,4 @@ app were rebuilt; all 186 tests from 38 suites passed with `--all` (exit status
 
 No comparison WAVs, listening assessment or revised modulation calibration
 were produced. This implements control continuity only; final musical balance
-and large-resonance behavior still require audio evaluation.
+and large-resonance behavior are not established by this pass.

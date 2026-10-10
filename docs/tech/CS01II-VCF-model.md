@@ -16,8 +16,11 @@ Automated checks cover finite and bounded output during fast cutoff/resonance ch
 
 Historical CSVs under `artifacts/dsp` contain measurements made while the removed Legacy implementation still existed. They are retained as archival comparisons and cannot be regenerated from the current source tree. The previously cited `artifacts/characterization` directory is absent from this checkout. New runs characterize the single behavioral implementation; see [DSP baselines](../dsp-baselines.md) for archive scope and provenance.
 
-## Calibration path
+## Hardware comparison limits
 
-Future hardware measurements should record frequency response across cutoff and resonance settings, resonance peak and onset, self-oscillation amplitude/frequency, level-dependent harmonics, and cutoff/resonance modulation transients at documented host rates. Fit the named empirical damping, feedback, and saturation parameters against those measurements, and keep the source data and fitting method alongside any parameter changes.
+No identified physical CS-01II/IG05630 measurements establish frequency response,
+resonance curve or onset, self-oscillation, level-dependent harmonics, or control
+transients. Damping, feedback and saturation parameters remain empirical.
 
-See [DSP responsibility boundaries](../DSP-responsibility-boundaries.md) for the production signal paths and safety ownership.
+See [DSP responsibility boundaries](../DSP-responsibility-boundaries.md) for the
+production signal paths and safety ownership.

@@ -81,8 +81,8 @@ records the samples around note-on. Raw WAV/CSV captures remain in the ignored
 The measured upstream gate discontinuity is removed. The shortest EG attack
 still creates an amplitude transient; overall onset high-frequency energy is
 phase/timbre dependent and did not decrease for every waveform in these captures.
-Listening with the user's affected patch is still needed to establish whether
-their particular audible click is resolved. Initial listening was inconclusive
+Whether the user's particular audible click is resolved has not been
+established by listening with the affected patch. Initial listening was inconclusive
 and did not establish a consistent audible improvement. No matched hardware
 measurement or direct audio analysis of the linked YouTube videos is claimed.
 
@@ -102,7 +102,7 @@ is `b914171`; subsequent documentation records the inconclusive listening result
 After the residual-state EG update (`cb5d4a6`), all 270 cases passed, including
 both optional capture tests. Current diagnostic captures are in the ignored
 `build/note-onset/residual-eg-final` directory. Archived comparison WAVs above
-still describe the initial implementation; listening of the EG update is pending.
+still describe the initial implementation; no listening result for the EG update is recorded.
 
 macOS CI exposed a rounding regression in the fully open VCA path: adding the
 gate product changed floating-point contraction and broke the existing exact
