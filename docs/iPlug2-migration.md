@@ -94,3 +94,10 @@ the updated Windows/macOS workflow has not been run from this workspace.
 
 The repository GPLv3 license is retained. iPlug2's permissive license removes the
 JUCE dependency but does not authorize relicensing third-party contributions.
+
+## Completion plan
+
+See the [migration completion plan](iPlug2-migration-plan.md) for the audit of newer main,
+remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
+The linked case inventory tracks the 272 Google Test definitions in the frozen
+main baseline; they are not all covered by the active 38-test suite.

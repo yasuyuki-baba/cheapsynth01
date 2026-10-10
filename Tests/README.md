@@ -22,3 +22,10 @@ their original numerical assertions.
 `legacy-juce/` contains historical scenarios that are not part of this suite.
 Native editor interaction, DAW automation, plugin scanning, AU validation and
 host latency compensation still need testing on Windows/macOS.
+
+## Completion plan
+
+See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
+remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
+The linked case inventory tracks the 272 Google Test definitions in the frozen
+main baseline; they are not all covered by the active 38-test suite.
