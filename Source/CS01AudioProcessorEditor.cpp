@@ -84,8 +84,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         g->AttachControl(control);
     };
     // Original 1240x400 panel: header at y=20, common sound columns at y=82.
-    label(IRECT(20, 16, 205, 46), "CheapSynth01", 23);
-    label(IRECT(20, 46, 205, 60), "MICRO MONOPHONIC SYNTHESIZER", 8);
+    g->AttachControl(new BrandMark(IRECT(20, 16, 205, 64)));
     g->AttachControl(new IPanelControl(IRECT(226, 20, 786, 64), background));
     label(IRECT(265, 20, 525, 35), "MEMORY", 10);
     auto display = [this]() {

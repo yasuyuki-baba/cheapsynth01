@@ -2,6 +2,7 @@
 #include "IControls.h"
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace cs01::ui {
@@ -16,6 +17,50 @@ inline const IColor handle{255, 23, 27, 27};
 inline IText text(float size = 11.f) {
     return IText(size, ink, "Roboto-Regular");
 }
+
+class BrandMark final : public IControl {
+   public:
+    explicit BrandMark(IRECT bounds) : IControl(bounds) {
+        SetIgnoreMouse(true);
+    }
+    void Draw(IGraphics& g) override {
+        // Original geometric lettering, drawn as vectors so it scales with the editor.
+        const float scale = (mRECT.W() - 8.f) / 174.f;
+        auto stroke = [&](std::initializer_list<std::pair<float, float>> points,
+                          bool closed = false) {
+            g.PathClear();
+            bool first = true;
+            for (const auto& [x, y] : points) {
+                const float px = mRECT.L + 4.f + x * scale;
+                const float py = mRECT.T + 3.f + y;
+                if (first)
+                    g.PathMoveTo(px, py);
+                else
+                    g.PathLineTo(px, py);
+                first = false;
+            }
+            if (closed)
+                g.PathClose();
+            g.PathStroke(ink, 5.f);
+        };
+        stroke({{40, 0}, {8, 0}, {2, 6}, {2, 22}, {8, 28}, {40, 28}});
+        stroke({{86, 0},
+                {52, 0},
+                {46, 6},
+                {46, 9},
+                {52, 14},
+                {80, 14},
+                {86, 20},
+                {86, 22},
+                {80, 28},
+                {46, 28}});
+        stroke({{100, 0}, {132, 0}, {138, 6}, {138, 22}, {132, 28}, {100, 28}, {94, 22}, {94, 6}},
+               true);
+        stroke({{150, 6}, {156, 0}, {160, 0}, {160, 28}});
+        stroke({{148, 28}, {174, 28}});
+        g.DrawText(text(10), "CheapSynth01", IRECT(mRECT.L, mRECT.T + 35.f, mRECT.R, mRECT.B));
+    }
+};
 
 // Decorative layers and drawing overrides only: parameter interaction stays in iPlug2.
 class HardwarePanel final : public IControl {
