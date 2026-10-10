@@ -17,25 +17,28 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     using cs01::Param;
     g->AttachPanelBackground(background);
     g->LoadFont("Roboto-Regular", ROBOTO_FN);
+    g->AttachControl(new HardwarePanel());
     g->AttachTextEntryControl();
     g->AttachPopupMenuControl();
     g->EnableMouseOver(true);
     g->EnableTooltips(true);
     g->AttachCornerResizer(EUIResizerMode::Scale, false);
     const auto style = DEFAULT_STYLE.WithDrawShadows(false)
+                           .WithRoundness(.08f)
                            .WithColor(kBG, background)
-                           .WithColor(kFG, IColor(255, 24, 24, 24))
-                           .WithColor(kPR, IColor(255, 0, 90, 90))
+                           .WithColor(kFG, handle)
+                           .WithColor(kPR, IColor(255, 36, 104, 99))
                            .WithColor(kX1, cyan)
                            .WithColor(kFR, dim)
                            .WithLabelText(text(11))
                            .WithValueText(text(11));
-    const auto parameterStyle = style.WithColor(kFG, IColor(255, 155, 155, 155))
-                                    .WithColor(kX1, cyan)
-                                    .WithLabelText(text(10).WithVAlign(EVAlign::Bottom))
-                                    .WithValueText(text(10).WithVAlign(EVAlign::Top))
-                                    .WithWidgetFrac(.85f);
-    const auto choiceStyle = style.WithValueText(text(10)).WithShowLabel(false);
+    const auto parameterStyle =
+        style.WithLabelOrientation(EOrientation::South)
+            .WithLabelText(text(10).WithVAlign(EVAlign::Bottom))
+            .WithValueText(text(10).WithFGColor(cyan).WithVAlign(EVAlign::Top))
+            .WithWidgetFrac(.85f);
+    const auto choiceStyle =
+        style.WithValueText(text(10)).WithColor(kX1, ink).WithColor(kON, cyan).WithShowLabel(false);
     auto label = [g](IRECT bounds, const char* title, float size = 11.f) {
         g->AttachControl(new ITextControl(bounds, title, text(size)));
     };
@@ -48,8 +51,8 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     };
     auto fader = [g, parameterStyle](IRECT bounds, Param parameter, const char* title,
                                      int tag = kNoTag) {
-        auto* control = new IVSliderControl(bounds.GetPadded(-2.f, 0.f, -2.f, 0.f),
-                                            index(parameter), title, parameterStyle, true);
+        auto* control = new HardwareSlider(bounds.GetPadded(-2.f, 0.f, -2.f, 0.f), index(parameter),
+                                           title, parameterStyle, true);
         const auto help = std::string(cs01::definition(parameter).name) +
                           ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
                           "Click the value to type; double-click the slider to reset.";
@@ -57,7 +60,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         return g->AttachControl(control, tag);
     };
     auto knob = [g, parameterStyle](IRECT bounds, Param parameter, const char* title) {
-        auto* control = new IVKnobControl(bounds, index(parameter), title, parameterStyle, true);
+        auto* control = new HardwareKnob(bounds, index(parameter), title, parameterStyle, true);
         const auto help = std::string(cs01::definition(parameter).name) +
                           ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
                           "Click the value to type; double-click the knob to reset.";
@@ -67,7 +70,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     auto choices = [g, choiceStyle](IRECT bounds, Param parameter,
                                     std::initializer_list<const char*> options) {
         auto* control = new IVRadioButtonControl(bounds, index(parameter), options, "", choiceStyle,
-                                                 EVShape::Ellipse, EDirection::Vertical, 6.f);
+                                                 EVShape::Rectangle, EDirection::Vertical, 6.f);
         control->SetTooltip(cs01::definition(parameter).name.data());
         return g->AttachControl(control);
     };
@@ -81,8 +84,9 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         g->AttachControl(control);
     };
     // Original 1240x400 panel: header at y=20, common sound columns at y=82.
-    label(IRECT(20, 20, 205, 64), "CheapSynth01", 23);
-    g->AttachControl(new IPanelControl(IRECT(226, 20, 786, 64), IColor(255, 35, 35, 35)));
+    label(IRECT(20, 16, 205, 46), "CheapSynth01", 23);
+    label(IRECT(20, 46, 205, 60), "MICRO MONOPHONIC SYNTHESIZER", 8);
+    g->AttachControl(new IPanelControl(IRECT(226, 20, 786, 64), background));
     label(IRECT(265, 20, 525, 35), "MEMORY", 10);
     auto display = [this]() {
         return static_cast<PresetDisplay*>(GetUI()->GetControlWithTag(ProgramLabel));

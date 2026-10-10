@@ -14,9 +14,14 @@ are forwarded with iPlug2's deferred queue.
 restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
 and EG, with common sound-control columns and cyan accents. Parameter controls
 use iPlug2's standard IVSliderControl, IVKnobControl, IVRadioButtonControl,
-IVTabSwitchControl and IVNumberBoxControl rather than replica faders/wheels or
-custom pointer handling. Sliders and knobs display editable values, support fine
-adjustment and reset to defaults using their standard interaction. Bend ranges
+IVTabSwitchControl and IVNumberBoxControl rather than custom pointer handling.
+Drawing-only subclasses of IVSliderControl/IVKnobControl add rectangular dark
+slider caps with blue-green index stripes, printed scale marks and dark knobs
+with white pointers. A gray casing, charcoal panel and off-white section labels
+take visual cues from the [CS01 in Yamaha's collection](https://www.yamaha.com/en/about/experience/innovation-road/collection/detail/2008/).
+No hardware photograph or Yamaha logo is bundled. Sliders and knobs display
+editable values, support fine adjustment and reset to defaults using their
+standard interaction. Bend ranges
 use number boxes with increment/decrement buttons and direct text entry.
 Tooltips describe the interactions. Waveform, feet and LFO target use radio
 buttons; Original VCF exposes LOW/HIGH tabs, while Modern VCF exposes a continuous
