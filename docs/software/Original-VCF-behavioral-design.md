@@ -3,7 +3,10 @@
 ## Evidence categories
 
 The external CS-01 wiring and the existence of the IG02610 filter IC are
-circuit facts. Existing Phase 2 response observations are software
+recorded external circuit findings. The findings and structural hypotheses
+used by this model are summarized below; optional provenance is in
+[the source catalog](../hardware/Source-catalog.md). Existing Phase 2 response
+observations are software
 characterizations, not measurements of a physical unit. Historical machine-readable
 comparisons are present under `artifacts/dsp/`; their source/toolchain provenance
 is incomplete, as recorded in `artifacts/dsp/provenance.json`. No matched hardware
@@ -13,14 +16,15 @@ unvalidated against an IG02610.
 
 ## Related Yamaha model evidence and structural hypothesis
 
-The PS-1/PS-2/PS-3 service manual groups the three models but does not imply
-that they share one filter design. Its PS-2 block diagram emphasizes the GE2
+The recorded PS-1/PS-2/PS-3 findings group the three models but does not imply
+that they share one filter design. The recorded PS-2 block diagram emphasizes
+the GE2
 generator and orchestra path; the PS-3 diagram separately labels a VCF for the
 Brass/Guitar voice path. This is useful evidence that Yamaha used a dedicated,
 voice-specific filter path in a nearby product family, but it does not show
 that PS-2 has a CS-01-like VCF or that PS-3's circuit is the IG02610.
 
-The PS-30 service manual identifies an IG02612 as a VCF and documents a solo
+The recorded PS-30 findings identify an IG02612 as a VCF and a solo
 tone-generator section. That makes PS-30 the strongest of these references for
 Yamaha's contemporary filter implementation and how a filtered solo voice
 could sit beside generated orchestral voices. IG02612 is a different part
@@ -28,33 +32,34 @@ number from CS-01's IG02610. Without evidence that their internal structures
 and external circuits match, its component values and control law must not be
 copied as CS-01 facts.
 
-The CS-01 service manual independently establishes the IG02610, cutoff and
-resonance controls, and a VCF adjustment procedure that seeks a peak point at
-a specified cutoff-control voltage. This supports modeling an adjustable
+The recorded CS-01 findings identify IG02610, cutoff and resonance controls,
+and a VCF adjustment procedure seeking a peak at a specified control voltage.
+That numerical adjustment voltage is not preserved here and is not used to
+calibrate the software model. This supports modeling an adjustable
 resonant low-pass response. Available secondary reverse-engineering notes
 interpret the CS-01 use as a two-pole (12 dB/octave) low-pass and describe
 resonance as a signal-feedback interaction. Those are useful, plausible
 structural clues, but the IC has no located Yamaha datasheet or internal block
 diagram, so they do not identify its actual internal circuit.
 
-### Review of the supplied IG02610 report
+### Recorded IG02610 structural interpretation
 
-The report's OTA-based, two-integrator SVF is a reasonable structural
+An OTA (operational transconductance amplifier) based, two-integrator
+state-variable filter (SVF) is a reasonable structural
 hypothesis for the behavioral model. It is more specific than the available
 primary evidence supports, however. The reviewed CS-01 service material
 identifies the IC and its external use/adjustment, but does not document an
 internal OTA, exponential converter, integrator count, or the pin functions
-listed in the report. Treat those details as hypotheses until a legible
-primary schematic that traces the pins or a hardware investigation confirms
-them. In particular, the current TPT SVF is an implementation choice inspired
+suggested by that interpretation. Those details remain unverified hypotheses.
+In particular, the current TPT SVF is an implementation choice inspired
 by that hypothesis, not a reverse-engineered schematic transcription.
 
 The PS-30 service manual's parts list calls out **IG02612** as its VCF. That is
 useful evidence for a related Yamaha filter application, but it does not
-confirm the report's IG02611 attribution for PS-30 or establish compatibility
+confirm the competing IG02611 attribution for PS-30 or establish compatibility
 with IG02610. The external reverse-engineering article discusses IG02610/11
 and is useful as a secondary interpretation; it is not a Yamaha datasheet or
-hardware measurement. The report's low-voltage design rationale, detailed
+hardware measurement. The proposed low-voltage design rationale, detailed
 pinout, and proposed soft-clipping behavior likewise remain unverified.
 
 | Claim | Evidence status | Model consequence |
@@ -69,8 +74,8 @@ pinout, and proposed soft-clipping behavior likewise remain unverified.
 
 Given those constraints, the behavioral model uses two state variables as a
 stable digital stand-in for a two-pole resonant low-pass, with resonance
-entering the recursive feedback relation. Following the supplied report's
-behavioral proposal, smooth bounded nonlinearities now shape both the
+entering the recursive feedback relation. Smooth bounded nonlinearities shape
+both the
 resonant feedback and the signal entering the first integrator. This is a
 testable hypothesis about where level-dependent harmonics may arise; it does
 not mean the IC's internal circuit is known. The two saturation drives and
@@ -86,21 +91,20 @@ IG02610; those mappings remain unknown.
 
 These hypotheses were compared against the former linear biquad in the
 archived Phase 2 artifacts. The hardware-specific cutoff law, Q mapping,
-nonlinear transfer, and asymmetry remain unknown until a unit or further
-primary circuit evidence becomes available.
+nonlinear transfer, and asymmetry remain unmeasured and uncalibrated.
 
-### Reference documents reviewed
+### Optional provenance
 
-- [PS-1/PS-2/PS-3 service manual](https://www.manualslib.com/manual/4155002/Yamaha-Portasound-Ps-1.html): GE2 generator description, model-specific block diagrams, and overall circuit diagrams.
-- [PS-30 service manual, solo generator page](https://www.manualslib.com/manual/4397023/Yamaha-Ps-30.html?page=14) and [electronic components page](https://www.manualslib.com/manual/4397023/Yamaha-Ps-30.html?page=24): solo tone-generator section and IG02612 identified as VCF.
-- [CS-01 service manual](https://manuals.plus/m/7bf5a88f7fd7a35ab00af242825c27ab94ff0c3ffd909bbce88c3360fa997a4f): IG02610 identification, control/adjustment data, and overall circuit diagrams.
-- [IG02610/11 schematic interpretation](https://ss30m.blogspot.com/2020/05/fun-with-filters-pt2.html): secondary reverse-engineering notes; treated as an interpretation, not Yamaha documentation or hardware measurement.
+The source catalog preserves locations for the CS-01, PS-1/PS-2/PS-3 and
+PS-30 service material and the secondary IG02610/11 interpretation. Their
+relevant findings are summarized above; reading those originals is not needed
+to understand the software topology or its evidence limits.
 
 ## Current architecture
 
 `OriginalVCFProcessor` routes control-rate and audio-rate modulation through `CS01VCFCircuit`, which now uses the `IG02610BehavioralModel` TPT state-variable behavioral core. The separate Legacy biquad implementation, model-selection API, and temporary editor toggles have been removed. The existing filter type control continues to choose Original or Modern; both selections use their respective production behavioral models.
 
-The wrapper retains empirical input/output coupling approximations. The core uses explicit provisional damping, feedback-drive, integrator-drive, and output-bound parameters. None is calibrated to a physical IG02610. The selected structure is motivated by the supplied report's two-integrator SVF hypothesis and the numerical need for continuous cutoff modulation; it is not evidence of the IC's actual internals.
+The wrapper retains empirical input/output coupling approximations. The core uses explicit provisional damping, feedback-drive, integrator-drive, and output-bound parameters. None is calibrated to a physical IG02610. The selected structure is motivated by the two-integrator SVF hypothesis described above and the numerical need for continuous cutoff modulation; it is not evidence of the IC's actual internals.
 
 ## Chosen topology and trade-offs
 

@@ -1,48 +1,68 @@
-# TC7476BP online investigation
+# TC7476BP: recorded logic and supply limits
 
-> Availability note (2026-10-10 JST): the local PDF described below was used
-> in the earlier audit but is absent from this checkout. This report preserves
-> that audit's findings and retrieval history. See the
-> [external source catalog](Source-catalog.md) for acquisition references;
-> no new source inspection or URL verification is claimed here.
+This document preserves the part-specific findings used by the EG analysis.
+The pin assignment, logic rules and numerical supply limits needed to follow
+that analysis are given below. External originals are not a reading prerequisite.
+[The source catalog](Source-catalog.md) retains source pages, acquisition links
+and historical retrieval results. These findings are earlier inspection records,
+not a new datasheet verification.
 
-## Historical online retrieval results
+## Pin assignment
 
-An alternative listing was located at Datasheet Archive:
-https://www.datasheetarchive.com/?q=tc7476bp
+TC7476BP is recorded as a dual J-K master-slave flip-flop. Each flip-flop is
+named here by its asynchronous set pin, avoiding ambiguous first/second numbering.
+`S_n` and `R_n` are active-low asynchronous set and reset; `Q_bar` is the
+complementary output.
 
-The archive index lists the part, but its datasheet contents have not been
-validated. Do not infer pin functions from this listing.
+| Function | FF-S7 pin | FF-S2 pin |
+| --- | --- | --- |
+| S_n | 7 | 2 |
+| R_n | 8 | 3 |
+| Q | 11 | 15 |
+| Q_bar | 10 | 14 |
+| Clock | 6 | 1 |
+| J | 9 | 4 |
+| K | 12 | 16 |
 
-The Toshiba 1988 databook hosted at Bitsavers could not be opened either:
-https://www.bitsavers.org/components/toshiba/_dataBook/1988_Toshiba_TC4000_4500_5000_CMOS_Logic.pdf
+The shared supply pins are VDD = 5 and VSS = 13.
 
-Its searchable index describes TC7476BP as a dual J-K master-slave flip-flop
-and points to printed page 574. A second manufacturer scan was located:
-https://www.bitsavers.org/components/toshiba/_dataBook/1985_Toshiba_C2MOS_Integrated_Circuits.pdf
-Opening this second scan returned HTTP 403. Neither index entry establishes
-the pinout or truth table.
+## Asynchronous truth table
 
-## Recorded local source inspection
+H and L denote recognized logic levels relative to the device supply; they
+are not exact analog switching voltages.
 
-The earlier audit used the supplied `docs/tech/TC7476BP.pdf`. That file is absent
-from this checkout. The failed online retrievals above are historical acquisition
-results, not a current source inspection.
+| R_n | S_n | Q | Q_bar | Behavior |
+| --- | --- | --- | --- | --- |
+| H | L | H | L | Set, independent of J/K/clock |
+| L | H | L | H | Reset, independent of J/K/clock |
+| L | L | L | H | Reset priority |
+| H | H | Stored/clocked state | Complement of Q | No asynchronous input asserted |
 
-The recorded visual check covered PDF page 1 / printed page 574 (part-specific
-pin assignment and truth table), and PDF page 2 / printed page 575 (recommended
-operating conditions and electrical limits). Set/reset are active-low and reset
-has priority when both are asserted. Guaranteed voltage limits do not establish
-an exact analog switching voltage in the CS-01 circuit.
+With both asynchronous inputs H, the recorded falling-edge clock behavior is:
+J/K = 00 holds, 01 resets, 10 sets, and 11 toggles. A rising edge leaves
+Q unchanged. Reset priority is a part-specific recorded rule, not an inference
+from another device with a similar 7476 name.
 
-The [EG circuit audit](EG-model-audit.md) records the pin correspondence,
-conditional logic states and recorded reset/supply/clock/J/K connections.
-Loaded voltages and switching timing remain unverified.
-Its Tr13 attack-drive mapping is inconsistent as transcribed. A complete
-physical EG operating-state model is not established.
+## Supply limits and CS-01 interpretation
 
-## Current implementation boundary
+- Recommended VDD–VSS: 3–18 V.
+- Recommended input-voltage range: VSS through VDD.
+- Recorded electrical tables use VSS = 0 V, with supply points 5, 10 and 15 V.
+- Recorded CS-01 connections place pin 5 at ground and pin 13 at -9 V,
+  giving a nominal 9 V supply difference. Thus circuit H is near ground and
+  L near -9 V, rather than positive 0/5 V logic.
+
+These ranges do not identify an exact E-node trip voltage or guarantee that
+the diode-clamped reset voltages meet logic input margins. Loaded voltages,
+output drive and switching timing are unmeasured.
+
+## Circuit and software boundary
+
+[The EG circuit audit](EG-model-audit.md) records the storage node, reset
+network, fixed clock/J/K connections and conditional latch states. Its Tr13
+attack-drive mapping is electrically inconsistent as transcribed. The logical
+rules above do not establish a complete physical EG operating-state model.
 
 Production uses the [provisional stateful exponential EG](../software/EG-stateful-model.md).
-The part-specific logic findings support conditional analysis; they do not
-calibrate software stage durations, curvature or transistor/FET operating points.
+These logic records do not calibrate software stage durations, curvature or
+transistor/FET operating points.

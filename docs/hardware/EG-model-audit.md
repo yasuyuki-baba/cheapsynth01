@@ -21,17 +21,23 @@ and changes active-stage speed without redefining the target. See
 [current EG policy](../software/EG-stateful-model.md). This adopts residual-state handling,
 not the unresolved Tr13 mapping or illustrative nonlinear device parameters.
 
-## High-resolution transcription (local overall-circuit PDF)
+## Recorded passive connections
 
-The following is a passive connection transcription, not a claim about switch
-conduction states. It supersedes the earlier blanket statement that no paths
-could be identified. No production coefficients are changed.
+The following table preserves the connections used by this analysis. It does
+not establish switch conduction states. Node names, component values and
+terminal connections needed by the equations are given here; source provenance
+is optional context in [the source catalog](Source-catalog.md).
 
 Define `E` as the vertical storage node connected to the negative terminal of
 the capacitor marked `2.2/50` (2.2 uF / 50 V); its positive terminal connects
-to the ground symbol. The node also connects to the FET1 gate.
+to ground (0 V). The node also connects to the FET1 gate. Voltages below
+are relative to that ground unless explicitly stated relative to IC4 VSS.
+A2M denotes a nominal 2 Mohm A-taper potentiometer; B10K denotes a nominal
+10 kohm B-taper potentiometer. A taper alone does not specify a measured
+resistance-versus-position curve. A strapped wiper/end terminal makes the
+stage potentiometer a variable resistor rather than a voltage divider.
 
-| Path | Connections visible in the crop |
+| Path | Recorded connections |
 | --- | --- |
 | Attack | E -> 1.8 kohm -> A2M Attack potentiometer terminal 1; terminals 2 and 3 are strapped -> Tr13 collector; Tr13 emitter -> -9 V |
 | Decay | E -> 1.8 kohm -> A2M Decay potentiometer terminal 1; terminals 2 and 3 are strapped -> Tr11 emitter |
@@ -45,19 +51,19 @@ to the ground symbol. The node also connects to the FET1 gate.
 | VCA depth | TP4 -> B10K depth terminal 3; terminal 1 -> ground; wiper -> 39 kohm -> VCA control path |
 | VCF depth | TP4 -> D36 -> B10K depth terminal 3; terminal 1 -> ground; wiper -> 33 kohm -> VCF control path |
 
-The parts legend identifies Tr9/11/12 as 2SC1815, Tr13/14 as 2SA1015,
-FET1 as 2SK30A and IC4 as TC7476BP. The drawing labels both Sustain and
+The recorded parts identifiers are Tr9/11/12: 2SC1815; Tr13/14: 2SA1015;
+FET1: 2SK30A; IC4: TC7476BP. The recorded labels name both Sustain and
 Decay as PVR14; retain functional names rather than silently correcting the
 duplicated designation.
 
-The TP4 waveform sketch moves downward at key-on and returns toward
+The recorded TP4 waveform annotation moves downward at key-on and returns toward
 -0.7 +/- 0.2 V after key-off. Thus the normalized software envelope's positive
 direction is not the physical voltage direction. Buffer offsets matter.
 
 ### IC4 datasheet-to-wiring correspondence
 
-Source: local `docs/tech/TC7476BP.pdf`, PDF page 1 (printed page 574),
-pin assignment and truth table. Here `S_n` and `R_n` denote active-low
+The recorded TC7476BP pin assignment and truth table are preserved below.
+Here `S_n` and `R_n` denote active-low
 asynchronous inputs. To avoid ambiguous first/second numbering, identify each
 flip-flop by its set pin: FF-S7 and FF-S2.
 
@@ -74,9 +80,9 @@ flip-flop by its set pin: FF-S7 and FF-S2.
 
 ### Reset-network transcription and bounded state deductions
 
-Source: local overall-circuit PDF, sheet BC1, EG region H4-H6 and the
-separate IC4 tied-input symbol below it. This is a drawing transcription;
-it is not a measurement of logic thresholds or transistor saturation.
+The reset and tied-input connections used by the conditional logic analysis
+are recorded below. They are not measurements of logic thresholds or
+transistor saturation.
 
 - The gate-input node branches to pin 3 and to the 100 kohm resistor
   feeding Tr8 base. It also has a 22 kohm path to -9 V.
@@ -110,7 +116,7 @@ the transcribed EG paths; no connection is inferred for it here.
 
 ### D37/D38 polarity and conditional stage sequence
 
-Targeted crop of the same local drawing establishes the cathode bars:
+The recorded diode orientations are:
 D37 cathode is on the gate-node side, and D38 cathode is on the pin-14
 side. Both anodes connect to the pin-8/1 Mohm reset node. A sufficiently
 low gate or pin-14 output can therefore sink current from the pull-up
@@ -170,7 +176,7 @@ Conditional implications for the already transcribed drive paths:
   A stage model that treats this input as a memoryless comparator is therefore
   not justified by the truth table.
 
-PDF page 2 (printed page 575) specifies recommended supply voltage of 3--18 V
+The recorded TC7476BP recommended supply range is 3–18 V
 relative to VSS and input voltage between VSS and VDD. Electrical tables use
 VSS = 0 V and supply points of 5, 10 and 15 V. These input-level specifications
 are not an exact E-node trip voltage, and must not be directly interpreted as
@@ -179,22 +185,20 @@ supply connections and their unmeasured operating voltages.
 
 The table above records pins 8, 3, 5 and 13, fixed clock/J/K connections,
 and the D38 inter-flip-flop path. Their loaded voltages, input margins and
-switching timing remain unmeasured. The original drawing is absent from this
-checkout, so this review cannot independently verify that transcription.
+switching timing remain unmeasured. These are preserved connection records,
+not a newly verified physical circuit.
 
 ### What can now be calculated, and what cannot
 
-For an isolated conducting branch, the drawn series resistance spans roughly
+For an isolated conducting branch, the recorded series resistance spans roughly
 1.8 kohm to 2.0018 Mohm. With 2.2 uF this gives a nominal R*C range of
 0.00396 to 4.40396 seconds. These are **branch time constants**, not Attack,
 Decay or Release duration specifications; transistor resistance, loading,
 potentiometer taper, capacitor tolerance and switching conditions are omitted.
 
-The remaining blocker is no longer image legibility for these paths. It is
-mapping the verified IC4 asynchronous behavior to the remaining reset and
-supply connections, gate polarity and the E-node switching threshold together
-with transistor/FET operating points. The two
-timing branches cannot safely be assumed to alternate as a conventional
+The recorded connections do not establish loaded reset/supply voltages,
+gate polarity, the E-node switching threshold or transistor/FET operating
+points. The attack and decay branches cannot be assumed to alternate as a conventional
 software ADSR on the recorded evidence. No circuit-derived production
 integration is established.
 
@@ -323,10 +327,9 @@ the production envelope, UI time units or preset meanings.
 
 ### Tr12 loading: solvable forward-active approximation
 
-Device source: Toshiba 2SC1815 datasheet, dated 2007-11-01, page 1,
-manufacturer PDF hosted by Digi-Key:
-`https://media.digikey.com/pdf/Data%20Sheets/Toshiba%20PDFs/2SC1815.pdf`.
-The Y rank specifies hFE 120-240 at VCE = 6 V, IC = 2 mA, Ta = 25 C.
+Recorded 2SC1815 device limits used for this analysis: the Y rank specifies
+hFE 120–240 at VCE = 6 V, IC = 2 mA, Ta = 25 C. Source provenance is in
+[the source catalog](Source-catalog.md).
 This is not a guaranteed beta range at the lower currents in this circuit.
 The saturation specification (VCE(sat) <= 0.25 V) is at IC = 100 mA,
 IB = 10 mA, not a constant to insert into the EG model.

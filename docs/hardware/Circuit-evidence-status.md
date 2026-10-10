@@ -1,15 +1,16 @@
 # Circuit evidence status
 
 This document summarizes recorded hardware evidence and its limits. Detailed
-transcriptions are in [the EG audit](EG-model-audit.md), and source availability
-is recorded in [the source catalog](Source-catalog.md). External originals and
+connections and conditional equations are in [the EG audit](EG-model-audit.md),
+and optional provenance is recorded in [the source catalog](Source-catalog.md).
+External originals and
 private inventories are local-only under `references/` and are excluded from Git.
 
 ## Recorded evidence and limits
 
 | Area | Recorded evidence | Not established |
 | --- | --- | --- |
-| TC7476BP / EG logic | Earlier inspection of the manufacturer extract recorded pin assignment, active-low set/reset, reset priority and electrical limits on printed pages 574–575. | Exact analog switching voltage, loaded logic levels and complete operating-state sequence. The Tr13 attack-drive mapping is electrically inconsistent as transcribed. |
+| TC7476BP / EG logic | Earlier inspection of the manufacturer extract recorded pin assignment, active-low set/reset, reset priority and the 3–18 V recommended supply range relative to VSS. | Exact analog switching voltage, loaded logic levels and complete operating-state sequence. The Tr13 attack-drive mapping is electrically inconsistent as transcribed. |
 | EG passive branches | Storage capacitance, resistor branches, unloaded sustain Thevenin equivalent and conditional decay equations are transcribed. | Transistor/FET operating points, active-device loading and quantitative TP4 transfer. |
 | IG02610 VCF | CS-01 external signal/control connections and High/Low selection are documented. | Internal topology, control-current-to-cutoff law, input impedance and calibrated resonance/distortion. |
 | IG02600 VCA | External audio, EG and breath paths are documented. | Physical control-voltage-to-gain law, input combination, saturation and loading. The software note gate is an implementation policy. |
@@ -25,7 +26,7 @@ establish software behavior; they do not establish physical circuit equivalence.
 The 1 ms–2 s EG range is a reference-time mapping, not a measured hardware RC
 range. Retriggers retain residual state and time edits recalculate remaining time.
 
-The historical `docs/tech/TC7476BP.pdf` used in the earlier audit is absent from
-this checkout. Its recorded findings are preserved in
-[the investigation report](TC7476BP-online-investigation.md); no new inspection
-of an original is claimed here.
+The [TC7476BP logic record](TC7476BP-online-investigation.md) preserves the
+part-specific pin assignment, truth table and supply limits. Those records
+and the connection tables support this analysis without external originals;
+they do not establish unmeasured physical operating conditions.

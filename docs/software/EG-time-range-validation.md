@@ -1,9 +1,11 @@
 # EG time range audit
 
-The supplied Japanese owner's manual, printed page 24 (PDF page 13),
-specifies Attack, Decay and Release only as S-L. It gives no numeric
-minimum or maximum duration. The descriptions on printed pages 16-18
-define the stage endpoints, not a duration calibration.
+The recorded hardware labels for Attack, Decay and Release are S–L
+(short–long), without numerical minimum or maximum durations. The recorded
+stage descriptions identify attack as rising to the peak, decay as moving to
+sustain, and release as returning after key-off; they provide no duration
+calibration. Source provenance is in
+[the source catalog](../hardware/Source-catalog.md).
 
 The current 0.001-2 second ranges and skew 0.3 remain provisional.
 They must not be described as derived from the A2M potentiometers.

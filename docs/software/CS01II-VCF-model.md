@@ -2,7 +2,13 @@
 
 ## Evidence and limits
 
-The CS-01II service drawing identifies IC2 as IG05630; the earlier CS-01 drawing identifies IG02610. The reports supplied for this work suggest an OTA based, four-pole response for IG05630, but the detailed internal topology and control laws remain secondary interpretations. No physical CS-01II or IG05630 measurements are available. This implementation is therefore an **IG05630-inspired behavioral model**, not a circuit reconstruction.
+Recorded device identification: CS-01II IC2 is IG05630; CS-01 uses IG02610.
+The structural interpretation used here is an OTA (operational transconductance
+amplifier) based, four-pole low-pass response for IG05630. Detailed internal
+topology and control laws remain unverified secondary interpretations.
+Optional provenance is in [the source catalog](../hardware/Source-catalog.md).
+No physical CS-01II or IG05630 measurements are available. This implementation
+is therefore an **IG05630-inspired behavioral model**, not a circuit reconstruction.
 
 ## Implementation
 

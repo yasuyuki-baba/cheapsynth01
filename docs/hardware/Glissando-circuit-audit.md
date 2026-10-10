@@ -1,8 +1,10 @@
 # CS-01 glissando control: schematic audit
 
-## Connections read from the overall circuit diagram
+## Recorded connections
 
-The high-resolution upper-left schematic crop shows:
+The following connections are the inputs to this analysis. Source provenance
+is in [the source catalog](Source-catalog.md); no drawing is needed to follow
+the calculation below:
 
 - IC1 is the DTG YM10150.
 - Its GLS pin has a 0.022 uF capacitor connected to the -9 V rail.
@@ -16,7 +18,9 @@ The high-resolution upper-left schematic crop shows:
 
 Ignoring IC input impedance and the potentiometer's residual resistance,
 the external timing resistance spans 22 kohm to 1.022 Mohm.
-With 22 nF, the corresponding RC product spans 0.484 ms to 22.484 ms.
+With C = 0.022 uF = 22 nF, tau = R * C gives
+22,000 * 22e-9 = 0.000484 s and
+1,022,000 * 22e-9 = 0.022484 s: 0.484–22.484 ms.
 This RC product is NOT the measured semitone-step duration.
 The YM10150 timing thresholds, charging behavior and any internal division
 must be known to convert it into a glissando step period.
@@ -24,7 +28,7 @@ must be known to convert it into a glissando step period.
 ## Implications for the current software
 
 The current 0..208 ms-per-semitone setting with a squared normalized-position
-mapping is not established by this schematic. An A-taper marking alone does
+mapping is not established by these connections. An A-taper marking alone does
 not specify a quadratic law or the potentiometer's midpoint resistance.
 The minimum external resistance is nonzero; therefore software's instantaneous
 zero setting requires separate justification (for example an internal bypass),

@@ -1,26 +1,32 @@
 # CS-01 low-frequency model audit
 
-Source availability and acquisition information: [external source catalog](Source-catalog.md).
+Optional source provenance: [external source catalog](Source-catalog.md).
 
 ## Scope
 
-Static comparison with the locally supplied CS-01 overall circuit diagram.
-This is not hardware calibration. Existing response tests validate numerical
+This compares the recorded coupling components below with the software
+stages. It does not require a drawing and is not hardware calibration.
+Existing response tests validate numerical
 behavior, not agreement with the instrument.
 
 ## Findings
 
-- The schematic's `1/50` denotes 1 uF / 50 V, not 0.02 uF.
+- The recorded capacitor marking `1/50` denotes 1 uF / 50 V, not 0.02 uF.
 - The VCF input model uses a second-order 20 Hz high-pass. The previous comment
   citing 0.022 uF and 22 kohm does not establish an audio-input coupling network.
 - The VCF output model adds an empirical first-order 8 Hz high-pass.
 - The VCA input model adds a second-order 40 Hz high-pass and an additional
-  second-order 20 Hz DC blocker. Neither cutoff is established by the schematic.
+  second-order 20 Hz DC blocker. Neither cutoff is established by the recorded components.
 - The 82 kohm resistor near TP3 is in the signal path; it must not simply be
   treated as a shunt load for the 1 uF coupling capacitor. The IC input impedance
   and source impedance are needed to establish the effective time constant.
 - Buffer and line-output coupling are modeled with empirical first-order poles.
   Their sample-rate scaling is tested, but their hardware values remain uncalibrated.
+
+For an isolated capacitor feeding a resistive load, tau = R_effective * C
+and f_c = 1 / (2*pi*R_effective*C). R_effective depends on source and load
+impedances. The recorded 82 kohm series resistor alone does not identify it;
+therefore the 1 uF capacitor does not supply a numerical hardware cutoff here.
 
 ## Verification limits
 

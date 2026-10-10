@@ -34,8 +34,10 @@ stage, production DSP, parameter ranges and presets were unchanged; subsequent
 software changes are summarized above. The schematics and manufacturer
 documents inspected then support connections and conditional equations, but
 do not provide all loaded device operating points needed for a calibrated
-replacement. Originals are absent from this checkout; see the
-[source catalog](Source-catalog.md).
+replacement. The connections, values and conditional equations used in this
+analysis are preserved in [the EG audit](EG-model-audit.md) and
+[the low-frequency audit](Low-frequency-circuit-audit.md). Source provenance
+is optional context in [the source catalog](Source-catalog.md).
 
 The later [EG circuit audit correction](EG-model-audit.md) flags an electrically
 inconsistent Tr13 attack-drive transcription. Device polarity, terminals and
