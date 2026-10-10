@@ -5,7 +5,7 @@
 
 VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {
     // --- Filter Type Selector (Integrated) ---
-    filterTypeParam = valueTreeState.getParameter(ParameterIds::filterType);
+    auto* filterTypeParam = valueTreeState.getParameter(ParameterIds::filterType);
     jassert(filterTypeParam != nullptr);
 
     if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(filterTypeParam)) {
@@ -18,15 +18,8 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
             addAndMakeVisible(button);
             button->setRadioGroupId(100);
             button->setClickingTogglesState(true);
-            button->onClick = [this, choiceParam, i] {
-                *choiceParam = i;
-                updateChoiceState(
-                    choiceParam->getParameterIndex(),
-                    static_cast<juce::AudioProcessorParameter*>(choiceParam)->getValue());
-            };
         }
     }
-    filterTypeParam->addListener(this);
 
     // --- Sliders ---
     cutoffSlider.setSliderStyle(juce::Slider::LinearVertical);
@@ -62,9 +55,13 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
     egDepthAttachment = std::make_unique<CS01SliderParameterAttachment>(
         *valueTreeState.getParameter(ParameterIds::vcfEgDepth), egDepthSlider);
 
-    // Initial update
-    updateChoiceState(filterTypeParam->getParameterIndex(), filterTypeParam->getValue());
-    startTimerHz(60);
+    filterTypeAttachment = std::make_unique<CS01ChoiceButtonParameterAttachment>(
+        *static_cast<juce::AudioParameterChoice*>(filterTypeParam), filterTypeButtons,
+        [this](int index) {
+            resonanceSlider.setVisible(index == 1);
+            resonanceButton.setVisible(index == 0);
+        },
+        valueTreeState.undoManager);
     // Match the VCO faders without changing parameter ranges or values.
     cutoffSlider.setPopupDisplayEnabled(true, true, this);
     cutoffSlider.setSliderSnapsToMousePosition(false);
@@ -86,17 +83,7 @@ VCFComponent::VCFComponent(juce::AudioProcessorValueTreeState& apvts) : valueTre
                       valueTreeState.getParameter(ParameterIds::vcfEgDepth)->getDefaultValue()));
 }
 
-VCFComponent::~VCFComponent() {
-    stopTimer();
-    if (filterTypeParam)
-        filterTypeParam->removeListener(this);
-}
-
-void VCFComponent::timerCallback() {
-    if (choiceDirty.exchange(false, std::memory_order_acq_rel)) {
-        updateChoiceState(filterTypeParam->getParameterIndex(), filterTypeParam->getValue());
-    }
-}
+VCFComponent::~VCFComponent() = default;
 
 void VCFComponent::paint(juce::Graphics& g) {
     CS01LookAndFeel::drawSectionBackground(g, getLocalBounds(), "VCF");
@@ -129,34 +116,3 @@ void VCFComponent::resized() {
     egDepthLabel.setBounds(labels);
     egDepthLabel.setJustificationType(juce::Justification::centred);
 }
-
-void VCFComponent::parameterValueChanged(int, float) {
-    choiceDirty.store(true, std::memory_order_release);
-}
-
-void VCFComponent::updateChoiceState(int parameterIndex, float newValue) {
-    if (parameterIndex == filterTypeParam->getParameterIndex()) {
-        // Update UI state
-        bool isModern = (newValue >= 0.5f);  // Assuming 0=Original, 1=Modern
-
-        // Update Buttons State
-        if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(filterTypeParam)) {
-            int index = choiceParam->getIndex();
-            if (index >= 0 && index < filterTypeButtons.size()) {
-                filterTypeButtons[index]->setToggleState(true, juce::dontSendNotification);
-            }
-        }
-
-        // Toggle Resonance Control
-        if (isModern) {
-            resonanceSlider.setVisible(true);
-            resonanceButton.setVisible(false);
-        } else {
-            resonanceSlider.setVisible(false);
-            resonanceButton.setVisible(true);
-        }
-        resized();  // Re-layout
-    }
-}
-
-void VCFComponent::parameterGestureChanged(int parameterIndex, bool gestureIsStarting) {}

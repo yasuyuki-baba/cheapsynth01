@@ -5,11 +5,8 @@
 #include "UI/PollingParameterAttachments.h"
 
 #include <memory>
-#include <atomic>
 
-class VCFComponent : public juce::Component,
-                     public juce::AudioProcessorParameter::Listener,
-                     private juce::Timer {
+class VCFComponent : public juce::Component {
    public:
     VCFComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCFComponent() override;
@@ -17,19 +14,12 @@ class VCFComponent : public juce::Component,
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // AudioProcessorValueTreeState::Listener interface
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
-
    private:
-    void updateChoiceState(int parameterIndex, float newValue);
-    std::atomic<bool> choiceDirty{true};
-    void timerCallback() override;
     juce::AudioProcessorValueTreeState& valueTreeState;
 
     // Filter Type Selector (Integrated)
-    juce::RangedAudioParameter* filterTypeParam = nullptr;
     juce::OwnedArray<juce::ToggleButton> filterTypeButtons;
+    std::unique_ptr<CS01ChoiceButtonParameterAttachment> filterTypeAttachment;
 
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;

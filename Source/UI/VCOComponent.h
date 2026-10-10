@@ -5,24 +5,16 @@
 #include "UI/PollingParameterAttachments.h"
 
 #include <memory>
-#include <atomic>
 
-class VCOComponent : public juce::Component,
-                     public juce::AudioProcessorParameter::Listener,
-                     private juce::Timer {
+class VCOComponent : public juce::Component {
    public:
     VCOComponent(juce::AudioProcessorValueTreeState& apvts);
     ~VCOComponent() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;
 
    private:
-    void updateChoiceState(int parameterIndex, float newValue);
-    std::atomic<bool> choiceDirty{true};
-    void timerCallback() override;
     juce::AudioProcessorValueTreeState& valueTreeState;
     juce::Slider glissandoSlider;
     juce::Label glissandoLabel;
@@ -34,11 +26,11 @@ class VCOComponent : public juce::Component,
 
     juce::OwnedArray<juce::ToggleButton> waveTypeButtons;
     juce::Label waveTypeLabel;
-    juce::AudioProcessorParameter* waveTypeParam = nullptr;
+    std::unique_ptr<CS01ChoiceButtonParameterAttachment> waveTypeAttachment;
 
     juce::OwnedArray<juce::ToggleButton> feetButtons;
     juce::Label feetLabel;
-    juce::AudioProcessorParameter* feetParam = nullptr;
+    std::unique_ptr<CS01ChoiceButtonParameterAttachment> feetAttachment;
 
     juce::Slider pwmSpeedSlider;
     juce::Label pwmSpeedLabel;
