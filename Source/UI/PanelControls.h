@@ -24,27 +24,27 @@ class BrandMark final : public IControl {
         SetIgnoreMouse(true);
     }
     void Draw(IGraphics& g) override {
-        // The product name is always CheapSynth01, including the vector wordmark.
-        const float scale = (mRECT.W() - 8.f) / 190.f;
+        // Outline lettering retains the product name, with round joins and a slight slant.
+        const float scale = (mRECT.W() - 12.f) / 212.f;
+        struct Outline {
+            std::vector<std::pair<float, float>> points;
+            bool closed;
+            bool striped;
+        };
+        std::vector<Outline> outlines;
         float offset = 0.f;
+        bool striped = false;
         auto stroke = [&](std::initializer_list<std::pair<float, float>> points,
                           bool closed = false) {
-            g.PathClear();
-            bool first = true;
-            for (const auto& [x, y] : points) {
-                const float px = mRECT.L + 4.f + (offset + x) * scale;
-                const float py = mRECT.T + 3.f + y * scale;
-                if (first)
-                    g.PathMoveTo(px, py);
-                else
-                    g.PathLineTo(px, py);
-                first = false;
-            }
-            if (closed)
-                g.PathClose();
-            g.PathStroke(ink, 2.f * scale);
+            Outline outline{{}, closed, striped};
+            for (const auto& [x, y] : points)
+                outline.points.emplace_back(mRECT.L + 5.f +
+                                                (offset + x + (28.f - y) * .09f) * scale,
+                                            mRECT.T + 7.f + y * .85f);
+            outlines.push_back(std::move(outline));
         };
         for (char letter : std::string("CheapSynth01")) {
+            striped = offset >= 90.f && offset < 180.f;
             switch (letter) {
                 case 'C':
                     stroke({{12, 0}, {2, 0}, {0, 2}, {0, 26}, {2, 28}, {12, 28}});
@@ -113,8 +113,34 @@ class BrandMark final : public IControl {
                     stroke({{2, 28}, {14, 28}});
                     break;
             }
-            offset += 16.f;
+            offset += 18.f;
         }
+        IStrokeOptions options;
+        options.mJoinOption = ELineJoin::Round;
+        // Draw all outer strokes before the inset strokes, so letter junctions remain open.
+        for (bool inset : {false, true}) {
+            options.mPreserve = false;
+            for (const auto& outline : outlines) {
+                if (inset && outline.striped)
+                    continue;
+                g.PathClear();
+                bool first = true;
+                for (const auto& [x, y] : outline.points) {
+                    if (first)
+                        g.PathMoveTo(x, y);
+                    else
+                        g.PathLineTo(x, y);
+                    first = false;
+                }
+                if (outline.closed)
+                    g.PathClose();
+                g.PathStroke(inset ? handle : ink, (inset ? 3.f : 5.f) * scale, options);
+            }
+        }
+        // Fine horizontal cuts through the filled Synth letters echo the hardware's S.
+        for (float y = mRECT.T + 10.f; y < mRECT.T + 37.f; y += 4.f)
+            g.FillRect(handle, IRECT(mRECT.L + 5.f + 88.5f * scale, y,
+                                     mRECT.L + 5.f + 178.f * scale, y + .8f));
         g.DrawText(text(8), "MICRO MONOPHONIC SYNTHESIZER",
                    IRECT(mRECT.L, mRECT.T + 38.f, mRECT.R, mRECT.B));
     }
