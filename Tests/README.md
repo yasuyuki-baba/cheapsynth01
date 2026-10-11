@@ -1,292 +1,140 @@
-# CheapSynth01 Test Framework
+# Regression tests
 
-This directory contains Google Test tests with a custom JUCE initialization environment.
+The active Google Test suite exercises the framework-independent C++ core.
+Supported test environments are Windows and macOS; no JUCE or audio device is required.
 
-## Test Structure
-
-Tests are categorized as follows:
-
-### Unit Tests (`unit/`)
-
-Tests the functionality of individual components. Each class has a dedicated test class.
-
-- **VCOProcessorTest** - Tests for the VCO processor functionality
-- **ToneGeneratorTest** - Tests for sound generation functionality
-- **OriginalVCFProcessorTest** - Tests for the CS-01 filter
-- **ModernVCFProcessorTest** - Tests for the modern filter
-- **VCAProcessorTest** - Tests for the VCA processor
-- **EGProcessorTest** - Tests for the envelope generator
-- **LFOProcessorTest** - Tests for the LFO processor
-- **MidiProcessorTest** - Tests for MIDI processing
-- **NoiseGeneratorTest** - Tests for the noise generator
-- **CS01VCFCircuitTest** - Tests for the IG02610-inspired behavioral filter wrapper
-
-### Integration Tests (`integration/`)
-
-Tests the interaction between multiple components.
-
-- **AudioGraphTest** - Tests for the complete audio graph functionality
-- **NoteOnsetTest** - Continuous upstream generation, silent VCA keying, and
-  optional onset WAV/stage captures; see [note onset continuity](../docs/software/Note-onset-continuity.md).
-
-### Mock Objects (`mocks/`)
-
-Contains mock objects for testing.
-
-- **MockOscillator** - Mock implementation of an oscillator
-- **MockToneGenerator** - Mock implementation of sound generation
-- **MockTimer** - Mock implementation of a timer
-
-## How to Run Tests
-
-The conditional EG decay algebra has a separate dependency-free Python check:
-
-```bash
-python3 Tests/eg_decay_equation_check.py -v
+```sh
+cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DBUILD_TESTING=ON
+cmake --build build-core --config Debug --parallel 2
+ctest --test-dir build-core -C Debug --output-on-failure
 ```
 
-This is not invoked by the CMake runner. It checks the equations and an
-invalid-operating-region example documented in `docs/hardware/EG-model-audit.md`, not
-hardware fidelity or production DSP behavior.
+`./run_tests.sh` performs these steps and writes a JUnit report.
+Use `./run_tests.sh --group presets` (also `audio`, `dsp`, `core`, `numerical`,
+`midi`, `integration`, `observation`) to select a CTest label. Native UI tests
+remain pending; `--group ui` reports this explicitly rather than passing an empty
+suite. Run `ctest --test-dir build-core -C Debug -L regression` for correctness
+assertions and `-L observation` for characterization cases. Pass ordinary Google Test arguments to
+select cases, e.g. `./run_tests.sh --gtest_filter='StateTest.*'`.
 
-To run the tests, execute the following command from the project's root directory:
+Coverage includes MIDI note priority, controller reset and panic, 14-bit CCs,
+source switching during held/releasing notes, event offsets and block partition
+independence, re-preparation, sample-rate/filter/waveform safety, allocation-free
+core rendering, FIR delay/gain/rejection, XML factory/user/session state and
+truncated XML rejection. The two independent filter model suites retain
+their original numerical assertions.
 
-```bash
-./run_tests.sh
+`legacy-juce/` contains historical scenarios that are not part of this suite.
+Native editor interaction, DAW automation, plugin scanning, AU validation and
+host latency compensation still need testing on Windows/macOS.
+
+## Completion plan
+
+See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
+reviewed behavior and deferred native validation gates, iPlug2OOS alignment and validation gates.
+The linked case inventory tracks the 272 Google Test definitions in the frozen
+main baseline; their assertion coverage is tracked individually in that inventory.
+
+The current suite has 197 active portable cases: 183 correctness regressions (including three
+research equation cases) and 14 observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
+residual EG trajectory, live timing and gate assertions and exercises free-running
+source continuity and extended release/source switching. Preset assertions cover
+same-name overwrite, failed replacement and missing-selected-file fallback.
+`unit/PluginIdentityTest.cpp` guards retained plugin IDs and existing parameter
+index order. JUCE project/automation/binary-state compatibility is out of scope;
+its ID-mapping assertions have been removed.
+
+Host-selection core assertions cover latest-valid requests, repeated selection,
+cached user sound, malformed request chunks, pending-session identity, held-note
+output equivalence, concurrent panel refresh and instance isolation. The request
+and boundary-apply allocation probe runs 4096 pairs. This does not instrument
+SDK callbacks or prove native host/UI thread safety. Whole-patch publication
+now has concurrent regression assertions in `unit/PatchPublicationTest.cpp`.
+
+Native product builds also run eight `vst3-boundary` tests against real SDK
+interface types using simulated queues/streams. They do not load a plugin binary
+or open an editor/device. Core-only builds remain independent of the SDK; use
+`-DBUILD_VST3_BOUNDARY_TESTS=ON` to opt in with prepared SDK headers.
+
+
+The complete audited main Tests snapshot and source references are under
+`legacy-juce` (272 historical definitions), excluded from active builds.
+`unit/KeyboardInputTest.cpp` and the allocation probe cover UI/external note
+ownership, per-instance PC input and cleanup. `unit/DspRegressionTest.cpp` adds
+LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
+references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
+input recovery, modulation fallback and usable smoothing after rejected controls.
+MidiQueue cases guard stable clamping, future-event carry and empty
+callback boundary processing. There are 205 active CTest cases with SDK-interface
+tests enabled; this count does not claim historical assertion parity.
+
+Archive contract tests run independently, without loading a product:
+
+```sh
+python -m unittest discover -s Tests/packaging -v
 ```
 
-By default, the runner executes regression tests and excludes detailed DSP
-observations named `Observation_*`. No tests are deleted or disabled.
+Fifteen independently constructed fixtures check file hashes, exact payload
+coverage, required content, release identity, modes, safe ZIP/symlink paths and
+opt-in signing command preparation.
+Native compilation and source-archive offline rebuild run in CI. Actual plugin
+loading, DAW/device and interactive UI verification are deferred.
 
-```bash
-./run_tests.sh --observations  # Detailed DSP observations only
-./run_tests.sh --all           # Regression tests and observations
-./run_tests.sh '--gtest_filter=EGTimingTest.*:EnvelopeRangeTest.*'
-./run_tests.sh --group audio  # Core sound generation and DSP
-./run_tests.sh --group midi  # MIDI and real-time control paths
-./run_tests.sh --group ui  # Editor, panels, display, and parameter formatting
-./run_tests.sh --group presets  # Preset and saved-state behavior
-./run_tests.sh --group integration  # Whole-graph integration coverage
+`unit/MidiBehaviorTest.cpp` replaces historical MIDI assertions with an independent
+recording generator, a std::set oracle for all 128 keys and actual core audio for
+velocity invariance across all waveforms. It covers every controller's production
+range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
+Additional EG continuity regressions retain live attack bounds, residual release
+targets after edits, sustain retrigger behavior and lifecycle observation reset.
+JUCE listener/thread/teardown assumptions do not establish iPlug2 UI correctness;
+those native scenarios remain explicitly deferred in the assertion inventory.
+
+`unit/VcoBehaviorTest.cpp` retains glissando timing against an independent pitch
+schedule, PWM periods from carrier-cycle means, live held-wheel range changes,
+measured bend/fine-pitch/LFO offsets and empirical decay-per-second constants.
+Source tests check held and released tone/noise transitions and exact remaining
+release time, including unmatched key release and new-note recovery.
+Live waveform/Feet choices preserve held note identity and finite nonzero audio.
+Upstream sources intentionally run continuously; engine/VCA-gate silence is
+separate from source note-state inactivity and archived JUCE block APIs.
+
+`unit/PresetBehaviorTest.cpp` checks all 18 embedded factory controls against
+resource XML after perturbation, independent manual-panel readings, all 7 audible
+factory sounds, user-file/session exclusions and sorted catalogue identity.
+Selection and rename preserve edited sound without reloading the preset file.
+Seven filter-model regressions and three separate observations were diffed
+against the frozen main reference; counts and numerical tolerances are retained.
+Observations characterize this build and are not native-host performance gates.
+
+## Historical assertion closeout
+
+All 272 frozen definitions have reviewed dispositions. Run
+`python scripts/check-test-inventory.py` to check provenance, complete coverage,
+evidence file paths and absence of unresolved rows. This verifies traceability;
+it cannot prove semantic equivalence. Adapted scalar/queue/FIR contracts are
+explicitly distinguished from retained assertions and obsolete JUCE interfaces.
+39 historical native UI/runtime cases remain deferred; no empty UI suite or core
+mock is counted as passing native verification.
+
+`unit/SignalPathTest.cpp` includes frozen model bit references, VCA analytical
+transfer/precision, Original modulation independence, FIR folded-bin controls and
+settled response observations. `unit/EngineTimelineTest.cpp` checks explicit
+connected routes, source/release/glissando timelines, MIDI boundaries/overflow,
+breath endpoints and concurrent choice publication. Core allocation probes now
+count C++ allocations and frees on first/variable/dense queue+engine+UI-bridge
+processing; they do not intercept arbitrary SDK malloc or locks.
+
+`unit/ToneMeasurementTest.cpp` retains known-signal controls and production/strategy
+spectrum/onset measurements. `unit/OnsetObservationTest.cpp` always renders and
+checks repeated notes/stage transients. Set `CHEAPSYNTH_ONSET_OUTPUT` to an output
+directory to export five mono PCM24 WAVs (48kHz) and five stage CSVs; filenames
+start with `iplug2-` so old comparison exports remain separate. For example:
+
+```sh
+CHEAPSYNTH_ONSET_OUTPUT=/tmp/cheapsynth-onsets ./run_tests.sh --gtest_filter='OnsetObservationTest.*'
+python -m unittest discover -s Tests/research -v
 ```
 
-Functional groups are filters over the existing Google Test suites; they do
-not move or duplicate test code. `audio` (also `audio-core`) covers oscillators,
-filters, envelopes, amplifiers, modulation, and noise. `midi` (also `control`)
-covers MIDI processing and graph-level MIDI controls. `ui` covers editor and
-panel behavior, the audio display FIFO, and parameter formatting. `presets`
-(also `state`) covers preset selection and persisted state. `integration`
-covers the complete audio graph and graph-level routing, timing, and output
-conversion. Groups may overlap where a suite crosses functional boundaries.
-An explicit `--gtest_filter` passed with `--group` takes precedence.
-
-The same options can be passed directly to the test executable. An explicit
-`--gtest_filter` overrides the category default. `--gtest_output` is also respected.
-Normal CI runs the regression category; run `--all` when changing DSP behavior or
-when a complete characterization is needed. Observation tests still check basic
-sanity (such as finite, non-silent output), but their printed spectral and timing
-measurements are not hardware-calibrated regression thresholds. Nonlinear safety,
-pitch, PWM timing, and graph consistency tests remain in the default category.
-
-Detailed envelope duration checks remain sample-accurate in
-`EGTimingTest.ProductionRangeStageDurations`. The graph integration check observes
-the envelope in adaptive blocks of 1 to 64 host samples, preserving at least
-16 observations across the shortest configured stage (subject to sample resolution).
-Timing tolerances account for that observation interval.
-
-The pitch/feet test retains all 180 combinations and its 0.1% frequency tolerance.
-After 100 ms of settling, it stops once 64 complete periods have been measured,
-with a four-second total limit to detect missing or incorrectly tuned output.
-
-The PWM range test retains all 18 sample-rate/frequency combinations and its
-0.5% frequency tolerance. After the existing one-second settling interval, it
-stops at three rising crossings (two complete modulation periods), with the
-original four-period limit retained to detect missing crossings.
-
-The MIDI pitch-bend and post-update glissando checks also stop after 64 complete
-periods. They retain their settling intervals, timeout limits, parameter
-combinations, and frequency tolerances; glissando frequency is measured from
-interpolated crossings instead of counting crossings in a fixed window.
-
-This script performs the following:
-
-1. Creates a `build_tests` directory
-2. Runs CMake to configure the project
-3. Builds the tests
-4. Runs the tests
-5. Generates XML test results
-6. Displays a test summary and results
-
-### Continuous Integration
-
-The unified `ci.yml` workflow runs on pushes to `main`, tags, pull requests,
-and manual dispatches. After formatting passes, independent Linux, macOS, and
-Windows jobs configure one build directory with all product formats and tests
-enabled. Linux GUI tests run under Xvfb with Openbox; the runner waits for the
-window manager to initialize before opening dialogs. A failed OS job does not
-cancel the others.
-Tag builds use Release and create a GitHub release only after all OS jobs pass.
-The workflow:
-
-1. Builds and runs tests on multiple platforms (Windows, macOS, Linux)
-2. Generates XML test reports
-3. Uploads test results as artifacts
-4. Uploads product artifacts; successful tag builds also publish release packages
-
-The current test status can be seen in the repository README badge or in the Actions tab on GitHub.
-
-### Test Results Format
-
-Test results are saved in JUnit compatible XML format to `build_tests/test_results.xml`. This format includes the following information:
-
-- Test suite information
-- Individual test cases
-- Pass/fail status
-- Error messages for failed tests
-- Test execution time
-
-#### XML output
-
-`Tests/TestRunner.cpp` initializes Google Test and a JUCE GUI environment.
-Google Test generates the XML report directly; there is no JUCE UnitTestRunner
-conversion or custom report publisher. The default is `xml:test_results.xml`
-in the current working directory. Override it with `--gtest_output=xml:PATH`.
-CI runs from `build/` and uploads `build/test_results.xml` as an artifact.
-
-## Test Implementation Guidelines
-
-Follow these guidelines when adding new tests:
-
-### 1. Test structure
-
-Use Google Test's `TEST` for independent cases or `TEST_F` with a
-`::testing::Test` fixture for shared setup and teardown. For example:
-
-```cpp
-#include "CS01Synth/SynthConstants.h"
-
-#include <gtest/gtest.h>
-
-TEST(SynthConstantsTest, OversamplingFactorMatchesStages) {
-    EXPECT_EQ(Constants::oversamplingFactor,
-              std::size_t{1} << Constants::oversamplingStages);
-}
-```
-
-Add each new test source to `Tests/CMakeLists.txt`. The shared runner already
-initializes JUCE; do not add another `main()` or a static JUCE UnitTest instance.
-
-### 2. Test Categories
-
-Each test method should test a specific functional category:
-
-- **Initialization Tests** - Verify that components are initialized correctly
-- **Functionality Tests** - Verify that basic functionality works correctly
-- **Edge Case Tests** - Verify that boundary values and exceptional cases are handled correctly
-- **Performance Tests** - Verify that processing load and memory usage are within acceptable limits
-
-### 3. Assertions
-
-Use Google Test assertions:
-
-- `EXPECT_TRUE` / `EXPECT_FALSE` for conditions
-- `EXPECT_EQ` / `EXPECT_NE` for equality
-- `EXPECT_LT` / `EXPECT_GT` for ordering
-- `EXPECT_NEAR` for an absolute floating-point tolerance
-- `ASSERT_*` when failure must stop the current test before continuing
-
-### 4. Using Mock Objects
-
-Tests may use mock objects instead of actual components. Mock objects are implemented in the `mocks/` directory.
-
-```cpp
-// Example of using a mock object in a test
-testing::MockToneGenerator mockToneGenerator(apvts);
-mockToneGenerator.prepare(spec);
-mockToneGenerator.startNote(60, 1.0f, 8192);
-float sample = mockToneGenerator.getNextSample();
-```
-
-## Test Coverage
-
-Tests aim to cover the following areas:
-
-1. **Core Components** - Classes central to sound generation
-2. **Modulation-Related** - Classes responsible for timbre changes
-3. **Input/Output Processing** - Classes responsible for handling input/output such as MIDI processing
-4. **Integration Tests** - Tests to verify interaction between components
-
-Tests for each component are implemented from the perspectives of initialization, basic functionality, edge cases, and performance.
-
-## MIDI realtime regression coverage
-
-`MidiProcessorTest` covers fixed-storage note tracking across all 128 keys,
-duplicates, unmatched releases, priority/fallback, legato/velocity, reset commands,
-every mapped controller and pitch bend. Timer tests check message-thread-only,
-coalesced notification, current-state saving, edits during dispatch and safe
-teardown. Expected notifications are awaited by pumping the message loop until
-the expected count is reached, with a two-second monotonic timeout; this does
-not assume a timer callback arrives within 100 ms on every CI platform.
-`MidiRealtimeGraphTest` compares MIDI control changes with synchronous
-parameter changes in both filter paths before any notification tick, and checks
-session saving before dispatch. See [the control-flow design](../docs/software/MIDI-realtime-control.md).
-
-## DSP structural refactor coverage
-
-`DspStructureRegressionTest` checks exact float bits against frozen pre-refactor
-Original/Modern VCF wrappers and the VCA signal path at 44.1/48/96/192 kHz.
-The audio group also includes `IG02610BehavioralModel*` and
-`IG05630BehavioralModelTest` suites. See
-[DSP responsibility boundaries](../docs/software/DSP-responsibility-boundaries.md) for
-coverage and the test-oracle maintenance policy.
-
-## VCO sample-equivalence and measured optimization
-
-`VcoOptimizationTest` compares exact float bits against the frozen Tone renderer
-from f42b3a3 across 480 configurations (3,932,160 samples), live controls, note/tail
-transitions, and preset/session replacement. The reference shares unchanged
-YM10150 and waveform strategies; it is not an independent oracle for those models.
-`VcoOptimizationObservationTest` alternates old/new timing order in each trial
-with PWM, LFO and glissando. Timings are observations, with no performance pass
-threshold. Reuse `WholeGraphObservationTest` for complete-graph spectrum and dense
-MIDI/GUI/switch timing; run without concurrent builds. Conditions and limitations
-are recorded in [the audit report](../docs/software/Audit-stability.md).
-
-## Message-thread polling attachments
-
-`PollingAttachmentTest` checks deferred/coalesced worker automation, the latest
-value after an intervening GUI edit, silent MIDI-style writes, exact slider mapping
-against JUCE 9.0.3, formatting/defaults, balanced gestures, no feedback notification,
-and destruction during automation/before a timer tick.
-`EditorVisibilityTest` also checks exclusive waveform/feet/LFO-target/filter
-switching, balanced host gestures, and silent parameter writes. Deselection
-callbacks must never write the previous choice back to the parameter.
-`PollingAttachmentRealtimeTest` counts allocation/free/mutex operations on a
-worker through isolated bindings and through the full editor, including the first
-host notification. Its ELF probes are intentionally excluded from sanitizer
-builds. Timings and callback-wide realtime limitations remain separate checks.
-
-## Audio-owned fixed routing
-
-`RoutingSelectionTest` checks choice application without servicing the message
-loop, including an empty callback; 36 stationary configurations at 44.1/48/96 kHz
-and blocks 1/7/64; and live Release extension/shortening with Tone/Noise switching.
-The stationary comparison covers 147,528 float values and the matched-switch
-comparison covers 64,000 samples. Equality is numerical float equality, including
-signed zero, rather than a claim of bitwise equality. Filter/LFO switches preserve
-the legacy transient; the test does not establish click-free switching.
-
-`CHEAPSYNTH_ROUTING_REFERENCE` is defined only for the test executable. It exposes
-the prior dynamic routing and the dual nonzero-input diagnostic for paired
-comparisons, not a product mode or parameter. The timing observation rotates
-legacy/fixed/dual-input trial order across 12 block/filter/target combinations;
-there is no timing pass threshold. Run performance observations without concurrent
-project builds or tests.
-
-`RoutingSelectionRealtimeTest` switches every callback with an active note at
-block lengths 0/1/16/64 and checks heap operations and unchanged topology. The
-Linux mutex probe distinguishes acquisition from observed EBUSY contention and
-measures the subsequent blocking wait. A deliberately held mutex validates that
-contention is detected; zero observed graph contention does not prove that graph
-locks cannot block in a host. Probe interposition is active only during counting,
-not ordinary timing observations. The two new ELF probe cases, like the five
-existing probes, are excluded from project sanitizer builds.
+Research checks retain four conditional circuit equation cases; the three C++ RC
+cases have the `research` CTest label. These hypothetical networks do not establish
+production envelope calibration or operating-region validity.

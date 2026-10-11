@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 // External CS-01 coupling approximations. Frequencies are empirical, not
 // derived from capacitor markings or an established effective circuit load.
@@ -8,8 +8,7 @@ class EmpiricalVCFInputCoupling {
    public:
     static constexpr float cutoffHz = 20.0f;
     void prepare(double sampleRate) {
-        filter.coefficients =
-            juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, cutoffHz);
+        filter.highPass(sampleRate, cutoffHz);
         // Initialise the new coefficient order before the first audio callback.
         filter.reset();
     }
@@ -21,7 +20,7 @@ class EmpiricalVCFInputCoupling {
     }
 
    private:
-    juce::dsp::IIR::Filter<float> filter;
+    cs01::Biquad filter;
 };
 
 class EmpiricalVCFOutputCoupling {
@@ -36,7 +35,7 @@ class EmpiricalVCFOutputCoupling {
     float processSample(float sample) {
         // Preserve the original mixed float/double coefficient calculation.
         const float alpha =
-            1.0f / (1.0f + 2.0f * juce::MathConstants<float>::pi * cutoffHz / sampleRate);
+            1.0f / (1.0f + 2.0f * std::numbers::pi_v<float> * cutoffHz / sampleRate);
         previousOutput = alpha * (previousOutput + sample - previousInput);
         previousInput = sample;
         return previousOutput;

@@ -1,9 +1,6 @@
 # CMake build files
 build/
 build_tests/
-/build-*/
-/openbox.log
-__pycache__/
 
 # macOS specific
 .DS_Store
@@ -11,11 +8,16 @@ __pycache__/
 # Backup files
 *.bak
 
-# Local-only external materials and private inventories
-/references/
+# Documentation
+references/
 
 # Clinerules
 .clinerules/
 
-# Default test-runner report
+# Separate core/native migration builds
+build-*/
 /test_results.xml
+
+# Python tooling and generated release bundles
+__pycache__/
+release-packages/

@@ -1,13 +1,9 @@
 #include "CS01Synth/EGProcessor.h"
 
-#include "MidiParameterValue.h"
-
 #include <cmath>
 
 //==============================================================================
-EGProcessor::EGProcessor(juce::AudioProcessorValueTreeState& apvts)
-    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      apvts(apvts) {}
+EGProcessor::EGProcessor(cs01::ParameterState& parameters) : parameters(parameters) {}
 
 EGProcessor::~EGProcessor() {}
 
@@ -15,8 +11,6 @@ EGProcessor::~EGProcessor() {}
 void EGProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     stopEnvelopeImmediately();
     envelopeSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
-    noteGateBuffer.setSize(1, std::max(1, samplesPerBlock));
-    noteGateBuffer.clear();
     updateADSR();
 }
 
@@ -24,43 +18,15 @@ void EGProcessor::releaseResources() {
     stopEnvelopeImmediately();
 }
 
-bool EGProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
-    if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::disabled())
-        return false;
-
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono())
-        return false;
-
-    return true;
-}
-
-void EGProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-    juce::ScopedNoDenormals noDenormals;
+float EGProcessor::processSample() {
     updateADSR();
-
-    // CS01 is a mono synth, so only generate mono output
-    buffer.clear();
-
-    // Skip MIDI message processing (already processed in MidiProcessor)
-    // MIDI messages are processed by startEnvelope/releaseEnvelope methods
-
-    // Process mono output (channel 0) only
-    auto* channelData = buffer.getWritePointer(0);
-    jassert(buffer.getNumSamples() <= noteGateBuffer.getNumSamples());
-    auto* noteGate = noteGateBuffer.getWritePointer(0);
-
-    // Provisional exponential branches; residual level is retained across edits.
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        channelData[sample] = nextEnvelopeSample();
-        if (noteGateRemainingSamples > 0) {
-            noteGateLevel += noteGateIncrement;
-            if (--noteGateRemainingSamples == 0)
-                noteGateLevel = noteGateTarget;
-        }
-        noteGate[sample] = static_cast<float>(noteGateLevel);
+    lastOutput = nextEnvelopeSample();
+    if (noteGateRemainingSamples > 0) {
+        noteGateLevel += noteGateIncrement;
+        if (--noteGateRemainingSamples == 0)
+            noteGateLevel = noteGateTarget;
     }
-    if (buffer.getNumSamples() > 0)
-        lastOutput = channelData[buffer.getNumSamples() - 1];
+    return lastOutput;
 }
 
 // A fresh stage keeps the existing k=2 curve. Attack uses a fixed target, so
@@ -112,7 +78,7 @@ float EGProcessor::nextEnvelopeSample() {
                 stage = Stage::sustain;
         }
     }
-    return static_cast<float>(juce::jlimit(0.0, 1.0, level));
+    return static_cast<float>(std::clamp(level, 0.0, 1.0));
 }
 
 void EGProcessor::startEnvelope() {
@@ -145,15 +111,14 @@ void EGProcessor::stopEnvelopeImmediately() {
     remainingSamples = 0;
     noteGateLevel = noteGateTarget = noteGateIncrement = 0.0;
     noteGateRemainingSamples = 0;
-    noteGateBuffer.clear();
 }
 
 void EGProcessor::updateADSR() {
-    juce::ADSR::Parameters next;
-    next.attack = getMidiParameterValue(apvts, ParameterIds::attack);
-    next.decay = getMidiParameterValue(apvts, ParameterIds::decay);
-    next.sustain = getMidiParameterValue(apvts, ParameterIds::sustain);
-    next.release = getMidiParameterValue(apvts, ParameterIds::release);
+    cs01::EnvelopeSettings next;
+    next.attack = parameters.get(ParameterIds::attack);
+    next.decay = parameters.get(ParameterIds::decay);
+    next.sustain = parameters.get(ParameterIds::sustain);
+    next.release = parameters.get(ParameterIds::release);
     const auto previous = settings;
     settings = next;
     // Time edits change the branch speed without changing its stored level or

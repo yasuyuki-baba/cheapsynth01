@@ -1,52 +1,15 @@
 #include "CS01Synth/ToneGenerator.h"
 
-#include "MidiParameterValue.h"
-
 #include "CS01Synth/WaveformStrategies.h"
 
 #include <cmath>
 
-ToneGenerator::CachedControl::CachedControl(juce::RangedAudioParameter* value)
-    : parameter(value),
-      floating(dynamic_cast<juce::AudioParameterFloat*>(value)),
-      integer(dynamic_cast<juce::AudioParameterInt*>(value)),
-      choice(dynamic_cast<juce::AudioParameterChoice*>(value)) {}
+ToneGenerator::ToneGenerator(cs01::ParameterState& parameters) : parameters(parameters) {}
 
-float ToneGenerator::CachedControl::load() const {
-    if (floating)
-        return floating->get();
-    if (integer)
-        return static_cast<float>(integer->get());
-    if (choice)
-        return static_cast<float>(choice->getIndex());
-    jassert(parameter != nullptr);
-    return parameter->convertFrom0to1(parameter->getValue());
-}
-
-ToneGenerator::ToneGenerator(juce::AudioProcessorValueTreeState& apvts)
-    : apvts(apvts),
-      feetControl(apvts.getParameter(ParameterIds::feet)),
-      waveformControl(apvts.getParameter(ParameterIds::waveType)),
-      pwmControl(apvts.getParameter(ParameterIds::pwmSpeed)),
-      modDepthControl(apvts.getParameter(ParameterIds::modDepth)),
-      pitchControl(apvts.getParameter(ParameterIds::pitch)),
-      bendUpControl(apvts.getParameter(ParameterIds::pitchBendUpRange)),
-      bendDownControl(apvts.getParameter(ParameterIds::pitchBendDownRange)),
-      glissandoControl(apvts.getParameter(ParameterIds::glissando)),
-      releaseControl(apvts.getParameter(ParameterIds::release)) {}
-
-void ToneGenerator::prepare(const juce::dsp::ProcessSpec& spec) {
-    sampleRate = spec.sampleRate;
-    internalSampleRate = static_cast<float>(
-        spec.sampleRate * (externalOversampling ? 1 : Constants::oversamplingFactor));
-    auto internalSpec = spec;
-    internalSpec.sampleRate = internalSampleRate;
-    internalSpec.maximumBlockSize *= externalOversampling ? 1 : Constants::oversamplingFactor;
-    pwmLfo.prepare(internalSpec);
-    oversampling.initProcessing(1);
-    pwmLfo.initialise(
-        [](double x) { return std::asin(std::sin(x)) * (2.0 / juce::MathConstants<double>::pi); });
-
+void ToneGenerator::prepare(double rate) {
+    sampleRate = internalSampleRate = static_cast<float>(rate);
+    pwmLfo.prepare(rate);
+    pwmLfo.initialise([](double x) { return std::asin(std::sin(x)) * (2.0 / std::numbers::pi); });
     reset();
 }
 
@@ -61,16 +24,14 @@ void ToneGenerator::startNote(int midiNoteNumber, float velocity, int currentPit
 }
 
 void ToneGenerator::stopNote(bool allowTailOff) {
-    graphOwnsRelease = false;
     noteOn = false;
     currentlyPlayingNote = 0;
 
     if (allowTailOff) {
         tailOff = true;
         // Get release time from parameter (convert to samples)
-        releaseSeconds = releaseControl.load();
-        tailOffDuration =
-            static_cast<int>(std::ceil(static_cast<double>(releaseSeconds) * sampleRate));
+        float releaseSecs = parameters.get(ParameterIds::release);
+        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
         tailOffCounter = 0;
     } else {
         tailOff = false;
@@ -84,8 +45,8 @@ void ToneGenerator::changeNote(int midiNoteNumber) {
 
 void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
     lastPitchWheel = newPitchWheelValue;
-    auto upRange = bendUpControl.load();
-    auto downRange = bendDownControl.load();
+    auto upRange = parameters.get(ParameterIds::pitchBendUpRange);
+    auto downRange = parameters.get(ParameterIds::pitchBendDownRange);
     appliedBendUpRange = upRange;
     appliedBendDownRange = downRange;
 
@@ -120,7 +81,6 @@ void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
     if (!state.held) {
         noteOn = false;
         tailOff = true;
-        releaseSeconds = releaseControl.load();
         tailOffCounter = 0;
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
@@ -133,102 +93,38 @@ int ToneGenerator::getCurrentlyPlayingNote() const {
 }
 
 // Audio processing methods
-void ToneGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample,
-                                    int numSamples) {
-    updateReleaseDuration();
+float ToneGenerator::renderSample() {
     if (!isActive())
-        return;
-
-    if (tailOff)
-        numSamples = juce::jmin(numSamples, juce::jmax(0, tailOffDuration - tailOffCounter));
-    updateBlockRateParameters();
-
-    const int numChannels = outputBuffer.getNumChannels();
-
-    // Fill channel 0 (mono) directly to avoid per-sample per-channel inner loop.
-    float* ch0 = outputBuffer.getWritePointer(0, startSample);
-    for (int i = 0; i < numSamples; ++i) {
-        float currentSample = getNextSample();
-        ch0[i] += currentSample;  // preserve additive behavior
-    }
-
-    // Duplicate channel 0 into other channels efficiently
-    for (int channel = 1; channel < numChannels; ++channel) {
-        outputBuffer.addFrom(channel, startSample, outputBuffer, 0, startSample, numSamples);
-    }
-
-    // Advance counter if in tail-off
-    if (tailOff) {
-        tailOffCounter += numSamples;
-
-        if (tailOffCounter >= tailOffDuration) {
-            tailOff = false;
-        }
-    }
+        return 0;
+    return renderContinuousSample();
 }
-
-void ToneGenerator::renderModulatedBlock(juce::AudioBuffer<float>& outputBuffer,
-                                         const float* modulation, float depth, bool freeRunning) {
-    updateBlockRateParameters();
-    auto* output = outputBuffer.getWritePointer(0);
-    for (int i = 0; i < outputBuffer.getNumSamples(); ++i) {
-        setLfoValue(modulation[i] * depth * 1.0f);
-        output[i] = 0.0f;
-        // Gated component rendering keeps its existing sample progression.
-        // The production graph runs upstream continuously and gates at the VCA.
-        if (!isActive() && !freeRunning)
-            continue;
-        updateReleaseDuration();
-        if (!isActive() && !freeRunning)
-            continue;
-        updateBlockRateParameters();
-        output[i] += getNextSample();
-        for (int channel = 1; channel < outputBuffer.getNumChannels(); ++channel)
-            outputBuffer.getWritePointer(channel)[i] += output[i];
-        if (tailOff && ++tailOffCounter >= tailOffDuration)
-            tailOff = false;
-    }
-}
-
-void ToneGenerator::process(const juce::dsp::ProcessContextReplacing<float>& context) {
-    auto& outputBlock = context.getOutputBlock();
-    const auto numSamples = static_cast<int>(outputBlock.getNumSamples());
-    const auto numChannels = static_cast<int>(outputBlock.getNumChannels());
-
-    updateBlockRateParameters();
-
-    // Fill channel 0 (mono) first
-    for (int sample = 0; sample < numSamples; ++sample) {
-        float currentSample = getNextSample();
-        outputBlock.setSample(0, sample, currentSample);
-    }
-
-    // For additional channels, copy channel 0 contents to avoid regenerating per channel
-    for (int ch = 1; ch < numChannels; ++ch) {
-        for (int sample = 0; sample < numSamples; ++sample) {
-            outputBlock.setSample(ch, sample, outputBlock.getSample(0, sample));
-        }
-    }
+float ToneGenerator::renderContinuousSample() {
+    const float output = getNextSample();
+    if (tailOff && ++tailOffCounter >= tailOffDuration)
+        tailOff = false;
+    return output;
 }
 
 // Existing methods from ToneGenerator
 void ToneGenerator::updateBlockRateParameters() {
-    if (appliedBendUpRange >= 0.0f && (bendUpControl.load() != appliedBendUpRange ||
-                                       bendDownControl.load() != appliedBendDownRange))
+    if (appliedBendUpRange >= 0.0f &&
+        (parameters.get(ParameterIds::pitchBendUpRange) != appliedBendUpRange ||
+         parameters.get(ParameterIds::pitchBendDownRange) != appliedBendDownRange))
         pitchWheelMoved(lastPitchWheel);
-    currentFeet = static_cast<Feet>(static_cast<int>(feetControl.load()));
-    currentWaveform = static_cast<Waveform>(static_cast<int>(waveformControl.load()));
+    currentFeet = static_cast<Feet>(static_cast<int>(parameters.get(ParameterIds::feet)));
+    currentWaveform =
+        static_cast<Waveform>(static_cast<int>(parameters.get(ParameterIds::waveType)));
 
     // PWM LFO frequency setting with hardware-accurate range (0-60Hz)
-    float pwmSpeed = pwmControl.load();
+    float pwmSpeed = parameters.get(ParameterIds::pwmSpeed);
     pwmLfo.setFrequency(pwmSpeed);
 
-    currentModDepth = modDepthControl.load();
+    currentModDepth = parameters.get(ParameterIds::modDepth);
 
     // Cache pitch-related parameters to avoid per-sample parameter access
     // MIDI (including queued panel gestures) applies bend once via pitchWheelMoved.
     pitchBendOffset = 0.0f;
-    pitchOffset = pitchControl.load();
+    pitchOffset = parameters.get(ParameterIds::pitch);
 
     // Update waveform strategy based on current waveform
     waveformModel.selectWaveform(currentWaveform);
@@ -246,10 +142,8 @@ void ToneGenerator::reset() {
 
     // Reset base square wave state
     waveformModel.reset();
-    oversampling.reset();
-    oversamplingBuffer.clear();
     pwmLfo.reset();
-    pwmLfo.setFrequency(pwmControl.load(), true);
+    pwmLfo.setFrequency(parameters.get(ParameterIds::pwmSpeed), true);
 
     // Reset note state
     noteOn = false;
@@ -274,7 +168,7 @@ void ToneGenerator::setNote(int midiNoteNumber, bool isLegato) {
 
 void ToneGenerator::calculateSlideParameters(int targetNote) {
     targetPitch = static_cast<float>(targetNote);
-    auto timePerSemitone = glissandoControl.load();
+    auto timePerSemitone = parameters.get(ParameterIds::glissando);
 
     if (timePerSemitone < 0.001f)  // No slide
     {
@@ -303,12 +197,12 @@ float ToneGenerator::getNextSample() {
     if (isSliding) {
         // Interim live-control model: preserve fractional progress through the
         // current semitone. YM10150's oscillator phase behavior is not established.
-        const float duration = glissandoControl.load();
+        const float duration = parameters.get(ParameterIds::glissando);
         if (duration < 0.001f) {
             currentPitch = targetPitch;
             isSliding = false;
         } else {
-            const int updatedSamples = juce::jmax(1, static_cast<int>(duration * sampleRate));
+            const int updatedSamples = std::max(1, static_cast<int>(duration * sampleRate));
             if (updatedSamples != samplesPerStep) {
                 stepCounter = static_cast<int>(static_cast<double>(stepCounter) * updatedSamples /
                                                samplesPerStep);
@@ -361,20 +255,7 @@ float ToneGenerator::getNextSample() {
     }
     finalPitch += octaveOffset;
 
-    // Generate directly at the shared internal rate; only the final signal is
-    // downsampled. Glide and external modulation advance at this generator's
-    // processing rate (the shared internal rate when externally oversampled).
-    if (externalOversampling)
-        return generateVcoSampleFromMaster(generateMasterSquareWave(finalPitch));
-    juce::dsp::AudioBlock<float> block(oversamplingBuffer);
-    auto internalBlock = oversampling.processSamplesUp(block);
-    auto* data = internalBlock.getChannelPointer(0);
-    for (size_t i = 0; i < internalBlock.getNumSamples(); ++i) {
-        const float masterSquare = generateMasterSquareWave(finalPitch);
-        data[i] = generateVcoSampleFromMaster(masterSquare);
-    }
-    oversampling.processSamplesDown(block);
-    return oversamplingBuffer.getSample(0, 0);
+    return generateVcoSampleFromMaster(generateMasterSquareWave(finalPitch));
 }
 
 void ToneGenerator::setLfoValue(float newLfoValue) {
@@ -395,29 +276,14 @@ float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
                                           pwmLfo);
 }
 
+// The production engine's EG owns the release clock, including live edits.
 void ToneGenerator::setReleaseSamplesRemaining(int samples) {
-    graphOwnsRelease = true;
     if (!tailOff)
         return;
-    releaseSeconds = releaseControl.load();
     tailOffCounter = 0;
-    tailOffDuration = juce::jmax(0, samples);
+    tailOffDuration = std::max(0, samples);
     if (samples <= 0) {
         tailOff = false;
         noteOn = false;
-    }
-}
-
-void ToneGenerator::updateReleaseDuration() {
-    if (graphOwnsRelease)
-        return;
-    if (tailOff) {
-        const float requested = releaseControl.load();
-        if (requested != releaseSeconds) {
-            releaseSeconds = requested;
-            tailOffCounter = 0;
-            tailOffDuration =
-                static_cast<int>(std::ceil(static_cast<double>(requested) * sampleRate));
-        }
     }
 }

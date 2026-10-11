@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include "CS01Synth/IG02610BehavioralModel.h"
 #include "CS01Synth/VCFCouplingStages.h"
@@ -24,8 +24,7 @@ class CS01VCFCircuit {
     // Process a block of samples (more efficient)
     void processBlock(float* samples, int numSamples);
 
-    // Legacy API shares one state across channels; production is strictly mono.
-    // Use one circuit instance per channel for independent channel state.
+    // Process a block of samples with multiple channels
     void processBlock(float** channelData, int numChannels, int numSamples);
 
     // Process a block with per-sample cutoff modulation

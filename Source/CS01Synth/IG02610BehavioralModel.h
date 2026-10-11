@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 #include <cmath>
 
@@ -15,15 +15,11 @@ class IG02610BehavioralModel {
         // Provisional normalized drives; neither is calibrated to an IC.
         static constexpr float feedbackDrive = 1.0f;
         static constexpr float integratorInputDrive = 2.0f;
-    };
-
-    // Implementation protection, not an IC transfer characteristic.
-    struct SafetyParameters {
         static constexpr float maximumOutput = 1.5f;
     };
 
     void prepare(double rate) {
-        sampleRate = juce::jmax(1.0, rate);
+        sampleRate = std::max(1.0, rate);
         reset();
     }
     void reset() {
@@ -31,15 +27,15 @@ class IG02610BehavioralModel {
     }
 
     float processSample(float input, float cutoffHz, float resonance) {
-        // Numerical safety: reject invalid input and bound the TPT coefficient.
         if (!std::isfinite(input))
             input = 0.0f;
         const double boundedCutoff =
-            juce::jlimit(20.0, sampleRate * 0.45, static_cast<double>(cutoffHz));
-        const double g = std::tan(juce::MathConstants<double>::pi * boundedCutoff / sampleRate);
-        const double damping = juce::jmap(static_cast<double>(juce::jlimit(0.0f, 1.0f, resonance)),
-                                          static_cast<double>(EmpiricalParameters::maximumDamping),
-                                          static_cast<double>(EmpiricalParameters::minimumDamping));
+            std::clamp(static_cast<double>(cutoffHz), 20.0, sampleRate * 0.45);
+        const double g = std::tan(std::numbers::pi_v<double> * boundedCutoff / sampleRate);
+        const double damping = EmpiricalParameters::maximumDamping +
+                               static_cast<double>(std::clamp(resonance, 0.f, 1.f)) *
+                                   (static_cast<double>(EmpiricalParameters::minimumDamping) -
+                                    static_cast<double>(EmpiricalParameters::maximumDamping));
 
         // Behavioral hypothesis based on a two-integrator SVF with soft
         // limiting around the summing/integrator input and resonant feedback.
@@ -53,11 +49,10 @@ class IG02610BehavioralModel {
         ic1eq = 2.0 * v1 - ic1eq;
         ic2eq = 2.0 * v2 - ic2eq;
 
-        // Numerical safety: finite output and amplitude bound, outside the model curve.
         const double output = std::isfinite(v2) ? v2 : 0.0;
         return static_cast<float>(
-            juce::jlimit(-static_cast<double>(SafetyParameters::maximumOutput),
-                         static_cast<double>(SafetyParameters::maximumOutput), output));
+            std::clamp(output, -static_cast<double>(EmpiricalParameters::maximumOutput),
+                       static_cast<double>(EmpiricalParameters::maximumOutput)));
     }
 
    private:

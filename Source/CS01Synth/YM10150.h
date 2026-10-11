@@ -15,7 +15,7 @@ class YM10150 {
     void reset();
     void selectWaveform(Waveform waveform);
     float generateWaveform(float masterSquare, float phase, float increment, float sampleRate,
-                           juce::dsp::Oscillator<double>& pwmLfo);
+                           cs01::Oscillator& pwmLfo);
     float generateMasterSquareWave(float pitch, float sampleRate, float& phase,
                                    float& increment) const;
     float shapeOutput(float value) const;

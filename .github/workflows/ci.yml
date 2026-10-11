@@ -1,26 +1,18 @@
-name: cheapsynth01-ci
-
+name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, master, wip/iplug2-migration]
     tags: ['*']
   pull_request:
   workflow_dispatch:
-
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref_type != 'tag' }}
-
-permissions:
-  contents: read
-
-env:
-  BUILD_TYPE: ${{ github.ref_type == 'tag' && 'Release' || 'Debug' }}
-
 jobs:
   lint:
-    name: C++ formatting
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -30,151 +22,150 @@ jobs:
         run: python -m pip install clang-format==21.1.7
       - name: Check formatting
         run: bash scripts/check-format.sh
-      - name: Test release packaging checks
-        run: python3 Tests/release_validation_test.py -v
-
-  build-and-test:
-    name: Build and test (${{ matrix.platform }})
-    needs: lint
+      - name: Test release archive and signing preparation
+        run: python -m unittest discover -s Tests/packaging -v
+      - name: Check historical assertion closeout
+        run: python scripts/check-test-inventory.py
+      - name: Check conditional hardware equations
+        run: python -m unittest discover -s Tests/research -v
+  core:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: macos-latest
-            platform: macos
-          - os: windows-latest
-            platform: windows
+        os: [windows-latest, macos-latest]
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure core tests
+        run: cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+      - name: Build
+        run: cmake --build build-core --config ${{ matrix.configuration }} --parallel 2
+      - name: Test
+        shell: bash
+        run: |
+          if ! ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure --output-junit test-results.xml > build-core/test-output.log 2>&1; then
+            python scripts/summarize-test-failures.py build-core/test-results.xml
+            tail -80 build-core/test-output.log
+            exit 1
+          fi
+          tail -25 build-core/test-output.log
+      - name: Upload core test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: core-tests-${{ runner.os }}-${{ matrix.configuration }}
+          path: |
+            build-core/test-results.xml
+            build-core/test-output.log
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype6-dev libx11-dev libxi-dev libxext-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev libxrender-dev libfontconfig1-dev libgtk-3-dev lv2-dev xvfb xauth openbox x11-utils
-      - name: Validate release version
-        if: github.ref_type == 'tag'
-        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME"
+          submodules: false
+      - name: Fetch iPlug2 and pinned plugin SDKs
+        run: bash scripts/setup-iplug2.sh
       - name: Configure
+        run: cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -DBUILD_PLUGINS=ON -DIPLUG_DEPLOY_PLUGINS=OFF
+      - name: Build native products and core tests
+        run: cmake --build build-native --config Release --parallel 2
+      - name: Test core
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get install -y ninja-build
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            command -v ninja >/dev/null || brew install ninja
+          if ! ctest --test-dir build-native -C Release --output-on-failure --output-junit test-results.xml > build-native/test-output.log 2>&1; then
+            python scripts/summarize-test-failures.py build-native/test-results.xml
+            tail -80 build-native/test-output.log
+            exit 1
           fi
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            cmake -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
-          elif [ "$RUNNER_OS" == "Linux" ]; then
-            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON -DCMAKE_SKIP_RPATH=ON
-          else
-            cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSTANDALONE_ONLY=OFF -DBUILD_TESTING=ON
-          fi
-      - name: Build
-        run: cmake --build build --config "$BUILD_TYPE" --parallel 2
-      - name: Run tests
-        working-directory: build
-        run: |
-          executable="./Tests/CheapSynth01Tests_artefacts/$BUILD_TYPE/CheapSynth01Tests"
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            "$executable.exe" --gtest_output=xml:test_results.xml
-          elif [ "$RUNNER_OS" == "Linux" ]; then
-            xvfb-run -a bash ../scripts/run-linux-gui-tests.sh "$executable" --gtest_output=xml:test_results.xml
-          else
-            status=0
-            "$executable" --gtest_output=xml:test_results.xml > test_output.log 2>&1 || status=$?
-            tail -n 30 test_output.log
-            if [ "$status" -ne 0 ]; then
-              python3 ../scripts/summarize-test-failures.py test_results.xml
-            fi
-            exit "$status"
-          fi
-      - name: Upload test results
+          tail -25 build-native/test-output.log
+      - name: Upload native test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ runner.os }}
+          name: native-tests-${{ runner.os }}
           path: |
-            build/test_results.xml
-            build/test_output.log
-      - name: Upload products
+            build-native/test-results.xml
+            build-native/test-output.log
+      - name: Upload native products
         uses: actions/upload-artifact@v7
         with:
-          name: cheapsynth01-${{ matrix.platform }}
-          path: |
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/Standalone/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/VST3/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/AU/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/LV2/*
-            build/CheapSynth01_artefacts/${{ env.BUILD_TYPE }}/CLAP/*
+          name: cheapsynth01-iplug2-${{ runner.os }}
+          path: build-native/out/
           if-no-files-found: error
-      - name: Stage distribution notices
-        if: github.ref_type == 'tag'
-        run: python3 scripts/package-notices.py --products "build/CheapSynth01_artefacts/$BUILD_TYPE" --juce build/_deps/juce-src
-      - name: Package corresponding source
-        if: github.ref_type == 'tag' && runner.os == 'Linux'
-        run: python3 scripts/package-source.py --juce build/_deps/juce-src --googletest build/_deps/googletest-src --output release-packages/cheapsynth01-source.zip
-      - name: Package for release (Linux and macOS)
-        if: github.ref_type == 'tag' && runner.os != 'Windows'
-        env:
-          PLATFORM: ${{ matrix.platform }}
-        run: |
-          mkdir -p release-packages
-          cd "build/CheapSynth01_artefacts/$BUILD_TYPE"
-          formats=(Standalone VST3 LV2 CLAP)
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            formats+=(AU)
-          fi
-          for format in "${formats[@]}"; do
-            zip -r "$GITHUB_WORKSPACE/release-packages/cheapsynth01-$PLATFORM-$(echo "$format" | tr '[:upper:]' '[:lower:]').zip" "$format/"
-          done
-      - name: Package for release (Windows)
-        if: github.ref_type == 'tag' && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -Path "release-packages" -ItemType Directory -Force
-          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build\CheapSynth01_artefacts\$env:BUILD_TYPE"
-          $releaseDir = Join-Path $env:GITHUB_WORKSPACE "release-packages"
-          Compress-Archive -Path "$buildDir\Standalone\*" -DestinationPath "$releaseDir\cheapsynth01-windows-standalone.zip" -Force
-          Compress-Archive -Path "$buildDir\VST3\*" -DestinationPath "$releaseDir\cheapsynth01-windows-vst3.zip" -Force
-          Compress-Archive -Path "$buildDir\CLAP\*" -DestinationPath "$releaseDir\cheapsynth01-windows-clap.zip" -Force
-      - name: Upload release packages
-        if: github.ref_type == 'tag'
+      - name: Package and verify native products without loading plugins
+        run: python scripts/release_package.py create --build build-native --platform "${RUNNER_OS}" --output "release-packages/cheapsynth01-${RUNNER_OS}.zip"
+      - name: Upload release package
         uses: actions/upload-artifact@v7
         with:
-          name: cheapsynth01-${{ matrix.platform }}-packages
+          name: cheapsynth01-${{ runner.os }}-packages
           path: release-packages/*.zip
           if-no-files-found: error
           retention-days: 5
-
+  source-package:
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Fetch pinned SDKs
+        run: bash scripts/setup-iplug2.sh
+      - name: Fetch core dependencies
+        run: cmake -S . -B build-source -DBUILD_PLUGINS=OFF -DCMAKE_BUILD_TYPE=Release
+      - name: Package and verify complete source
+        run: python scripts/release_package.py create --build build-source --platform source --output release-packages/cheapsynth01-source.zip
+      - name: Verify offline build from extracted source
+        run: |
+          mkdir build-source-extracted
+          cd build-source-extracted
+          cmake -E tar xf ../release-packages/cheapsynth01-source.zip
+          cmake -S . -B build-offline -DBUILD_PLUGINS=OFF -DBUILD_VST3_BOUNDARY_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_TINYXML2="$PWD/dependencies/tinyxml2" -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST="$PWD/dependencies/googletest"
+          cmake --build build-offline --parallel 2
+          ctest --test-dir build-offline --output-on-failure
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cheapsynth01-source-packages
+          path: release-packages/cheapsynth01-source.zip
+          if-no-files-found: error
+          retention-days: 5
   create-release:
-    needs: build-and-test
+    needs: [lint, core, native, source-package]
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
-      - name: Download release packages
-        uses: actions/download-artifact@v8
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           pattern: cheapsynth01-*-packages
           path: release-packages
           merge-multiple: true
-      - uses: actions/checkout@v6
-      - name: Validate release assets
-        run: python3 scripts/validate-release.py --tag "$GITHUB_REF_NAME" --assets release-packages --source-commit "$(git rev-parse HEAD)"
+      - name: Verify release identity and write checksums
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for platform in Windows macOS source; do
+            python scripts/release_package.py verify --commit "$GITHUB_SHA" --version "$version" --platform "$platform" "release-packages/cheapsynth01-${platform}.zip"
+          done
+          cd release-packages
+          shasum -a 256 *.zip > SHA256SUMS.txt
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-packages/*.zip
+          files: |
+            release-packages/*.zip
+            release-packages/SHA256SUMS.txt
           generate_release_notes: true
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
