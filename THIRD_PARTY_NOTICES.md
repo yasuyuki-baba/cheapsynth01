@@ -14,5 +14,6 @@
   fetched VST3/CLAP SDKs and iPlug2 dependency tree. They are independent of the
   project's GPLv3 license.
 
-No JUCE implementation code is linked into the iPlug2 products. Historical
-JUCE-specific project tests are retained only as reference scenarios.
+No JUCE framework code is linked into the iPlug2 products. The active numerical
+regression fixtures under `CheapSynth01/tests/reference/` are framework-independent
+project code used only by tests.
