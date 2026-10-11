@@ -1,4 +1,4 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # CS-01 Circuit Model: Unresolved Details
 
@@ -26,10 +26,10 @@ establish internal transfer characteristics.
 | --- | --- | --- |
 | EG stage switching | Earlier TC7476BP inspection recorded the truth table and conditional reset/feedback mapping. Tr13 attack-drive polarity/terminal attribution is inconsistent as transcribed; actual thresholds, loaded logic levels and transient behavior are unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
 | EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
-| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](../legacy-juce/software/EG-time-range-validation.md) |
+| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Envelope timing policy](../DSP-design.md#envelope-and-note-gate) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
 | Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `Source/CS01Synth/VCAProcessor.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
-| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Timing validation](../legacy-juce/software/EG-time-range-validation.md) |
+| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Envelope timing policy](../DSP-design.md#envelope-and-note-gate) |
 
 ## 3. Distinguish hardware unknowns from software properties
 
@@ -50,4 +50,4 @@ the scope of preserved connections and the limits of circuit conclusions.
 See [external-circuit closeout](External-circuit-closeout.md) for completed
 analysis, reproducible verification and its circuit-analysis limits. Audit completion is not hardware-model completion.
 
-For current production stage ownership and terminology, see [DSP responsibility boundaries](../legacy-juce/software/DSP-responsibility-boundaries.md).
+For current production stage ownership and terminology, see [DSP responsibility boundaries](../DSP-design.md#signal-path).
