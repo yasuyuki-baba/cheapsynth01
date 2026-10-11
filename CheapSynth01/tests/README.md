@@ -29,9 +29,9 @@ host latency compensation still need testing on Windows/macOS.
 
 ## Current coverage
 
-The portable suite has 200 cases: 186 correctness regressions (including three
+The portable suite has 206 cases: 192 correctness regressions (including three
 research equation cases) and 14 observational cases. Native product builds add
-eight VST3 boundary cases and three parameter-presentation cases, for 211 total.
+eight VST3 boundary cases and three parameter-presentation cases, for 217 total.
 Use CTest discovery for the current count. See the
 [native validation status](../../docs/iPlug2-migration-plan.md) for remaining host,
 editor and device checks.

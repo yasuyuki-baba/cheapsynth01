@@ -11,6 +11,7 @@
 #include <memory>
 #include "SynthEngine.h"
 #include "dsp/MidiQueue.h"
+#include "dsp/OutputMeter.h"
 #include "interaction/KeyboardInput.h"
 #include "interaction/EditorSession.h"
 #include "ISender.h"
@@ -46,7 +47,8 @@ class CS01AudioProcessor final : public cs01::PluginAPI {
         ResonanceHigh,
         RenamePreset,
         DeletePreset,
-        ResonanceHighLabel
+        ResonanceHighLabel,
+        OutputMeter
     };
     void syncParameters(bool notifyHost = false);
     void syncHostProgramIndex();
@@ -59,6 +61,9 @@ class CS01AudioProcessor final : public cs01::PluginAPI {
     SynthEngine engine{renderParameters};
     cs01::MidiQueue midi;
     iplug::IBufferSender<1, 64, 512> scope{-100, 512};
+    cs01::OutputMeter outputMeter;
+    bool meteringWasEnabled = false;
+    iplug::ISender<1, 64, std::pair<float, float>> meterSender;
     uint64_t appliedStateReset = 0;
     std::atomic<bool> pendingPanelBend{false};
 #endif

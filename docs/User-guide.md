@@ -22,7 +22,10 @@ a held note. See [MIDI assignments and panic messages](MIDI-Implementation.md).
 
 ## Keyboard and Controls
 
-Enable **KEYBOARD + MONITOR** to display the keyboard and output scope. Click the
+Enable **KEYBOARD + MONITOR** to display the keyboard, output scope and
+output meter. The meter shows RMS level and a peak held for 500 ms; a red peak
+indicates output above 0 dBFS. It measures the final mono signal sent to the
+outputs, which is duplicated when stereo output is selected. Click the
 keys or play with the PC keys `A W S E D F T G Y H U J K O L`, starting at MIDI note
 48. `Z` lowers the PC-keyboard octave and `X` raises it. PC playing requires the
 editor to have focus and pauses during text entry. Hiding the keyboard, changing
@@ -31,7 +34,8 @@ externally held MIDI notes.
 
 Sliders and knobs use standard iPlug2 interactions: drag or scroll to adjust,
 Shift/Ctrl for fine adjustment, click the displayed value to type, and double-click
-the control to reset. Pitch bend range number boxes support typed editing.
+the control to reset. A temporary bubble shows the value and unit during slider
+and knob adjustment. Pitch bend range number boxes support typed editing.
 Filter tabs **I** and **II** select Original and Modern; both use the label **RES**.
 
 The defaults below are parameter initialization values. **Default** restores the
@@ -50,10 +54,10 @@ Depths and levels use normalized values from 0 to 1.
 | Resonance | 0–1 | 0.2 | Original uses Low/High (threshold 0.5); Modern uses continuous resonance. |
 | VCF EG Depth | 0–1 | 0 | Amount of envelope-driven cutoff increase. |
 | VCA EG Depth | 0–1 | 1 | Blends note-gated level at 0 with envelope-controlled level at 1. Zero still becomes silent after note release. |
-| Attack | 1 ms–2 s | 100 ms | Reference rise time from zero to the envelope peak. |
-| Decay | 1 ms–2 s | 100 ms | Reference transition time from the peak to Sustain. |
+| Attack | 3.96–4403.96 ms | 100 ms | RC time constant; a fresh attack reaches the peak after twice this value. |
+| Decay | 3.96–4403.96 ms | 100 ms | RC time constant for the approach to Sustain. |
 | Sustain | 0–1 | 0.8 | Held envelope level. |
-| Release | 1 ms–2 s | 100 ms | Reference return time after releasing the last held note. |
+| Release | 3.96–4403.96 ms | 100 ms | RC time constant for the return to zero. |
 | LFO Speed | 0.8–21 Hz | 5 Hz | Pitch/cutoff modulation rate. |
 | LFO Target | VCO, VCF | VCO | Routes the LFO to pitch or cutoff. |
 | Mod Depth / modulation wheel | 0–1 | 0 | LFO amount; at zero, LFO Speed/Target do not create audible modulation. |
@@ -65,15 +69,17 @@ Depths and levels use normalized values from 0 to 1.
 | Breath VCA | 0–1 | 0 | At zero, breath does not affect gain; at one, zero Breath Input mutes the sound. |
 | Volume | 0–1 | 0.7 | Final level control with a nonlinear response. |
 
-Envelope times are reference durations. Retriggering from a residual level can
+Envelope times are RC time constants. Retriggering from a residual level can
 shorten attack; changing a running stage's time changes its remaining duration
 without resetting its level. The engine runs internally at four times the host
 sample rate, and its output converter adds 16 host samples of reported latency.
 
 ## Factory and User Presets
 
-The **MEMORY** menu separates **Factory** (Default and six named sounds) and
-**User** presets. A checkmark identifies the current preset.
+Click the preset name or its downward arrow under **MEMORY** to open the full
+preset list. **Factory** (Default and six named sounds) and **User** headings
+group the names in one menu. A checkmark identifies the current preset; an empty
+User section shows **No presets**.
 Select a name or use `<` / `>` to move through the list. The named sounds and
 manual panel settings are listed in [factory presets](Factory-presets.md).
 
@@ -134,9 +140,22 @@ selecting a sound does not move those performance controls.
 Parameters have VCO, VCF, VCA, EG, LFO and Performance groups for hosts that display
 parameter groups. Their IDs and order remain unchanged. Attack, Decay and Release
 are displayed and entered in milliseconds; Glissando uses milliseconds per
-semitone. The DSP and XML preset/session values remain in seconds.
+semitone. The DSP and XML preset/session values remain in seconds. EG times are RC time
+constants, with an assumed 10% midpoint A taper. Decay and Release settle after
+about 9.21 time constants. See [EG timing assumptions](EG-RC-timing.md).
 
 Right-clicking a parameter control uses iPlug2's host context menu in VST3 hosts
 that support it. Available commands depend on the DAW. Double-click a slider or
 knob to reset its default, or click its value to type a number in the shown unit.
 Native editor and DAW interaction verification remains pending.
+
+## Display Scale and Help
+
+Open **Menu** in the header to select **Display scale** from 75% to 200%. The
+current preset scale is checked; the submenu title also shows the current scale
+when adjusted by dragging the editor corner. Changing scale keeps the keyboard
+and monitor open or closed. This setting affects the editor only.
+
+The menu also opens the user guide, project website and issue tracker in your
+browser. **About CheapSynth01** shows the product version and active format
+(standalone, VST3, CLAP or AU), plus the copyright and iPlug2 framework credit.

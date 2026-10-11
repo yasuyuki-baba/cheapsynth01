@@ -132,11 +132,15 @@ int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
 void CS01AudioProcessor::OnReset() {
     parameters.tryCopyTo(renderParameters);
     engine.prepare(GetSampleRate());
+    outputMeter.reset(GetSampleRate());
+    meteringWasEnabled = false;
     midi.clear();
     uiNotes.resetAudio();
     uiNotes.publishExternal(engine.externalNotes());
     appliedStateReset = renderParameters.stateResetSerial();
     SetLatency(SynthEngine::latency);
+    SetTailSize(static_cast<int>(std::ceil(EGTiming::maximumTailSeconds() * GetSampleRate())) +
+                SynthEngine::latency);
 }
 void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
@@ -184,8 +188,21 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
             GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), value));
             refreshUI.store(true, std::memory_order_release);
         }
-    if (monitorEnabled.load() && NOutChansConnected() > 0)
+    const bool metering = monitorEnabled.load() && NOutChansConnected() > 0;
+    if (metering && !meteringWasEnabled)
+        outputMeter.reset(GetSampleRate());
+    meteringWasEnabled = metering;
+    if (metering) {
         scope.ProcessBlock(outputs, frames, Scope, 1);
+        cs01::OutputMeter::Reading reading;
+        for (int i = 0; i < frames; ++i) {
+            if (outputMeter.process(static_cast<float>(outputs[0][i]), reading)) {
+                iplug::ISenderData<1, std::pair<float, float>> data{OutputMeter, 1, 0};
+                data.vals[0] = {reading.peak, reading.rms};
+                meterSender.PushData(data);
+            }
+        }
+    }
 }
 #endif
 void CS01AudioProcessor::OnRestoreState() {
@@ -223,5 +240,6 @@ void CS01AudioProcessor::OnIdle() {
     }
 #if IPLUG_DSP
     scope.TransmitData(*this);
+    meterSender.TransmitData(*this);
 #endif
 }

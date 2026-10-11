@@ -52,7 +52,7 @@ remain non-real-time operations; scalar automation/MIDI edits remain independent
 
 ## Evidence and remaining gates
 
-The portable suite has 200 cases (186 correctness regressions, including three
+The portable suite has 204 cases (190 correctness regressions, including three
 research equation cases, and 14 observations). Patch tests deliberately stall a writer, publish 20,000 concurrent
 changes, serialize during publication, and check cancellation, note-reset
 ordering and allocation-free boundary copies. Prepared-host regressions cover
