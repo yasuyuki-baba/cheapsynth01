@@ -36,7 +36,13 @@ jobs:
       - name: Build
         run: cmake --build build-core --config ${{ matrix.configuration }} --parallel 2
       - name: Test
-        run: ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure
+        run: ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure --output-junit test-results.xml
+      - name: Upload core test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: core-tests-${{ runner.os }}-${{ matrix.configuration }}
+          path: build-core/test-results.xml
   native:
     strategy:
       fail-fast: false
@@ -57,7 +63,13 @@ jobs:
       - name: Build native products and core tests
         run: cmake --build build-native --config Release --parallel 2
       - name: Test core
-        run: ctest --test-dir build-native -C Release --output-on-failure
+        run: ctest --test-dir build-native -C Release --output-on-failure --output-junit test-results.xml
+      - name: Upload native test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-tests-${{ runner.os }}
+          path: build-native/test-results.xml
       - name: Upload native products
         uses: actions/upload-artifact@v7
         with:
