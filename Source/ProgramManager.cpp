@@ -326,6 +326,32 @@ bool ProgramManager::saveCurrentStateAsPreset(std::string_view name) {
     refreshUnlocked();
     return true;
 }
+bool ProgramManager::userPresetExists(std::string_view name) const {
+    std::lock_guard lock(mutex);
+    if (directory.empty() || !isValidPresetName(name))
+        return false;
+    std::error_code ec;
+    // Also detect files created outside the current menu snapshot.
+    return std::filesystem::exists(directory / cs01::utf8Path(std::string(name) + ".xml"), ec);
+}
+bool ProgramManager::loadProgramIdentity(const Program& identity) {
+    std::lock_guard lock(mutex);
+    const auto found = std::find_if(allPresets.begin(), allPresets.end(), [&](const Program& item) {
+        return item.type == identity.type && item.filename == identity.filename;
+    });
+    return found != allPresets.end() &&
+           setCurrentProgram(static_cast<int>(found - allPresets.begin()));
+}
+bool ProgramManager::deleteUserPreset(const Program& identity) {
+    std::lock_guard lock(mutex);
+    if (identity.type != PresetType::User)
+        return false;
+    const auto found = std::find_if(allPresets.begin(), allPresets.end(), [&](const Program& item) {
+        return item.type == PresetType::User && item.filename == identity.filename;
+    });
+    return found != allPresets.end() &&
+           deleteUserPreset(static_cast<int>(found - allPresets.begin()));
+}
 bool ProgramManager::deleteUserPreset(int index) {
     std::lock_guard lock(mutex);
     if (index < 0 || index >= static_cast<int>(allPresets.size()) ||

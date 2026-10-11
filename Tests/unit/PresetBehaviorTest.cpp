@@ -335,3 +335,39 @@ TEST_F(PresetBehaviorTest, SessionRestoresAllRoutesAndResetSerialWithoutSerializ
             EXPECT_GT(energy, 1e-6);
         }
 }
+
+TEST_F(PresetBehaviorTest, DeleteConfirmationKeepsCapturedIdentityAfterSelectionChanges) {
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("First"));
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Second"));
+    ASSERT_TRUE(manager.setCurrentProgram(index("First.xml")));
+    const auto target = manager.currentProgramIdentity();
+    ASSERT_TRUE(manager.setCurrentProgram(index("Second.xml")));
+    ASSERT_TRUE(manager.deleteUserPreset(target));
+    EXPECT_FALSE(manager.userPresetExists("First"));
+    EXPECT_TRUE(manager.userPresetExists("Second"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Second.xml");
+    EXPECT_FALSE(manager.deleteUserPreset(target));
+    EXPECT_FALSE(manager.deleteUserPreset(manager.programs().front()));
+}
+
+TEST_F(PresetBehaviorTest, PopupSelectionLoadsCapturedIdentityAfterListReorders) {
+    state.set(Param::Cutoff, 1234.f);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Zebra"));
+    ASSERT_TRUE(manager.setCurrentProgram(index("Zebra.xml")));
+    const auto target = manager.currentProgramIdentity();
+    state.set(Param::Cutoff, 4321.f);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Alpha"));
+    ASSERT_TRUE(manager.loadProgramIdentity(target));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 1234.f);
+    ASSERT_TRUE(manager.deleteUserPreset(target));
+    EXPECT_FALSE(manager.loadProgramIdentity(target));
+}
+
+TEST_F(PresetBehaviorTest, OverwriteQueryFindsFilesOutsideMenuAndRejectsInvalidNames) {
+    std::filesystem::create_directories(directory);
+    std::ofstream(directory / "External.xml") << "not a valid preset";
+    EXPECT_TRUE(manager.userPresetExists("External"));
+    EXPECT_FALSE(manager.userPresetExists("Missing"));
+    EXPECT_FALSE(manager.userPresetExists("../External"));
+    EXPECT_FALSE(manager.userPresetExists("CON"));
+}
