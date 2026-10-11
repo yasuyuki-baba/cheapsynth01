@@ -39,9 +39,18 @@ void CS01VCFCircuit::setResonance(float newResonance) {
 }
 
 float CS01VCFCircuit::processSample(int channel, float sample) {
+    if (!std::isfinite(sample)) {
+        reset();
+        return 0.0f;
+    }
     const float coupledInput = inputCoupling.processSample(sample);
     const float filtered = model.processSample(coupledInput, cutoff, resonance);
-    return outputCoupling.processSample(filtered);
+    const float output = outputCoupling.processSample(filtered);
+    if (!std::isfinite(coupledInput) || !std::isfinite(filtered) || !std::isfinite(output)) {
+        reset();
+        return 0.0f;
+    }
+    return output;
 }
 
 void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
@@ -71,8 +80,9 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* c
     const float boundedResonance = std::clamp(baseResonance, 0.0f, 1.0f);
     for (int i = 0; i < numSamples; ++i) {
         const float boundedCutoff = std::clamp(cutoffModulation[i], 20.0f, 20000.0f);
-        samples[i] = outputCoupling.processSample(model.processSample(
-            inputCoupling.processSample(samples[i]), boundedCutoff, boundedResonance));
+        cutoff = std::isfinite(boundedCutoff) ? boundedCutoff : originalCutoff;
+        resonance = std::isfinite(boundedResonance) ? boundedResonance : originalResonance;
+        samples[i] = processSample(0, samples[i]);
     }
     cutoff = originalCutoff;
     resonance = originalResonance;

@@ -1,3 +1,5 @@
+#include "CS01Synth/VCAProcessor.h"
+#include "CS01Synth/CS01VCFCircuit.h"
 #include "CS01Synth/VCAEmpiricalStages.h"
 #include "CS01Synth/VCFCouplingStages.h"
 #include "CS01Synth/LFOProcessor.h"
@@ -319,5 +321,128 @@ TEST(EmpiricalStagesTest, VcfOutputCouplingRetainsMixedPrecisionAndResets) {
                     EXPECT_FLOAT_EQ(actual, first[i]);
             }
         }
+    }
+}
+
+TEST(NumericalRecoveryTest, VcaResetsAllStagesAfterBadAudioEnvelopeOrGate) {
+    for (double rate : {44100., 48000., 192000.}) {
+        for (float bad :
+             {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+              -std::numeric_limits<float>::infinity()}) {
+            for (int source = 0; source < 3; ++source) {
+                SCOPED_TRACE(rate);
+                SCOPED_TRACE(source);
+                cs01::ParameterState state;
+                state.set(Param::VcaEgDepth, .75f);
+                VCAProcessor vca(state), reference(state);
+                vca.prepareToPlay(rate, 64);
+                reference.prepareToPlay(rate, 64);
+                // Exercise a populated chain, then compare recovery to a fresh chain.
+                for (int i = 0; i < 64; ++i)
+                    vca.processSample(std::sin(i * .13f), .8f);
+                EXPECT_FLOAT_EQ(vca.processSample(source == 0 ? bad : .5f, source == 1 ? bad : .8f,
+                                                  source == 2 ? bad : 1.f),
+                                0.f);
+                double energy = 0;
+                for (int i = 0; i < 1024; ++i) {
+                    const float input = std::sin(i * .13f);
+                    const float output = vca.processSample(input, .8f);
+                    ASSERT_TRUE(std::isfinite(output));
+                    EXPECT_FLOAT_EQ(output, reference.processSample(input, .8f));
+                    energy += output * output;
+                }
+                EXPECT_GT(energy, .01);
+            }
+        }
+    }
+}
+
+TEST(NumericalRecoveryTest, OriginalFilterResetsCouplingOnSampleAndModulatedBlockPaths) {
+    for (double rate : {44100., 48000., 192000.}) {
+        for (float bad :
+             {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+              -std::numeric_limits<float>::infinity()}) {
+            for (bool block : {false, true}) {
+                CS01VCFCircuit circuit(rate), reference(rate);
+                circuit.prepare(rate);
+                reference.prepare(rate);
+                for (int i = 0; i < 64; ++i)
+                    circuit.processSample(0, std::sin(i * .13f));
+                float sample = bad, cutoff = 1000;
+                if (block)
+                    circuit.processBlock(&sample, 1, &cutoff, .1f);
+                else
+                    sample = circuit.processSample(0, bad);
+                EXPECT_FLOAT_EQ(sample, 0.f);
+                double energy = 0;
+                for (int i = 0; i < 1024; ++i) {
+                    const float input = std::sin(i * .13f);
+                    const float output = circuit.processSample(0, input);
+                    ASSERT_TRUE(std::isfinite(output));
+                    EXPECT_FLOAT_EQ(output, reference.processSample(0, input));
+                    energy += output * output;
+                }
+                EXPECT_GT(energy, .01);
+            }
+        }
+    }
+}
+
+TEST(NumericalRecoveryTest, RejectedNonfiniteDepthLeavesVcaSmoothingUsable) {
+    cs01::ParameterState state, referenceState;
+    state.set(Param::VcaEgDepth, .25f);
+    referenceState.set(Param::VcaEgDepth, .25f);
+    VCAProcessor vca(state), reference(referenceState);
+    vca.prepareToPlay(48000, 64);
+    reference.prepareToPlay(48000, 64);
+    for (float bad :
+         {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
+        state.set(Param::VcaEgDepth, bad);
+        EXPECT_FLOAT_EQ(state.get(Param::VcaEgDepth), .25f);
+        for (int i = 0; i < 64; ++i) {
+            const float input = std::sin(i * .1f);
+            EXPECT_FLOAT_EQ(vca.processSample(input, 1.f), reference.processSample(input, 1.f));
+        }
+    }
+    state.set(Param::VcaEgDepth, 1.f);
+    referenceState.set(Param::VcaEgDepth, 1.f);
+    double energy = 0;
+    for (int i = 0; i < 1280; ++i) {
+        const float input = std::sin(i * .1f);
+        const float output = vca.processSample(input, 1.f);
+        ASSERT_TRUE(std::isfinite(output));
+        EXPECT_FLOAT_EQ(output, reference.processSample(input, 1.f));
+        energy += output * output;
+    }
+    EXPECT_GT(energy, .01);
+}
+
+TEST(NumericalRecoveryTest, ModulatedOriginalFilterFallsBackAndRestoresBaseControls) {
+    CS01VCFCircuit circuit(48000), reference(48000);
+    circuit.prepare(48000);
+    reference.prepare(48000);
+    circuit.setCutoffFrequency(730.f);
+    reference.setCutoffFrequency(730.f);
+    circuit.setResonance(.35f);
+    reference.setResonance(.35f);
+    constexpr auto nan = std::numeric_limits<float>::quiet_NaN();
+    const std::array<float, 8> cutoff{1000.f, nan, 450.f, nan, 1200.f, 500.f, nan, 800.f};
+    std::array<float, 8> samples{}, expected{};
+    for (int i = 0; i < 8; ++i) {
+        const float input = std::sin(i * .13f);
+        samples[i] = input;
+        reference.setCutoffFrequency(std::isfinite(cutoff[i]) ? cutoff[i] : 730.f);
+        expected[i] = reference.processSample(0, input);
+    }
+    circuit.processBlock(samples.data(), 8, cutoff.data(), nan);
+    for (int i = 0; i < 8; ++i) {
+        ASSERT_TRUE(std::isfinite(samples[i]));
+        EXPECT_FLOAT_EQ(samples[i], expected[i]);
+    }
+    // Temporary per-sample controls must not become the next block's defaults.
+    reference.setCutoffFrequency(730.f);
+    for (int i = 0; i < 256; ++i) {
+        const float input = std::sin(i * .17f);
+        EXPECT_FLOAT_EQ(circuit.processSample(0, input), reference.processSample(0, input));
     }
 }

@@ -76,10 +76,31 @@ are deferred; native compilation and archive verification continue in CI.
 Additional MIDI coverage fixes negative-offset stable ordering and applies due
 offset-zero events during empty callbacks. Future events retain iPlug2 queue
 carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 95 core cases plus eight SDK-interface cases.
+restored. The current suite contains 99 core cases plus eight SDK-interface cases.
 
 Editor session guards now invalidate asynchronous replies on close, control
 hierarchy replacement and owner destruction. Rename requests resolve captured
 filename/type identity rather than whatever selection happens to be current
 at reply time. Portable session lifecycle and rename preservation assertions
 pass; actual native dialog/SDK control destruction remains deferred.
+
+## Numerical recovery assertion reconciliation
+
+The three AuditNumericalTest cases in the frozen AuditStabilityTest.cpp are now
+replaced by portable NumericalRecoveryTest assertions. VCA invalid audio/EG/gate
+samples and Original-filter invalid audio reset the complete stateful chain and
+emit zero, retaining normal finite-input arithmetic. Recovery is compared exactly
+to an independently prepared chain after first populating the affected chain;
+NaN and both infinities are checked at 44.1, 48 and 192 kHz. Both sample and
+modulated-block filter paths share recovery. Invalid modulated controls fall back
+to the base controls, which are restored after the block. ParameterState rejects
+nonfinite VCA-depth changes before the smoother; finite subsequent edits retain
+clean-reference output and nonzero energy.
+
+Before the recovery guards were restored, both VCA and Original-filter recovery
+regressions failed; after the fix all four NumericalRecoveryTest cases pass.
+The complete 107-case suite passes locally in Debug, Release and ASan/UBSan
+with leak detection. This is portable-core evidence; native plugin/DAW/device
+checks remain deferred. The two AuditPresetTest cases were also compared assertion
+by assertion to their existing portable replacements and recorded in the CSV.
+All other pending-case-review entries retain their previous status.

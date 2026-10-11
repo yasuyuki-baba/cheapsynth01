@@ -35,7 +35,7 @@ remaining behavior and validation gaps, iPlug2OOS alignment and validation gates
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 95 active core cases: 92 correctness regressions and
+The current suite has 99 active core cases: 96 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
@@ -62,8 +62,10 @@ The complete audited main Tests snapshot and source references are under
 `unit/KeyboardInputTest.cpp` and the allocation probe cover UI/external note
 ownership, per-instance PC input and cleanup. `unit/DspRegressionTest.cpp` adds
 LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
-references. MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 103 active CTest cases with SDK-interface
+references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
+input recovery, modulation fallback and usable smoothing after rejected controls.
+MidiQueue cases guard stable clamping, future-event carry and empty
+callback boundary processing. There are 107 active CTest cases with SDK-interface
 tests enabled; this count does not claim historical assertion parity.
 
 Archive contract tests run independently, without loading a product:
