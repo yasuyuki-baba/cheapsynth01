@@ -35,6 +35,7 @@ superseded documents are available in Git history.
 
 ## Compatibility and Native Validation
 
+- [0.4.0 release notes](release-notes-0.4.0.md)
 - [Migration notes](iPlug2-migration.md)
 - [Native validation status](iPlug2-migration-plan.md)
 
