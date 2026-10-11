@@ -20,9 +20,9 @@ elseif(NOT IPLUG2_CLAP_SUPPORTED)
 endif()
 iplug_add_plugin(CheapSynth01
     SOURCES
-        CS01AudioProcessor.cpp
-        CS01AudioProcessor.h
-        CS01AudioProcessorEditor.cpp
+        CheapSynth01.cpp
+        CheapSynth01.h
+        CheapSynth01_UI.cpp
         KeyboardFocus.cpp
         ui/PanelControls.h
         ui/OwnedKeyboardControl.h

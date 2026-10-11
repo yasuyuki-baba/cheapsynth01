@@ -9,13 +9,13 @@ EGProcessor::EGProcessor(cs01::ParameterState& parameters) : parameters(paramete
 EGProcessor::~EGProcessor() {}
 
 //==============================================================================
-void EGProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void EGProcessor::prepare(double sampleRate) {
     stopEnvelopeImmediately();
     envelopeSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
     updateADSR();
 }
 
-void EGProcessor::releaseResources() {
+void EGProcessor::reset() {
     stopEnvelopeImmediately();
 }
 

@@ -19,17 +19,17 @@ class ToneGenerator : public ISoundGenerator {
     ToneGenerator(cs01::ParameterState& parameters);
 
     // ISoundGenerator implementation - note handling methods
-    void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
-    void stopNote(bool allowTailOff) override;
+    void startNote(int midiNoteNumber, float velocity, int pitchBendValue) override;
+    void stopNote(bool allowReleaseTail) override;
     PlaybackState getPlaybackState() const override;
     void setReleaseSamplesRemaining(int samples) override;
     void restorePlaybackState(const PlaybackState& state) override;
     int lastNote = 0;
-    int lastPitchWheel = 8192;
+    int lastPitchBend = 8192;
     void changeNote(int midiNoteNumber) override;
-    void pitchWheelMoved(int newPitchWheelValue) override;
+    void setPitchBend(int pitchBendValue) override;
     bool isActive() const override;
-    int getCurrentlyPlayingNote() const override;
+    int currentNote() const override;
 
     // Audio processing methods
     void prepare(double sampleRate) override;
@@ -42,7 +42,7 @@ class ToneGenerator : public ISoundGenerator {
     float getNextSample();
     void setLfoValue(float lfoValue) override;
     void setNote(int midiNoteNumber, bool isLegato);
-    void setPitchBend(float bendInSemitones);
+    void setPitchBendSemitones(float bendInSemitones);
 
    private:
     float generateVcoSampleFromMaster(float masterSquare);
@@ -54,7 +54,7 @@ class ToneGenerator : public ISoundGenerator {
     cs01::ParameterState& parameters;
 
     // Note state
-    int currentlyPlayingNote = 0;
+    int currentNoteNumber = 0;
     bool noteOn = false;
     bool tailOff = false;
     int tailOffCounter = 0;
@@ -63,7 +63,7 @@ class ToneGenerator : public ISoundGenerator {
     // Pitch State
     float currentPitch = 60.0f;
     float targetPitch = 60.0f;
-    float pitchBend = 0.0f;
+    float pitchBendSemitones = 0.0f;
     float appliedBendUpRange = -1.0f;
     float appliedBendDownRange = -1.0f;
     bool isSliding = false;

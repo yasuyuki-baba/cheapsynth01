@@ -80,13 +80,19 @@ use lowercase, following the template's `resources/` and `scripts/` convention.
 Core-only builds enter the same product directory and build its independent
 target without initializing iPlug2.
 
+The plugin class and its main source files use the product name, `CheapSynth01`,
+following TemplateProject. UI implementation lives in `CheapSynth01_UI.cpp`.
+The independent core uses `prepare(sampleRate)` and `reset()` for DSP lifecycle.
+`setPitchBend(value)` accepts raw MIDI pitch bend (0..16383, center 8192);
+`setPitchBendSemitones(value)` explicitly accepts a semitone offset.
+
 ```text
 iPlug2/                  # Pinned SDK submodule
 CheapSynth01/            # Product directory
   CMakeLists.txt
   config.h
-  CS01AudioProcessor.*
-  CS01AudioProcessorEditor.cpp
+  CheapSynth01.*
+  CheapSynth01_UI.cpp
   ui/                    # IGraphics controls
   resources/             # Product and platform resources
   core/                  # Framework-independent DSP/state target

@@ -9,14 +9,14 @@ OriginalVCFProcessor::OriginalVCFProcessor(cs01::ParameterState& parameters)
 OriginalVCFProcessor::~OriginalVCFProcessor() {}
 
 //==============================================================================
-void OriginalVCFProcessor::prepareToPlay(double sampleRate, int) {
+void OriginalVCFProcessor::prepare(double sampleRate) {
     filter.reset();
     filter.prepare(sampleRate);
     egDepthControl.reset(sampleRate, .005);
     egDepthControl.setCurrentAndTargetValue(parameters.get(ParameterIds::vcfEgDepth));
 }
 
-void OriginalVCFProcessor::releaseResources() {
+void OriginalVCFProcessor::reset() {
     // Reset filter
     filter.reset();
 }

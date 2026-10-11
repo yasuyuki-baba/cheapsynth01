@@ -12,17 +12,18 @@ class ISoundGenerator {
    public:
     virtual ~ISoundGenerator() = default;
 
-    // Note handling methods from INoteHandler
-    virtual void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) = 0;
-    virtual void stopNote(bool allowTailOff) = 0;
+    // MIDI note handling
+    virtual void startNote(int midiNoteNumber, float velocity, int pitchBendValue) = 0;
+    virtual void stopNote(bool allowReleaseTail) = 0;
     virtual void changeNote(int midiNoteNumber) = 0;
-    virtual void pitchWheelMoved(int newPitchWheelValue) = 0;
+    // Raw MIDI pitch bend: 0..16383, with 8192 at the center.
+    virtual void setPitchBend(int pitchBendValue) = 0;
     virtual bool isActive() const = 0;
-    virtual int getCurrentlyPlayingNote() const = 0;
+    virtual int currentNote() const = 0;
     struct PlaybackState {
         bool held = false;
         int note = 0;
-        int pitchWheel = 8192;
+        int pitchBend = 8192;
         double releaseSecondsRemaining = 0.0;
     };
     virtual PlaybackState getPlaybackState() const {

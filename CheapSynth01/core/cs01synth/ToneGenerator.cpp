@@ -13,21 +13,21 @@ void ToneGenerator::prepare(double rate) {
     reset();
 }
 
-// INoteHandler interface implementation
-void ToneGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) {
+// MIDI note handling
+void ToneGenerator::startNote(int midiNoteNumber, float velocity, int pitchBendValue) {
     lastNote = midiNoteNumber;
     tailOff = false;
-    currentlyPlayingNote = midiNoteNumber;
+    currentNoteNumber = midiNoteNumber;
     setNote(midiNoteNumber, false);  // isLegato = false
-    pitchWheelMoved(currentPitchWheelPosition);
+    setPitchBend(pitchBendValue);
     noteOn = true;
 }
 
-void ToneGenerator::stopNote(bool allowTailOff) {
+void ToneGenerator::stopNote(bool allowReleaseTail) {
     noteOn = false;
-    currentlyPlayingNote = 0;
+    currentNoteNumber = 0;
 
-    if (allowTailOff) {
+    if (allowReleaseTail) {
         tailOff = true;
         // Get release time from parameter (convert to samples)
         float releaseSecs = parameters.get(ParameterIds::release);
@@ -39,18 +39,18 @@ void ToneGenerator::stopNote(bool allowTailOff) {
 }
 
 void ToneGenerator::changeNote(int midiNoteNumber) {
-    currentlyPlayingNote = midiNoteNumber;
+    currentNoteNumber = midiNoteNumber;
     setNote(midiNoteNumber, true);  // isLegato = true
 }
 
-void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
-    lastPitchWheel = newPitchWheelValue;
+void ToneGenerator::setPitchBend(int pitchBendValue) {
+    lastPitchBend = pitchBendValue;
     auto upRange = parameters.get(ParameterIds::pitchBendUpRange);
     auto downRange = parameters.get(ParameterIds::pitchBendDownRange);
     appliedBendUpRange = upRange;
     appliedBendDownRange = downRange;
 
-    const float displacement = static_cast<float>(newPitchWheelValue - 8192);
+    const float displacement = static_cast<float>(pitchBendValue - 8192);
     const float bendValue = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
 
     float bendOffset = 0.0f;
@@ -59,7 +59,7 @@ void ToneGenerator::pitchWheelMoved(int newPitchWheelValue) {
     else
         bendOffset = bendValue * downRange;
 
-    pitchBend = bendOffset;
+    pitchBendSemitones = bendOffset;
 }
 
 bool ToneGenerator::isActive() const {
@@ -67,7 +67,7 @@ bool ToneGenerator::isActive() const {
 }
 
 ISoundGenerator::PlaybackState ToneGenerator::getPlaybackState() const {
-    return {noteOn, lastNote, lastPitchWheel,
+    return {noteOn, lastNote, lastPitchBend,
             tailOff
                 ? std::max(0, tailOffDuration - tailOffCounter) / static_cast<double>(sampleRate)
                 : 0.0};
@@ -77,19 +77,19 @@ void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
     stopNote(false);
     if (!state.held && state.releaseSecondsRemaining <= 0.0)
         return;
-    startNote(state.note, 1.0f, state.pitchWheel);
+    startNote(state.note, 1.0f, state.pitchBend);
     if (!state.held) {
         noteOn = false;
         tailOff = true;
         tailOffCounter = 0;
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
-        currentlyPlayingNote = 0;
+        currentNoteNumber = 0;
     }
 }
 
-int ToneGenerator::getCurrentlyPlayingNote() const {
-    return currentlyPlayingNote;
+int ToneGenerator::currentNote() const {
+    return currentNoteNumber;
 }
 
 // Audio processing methods
@@ -110,7 +110,7 @@ void ToneGenerator::updateBlockRateParameters() {
     if (appliedBendUpRange >= 0.0f &&
         (parameters.get(ParameterIds::pitchBendUpRange) != appliedBendUpRange ||
          parameters.get(ParameterIds::pitchBendDownRange) != appliedBendDownRange))
-        pitchWheelMoved(lastPitchWheel);
+        setPitchBend(lastPitchBend);
     currentFeet = static_cast<Feet>(static_cast<int>(parameters.get(ParameterIds::feet)));
     currentWaveform =
         static_cast<Waveform>(static_cast<int>(parameters.get(ParameterIds::waveType)));
@@ -122,7 +122,7 @@ void ToneGenerator::updateBlockRateParameters() {
     currentModDepth = parameters.get(ParameterIds::modDepth);
 
     // Cache pitch-related parameters to avoid per-sample parameter access
-    // MIDI (including queued panel gestures) applies bend once via pitchWheelMoved.
+    // MIDI (including queued panel gestures) applies bend once via setPitchBend.
     pitchBendOffset = 0.0f;
     pitchOffset = parameters.get(ParameterIds::pitch);
 
@@ -150,7 +150,7 @@ void ToneGenerator::reset() {
     tailOff = false;
     tailOffCounter = 0;
     tailOffDuration = 0;
-    currentlyPlayingNote = 0;
+    currentNoteNumber = 0;
 }
 
 void ToneGenerator::setNote(int midiNoteNumber, bool isLegato) {
@@ -230,10 +230,10 @@ float ToneGenerator::getNextSample() {
     float finalPitch = currentPitch;  // Base pitch (discrete for glissando)
 
     // Add continuous pitch modulations (smooth, continuous changes)
-    finalPitch += pitchBend;        // Pitch bend wheel (continuous)
-    finalPitch += pitchBendOffset;  // Pitch bend offset (continuous)
-    finalPitch += pitchOffset;      // Fine pitch adjustment (continuous)
-    finalPitch += lfoValue;         // LFO pitch modulation (continuous)
+    finalPitch += pitchBendSemitones;  // Pitch bend wheel (continuous)
+    finalPitch += pitchBendOffset;     // Pitch bend offset (continuous)
+    finalPitch += pitchOffset;         // Fine pitch adjustment (continuous)
+    finalPitch += lfoValue;            // LFO pitch modulation (continuous)
 
     // Add octave offset (discrete, but doesn't affect continuity)
     int octaveOffset = 0;
@@ -262,8 +262,8 @@ void ToneGenerator::setLfoValue(float newLfoValue) {
     lfoValue = newLfoValue;
 }
 
-void ToneGenerator::setPitchBend(float bendInSemitones) {
-    pitchBend = bendInSemitones;
+void ToneGenerator::setPitchBendSemitones(float bendInSemitones) {
+    pitchBendSemitones = bendInSemitones;
 }
 
 float ToneGenerator::generateMasterSquareWave(float finalPitch) {

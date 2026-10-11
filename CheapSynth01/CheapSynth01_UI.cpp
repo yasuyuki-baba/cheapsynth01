@@ -1,4 +1,4 @@
-#include "CS01AudioProcessor.h"
+#include "CheapSynth01.h"
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
 #include "ui/PanelControls.h"
@@ -16,7 +16,7 @@ constexpr int index(cs01::Param id) {
     return static_cast<int>(id);
 }
 }  // namespace
-void CS01AudioProcessor::layoutEditor(IGraphics* g) {
+void CheapSynth01::layoutEditor(IGraphics* g) {
     editorSession.begin();
     using namespace cs01::ui;
     using cs01::Param;
@@ -309,18 +309,18 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     updateProgramLabel();
     updateFilterControls();
 }
-void CS01AudioProcessor::OnUIOpen() {
+void CheapSynth01::OnUIOpen() {
     releaseEditorNotes();
     programs.refreshUserPresets();
     updateProgramLabel();
     updateFilterControls();
 }
-void CS01AudioProcessor::OnUIClose() {
+void CheapSynth01::OnUIClose() {
     editorSession.end();
     releaseEditorNotes();
     monitorEnabled.store(false);
 }
-void CS01AudioProcessor::releaseEditorNotes() {
+void CheapSynth01::releaseEditorNotes() {
     qwerty.release(
         [this](int note, int velocity) { uiNotes.set(note, velocity, cs01::UiNoteBridge::PC); });
     uiNotes.releaseAll();
@@ -329,7 +329,7 @@ void CS01AudioProcessor::releaseEditorNotes() {
                 static_cast<cs01::ui::OwnedKeyboardControl*>(GetUI()->GetControlWithTag(Keyboard)))
             keyboard->resetMouse();
 }
-void CS01AudioProcessor::updateKeyboardInput() {
+void CheapSynth01::updateKeyboardInput() {
     auto* g = GetUI();
     if (!g)
         return;
@@ -340,7 +340,7 @@ void CS01AudioProcessor::updateKeyboardInput() {
             static_cast<cs01::ui::OwnedKeyboardControl*>(g->GetControlWithTag(Keyboard)))
         keyboard->refresh();
 }
-void CS01AudioProcessor::updateProgramLabel() {
+void CheapSynth01::updateProgramLabel() {
     if (!GetUI())
         return;
     auto* label = static_cast<ITextControl*>(GetUI()->GetControlWithTag(ProgramLabel));
@@ -355,7 +355,7 @@ void CS01AudioProcessor::updateProgramLabel() {
     GetUI()->GetControlWithTag(RenamePreset)->SetDisabled(!user);
     GetUI()->GetControlWithTag(DeletePreset)->SetDisabled(!user);
 }
-void CS01AudioProcessor::updateFilterControls() {
+void CheapSynth01::updateFilterControls() {
     if (!GetUI())
         return;
     const bool modern = GetParam(index(cs01::Param::FilterType))->Int() != 0;
@@ -366,11 +366,11 @@ void CS01AudioProcessor::updateFilterControls() {
     // and the complete panel after swapping them so the previous view is erased.
     GetUI()->SetAllControlsDirty();
 }
-void CS01AudioProcessor::OnParamChangeUI(int param, EParamSource) {
+void CheapSynth01::OnParamChangeUI(int param, EParamSource) {
     if (param == index(cs01::Param::FilterType))
         updateFilterControls();
 }
-void CS01AudioProcessor::reportPresetError() {
+void CheapSynth01::reportPresetError() {
     if (GetUI())
         GetUI()->ShowMessageBox(
             "Could not update the preset. Choose a user preset and a valid name, or check the XML "

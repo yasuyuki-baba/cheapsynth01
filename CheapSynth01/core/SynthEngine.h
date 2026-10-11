@@ -22,7 +22,7 @@ class SynthEngine {
     }
     float renderSample();
     int currentNote() const {
-        return midi.getCurrentlyPlayingNote();
+        return midi.currentNote();
     }
     static constexpr int latency = cs01::OutputConverter::latency;
 

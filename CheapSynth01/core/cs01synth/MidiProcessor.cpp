@@ -17,10 +17,10 @@ void MidiProcessor::updateParameter(Control control, float normalizedValue) {
     parameters.setNormalized(ids[static_cast<size_t>(control)], normalizedValue, true);
 }
 
-void MidiProcessor::prepareToPlay(double, int) {
-    releaseResources();
+void MidiProcessor::prepare(double) {
+    reset();
 }
-void MidiProcessor::releaseResources() {
+void MidiProcessor::reset() {
     activeNotes.reset();
     if (soundGenerator != nullptr)
         soundGenerator->stopNote(false);
@@ -30,7 +30,7 @@ void MidiProcessor::releaseResources() {
 
 void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
     if (midiMessage.isAllSoundOff()) {
-        releaseResources();
+        reset();
     } else if (midiMessage.isAllNotesOff()) {
         if (activeNotes.any()) {
             activeNotes.reset();
@@ -43,8 +43,8 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
         handleNoteOn(midiMessage);
     } else if (midiMessage.isNoteOff()) {
         handleNoteOff(midiMessage);
-    } else if (midiMessage.isPitchWheel()) {
-        handlePitchWheel(midiMessage);
+    } else if (midiMessage.isPitchBend()) {
+        handlePitchBend(midiMessage);
     } else if (midiMessage.isController()) {
         handleControllerMessage(midiMessage);
     }
@@ -55,12 +55,12 @@ void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
     bool wasEmpty = activeNotes.none();
     activeNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
 
-    int highestNote = getCurrentlyPlayingNote();
+    int highestNote = currentNote();
     float velocity = midiMessage.getVelocity() / 127.0f;
 
     if (soundGenerator != nullptr) {
         if (wasEmpty) {
-            soundGenerator->startNote(highestNote, velocity, lastPitchWheelValue);
+            soundGenerator->startNote(highestNote, velocity, lastPitchBend);
 
             // Call EG note-on only for the first note
             if (egProcessor != nullptr) {
@@ -80,7 +80,7 @@ void MidiProcessor::handleNoteOff(const cs01::MidiMessage& midiMessage) {
 
     if (soundGenerator != nullptr) {
         if (activeNotes.none()) {
-            // Always set allowTailOff = true to make sound fade gradually
+            // Always set allowReleaseTail = true to make sound fade gradually
             soundGenerator->stopNote(true);
 
             // Start EG release only when all notes are off
@@ -88,21 +88,21 @@ void MidiProcessor::handleNoteOff(const cs01::MidiMessage& midiMessage) {
                 egProcessor->releaseEnvelope();
             }
         } else {
-            int highestNote = getCurrentlyPlayingNote();
+            int highestNote = currentNote();
             soundGenerator->changeNote(highestNote);
         }
     }
 }
 
-void MidiProcessor::handlePitchWheel(const cs01::MidiMessage& midiMessage) {
-    lastPitchWheelValue = midiMessage.getPitchWheelValue();
+void MidiProcessor::handlePitchBend(const cs01::MidiMessage& midiMessage) {
+    lastPitchBend = midiMessage.getPitchBendValue();
 
-    // Set pitch wheel value to sound generator
+    // Set pitch bend value to sound generator
     if (soundGenerator != nullptr) {
-        soundGenerator->pitchWheelMoved(lastPitchWheelValue);
+        soundGenerator->setPitchBend(lastPitchBend);
     }
 
-    const float displacement = static_cast<float>(lastPitchWheelValue - 8192);
+    const float displacement = static_cast<float>(lastPitchBend - 8192);
     const float position = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
     updateParameter(Control::PitchBend, cs01::toNormalized(ParameterIds::pitchBend, position));
 }
@@ -141,7 +141,7 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
         breathMSB = breathLSB = 0;
         updateModulationParameter();
         updateBreathParameter();
-        handlePitchWheel(cs01::MidiMessage::pitchWheel(midiMessage.getChannel(), 8192));
+        handlePitchBend(cs01::MidiMessage::pitchBend(midiMessage.getChannel(), 8192));
         return;
     }
 

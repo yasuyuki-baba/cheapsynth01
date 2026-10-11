@@ -32,8 +32,8 @@ TEST(EGContinuityTest, RetriggerDuringAttackKeepsTheHeldTrajectory) {
             cs01::ParameterState state;
             settings(state);
             EGProcessor held(state), retriggered(state);
-            held.prepareToPlay(rate, 1);
-            retriggered.prepareToPlay(rate, 1);
+            held.prepare(rate);
+            retriggered.prepare(rate);
             held.startEnvelope();
             retriggered.startEnvelope();
             const int boundary = static_cast<int>(fraction * 2 * state.get(Param::Attack) * rate);
@@ -54,7 +54,7 @@ TEST(EGContinuityTest, TimeEditsKeepIntegratedProgressInEveryMovingStage) {
             cs01::ParameterState state;
             settings(state);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, 1);
+            eg.prepare(rate);
             eg.startEnvelope();
             if (id == Param::Decay)
                 advance(eg,
@@ -96,7 +96,7 @@ TEST(EGContinuityTest, RetriggerFromReleaseUsesResidualThresholdTime) {
             settings(state);
             state.set(Param::Release, .2f);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, 1);
+            eg.prepare(rate);
             eg.startEnvelope();
             advance(eg, static_cast<int>(rate * .3));
             eg.releaseEnvelope();
@@ -127,7 +127,7 @@ TEST(EGContinuityTest, ZeroSustainReleaseKeepsTheIndependentGateClock) {
         state.set(Param::Decay, .01f);
         state.set(Param::Sustain, 0);
         EGProcessor eg(state);
-        eg.prepareToPlay(rate, 1);
+        eg.prepare(rate);
         eg.startEnvelope();
         advance(eg, static_cast<int>(rate * .12));
         ASSERT_FLOAT_EQ(eg.getLastOutputForTesting(), 0);
@@ -153,8 +153,8 @@ TEST(EGContinuityTest, AttackAndDecayChangesDoNotAlterRunningRelease) {
         settings(original);
         settings(edited);
         EGProcessor a(original), b(edited);
-        a.prepareToPlay(rate, 1);
-        b.prepareToPlay(rate, 1);
+        a.prepare(rate);
+        b.prepare(rate);
         a.startEnvelope();
         b.startEnvelope();
         advance(a, static_cast<int>(rate * .025));
@@ -176,7 +176,7 @@ TEST(EGContinuityTest, SustainEditsAndLifecycleRemainBounded) {
     cs01::ParameterState state;
     settings(state);
     EGProcessor eg(state);
-    eg.prepareToPlay(48000, 1);
+    eg.prepare(48000);
     eg.startEnvelope();
     advance(eg, 57600);
     for (float target : {.8f, .2f, 1.f, 0.f, .5f}) {
@@ -193,13 +193,13 @@ TEST(EGContinuityTest, SustainEditsAndLifecycleRemainBounded) {
     }
     eg.releaseEnvelope();
     advance(eg, 1000);
-    eg.releaseResources();
+    eg.reset();
     EXPECT_FALSE(eg.isActive());
     EXPECT_FLOAT_EQ(eg.getNoteGate(), 0);
     EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0);
     eg.startEnvelope();
     advance(eg, 1000);
-    eg.prepareToPlay(96000, 1);
+    eg.prepare(96000);
     EXPECT_FLOAT_EQ(eg.processSample(), 0);
     EXPECT_FLOAT_EQ(eg.getNoteGate(), 0);
 }
@@ -316,7 +316,7 @@ TEST(EGContinuityTest, LiveAttackEditPreservesBoundedMonotonicProgress) {
         cs01::ParameterState state;
         settings(state);
         EGProcessor eg(state);
-        eg.prepareToPlay(rate, 64);
+        eg.prepare(rate);
         eg.startEnvelope();
         advance(eg, static_cast<int>(rate * .02));
         float previous = eg.getLastOutputForTesting();
@@ -342,7 +342,7 @@ TEST(EGContinuityTest, ReleaseTimeEditKeepsResidualBranchTargetWithZeroSustain) 
             state.set(Param::Sustain, 0.f);
             state.set(Param::Release, .5f);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, 1);
+            eg.prepare(rate);
             eg.startEnvelope();
             advance(eg, static_cast<int>(rate * .025));
             const double branchTarget = 0;
@@ -376,7 +376,7 @@ TEST(EGContinuityTest, RetriggerRestoresEditedSustainDuringAndAfterRelease) {
             state.set(Param::Sustain, .6f);
             state.set(Param::Release, .5f);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, 1);
+            eg.prepare(rate);
             eg.startEnvelope();
             advance(eg, static_cast<int>(rate * .025));
             eg.releaseEnvelope();
@@ -409,7 +409,7 @@ TEST(EGContinuityTest, LifecycleClearsObservationGateAndRepreparesAtOtherRates) 
         cs01::ParameterState state;
         settings(state);
         EGProcessor eg(state);
-        eg.prepareToPlay(48000, 64);
+        eg.prepare(48000);
         eg.startEnvelope();
         advance(eg, 64);
         if (duringRelease) {
@@ -418,16 +418,16 @@ TEST(EGContinuityTest, LifecycleClearsObservationGateAndRepreparesAtOtherRates) 
         }
         ASSERT_TRUE(eg.isActive());
         ASSERT_GT(eg.getLastOutputForTesting(), 0.f);
-        eg.releaseResources();
+        eg.reset();
         EXPECT_FALSE(eg.isActive());
         EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
         EXPECT_FLOAT_EQ(eg.getNoteGate(), 0.f);
-        eg.prepareToPlay(96000, 64);
+        eg.prepare(96000);
         for (int i = 0; i < 64; ++i)
             EXPECT_FLOAT_EQ(eg.processSample(), 0.f);
         eg.startEnvelope();
         advance(eg, 64);
-        eg.prepareToPlay(44100, 64);
+        eg.prepare(44100);
         EXPECT_FALSE(eg.isActive());
         EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
         EXPECT_FLOAT_EQ(eg.getNoteGate(), 0.f);
@@ -442,7 +442,7 @@ TEST(EGContinuityTest, ProductionRangeStageDurationsIncludingMaximumInternalRate
                 state.set(id, cs01::fromNormalized(id, position));
             state.set(Param::Sustain, .5f);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, 256);
+            eg.prepare(rate);
             eg.startEnvelope();
             auto duration = [&](auto done) {
                 for (int n = 1; n <= static_cast<int>(rate * 42); ++n)
@@ -468,7 +468,7 @@ TEST(EGContinuityTest, RepeatedEditsRetriggersAndGateClockArePartitionIndependen
             if (gate)
                 state.set(Param::Release, .01f);
             EGProcessor eg(state);
-            eg.prepareToPlay(rate, block);
+            eg.prepare(rate);
             std::vector<float> output;
             std::vector<int> boundaries =
                 gate ? std::vector<int>{0, 100, 200, 300, 400, 12000}
@@ -524,7 +524,7 @@ TEST(EGContinuityTest, EarlyReleaseUsesNoteOffLevelAndRateWithZeroSustain) {
         settings(state);
         state.set(Param::Sustain, 0);
         EGProcessor eg(state);
-        eg.prepareToPlay(rate, 1);
+        eg.prepare(rate);
         eg.startEnvelope();
         advance(eg, static_cast<int>(rate * .037));
         float initial = eg.getLastOutputForTesting();
@@ -548,7 +548,7 @@ TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainSlopeBoundsIncluding
         state.set(Param::Sustain, .5f);
         state.set(Param::Release, .5f);
         EGProcessor eg(state);
-        eg.prepareToPlay(rate, 1);
+        eg.prepare(rate);
         eg.startEnvelope();
         float previous = 0;
         bool reachedPeak = false;

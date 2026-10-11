@@ -15,8 +15,8 @@ class ModernVCFProcessor : public IFilter {
     ~ModernVCFProcessor();
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock);
-    void releaseResources();
+    void prepare(double sampleRate);
+    void reset();
 
     float processSample(float audio, float eg, float lfo);
 

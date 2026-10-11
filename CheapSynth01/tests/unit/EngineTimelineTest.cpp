@@ -74,8 +74,8 @@ TEST(EngineTimelineTest, EveryWaveformRetainsUpstreamPhaseAcrossInBlockReleaseDe
             state.set(Param::Release, .005f);
             state.set(Param::ModDepth, 0);
             VCOProcessor played(state), held(state);
-            played.prepareToPlay(rate * 4, 64);
-            held.prepareToPlay(rate * 4, 64);
+            played.prepare(rate * 4);
+            held.prepare(rate * 4);
             played.getSoundGenerator()->startNote(45, 1, 8192);
             held.getSoundGenerator()->startNote(45, 1, 8192);
             double idleEnergy = 0;
@@ -100,7 +100,7 @@ TEST(EngineTimelineTest, NoiseHasEnergyPastMinimumReleaseDeadline) {
         state.set(Param::Feet, 4);
         state.set(Param::Release, .001f);
         VCOProcessor vco(state);
-        vco.prepareToPlay(rate * 4, 512);
+        vco.prepare(rate * 4);
         vco.getSoundGenerator()->startNote(45, 1, 8192);
         vco.getSoundGenerator()->stopNote(true);
         const int deadline = int(state.get(Param::Release) * rate * 4);
@@ -240,7 +240,7 @@ TEST(EngineTimelineTest, BreathMidiReachesVcaAndOriginalFilterAndResetRecovers) 
 TEST(EngineTimelineTest, SourceSelectionMutatesOnlyOnAudioUseWhileWorkerPublishesChoices) {
     cs01::ParameterState state;
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 64);
+    vco.prepare(48000);
     auto* original = vco.getSoundGenerator();
     original->startNote(69, 1, 12000);
     std::thread worker([&] {
@@ -253,8 +253,8 @@ TEST(EngineTimelineTest, SourceSelectionMutatesOnlyOnAudioUseWhileWorkerPublishe
     vco.applyPendingGeneratorChange();
     EXPECT_NE(vco.getSoundGenerator(), original);
     EXPECT_TRUE(vco.getSoundGenerator()->getPlaybackState().held);
-    EXPECT_EQ(vco.getSoundGenerator()->getCurrentlyPlayingNote(), 69);
-    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchWheel, 12000);
+    EXPECT_EQ(vco.getSoundGenerator()->currentNote(), 69);
+    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchBend, 12000);
     EXPECT_FALSE(original->isActive());
 }
 
@@ -286,11 +286,11 @@ TEST(EngineTimelineTest, EveryStationaryRouteMatchesIndependentConnectedSignalCh
                     OriginalVCFProcessor original(state);
                     ModernVCFProcessor modern(state);
                     VCAProcessor vca(state);
-                    eg.prepareToPlay(internal, 1);
-                    lfo.prepareToPlay(internal, 1);
-                    original.prepareToPlay(internal, 1);
-                    modern.prepareToPlay(internal, 1);
-                    vca.prepareToPlay(internal, 1);
+                    eg.prepare(internal);
+                    lfo.prepare(internal);
+                    original.prepare(internal);
+                    modern.prepare(internal);
+                    vca.prepare(internal);
                     eg.startEnvelope();
                     cs01::OutputConverter output;
                     double total = 0;
@@ -390,7 +390,7 @@ TEST(EngineTimelineTest, LiveGlissandoEditsMatchFullEngineTimelineAcrossPartitio
 TEST(EngineTimelineTest, ConcurrentChoicePublicationKeepsAudioOwnedNoteAndFiniteSamples) {
     cs01::ParameterState state;
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 64);
+    vco.prepare(48000);
     vco.getSoundGenerator()->startNote(69, 1, 12000);
     std::atomic<bool> done{false};
     std::thread worker([&] {
@@ -409,8 +409,8 @@ TEST(EngineTimelineTest, ConcurrentChoicePublicationKeepsAudioOwnedNoteAndFinite
     vco.applyPendingGeneratorChange();
     EXPECT_TRUE(held);
     EXPECT_TRUE(finite);
-    EXPECT_EQ(vco.getSoundGenerator()->getCurrentlyPlayingNote(), 69);
-    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchWheel, 12000);
+    EXPECT_EQ(vco.getSoundGenerator()->currentNote(), 69);
+    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchBend, 12000);
 }
 
 TEST(EngineTimelineTest, BreathMidiLiveMuteOpenAndReturnRecoverWithinOnePercent) {
