@@ -35,7 +35,10 @@ class ProgramManager {
     bool loadPresetFile(const std::filesystem::path& file);
     bool saveCurrentStateAsPreset(std::string_view name);
     static bool isValidPresetName(std::string_view name);
+    bool userPresetExists(std::string_view name) const;
     bool deleteUserPreset(int index);
+    bool deleteUserPreset(const Program& identity);
+    bool loadProgramIdentity(const Program& identity);
     bool renameUserPreset(int index, std::string_view name);
     bool renameUserPreset(const Program& identity, std::string_view name);
     void refreshUserPresets();

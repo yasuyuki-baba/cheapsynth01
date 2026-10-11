@@ -22,6 +22,14 @@ if(BUILD_VST3_BOUNDARY_TESTS)
     if(NOT EXISTS "${boundary_sdk}/pluginterfaces/vst/ivstparameterchanges.h")
         message(FATAL_ERROR "VST3 boundary tests require the prepared VST3 SDK")
     endif()
+    add_executable(CheapSynth01ParameterPresentationTests unit/ParameterPresentationTest.cpp
+        "${IPLUG2_DIR}/IPlug/IPlugParameter.cpp")
+    target_include_directories(CheapSynth01ParameterPresentationTests PRIVATE
+        "${PROJECT_SOURCE_DIR}/CheapSynth01" "${PROJECT_SOURCE_DIR}/Source"
+        "${IPLUG2_DIR}/IPlug" "${IPLUG2_DIR}/WDL")
+    target_link_libraries(CheapSynth01ParameterPresentationTests PRIVATE GTest::gtest_main)
+    gtest_discover_tests(CheapSynth01ParameterPresentationTests DISCOVERY_TIMEOUT 30
+        PROPERTIES LABELS "regression;integration;parameter-presentation")
     add_executable(CheapSynth01VST3BoundaryTests unit/VST3ParameterChangesTest.cpp)
     target_include_directories(CheapSynth01VST3BoundaryTests PRIVATE
         "${PROJECT_SOURCE_DIR}/CheapSynth01" "${PROJECT_SOURCE_DIR}/Source" "${boundary_sdk}")

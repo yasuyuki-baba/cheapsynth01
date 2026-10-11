@@ -63,7 +63,8 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                                parameterStyle.WithShowLabel(*title != '\0'), true);
         const auto help = std::string(cs01::definition(parameter).name) +
                           ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
-                          "Click the value to type; double-click the slider to reset.";
+                          "Click the value to type; double-click the slider to reset. "
+                          "Right-click for the DAW parameter menu where supported.";
         control->SetTooltip(help.c_str());
         return g->AttachControl(control, tag);
     };
@@ -71,7 +72,8 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         auto* control = new HardwareKnob(bounds, index(parameter), title, parameterStyle, true);
         const auto help = std::string(cs01::definition(parameter).name) +
                           ". Drag or scroll to adjust; Shift/Ctrl for fine adjustment. "
-                          "Click the value to type; double-click the knob to reset.";
+                          "Click the value to type; double-click the knob to reset. "
+                          "Right-click for the DAW parameter menu where supported.";
         control->SetTooltip(help.c_str());
         return g->AttachControl(control);
     };
@@ -99,15 +101,10 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         return static_cast<PresetDisplay*>(GetUI()->GetControlWithTag(ProgramLabel));
     };
     g->AttachControl(new PresetDisplay(
-                         IRECT(265, 36, 525, 59),
-                         [this]() {
-                             std::vector<std::string> names;
-                             for (const auto& program : programs.programs())
-                                 names.push_back(program.name);
-                             return names;
-                         },
-                         [this](int selected) {
-                             if (programs.setCurrentProgram(selected)) {
+                         IRECT(265, 36, 525, 59), [this]() { return programs.programs(); },
+                         [this]() { return programs.currentProgramIdentity(); },
+                         [this](const Program& selected) {
+                             if (programs.loadProgramIdentity(selected)) {
                                  syncParameters(true);
                                  updateProgramLabel();
                                  updateFilterControls();
@@ -130,13 +127,25 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     });
     button(IRECT(596, 36, 646, 59), "Save", [this, display](IControl*) {
         display()->PromptName("My Preset", editorSession.wrap([this](const char* name) {
-            if (!programs.saveCurrentStateAsPreset(name))
-                reportPresetError();
-            else {
-                hostPrograms->cancel();
-                syncHostProgramIndex();
+            const std::string requestedName(name);
+            auto save = editorSession.wrap([this, requestedName](EMsgBoxResult result) {
+                if (result != EMsgBoxResult::kYES)
+                    return;
+                if (!programs.saveCurrentStateAsPreset(requestedName))
+                    reportPresetError();
+                else {
+                    hostPrograms->cancel();
+                    syncHostProgramIndex();
+                }
+                updateProgramLabel();
+            });
+            if (programs.userPresetExists(requestedName)) {
+                const auto message = "Replace the user preset \"" + requestedName + "\"?";
+                GetUI()->ShowMessageBox(message.c_str(), "Replace preset", EMsgBoxType::kMB_YESNO,
+                                        save);
+            } else {
+                save(EMsgBoxResult::kYES);
             }
-            updateProgramLabel();
         }));
     });
     button(
@@ -158,12 +167,19 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     button(
         IRECT(716, 36, 776, 59), "Delete",
         [this](IControl*) {
-            if (!programs.deleteUserPreset(programs.getCurrentProgram()))
-                reportPresetError();
-            else
-                syncParameters(true);
-            updateProgramLabel();
-            updateFilterControls();
+            const auto target = programs.currentProgramIdentity();
+            const auto message = "Delete the user preset \"" + target.name + "\"?";
+            GetUI()->ShowMessageBox(message.c_str(), "Delete preset", EMsgBoxType::kMB_YESNO,
+                                    editorSession.wrap([this, target](EMsgBoxResult result) {
+                                        if (result != EMsgBoxResult::kYES)
+                                            return;
+                                        if (!programs.deleteUserPreset(target))
+                                            reportPresetError();
+                                        else
+                                            syncParameters(true);
+                                        updateProgramLabel();
+                                        updateFilterControls();
+                                    }));
         },
         DeletePreset);
     button(IRECT(866, 28, 972, 56), "Import XML", [this](IControl*) {

@@ -52,14 +52,15 @@ remain non-real-time operations; scalar automation/MIDI edits remain independent
 
 ## Evidence and remaining gates
 
-The portable suite has 197 cases (183 correctness regressions, including three
+The portable suite has 200 cases (186 correctness regressions, including three
 research equation cases, and 14 observations). Patch tests deliberately stall a writer, publish 20,000 concurrent
 changes, serialize during publication, and check cancellation, note-reset
 ordering and allocation-free boundary copies. Prepared-host regressions cover
 latest/repeated requests, factory sound and held-audio equivalence, cached user
 sound, invalid chunks, pending-session identity and instance isolation.
 
-Eight additional tests use the real VST3 SDK interfaces with simulated host
+Three additional tests exercise real iPlug2 parameters for display/edit units,
+normalized automation and parameter groups. Eight additional tests use the real VST3 SDK interfaces with simulated host
 queues/streams. They cover queue IDs, every MIDI channel, original point offsets,
 invalid program values/IDs, read-only COM interfaces, short state reads, bypass
 trailers, malformed/oversized state and raw XML/empty stream handling. Native

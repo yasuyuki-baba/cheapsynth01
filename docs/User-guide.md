@@ -72,18 +72,18 @@ sample rate, and its output converter adds 16 host samples of reported latency.
 
 ## Factory and User Presets
 
-The **MEMORY** menu contains Default, six named factory sounds and user presets.
+The **MEMORY** menu separates **Factory** (Default and six named sounds) and
+**User** presets. A checkmark identifies the current preset.
 Select a name or use `<` / `>` to move through the list. The named sounds and
 manual panel settings are listed in [factory presets](Factory-presets.md).
 
 - **Save:** enter a name without the `.xml` extension to write the current sound
-  to a user preset. An existing user file of that name is replaced without an
-  overwrite confirmation. Factory resources remain unchanged.
+  to a user preset. Replacing an existing user file requires confirmation.
+  Factory resources remain unchanged.
 - **Rename:** rename the selected user preset. If the filename already exists, a
   numbered suffix is added. Rename retains unsaved sound edits without writing
   them into the preset file.
-- **Delete:** remove the selected user preset immediately, without a confirmation
-  dialog. Deleting the selected preset loads Default. Factory presets cannot be
+- **Delete:** remove the selected user preset after confirmation. Deleting the selected preset loads Default. Factory presets cannot be
   renamed or deleted.
 - **Import XML:** load sound controls from an XML file. Use Save to keep an imported
   sound in the user preset directory; importing alone does not copy the file there.
@@ -128,3 +128,15 @@ held tone. WN selects noise and ignores the tonal waveform choice.
 For cutoff modulation from the LFO, select VCF as its target and raise Modulation.
 The factory programs preserve the current modulation wheel and breath input;
 selecting a sound does not move those performance controls.
+
+## Host Parameter Interaction
+
+Parameters have VCO, VCF, VCA, EG, LFO and Performance groups for hosts that display
+parameter groups. Their IDs and order remain unchanged. Attack, Decay and Release
+are displayed and entered in milliseconds; Glissando uses milliseconds per
+semitone. The DSP and XML preset/session values remain in seconds.
+
+Right-clicking a parameter control uses iPlug2's host context menu in VST3 hosts
+that support it. Available commands depend on the DAW. Double-click a slider or
+knob to reset its default, or click its value to type a number in the shown unit.
+Native editor and DAW interaction verification remains pending.

@@ -1,5 +1,6 @@
 #include "CS01AudioProcessor.h"
 #include "Utf8Path.h"
+#include "ParameterSetup.h"
 #include "IPlug_include_in_plug_src.h"
 #include "IPlugPaths.h"
 #include <limits>
@@ -32,27 +33,8 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
                                        std::vector<PreparedProgram> catalogue)
     : cs01::PluginAPI(info, MakeConfig(cs01::parameterCount, static_cast<int>(catalogue.size()))),
       hostPrograms(std::make_unique<cs01::HostProgramBank>(std::move(catalogue))) {
-    for (int i = 0; i < cs01::parameterCount; ++i) {
-        const auto& d = cs01::parameterDefinitions[i];
-        const int flags = (i == static_cast<int>(cs01::Param::PitchBend) ||
-                           i == static_cast<int>(cs01::Param::ModDepth))
-                              ? IParam::kFlagCannotAutomate
-                              : IParam::kFlagsNone;
-        if (d.integer)
-            GetParam(i)->InitInt(d.name.data(), static_cast<int>(d.initial),
-                                 static_cast<int>(d.minimum), static_cast<int>(d.maximum),
-                                 d.unit.data(), flags);
-        else
-            GetParam(i)->InitDouble(d.name.data(), d.initial, d.minimum, d.maximum, d.step,
-                                    d.unit.data(), flags, "", IParam::ShapePowCurve(1.0 / d.skew));
-    }
-    GetParam(static_cast<int>(cs01::Param::WaveType))
-        ->InitEnum("Wave", 1, {"Triangle", "Sawtooth", "Square", "Pulse", "PWM"});
-    GetParam(static_cast<int>(cs01::Param::Feet))
-        ->InitEnum("Feet", 2, {"32'", "16'", "8'", "4'", "WN"});
-    GetParam(static_cast<int>(cs01::Param::LfoTarget))->InitEnum("LFO Target", 0, {"VCO", "VCF"});
-    GetParam(static_cast<int>(cs01::Param::FilterType))
-        ->InitEnum("Filter", 0, {"Original", "Modern"});
+    for (int i = 0; i < cs01::parameterCount; ++i)
+        cs01::initializeHostParameter(*GetParam(i), static_cast<cs01::Param>(i));
     programs.setBeforePatchCommit([this] { hostPrograms->cancel(); });
     programs.setUserDirectory(userPresetDirectory());
     programs.setCurrentProgram(0);
@@ -88,7 +70,9 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
 void CS01AudioProcessor::OnParamChange(int index) {
     if (index < 0 || index >= cs01::parameterCount)
         return;
-    parameters.set(static_cast<cs01::Param>(index), static_cast<float>(GetParam(index)->Value()));
+    parameters.set(static_cast<cs01::Param>(index),
+                   static_cast<float>(cs01::fromHostValue(static_cast<cs01::Param>(index),
+                                                          GetParam(index)->Value())));
 #if IPLUG_DSP
     if (index == static_cast<int>(cs01::Param::PitchBend))
         pendingPanelBend.store(true);
@@ -100,7 +84,7 @@ void CS01AudioProcessor::syncParameters(bool notifyHost) {
     }
     const auto values = parameters.snapshot();
     for (int i = 0; i < cs01::parameterCount; ++i) {
-        GetParam(i)->Set(values[i]);
+        GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), values[i]));
     }
     if (notifyHost) {
         DirtyParametersFromUI();
@@ -163,7 +147,9 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
     if (programApplied) {
         if (copied)
             for (int i = 0; i < cs01::parameterCount; ++i)
-                GetParam(i)->Set(renderParameters.get(static_cast<cs01::Param>(i)));
+                GetParam(i)->Set(
+                    cs01::toHostValue(static_cast<cs01::Param>(i),
+                                      renderParameters.get(static_cast<cs01::Param>(i))));
         refreshUI.store(true, std::memory_order_release);
     }
     const auto resetSerial = renderParameters.stateResetSerial();
@@ -195,7 +181,7 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
         if (changed & (1u << i)) {
             const auto value = renderParameters.get(static_cast<cs01::Param>(i));
             parameters.set(static_cast<cs01::Param>(i), value);
-            GetParam(i)->Set(value);
+            GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), value));
             refreshUI.store(true, std::memory_order_release);
         }
     if (monitorEnabled.load() && NOutChansConnected() > 0)
@@ -216,7 +202,7 @@ void CS01AudioProcessor::OnIdle() {
         // patch for both the editor and the separate VST3 controller cache.
         const auto values = parameters.snapshot();
         for (int i = 0; i < NParams(); ++i)
-            GetParam(i)->Set(values[i]);
+            GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), values[i]));
         if (hostPrograms)
             if (const auto* selected = hostPrograms->selected())
                 programs.selectProgramIdentity(selected->identity);

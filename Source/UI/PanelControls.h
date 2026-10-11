@@ -1,5 +1,6 @@
 #pragma once
 #include "IControls.h"
+#include "ProgramManager.h"
 #include <functional>
 #include <string>
 #include <utility>
@@ -222,20 +223,38 @@ class Section final : public IControl {
 class PresetDisplay final : public ITextControl {
    public:
     using NameAction = std::function<void(const char*)>;
-    PresetDisplay(IRECT bounds, std::function<std::vector<std::string>()> names,
-                  std::function<void(int)> select)
+    PresetDisplay(IRECT bounds, std::function<std::vector<Program>()> programs,
+                  std::function<Program()> current, std::function<void(const Program&)> select)
         : ITextControl(bounds, "Default", text(13), COLOR_BLACK),
-          names(std::move(names)),
+          programs(std::move(programs)),
+          current(std::move(current)),
           select(std::move(select)) {}
     void OnMouseDown(float, float, const IMouseMod&) override {
         menu.Clear();
-        for (const auto& name : names())
-            menu.AddItem(name.c_str());
+        snapshot = programs();
+        const auto selected = current();
+        auto* factory = new IPopupMenu();
+        auto* user = new IPopupMenu();
+        menu.AddItem("Factory", factory);
+        menu.AddItem("User", user);
+        for (size_t i = 0; i < snapshot.size(); ++i) {
+            const auto& program = snapshot[i];
+            const bool checked =
+                program.type == selected.type && program.filename == selected.filename;
+            auto* category = program.type == PresetType::Factory ? factory : user;
+            category->AddItem(new IPopupMenu::Item(program.name.c_str(),
+                                                   checked ? IPopupMenu::Item::kChecked
+                                                           : IPopupMenu::Item::kNoFlags,
+                                                   static_cast<int>(i)));
+        }
+        if (user->NItems() == 0)
+            menu.GetItem(1)->SetEnabled(false);
         GetUI()->CreatePopupMenu(*this, menu, mRECT);
     }
     void OnPopupMenuSelection(IPopupMenu* selected, int) override {
-        if (selected && selected->GetChosenItemIdx() >= 0)
-            select(selected->GetChosenItemIdx());
+        const auto* item = selected ? selected->GetChosenItem() : nullptr;
+        if (item && item->GetTag() >= 0 && item->GetTag() < static_cast<int>(snapshot.size()))
+            select(snapshot[item->GetTag()]);
     }
     void PromptName(const char* initial, NameAction action) {
         nameAction = std::move(action);
@@ -248,8 +267,10 @@ class PresetDisplay final : public ITextControl {
     }
 
    private:
-    std::function<std::vector<std::string>()> names;
-    std::function<void(int)> select;
+    std::function<std::vector<Program>()> programs;
+    std::function<Program()> current;
+    std::function<void(const Program&)> select;
+    std::vector<Program> snapshot;
     NameAction nameAction;
     IPopupMenu menu;
 };
