@@ -26,8 +26,8 @@ and [model limitations](docs/Circuit-model-unknowns.md).
 
 The iPlug2 version retains the JUCE version's AU, CLAP and VST3 plugin identifiers
 and macOS bundle ID. The state reader accepts legacy JUCE binary XML payloads.
-Old automation parameter IDs are not yet translated to iPlug2 parameter indices,
-so retaining the plugin identity does not establish full DAW-project compatibility.
+VST3 translates old automation IDs to internal indices. AU/CLAP mappings and
+old-project fixtures remain pending; full DAW-project compatibility is unverified.
 Exported XML presets can also be imported in the new version.
 
 The output converter has 16 host samples of latency, which is reported to the

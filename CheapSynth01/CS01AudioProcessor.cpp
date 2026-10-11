@@ -30,7 +30,7 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info)
     : CS01AudioProcessor(info, initialHostCatalogue()) {}
 CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
                                        std::vector<PreparedProgram> catalogue)
-    : iplug::Plugin(info, MakeConfig(cs01::parameterCount, static_cast<int>(catalogue.size()))),
+    : cs01::PluginAPI(info, MakeConfig(cs01::parameterCount, static_cast<int>(catalogue.size()))),
       hostPrograms(std::make_unique<cs01::HostProgramBank>(std::move(catalogue))) {
     for (int i = 0; i < cs01::parameterCount; ++i) {
         const auto& d = cs01::parameterDefinitions[i];
@@ -53,9 +53,13 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
     GetParam(static_cast<int>(cs01::Param::LfoTarget))->InitEnum("LFO Target", 0, {"VCO", "VCF"});
     GetParam(static_cast<int>(cs01::Param::FilterType))
         ->InitEnum("Filter", 0, {"Original", "Modern"});
+    programs.setBeforePatchCommit([this] { hostPrograms->cancel(); });
     programs.setUserDirectory(userPresetDirectory());
     programs.setCurrentProgram(0);
     syncParameters();
+#if IPLUG_DSP
+    parameters.tryCopyTo(renderParameters);
+#endif
     // Host metadata is immutable for the lifetime of this instance. A host may
     // cache names/count; panel saves/renames are available here after reopening.
     for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
@@ -92,11 +96,11 @@ void CS01AudioProcessor::OnParamChange(int index) {
 }
 void CS01AudioProcessor::syncParameters(bool notifyHost) {
     if (notifyHost && hostPrograms) {
-        hostPrograms->cancel();
         syncHostProgramIndex();
     }
+    const auto values = parameters.snapshot();
     for (int i = 0; i < cs01::parameterCount; ++i) {
-        GetParam(i)->Set(parameters.get(static_cast<cs01::Param>(i)));
+        GetParam(i)->Set(values[i]);
     }
     if (notifyHost) {
         DirtyParametersFromUI();
@@ -119,9 +123,8 @@ void CS01AudioProcessor::syncHostProgramIndex() {
     SetCurrentPresetIdx(hostIndex);
 }
 bool CS01AudioProcessor::SerializeState(IByteChunk& chunk) const {
-    const auto selected =
-        hostPrograms ? hostPrograms->selection() : cs01::HostProgramBank::Selection{nullptr, false};
-    const auto xml = programs.getStateInformation(selected.program, selected.pending);
+    const auto xml =
+        hostPrograms ? hostPrograms->serializeSession(programs) : programs.getStateInformation();
     chunk.PutBytes(xml.data(), static_cast<int>(xml.size()));
     return true;
 }
@@ -137,35 +140,39 @@ int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
     }
     if (!programs.setStateInformation(bytes))
         return -1;
-    if (hostPrograms)
-        hostPrograms->cancel();
     syncHostProgramIndex();
     syncParameters();
-#if IPLUG_DSP
-    pendingPanic.store(true);
-#endif
     return chunk.Size();
 }
 #if IPLUG_DSP
 void CS01AudioProcessor::OnReset() {
+    parameters.tryCopyTo(renderParameters);
     engine.prepare(GetSampleRate());
     midi.clear();
-    pendingPanic.store(false);
+    appliedStateReset = renderParameters.stateResetSerial();
     SetLatency(SynthEngine::latency);
 }
 void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
 }
 void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
-    if (hostPrograms && hostPrograms->applyPending(parameters) >= 0) {
-        // IParam is atomic. Defer all control access to OnIdle, including VST3
-        // where the generic API parameter sender is not drained by this SDK.
-        syncParameters();
+    const bool programApplied = hostPrograms && hostPrograms->applyPending(parameters) >= 0;
+    const bool copied = parameters.tryCopyTo(renderParameters);
+    if (programApplied) {
+        if (copied)
+            for (int i = 0; i < cs01::parameterCount; ++i)
+                GetParam(i)->Set(renderParameters.get(static_cast<cs01::Param>(i)));
+        refreshUI.store(true, std::memory_order_release);
     }
-    if (pendingPanic.exchange(false) || midi.takeOverflow())
+    const auto resetSerial = renderParameters.stateResetSerial();
+    const bool restored = resetSerial != appliedStateReset;
+    appliedStateReset = resetSerial;
+    const bool overflowed = midi.takeOverflow();
+    if (restored || overflowed)
         engine.panic();
     if (pendingPanelBend.exchange(false) && !midi.containsPitchBend(frames)) {
         const float bend = parameters.get(cs01::Param::PitchBend);
+        renderParameters.set(cs01::Param::PitchBend, bend);
         const int value = 8192 + static_cast<int>(std::lround(bend * (bend >= 0 ? 8191 : 8192)));
         engine.handleMidi(cs01::MidiMessage::pitchWheel(1, value));
     }
@@ -180,10 +187,11 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
     }
     midi.flush(frames);
     // Publish parameter values atomically; the idle callback refreshes controls.
-    const unsigned changed = parameters.takeMidiChanges();
+    const unsigned changed = renderParameters.takeMidiChanges();
     for (int i = 0; i < cs01::parameterCount; ++i)
         if (changed & (1u << i)) {
-            const auto value = parameters.get(static_cast<cs01::Param>(i));
+            const auto value = renderParameters.get(static_cast<cs01::Param>(i));
+            parameters.set(static_cast<cs01::Param>(i), value);
             GetParam(i)->Set(value);
             refreshUI.store(true, std::memory_order_release);
         }
@@ -198,6 +206,11 @@ void CS01AudioProcessor::OnRestoreState() {
 }
 void CS01AudioProcessor::OnIdle() {
     if (refreshUI.exchange(false, std::memory_order_acquire)) {
+        // Control/API values can be updated during rendering; use one completed
+        // patch for both the editor and the separate VST3 controller cache.
+        const auto values = parameters.snapshot();
+        for (int i = 0; i < NParams(); ++i)
+            GetParam(i)->Set(values[i]);
         if (hostPrograms)
             if (const auto* selected = hostPrograms->selected())
                 programs.selectProgramIdentity(selected->identity);

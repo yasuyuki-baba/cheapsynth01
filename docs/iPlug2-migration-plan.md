@@ -30,6 +30,14 @@ and legacy automation translation remain open. See [host integration scope](iPlu
 Previous commit `6a082be` now has successful Windows/macOS native build and core CI
 evidence; its lint job lacked ripgrep, addressed with a Git enumeration fallback.
 
+The third batch publishes complete XML patches and their note-reset serial to
+separate render parameters at block boundaries. Audio callbacks make one bounded
+snapshot attempt; saving retries outside the real-time path. VST3 public IDs are
+translated in both directions without changing the SDK, and its state entry
+handles native bypass trailers and final short stream reads. There are 72 core
+cases plus eight SDK-interface boundary cases. Actual plugin/DAW fixtures, AU/CLAP
+mapping, GUI lifecycle coverage and full 272-case assertion parity remain open.
+
 ## Frozen comparison points
 
 | Source | Commit | Purpose |
@@ -64,7 +72,7 @@ HEAD was found during this audit. The PR also needs reconciliation with newer ma
 | Priority | Area / evidence in audited migration | Gap and required outcome |
 | --- | --- | --- |
 | P0 | Branch divergence; `Source/CS01Synth`, inactive `Tests/legacy-juce` | Main added DSP, real-time, preset and UI fixes after the branch point. Port their behavior and regression assertions; do not merge JUCE implementation mechanically. |
-| P0 | `Source/CS01AudioProcessor.cpp`, `Source/Parameters.h` | Plugin IDs are retained, but legacy host automation IDs are not mapped. XML ID compatibility alone does not restore DAW automation. Establish a format-specific compatibility manifest and old-session fixtures. |
+| P0 | `Source/CS01AudioProcessor.cpp`, `Source/Parameters.h` | Plugin IDs are retained. VST3 legacy IDs have a bidirectional adapter; AU/CLAP remain pending. XML ID compatibility alone does not restore DAW automation. Establish a format-specific compatibility manifest and old-session fixtures. |
 | P0 | Processor construction uses one default host preset | The UI has factory/user presets, but the former host program catalogue/current-program behavior is absent. Restore supported host program interfaces and stable selection identity. |
 | P0 | `Source/ProgramManager.cpp`, processor state callbacks | Review callback threads, coherent patch publication and UI dispatch. Current state synchronization can call `SendParameterValueFromDelegate`, documented by iPlug2 as unsuitable for the audio thread. Validate wrapper callbacks before deciding the implementation; this is a risk identified by inspection, not an observed crash. |
 | P1 | Tone/noise, EG and VCA implementations | Newer main's continuous upstream synthesis, retrigger/time-edit branch handling and gate/arithmetic corrections are not incorporated. Bring these behaviors and their tests across. |

@@ -116,6 +116,10 @@ void ProgramManager::setUserDirectory(std::filesystem::path path) {
     directory = std::move(path);
     refreshUnlocked();
 }
+void ProgramManager::setBeforePatchCommit(std::function<void()> callback) {
+    std::lock_guard lock(mutex);
+    beforePatchCommit = std::move(callback);
+}
 std::vector<Program> ProgramManager::programs() const {
     std::lock_guard lock(mutex);
     return allPresets;
@@ -210,9 +214,10 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
     const auto prepared = prepareXml(xml, session);
     if (!prepared.valid)
         return false;
-    for (int i = 0; i < cs01::parameterCount; ++i)
-        if (prepared.mask & (1u << i))
-            parameters.set(static_cast<cs01::Param>(i), prepared.values[i]);
+    if (beforePatchCommit)
+        beforePatchCommit();
+    if (!parameters.setPatch(prepared.values, prepared.mask, session))
+        return false;
     if (session) {
         tinyxml2::XMLDocument doc;
         doc.Parse(xml.data(), xml.size());
@@ -233,6 +238,7 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
 }
 std::string ProgramManager::serialize(bool session, const PreparedProgram* selected,
                                       bool pending) const {
+    const auto values = parameters.snapshot();
     tinyxml2::XMLDocument doc;
     auto* root = doc.NewElement("Parameters");
     doc.InsertEndChild(root);
@@ -258,9 +264,8 @@ std::string ProgramManager::serialize(bool session, const PreparedProgram* selec
         auto* param = doc.NewElement("PARAM");
         root->InsertEndChild(param);
         param->SetAttribute("id", cs01::definition(id).id.data());
-        const float value = selected && pending && (selected->mask & (1u << i))
-                                ? selected->values[i]
-                                : parameters.get(id);
+        const float value =
+            selected && pending && (selected->mask & (1u << i)) ? selected->values[i] : values[i];
         param->SetAttribute("value", value);
     }
     tinyxml2::XMLPrinter printer;

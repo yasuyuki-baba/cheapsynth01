@@ -576,7 +576,7 @@ TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) 
     parameters.set(Param::Cutoff, 18000);
     parameters.set(Param::Volume, .23f);
     ASSERT_TRUE(bank.request(7));
-    const auto state = manager.getStateInformation(bank.selected(), bank.pending());
+    const auto state = bank.serializeSession(manager);
     // An earlier sorting insertion must not turn the saved program number into
     // another sound; restore matches filename and retains the requested patch.
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
@@ -589,7 +589,7 @@ TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) 
     EXPECT_EQ(restoredManager.getCurrentProgram(), 8);
     EXPECT_EQ(bank.applyPending(parameters), 7);
     parameters.set(Param::Cutoff, 3300);
-    const auto edited = manager.getStateInformation(bank.selected(), bank.pending());
+    const auto edited = bank.serializeSession(manager);
     ASSERT_TRUE(restoredManager.setStateInformation(edited));
     EXPECT_FLOAT_EQ(restored.get(Param::Cutoff), 3300);
 }
@@ -633,8 +633,10 @@ TEST_F(StateTest, ExplicitStateRestoreCancelsUnappliedHostSelection) {
     const auto state = manager.getStateInformation();
     cs01::HostProgramBank bank(manager.preparePrograms());
     ASSERT_TRUE(bank.request(4));
+    manager.setBeforePatchCommit([&] { bank.cancel(); });
+    EXPECT_FALSE(manager.setStateInformation("<Wrong/>"));
+    ASSERT_NE(bank.selected(), nullptr);
     ASSERT_TRUE(manager.setStateInformation(state));
-    bank.cancel();
     EXPECT_EQ(bank.selected(), nullptr);
     EXPECT_FALSE(bank.pending());
     EXPECT_EQ(bank.applyPending(parameters), -1);
@@ -704,4 +706,20 @@ TEST_F(StateTest, HostRequestsStayIndependentOfConcurrentPanelRefreshAndOtherIns
     EXPECT_EQ(otherBank.selected(), nullptr);
     EXPECT_EQ(otherBank.applyPending(otherAudio), -1);
     EXPECT_FLOAT_EQ(otherAudio.get(Param::Cutoff), 20000);
+}
+
+TEST(ParametersTest, PatchSnapshotAndBoundaryCopyDoNotAllocate) {
+    cs01::ParameterState control, audio;
+    const auto values = control.snapshot();
+    allocations.store(0);
+    countAllocations.store(true);
+    bool successful = true;
+    for (int i = 0; i < 4096; ++i) {
+        successful &= control.trySetPatch(values, (1u << cs01::parameterCount) - 1, true);
+        successful &= control.tryCopyTo(audio);
+    }
+    countAllocations.store(false);
+    EXPECT_TRUE(successful);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_EQ(audio.stateResetSerial(), 4096u);
 }

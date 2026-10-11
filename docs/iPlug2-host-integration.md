@@ -37,39 +37,59 @@ also avoids relying on the generic SDK API parameter queue, which is not drained
 by the pinned non-distributed VST3 timer branch. Panel changes use the SDK's
 `DirtyParametersFromUI()` mechanism.
 
+## Whole-state publication
+
+XML is validated outside the audio callback and published through a versioned
+whole-patch writer. The renderer owns separate parameters and attempts one
+bounded snapshot at each block boundary. If publication is in flight, it keeps
+the previous complete snapshot. Note-reset serial and patch values are captured
+together; a session clears held notes when its sound reaches rendering.
+Preset changes preserve held notes. Explicit imports cancel cached host requests
+before committing, and a request rechecks cancellation while holding the writer.
+Serialization captures a complete patch and retries if host selection changes
+while capturing its identity. XML parsing, filesystem operations and serialization
+remain non-real-time operations; scalar automation/MIDI edits remain independent.
+
 ## Evidence and remaining gates
 
-Nine additional portable-core regressions check deferred/latest/repeated
-selection, factory parameter and held-audio equivalence, cached user sound,
-invalid files/chunks, pending-session identity, cancellation, sorting identity,
-concurrent panel refresh and instance isolation. The allocation probe checks
-4096 request/apply pairs. Debug, Release and ASan/UBSan pass all 62 cases.
-Real SDK headers compile the Windows processor/editor paths, including VST3.
-These core assertions and compilation do not establish actual SDK callback
-thread behavior or DAW program selection.
+The portable suite has 72 cases (69 correctness regressions and three
+observations). Patch tests deliberately stall a writer, publish 20,000 concurrent
+changes, serialize during publication, and check cancellation, note-reset
+ordering and allocation-free boundary copies. Prepared-host regressions cover
+latest/repeated requests, factory sound and held-audio equivalence, cached user
+sound, invalid chunks, pending-session identity and instance isolation.
 
-Arbitrary XML session import still parses and writes live atomic parameters
-through `ProgramManager`; coherent whole-state publication during rendering is
-pending. The state serializer is not a real-time API and concurrent saves/edits
-still require snapshot work. The SDK's own preset-index/controller thread behavior
-needs native instrumentation. Full host tests must exercise AU/VST3 program
-lists, panel/host selection synchronization, zero-size callbacks, state restore
-and automation with and without an editor.
+Eight additional tests use the real VST3 SDK interfaces with simulated host
+queues/streams. They cover queue IDs, every MIDI channel, original point offsets,
+invalid program values/IDs, read-only COM interfaces, short state reads, bypass
+trailers, malformed/oversized state and legacy binary payload forwarding. Native
+product CI runs these in addition to the core suite. They do not load a plugin
+binary, instrument SDK callback threads, open an editor, or establish DAW behavior.
+Actual host tests must still exercise AU/VST3 lists, panel/host synchronization,
+zero-frame callbacks, concurrent state/automation and restoration with/without UI.
 
 ## Legacy automation identifiers
 
-Plugin identities are retained, but parameter identities are still different.
-The [numeric inventory](iPlug2-legacy-parameter-ids.csv) derives the original
-24 IDs/order from frozen main `32b91c8`, pinned JUCE 9.0.3 and its default
-`JUCE_USE_STUDIO_ONE_COMPATIBLE_PARAMETERS=1`. JUCE VST3/AUv2 use
-`String::hashCode()` (32-bit multiply by 31) with the high bit cleared. Original
-CMake does not enable `JUCE_FORCE_USE_LEGACY_PARAM_IDS`. iPlug2 uses indices.
-The CSV records derived IDs, not a native-host capture or implemented mapping.
+Plugin identities are retained. The [numeric inventory](iPlug2-legacy-parameter-ids.csv)
+derives 24 AUv2/VST3 IDs from frozen main `32b91c8`, JUCE 9.0.3 and default
+`JUCE_USE_STUDIO_ONE_COMPATIBLE_PARAMETERS=1`: 32-bit multiply-by-31 string hashes
+with the high bit cleared. Original CMake does not force legacy index IDs.
 
-In the pinned SDK, VST3 parameter creation, controller queries, process events,
-MIDI assignment and host notifications assume index IDs. AU also expects index
-addresses. A mapping must cover all directions through a reproducible adapter or
-SDK patch, not only parameter registration. Preserve the SDK checkout/pin while
-implementing that adapter. CLAP IDs must be independently captured from the
-original `clap-juce-extensions` pin `55525c9`; do not infer them from AU/VST3.
-Native old-project sound/automation fixtures remain the final compatibility gate.
+`PluginAPI.h` translates VST3 metadata, normalized/plain/string queries, edit
+notifications, MIDI assignment and input queues in both directions. Program and
+bypass IDs and JUCE's 16×130 MIDI window are preserved too. The early WIP index
+IDs are accepted as input aliases; only JUCE IDs are advertised. Unknown IDs are
+ignored instead of becoming accidental MIDI CCs. The adapter leaves the pinned
+SDK unchanged. It preserves the SDK's last-point processing semantics.
+
+The VST3 state entry reads the complete bounded stream, including final short
+reads, separates iPlug2's four-byte bypass trailer and restores the XML payload.
+Legacy JUCE binary XML is forwarded to its length-checked decoder; JUCE-private
+bypass metadata and VST2-compatible envelopes are not yet migrated. The default
+SDK entry previously sought past the trailer because our XML reader consumed
+the whole chunk. Native state round trips and old-project fixtures remain gates.
+
+AU parameter-address translation is still pending. CLAP IDs must be captured
+independently from the original `clap-juce-extensions` pin `55525c9`; do not infer
+them from AU/VST3. Old-project sound/automation fixtures remain the final
+compatibility gate for every format.

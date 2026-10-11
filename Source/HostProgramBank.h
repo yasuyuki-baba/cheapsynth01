@@ -42,9 +42,10 @@ class HostProgramBank {
             return -1;
         const int index = static_cast<int>(static_cast<unsigned>(token)) - 1;
         const auto& program = catalogue[index];
-        for (int i = 0; i < parameterCount; ++i)
-            if (program.mask & (1u << i))
-                parameters.set(static_cast<Param>(i), program.values[i]);
+        if (!parameters.trySetPatchIf(program.values, program.mask, [this, token] {
+                return requested.load(std::memory_order_acquire) == token;
+            }))
+            return -1;
         applied.store(token, std::memory_order_release);
         return index;
     }
@@ -55,17 +56,30 @@ class HostProgramBank {
     struct Selection {
         const PreparedProgram* program;
         bool pending;
+        uint64_t token = 0;
     };
     Selection selection() const noexcept {
         const auto token = requested.load(std::memory_order_acquire);
         return {!token ? nullptr : &catalogue[static_cast<unsigned>(token) - 1],
-                token != applied.load(std::memory_order_acquire)};
+                token && token != applied.load(std::memory_order_acquire), token};
+    }
+    // Serialization is non-real-time. Retry if a request/cancellation changed
+    // while taking the manager's locked XML/identity snapshot.
+    std::string serializeSession(const ProgramManager& manager) const {
+        for (;;) {
+            const auto selected = selection();
+            auto xml = manager.getStateInformation(selected.program, selected.pending);
+            if (selection().token == selected.token)
+                return xml;
+            std::this_thread::yield();
+        }
     }
     bool pending() const noexcept {
-        return requested.load(std::memory_order_acquire) != applied.load(std::memory_order_acquire);
+        const auto token = requested.load(std::memory_order_acquire);
+        return token && token != applied.load(std::memory_order_acquire);
     }
-    // Supersede future application of a host request. An in-flight audio block
-    // can finish applying its already acquired snapshot; no snapshot is freed.
+    // Cancel before publishing an explicit patch. Requests already holding the
+    // parameter writer finish first; acquired-but-uncommitted tokens recheck.
     void cancel() noexcept {
         requested.store(0, std::memory_order_release);
         applied.store(0, std::memory_order_release);
