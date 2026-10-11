@@ -2,7 +2,27 @@ include(FetchContent)
 set(gtest_force_shared_crt OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(googletest GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG v1.14.0 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(googletest)
-add_executable(CheapSynth01Tests CoreTest.cpp unit/OnsetObservationTest.cpp unit/ToneMeasurementTest.cpp reference/BehavioralBeforeRefactor.cpp unit/RCEnvelopeModelTest.cpp unit/CircuitBehaviorTest.cpp unit/SignalPathTest.cpp unit/EngineTimelineTest.cpp unit/PresetBehaviorTest.cpp unit/VcoBehaviorTest.cpp unit/MidiBehaviorTest.cpp unit/EditorSessionTest.cpp unit/KeyboardInputTest.cpp unit/DspRegressionTest.cpp unit/PluginIdentityTest.cpp unit/PatchPublicationTest.cpp unit/EnvelopeContinuityTest.cpp unit/ExperimentalIG05630Test.cpp unit/ExperimentalOriginalVCFTest.cpp)
+add_executable(CheapSynth01Tests
+    CoreTest.cpp
+    unit/OnsetObservationTest.cpp
+    unit/ToneMeasurementTest.cpp
+    reference/BehavioralBeforeRefactor.cpp
+    unit/RCEnvelopeModelTest.cpp
+    unit/CircuitBehaviorTest.cpp
+    unit/SignalPathTest.cpp
+    unit/EngineTimelineTest.cpp
+    unit/PresetBehaviorTest.cpp
+    unit/VcoBehaviorTest.cpp
+    unit/MidiBehaviorTest.cpp
+    unit/EditorSessionTest.cpp
+    unit/KeyboardInputTest.cpp
+    unit/DspRegressionTest.cpp
+    unit/PluginIdentityTest.cpp
+    unit/PatchPublicationTest.cpp
+    unit/EnvelopeContinuityTest.cpp
+    unit/ExperimentalIG05630Test.cpp
+    unit/ExperimentalOriginalVCFTest.cpp
+)
 target_link_libraries(CheapSynth01Tests PRIVATE CheapSynth01Core GTest::gtest_main tinyxml2::tinyxml2)
 target_compile_definitions(CheapSynth01Tests PRIVATE CS01_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 include(GoogleTest)
@@ -22,8 +42,10 @@ if(BUILD_VST3_BOUNDARY_TESTS)
     if(NOT EXISTS "${boundary_sdk}/pluginterfaces/vst/ivstparameterchanges.h")
         message(FATAL_ERROR "VST3 boundary tests require the prepared VST3 SDK")
     endif()
-    add_executable(CheapSynth01ParameterPresentationTests unit/ParameterPresentationTest.cpp
-        "${IPLUG2_DIR}/IPlug/IPlugParameter.cpp")
+    add_executable(CheapSynth01ParameterPresentationTests
+        unit/ParameterPresentationTest.cpp
+        "${IPLUG2_DIR}/IPlug/IPlugParameter.cpp"
+    )
     target_include_directories(CheapSynth01ParameterPresentationTests PRIVATE
         "${PROJECT_SOURCE_DIR}/CheapSynth01" "${PROJECT_SOURCE_DIR}/Source"
         "${IPLUG2_DIR}/IPlug" "${IPLUG2_DIR}/WDL")
@@ -32,7 +54,9 @@ if(BUILD_VST3_BOUNDARY_TESTS)
     target_link_libraries(CheapSynth01ParameterPresentationTests PRIVATE GTest::gtest_main)
     gtest_discover_tests(CheapSynth01ParameterPresentationTests DISCOVERY_TIMEOUT 30
         PROPERTIES LABELS "regression;integration;parameter-presentation")
-    add_executable(CheapSynth01VST3BoundaryTests unit/VST3ParameterChangesTest.cpp)
+    add_executable(CheapSynth01VST3BoundaryTests
+        unit/VST3ParameterChangesTest.cpp
+    )
     target_include_directories(CheapSynth01VST3BoundaryTests PRIVATE
         "${PROJECT_SOURCE_DIR}/CheapSynth01" "${PROJECT_SOURCE_DIR}/Source" "${boundary_sdk}")
     target_link_libraries(CheapSynth01VST3BoundaryTests PRIVATE GTest::gtest_main)
