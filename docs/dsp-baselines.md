@@ -6,9 +6,9 @@ the removed biquad and cannot be regenerated from the current source tree.
 
 ## Meaning and limits
 
-These outputs are regression characterization: deterministic descriptions of
-the current model and its observed numeric behavior, useful for comparing a
-future code revision against this baseline. They are not correctness limits,
+These outputs are idealized reference equations and archived observations.
+They do not execute the current DSP core or establish its regression coverage;
+use the active C++ signal-path/measurement tests for production behavior. They are not correctness limits,
 and benchmark timings are machine, compiler and load dependent.
 
 The archived VCF response used the former IG02610 biquad equation. Its harmonics

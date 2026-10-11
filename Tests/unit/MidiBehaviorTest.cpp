@@ -295,3 +295,31 @@ TEST_F(MidiBehaviorTest, DirectPerformanceEditsRetainNormalizedParameterValues) 
     EXPECT_EQ(midi.getCurrentlyPlayingNote(), 60);
     EXPECT_EQ(generator.starts, 1);
 }
+
+TEST_F(MidiBehaviorTest, ResetDuringAttackCentersWheelWithoutRetriggeringEnvelope) {
+    cs01::ParameterState referenceState;
+    for (auto* parameters : {&state, &referenceState}) {
+        parameters->set(Param::Attack, .1f);
+        parameters->set(Param::Decay, .1f);
+        parameters->set(Param::Sustain, .6f);
+    }
+    EGProcessor actual(state), reference(referenceState);
+    actual.prepareToPlay(48000, 1);
+    reference.prepareToPlay(48000, 1);
+    RecordingGenerator generator;
+    midi.setSoundGenerator(&generator);
+    midi.setEGProcessor(&actual);
+    midi.handleMidiEvent(on(69));
+    reference.startEnvelope();
+    midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, 16383));
+    for (int i = 0; i < 30000; ++i) {
+        if (i == 209)
+            midi.handleMidiEvent(cc(121, 0));
+        ASSERT_NEAR(actual.processSample(), reference.processSample(), 1e-6);
+        EXPECT_EQ(actual.isActive(), reference.isActive());
+    }
+    EXPECT_FLOAT_EQ(state.get(Param::PitchBend), 0);
+    EXPECT_EQ(generator.wheel, 8192);
+    EXPECT_EQ(generator.starts, 1);
+    EXPECT_NEAR(actual.getLastOutputForTesting(), .6f, 1e-5);
+}

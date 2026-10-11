@@ -32,10 +32,10 @@ class IG02610BehavioralModel {
         const double boundedCutoff =
             std::clamp(static_cast<double>(cutoffHz), 20.0, sampleRate * 0.45);
         const double g = std::tan(std::numbers::pi_v<double> * boundedCutoff / sampleRate);
-        const double damping =
-            EmpiricalParameters::maximumDamping +
-            static_cast<double>(std::clamp(resonance, 0.f, 1.f)) *
-                (EmpiricalParameters::minimumDamping - EmpiricalParameters::maximumDamping);
+        const double damping = EmpiricalParameters::maximumDamping +
+                               static_cast<double>(std::clamp(resonance, 0.f, 1.f)) *
+                                   (static_cast<double>(EmpiricalParameters::minimumDamping) -
+                                    static_cast<double>(EmpiricalParameters::maximumDamping));
 
         // Behavioral hypothesis based on a two-integrator SVF with soft
         // limiting around the summing/integrator input and resonant feedback.

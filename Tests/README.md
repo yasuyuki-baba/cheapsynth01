@@ -31,12 +31,12 @@ host latency compensation still need testing on Windows/macOS.
 ## Completion plan
 
 See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
-remaining behavior and validation gaps, iPlug2OOS alignment and validation gates.
+reviewed behavior and deferred native validation gates, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 135 active core cases: 132 correctness regressions and
-three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
+The current suite has 197 active portable cases: 183 correctness regressions (including three
+research equation cases) and 14 observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
 same-name overwrite, failed replacement and missing-selected-file fallback.
@@ -65,7 +65,7 @@ LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
 references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 143 active CTest cases with SDK-interface
+callback boundary processing. There are 205 active CTest cases with SDK-interface
 tests enabled; this count does not claim historical assertion parity.
 
 Archive contract tests run independently, without loading a product:
@@ -74,8 +74,9 @@ Archive contract tests run independently, without loading a product:
 python -m unittest discover -s Tests/packaging -v
 ```
 
-Eleven independently constructed fixtures check file hashes, exact payload
-coverage, required content, release identity, modes and safe ZIP/symlink paths.
+Fifteen independently constructed fixtures check file hashes, exact payload
+coverage, required content, release identity, modes, safe ZIP/symlink paths and
+opt-in signing command preparation.
 Native compilation and source-archive offline rebuild run in CI. Actual plugin
 loading, DAW/device and interactive UI verification are deferred.
 
@@ -104,3 +105,36 @@ Selection and rename preserve edited sound without reloading the preset file.
 Seven filter-model regressions and three separate observations were diffed
 against the frozen main reference; counts and numerical tolerances are retained.
 Observations characterize this build and are not native-host performance gates.
+
+## Historical assertion closeout
+
+All 272 frozen definitions have reviewed dispositions. Run
+`python scripts/check-test-inventory.py` to check provenance, complete coverage,
+evidence file paths and absence of unresolved rows. This verifies traceability;
+it cannot prove semantic equivalence. Adapted scalar/queue/FIR contracts are
+explicitly distinguished from retained assertions and obsolete JUCE interfaces.
+39 historical native UI/runtime cases remain deferred; no empty UI suite or core
+mock is counted as passing native verification.
+
+`unit/SignalPathTest.cpp` includes frozen model bit references, VCA analytical
+transfer/precision, Original modulation independence, FIR folded-bin controls and
+settled response observations. `unit/EngineTimelineTest.cpp` checks explicit
+connected routes, source/release/glissando timelines, MIDI boundaries/overflow,
+breath endpoints and concurrent choice publication. Core allocation probes now
+count C++ allocations and frees on first/variable/dense queue+engine+UI-bridge
+processing; they do not intercept arbitrary SDK malloc or locks.
+
+`unit/ToneMeasurementTest.cpp` retains known-signal controls and production/strategy
+spectrum/onset measurements. `unit/OnsetObservationTest.cpp` always renders and
+checks repeated notes/stage transients. Set `CHEAPSYNTH_ONSET_OUTPUT` to an output
+directory to export five mono PCM24 WAVs (48kHz) and five stage CSVs; filenames
+start with `iplug2-` so old comparison exports remain separate. For example:
+
+```sh
+CHEAPSYNTH_ONSET_OUTPUT=/tmp/cheapsynth-onsets ./run_tests.sh --gtest_filter='OnsetObservationTest.*'
+python -m unittest discover -s Tests/research -v
+```
+
+Research checks retain four conditional circuit equation cases; the three C++ RC
+cases have the `research` CTest label. These hypothetical networks do not establish
+production envelope calibration or operating-region validity.

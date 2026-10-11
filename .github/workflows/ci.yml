@@ -22,8 +22,12 @@ jobs:
         run: python -m pip install clang-format==21.1.7
       - name: Check formatting
         run: bash scripts/check-format.sh
-      - name: Test release archive validation
+      - name: Test release archive and signing preparation
         run: python -m unittest discover -s Tests/packaging -v
+      - name: Check historical assertion closeout
+        run: python scripts/check-test-inventory.py
+      - name: Check conditional hardware equations
+        run: python -m unittest discover -s Tests/research -v
   core:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -38,13 +42,22 @@ jobs:
       - name: Build
         run: cmake --build build-core --config ${{ matrix.configuration }} --parallel 2
       - name: Test
-        run: ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure --output-junit test-results.xml
+        shell: bash
+        run: |
+          if ! ctest --test-dir build-core -C ${{ matrix.configuration }} --output-on-failure --output-junit test-results.xml > build-core/test-output.log 2>&1; then
+            python scripts/summarize-test-failures.py build-core/test-results.xml
+            tail -80 build-core/test-output.log
+            exit 1
+          fi
+          tail -25 build-core/test-output.log
       - name: Upload core test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: core-tests-${{ runner.os }}-${{ matrix.configuration }}
-          path: build-core/test-results.xml
+          path: |
+            build-core/test-results.xml
+            build-core/test-output.log
   native:
     strategy:
       fail-fast: false
@@ -65,13 +78,21 @@ jobs:
       - name: Build native products and core tests
         run: cmake --build build-native --config Release --parallel 2
       - name: Test core
-        run: ctest --test-dir build-native -C Release --output-on-failure --output-junit test-results.xml
+        run: |
+          if ! ctest --test-dir build-native -C Release --output-on-failure --output-junit test-results.xml > build-native/test-output.log 2>&1; then
+            python scripts/summarize-test-failures.py build-native/test-results.xml
+            tail -80 build-native/test-output.log
+            exit 1
+          fi
+          tail -25 build-native/test-output.log
       - name: Upload native test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: native-tests-${{ runner.os }}
-          path: build-native/test-results.xml
+          path: |
+            build-native/test-results.xml
+            build-native/test-output.log
       - name: Upload native products
         uses: actions/upload-artifact@v7
         with:

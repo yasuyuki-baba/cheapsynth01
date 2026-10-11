@@ -5,9 +5,9 @@
 | Function | Transmitted | Recognized | Remarks |
 |----------|-------------|------------|---------|
 | Basic Channel | X | 1-16 | |
-| Default | X | 1 | |
+| Default | X | All channels | Shared voice; standalone host may filter input |
 | Changed | X | 1-16 | |
-| Mode | X | Mode 3 (Omni Off, Poly) | Actually Monophonic |
+| Mode | X | Omni, monophonic | Shared voice across channels |
 | Note Number | X | 0-127 | |
 | Velocity | X | X | |
 | Aftertouch | X | X | |
@@ -52,6 +52,7 @@
 ## Realtime implementation
 
 Held-key tracking and immediate DSP control writes use fixed storage and lock-free
-atomics. Host/UI notifications are coalesced on a message-thread timer. See
+atomics. MIDI edits are published atomically to the iPlug2 delegate; the idle callback
+refreshes host/UI values outside rendering. See
 [MIDI realtime control flow](MIDI-realtime-control.md) for timing, persistence,
 threading and remaining audit limitations.

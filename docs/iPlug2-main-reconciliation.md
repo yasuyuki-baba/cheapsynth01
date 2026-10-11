@@ -2,177 +2,102 @@
 
 Baseline: `1cbbdd7f39ec9f698d34363409da6dd3063f7f24` → `32b91c8344a0581232afd7e0a79c5d25da22f42a`.
 
-Port behavior and assertions, not JUCE runtime code. Main is merged structurally; this ledger tracks behavior/assertion reconciliation, which is not complete. Linux tooling is reference evidence only; supported products remain Windows/macOS.
+The audited main is an ancestor of the migration branch. Every listed change and
+all 272 historical test definitions have reviewed destinations/dispositions.
+Portable work is complete; native runtime/editor/host/device verification remains
+deferred by user instruction. Windows/macOS are the supported environments.
 
 | Commit | Change | Destination | Status |
 | --- | --- | --- | --- |
 | `30dcd72` | Refactor DSP behavioral model names and stage boundaries | Core DSP behavior / numerical reference assertions | implemented: behavioral-model names and empirical VCF/VCA boundaries ported; independent former-expression/reset regressions added |
-| `f51c64c` | Sync on-screen modulation wheel with MIDI input | Native IGraphics controls, polling and lifecycle assertions | pending |
+| `f51c64c` | Sync on-screen modulation wheel with MIDI input | Native IGraphics controls, polling and lifecycle assertions | implemented idle refresh/atomic MIDI parameter publication; native wheel repaint/interaction deferred |
 | `064dfa3` | Release v0.3.0 and unify internal version metadata | Version metadata / source and binary package verification | adapted: migration remains 2.0.0; archive creation verifies CMake/string/hex agreement, release gate requires matching tag/version/source |
-| `4f2e59d` | Wait for asynchronous mod wheel updates in UI regression test | Native IGraphics controls, polling and lifecycle assertions | pending |
-| `66a9812` | Fix audited UI, MIDI, envelope, preset and distribution stability | Preset file safety, MIDI, envelope, keyboard lifecycle and packaging | partial: preset overwrite/file protection/name validation and missing-file fallback restored; keyboard visibility/text/focus/close lifecycle and UI/external MIDI ownership restored; native interactions remain deferred |
-| `7d0caec` | Preserve preset restoration after cached host programs and verify user cache transitions | Host program/state identity and real-time wrapper tests | partial: immutable per-instance prepared host catalogue, boundary application and pending-state identity restored; concurrent whole-patch publication and serialization covered in core; eight simulated real-SDK interface boundary cases pass; real plugin/host validation deferred |
-| `4c0cbf4` | Match VCF and glissando test parameter types to production for sanitizer checks | Test organization, bounded numerical checks and diagnostics | pending |
-| `056f839` | docs: record audit verification and measurement provenance | Validation evidence / current documentation; audit applicability | pending |
-| `5235bcd` | Keep host program requests independent of message-thread checks and UI loading | Host program/state identity and real-time wrapper tests | pending |
-| `8d5c125` | Preserve immediate host selection and reserved program state before audio application | Host program/state identity and real-time wrapper tests | pending |
-| `182d215` | Verify pending user program identity while retaining the unapplied sound | Host program/state identity and real-time wrapper tests | pending |
-| `43055ed` | docs: record host program follow-up verification and remaining realtime limits | Validation evidence / current documentation; audit applicability | pending |
+| `4f2e59d` | Wait for asynchronous mod wheel updates in UI regression test | Native IGraphics controls, polling and lifecycle assertions | retired JUCE message-loop waiting; actual SDK idle repaint assertions deferred |
+| `66a9812` | Fix audited UI, MIDI, envelope, preset and distribution stability | Preset file safety, MIDI, envelope, keyboard lifecycle and packaging | implemented preset safety, coherent state, EG/MIDI/source and per-instance keyboard lifecycle; native interactions deferred |
+| `7d0caec` | Preserve preset restoration after cached host programs and verify user cache transitions | Host program/state identity and real-time wrapper tests | implemented immutable host catalogue/current identity, prepared boundary requests and core plus simulated SDK tests; native hosts deferred |
+| `4c0cbf4` | Match VCF and glissando test parameter types to production for sanitizer checks | Test organization, bounded numerical checks and diagnostics | adapted production float timing/model ranges; core numerical/sanitizer checks; frozen oracles retained |
+| `056f839` | docs: record audit verification and measurement provenance | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `5235bcd` | Keep host program requests independent of message-thread checks and UI loading | Host program/state identity and real-time wrapper tests | implemented thread-independent prepared requests and latest-valid boundary application; native callback instrumentation deferred |
+| `8d5c125` | Preserve immediate host selection and reserved program state before audio application | Host program/state identity and real-time wrapper tests | implemented requested identity before audio apply, reselection/cancellation and pending-save tests |
+| `182d215` | Verify pending user program identity while retaining the unapplied sound | Host program/state identity and real-time wrapper tests | implemented prepared user identity/cached sound and pending-session restoration assertions |
+| `43055ed` | docs: record host program follow-up verification and remaining realtime limits | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
 | `124bb5e` | Verify complete file hashes for binary and source release packages in CI | Version metadata / source and binary package verification | implemented: complete per-file hashes/modes, exact payload coverage and release source/version verification; independent Python contract tests |
 | `507e504` | Require tag release packages to match the checked-out source revision | Version metadata / source and binary package verification | implemented: complete per-file hashes/modes, exact payload coverage and release source/version verification; independent Python contract tests |
-| `f66f4ba` | docs: record package integrity regression and actual Linux archive checks | Validation evidence / current documentation; audit applicability | pending |
-| `52f9d77` | Reuse VCO parameter bindings and batch modulated rendering without changing sample progression | Core DSP behavior / numerical reference assertions | pending |
-| `7fb612f` | docs: record VCO sample equivalence and repeated complete-graph measurements | Validation evidence / current documentation; audit applicability | pending |
-| `d9aaa73` | Poll GUI parameter bindings without audio-thread message posts or cold APVTS listeners | Native IGraphics controls, polling and lifecycle assertions | pending |
-| `8091162` | docs: record notification posting reproduction, complete regressions and remaining RT locks | Validation evidence / current documentation; audit applicability | pending |
-| `630fd42` | Select filter and LFO routes on audio within the existing fixed graph | Explicit engine routing / held-note and real-time assertions | compare existing core coverage |
-| `47e4fe2` | Exercise active synthesis while switching every audio callback | Validation evidence / current documentation; audit applicability | pending |
-| `e5588a7` | Distinguish contended graph locks from acquisitions in the Linux RT probe | Validation evidence / current documentation; audit applicability | pending |
-| `70fe914` | Preserve pthread error semantics in the contention probe | Reference probes / test evidence; audit applicability | pending |
-| `f727b47` | Record graph lock contention and controlled wait observations | Validation evidence / current documentation; audit applicability | pending |
-| `04598f9` | Document audio-owned routing and legacy comparison probes | Validation evidence / current documentation; audit applicability | pending |
-| `250590c` | Verify restored routing masks and fixed connections without weakening note lifecycle checks | Validation evidence / current documentation; audit applicability | pending |
-| `5f4053a` | Record final routing regressions, contention scope and three quiescent comparisons | Validation evidence / current documentation; audit applicability | pending |
-| `35fd6a2` | Keep upstream synthesis continuous across note boundaries | Core DSP behavior / numerical reference assertions | continuous upstream rendering and VCA gate ported; source lifecycle assertions added |
-| `7e5af51` | Cover noise continuity across an in-block release deadline | Core DSP behavior / numerical reference assertions | per-sample continuous noise covers deadline; original block scenario still pending |
-| `d6df36a` | Record rebased validation and inconclusive listening results | Validation evidence / current documentation; audit applicability | pending |
-| `1795193` | Retain envelope branch targets and progress across retriggers and time edits | Core DSP behavior / numerical reference assertions | core trajectory/gate behavior ported; five independent EG assertion replacements; remaining cases pending |
-| `39999ec` | Record validation of the residual-state envelope update | Validation evidence / current documentation; audit applicability | pending |
-| `00af2f2` | Keep macOS test failure diagnostics bounded | Test organization, bounded numerical checks and diagnostics | pending |
-| `46e2e33` | Preserve original VCA arithmetic with the note gate fully open | Core DSP behavior / numerical reference assertions | open-gate expression ported; arithmetic regression added; native ARM evidence pending |
-| `babe156` | Keep gate corrections separate from the original EG expression | Core DSP behavior / numerical reference assertions | non-EG gate correction ported; gain regression added; full numerical suite pending |
-| `186c362` | Fix exclusive GUI choice switches and parameter synchronization | Native IGraphics controls, polling and lifecycle assertions | pending |
-| `2c6cf66` | Organize documentation and keep references entirely local | Validation evidence / current documentation; audit applicability | pending |
-| `ed94aa4` | Update architecture and circuit documentation for current DSP behavior | Validation evidence / current documentation; audit applicability | pending |
-| `8e4f4ad` | Describe current behavior and hardware evidence without future work plans | Validation evidence / current documentation; audit applicability | pending |
-| `826b5d8` | Separate software documentation from hardware analysis | Validation evidence / current documentation; audit applicability | pending |
-| `30b400b` | Correct documentation claims against current implementation and recorded evidence | Validation evidence / current documentation; audit applicability | pending |
-| `a76cc90` | Make documentation readable without external source PDFs | Validation evidence / current documentation; audit applicability | pending |
-| `8eef56b` | Improve documentation coverage, current specification navigation and evidence scope | Validation evidence / current documentation; audit applicability | pending |
-| `851677f` | Document waveform generation from shared square and phase source | Validation evidence / current documentation; audit applicability | pending |
-| `2044325` | Document filtered noise generation and live waveform/source switching | Validation evidence / current documentation; audit applicability | pending |
-| `e9c0049` | Translate stability audit documentation into English | Validation evidence / current documentation; audit applicability | pending |
-| `129b9e9` | Shorten DSP regressions and split CI test stages | Test organization, bounded numerical checks and diagnostics | pending |
-| `32b91c8` | Limit test optimization to bounded period measurements | Test organization, bounded numerical checks and diagnostics | pending |
+| `f66f4ba` | docs: record package integrity regression and actual Linux archive checks | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `52f9d77` | Reuse VCO parameter bindings and batch modulated rendering without changing sample progression | Core DSP behavior / numerical reference assertions | retired JUCE APVTS binding/batched renderer optimization; scalar core and independent pitch/PWM/glissando/event references retained |
+| `7fb612f` | docs: record VCO sample equivalence and repeated complete-graph measurements | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `d9aaa73` | Poll GUI parameter bindings without audio-thread message posts or cold APVTS listeners | Native IGraphics controls, polling and lifecycle assertions | retired custom JUCE attachments; implemented atomic publication/SDK idle refresh; native control/thread/gesture verification deferred |
+| `8091162` | docs: record notification posting reproduction, complete regressions and remaining RT locks | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `630fd42` | Select filter and LFO routes on audio within the existing fixed graph | Explicit engine routing / held-note and real-time assertions | implemented explicit audio-owned routing; independent connected chain and live-release/event partition assertions |
+| `47e4fe2` | Exercise active synthesis while switching every audio callback | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `e5588a7` | Distinguish contended graph locks from acquisitions in the Linux RT probe | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `70fe914` | Preserve pthread error semantics in the contention probe | Reference probes / test evidence; audit applicability | retired Linux-only pthread interception probe; preserved as historical reference |
+| `f727b47` | Record graph lock contention and controlled wait observations | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `04598f9` | Document audio-owned routing and legacy comparison probes | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `250590c` | Verify restored routing masks and fixed connections without weakening note lifecycle checks | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `5f4053a` | Record final routing regressions, contention scope and three quiescent comparisons | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `35fd6a2` | Keep upstream synthesis continuous across note boundaries | Core DSP behavior / numerical reference assertions | implemented continuous upstream sources and VCA gate; all-wave/in-block noise deadline and release silence assertions |
+| `7e5af51` | Cover noise continuity across an in-block release deadline | Core DSP behavior / numerical reference assertions | implemented portable 512-sample noise deadline/RMS scenario at three host rates with 4x internal clock |
+| `d6df36a` | Record rebased validation and inconclusive listening results | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `1795193` | Retain envelope branch targets and progress across retriggers and time edits | Core DSP behavior / numerical reference assertions | implemented residual branch targets/retrigger/live timing; independent trajectory, clock, slope and partition assertions |
+| `39999ec` | Record validation of the residual-state envelope update | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `00af2f2` | Keep macOS test failure diagnostics bounded | Test organization, bounded numerical checks and diagnostics | implemented bounded CI failure summaries with full JUnit/log artifacts |
+| `46e2e33` | Preserve original VCA arithmetic with the note gate fully open | Core DSP behavior / numerical reference assertions | implemented frozen open-gate gain expression and exact empirical stage regressions; native compiler/ARM builds in CI, runtime deferred |
+| `babe156` | Keep gate corrections separate from the original EG expression | Core DSP behavior / numerical reference assertions | implemented independent note gate preserving EG gain expression; gain/depth/release and analytical transfer regressions |
+| `186c362` | Fix exclusive GUI choice switches and parameter synchronization | Native IGraphics controls, polling and lifecycle assertions | implemented exclusive IGraphics choices and shared RES controls; native repaint/host-gesture validation deferred |
+| `2c6cf66` | Organize documentation and keep references entirely local | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `ed94aa4` | Update architecture and circuit documentation for current DSP behavior | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `8e4f4ad` | Describe current behavior and hardware evidence without future work plans | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `826b5d8` | Separate software documentation from hardware analysis | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `30b400b` | Correct documentation claims against current implementation and recorded evidence | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `a76cc90` | Make documentation readable without external source PDFs | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `8eef56b` | Improve documentation coverage, current specification navigation and evidence scope | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `851677f` | Document waveform generation from shared square and phase source | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `2044325` | Document filtered noise generation and live waveform/source switching | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `e9c0049` | Translate stability audit documentation into English | Validation evidence / current documentation; audit applicability | reviewed historical measurement/documentation provenance; archived JUCE software evidence and retained hardware analysis, current iPlug2 claims documented separately |
+| `129b9e9` | Shorten DSP regressions and split CI test stages | Test organization, bounded numerical checks and diagnostics | adapted bounded measurement windows and CTest correctness/observation groups; JUnit and bounded logs in CI |
+| `32b91c8` | Limit test optimization to bounded period measurements | Test organization, bounded numerical checks and diagnostics | retained bounded 65-crossing/4-second period measurements; Debug stays unoptimized and Release uses normal configuration |
 
-## Merge scope
 
-The audited main revision is an ancestor after this reconciliation commit. The
-iPlug2/OOS CMake/CI targets, independent core and native parameter/state design
-remain authoritative. JUCE processor/UI/graph internals are not restored.
-Main's behavioral model naming and empirical stage split are ported with
-independent arithmetic/reset assertions. Earlier envelope/gate/source continuity
-ports remain active. This does not claim all 272 historical assertions are replaced.
+## Assertion reconciliation outcome
 
-The complete main Tests snapshot (272 definitions), Source reference and
-release tools are archived under Tests/legacy-juce; original software/audit
-documentation is under docs/legacy-juce with historical-scope banners. Hardware
-analysis is retained under docs/hardware. New current docs are indexed by
-docs/README.md. Old session and automation compatibility remains explicitly out
-of scope. Framework-specific optimization/locking/listener probes remain historical
-evidence, not current native product guarantees. Real plugin/DAW/device checks
-are deferred; native compilation and archive verification continue in CI.
+The [inventory](iPlug2-test-inventory.csv) records 113 adapted core contracts,
+62 retained/replaced core assertions, 16 portable observations and six previously
+replaced cases. 27 JUCE internal cases, six mock-only tone tests, two old binary
+compatibility cases and one Linux probe are retired with explicit reasons.
+27 native-runtime and 12 native-UI cases remain deferred. There are no unreviewed
+or partially classified rows. `scripts/check-test-inventory.py` enforces frozen
+provenance/coverage and evidence paths in CI; it is not semantic equivalence proof.
 
-Additional MIDI coverage fixes negative-offset stable ordering and applies due
-offset-zero events during empty callbacks. Future events retain iPlug2 queue
-carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 135 core cases plus eight SDK-interface cases.
+The complete main Tests/Source/release references remain under Tests/legacy-juce;
+historical software/audit documentation is under docs/legacy-juce and hardware
+analysis under docs/hardware. Existing project licensing and SDK/plugin identities
+are retained. No old project/automation/binary-state adapters are restored.
 
-Editor session guards now invalidate asynchronous replies on close, control
-hierarchy replacement and owner destruction. Rename requests resolve captured
-filename/type identity rather than whatever selection happens to be current
-at reply time. Portable session lifecycle and rename preservation assertions
-pass; actual native dialog/SDK control destruction remains deferred.
+The active 197-case portable suite contains independent frozen filter arithmetic,
+empirical coupling/gain expressions, analytical VCA transfer and precision bounds,
+all waveform/Feet pitch measurements, PWM/glissando timing schedules, residual EG
+trajectories, MIDI mappings/offsets/panic, state/preset identity and real-time
+publication/ownership probes. Eight simulated SDK-interface cases add native
+queue/stream boundary coverage without instantiating a product.
 
-## Numerical recovery assertion reconciliation
+The frozen filter reference exposed float subtraction of damping endpoints in
+the port. Double subtraction restores the former formula's precision; four-rate
+bit comparisons verify the behavioral models. Original/VCA whole-wrapper JUCE
+bit equality is intentionally replaced: the independent Biquad/oscillator/random
+primitives and 129-tap output FIR differ. Independent transfer/response and timing
+limits, not old complete-graph samples, are the relevant current contracts.
 
-The three AuditNumericalTest cases in the frozen AuditStabilityTest.cpp are now
-replaced by portable NumericalRecoveryTest assertions. VCA invalid audio/EG/gate
-samples and Original-filter invalid audio reset the complete stateful chain and
-emit zero, retaining normal finite-input arithmetic. Recovery is compared exactly
-to an independently prepared chain after first populating the affected chain;
-NaN and both infinities are checked at 44.1, 48 and 192 kHz. Both sample and
-modulated-block filter paths share recovery. Invalid modulated controls fall back
-to the base controls, which are restored after the block. ParameterState rejects
-nonfinite VCA-depth changes before the smoother; finite subsequent edits retain
-clean-reference output and nonzero energy.
+Direct synthesis is always at four times host rate. Removed JUCE interpolation,
+fixed/legacy/dual-filter graph timing and cached block-renderer optimization
+experiments remain archival; they are not current native performance guarantees.
+Future MIDI events carry to the next callback instead of old beyond-block clamping.
+Continuous upstream sources are not expected to be silent when inactive; the
+engine/VCA gate determines output silence.
 
-Before the recovery guards were restored, both VCA and Original-filter recovery
-regressions failed; after the fix all four NumericalRecoveryTest cases pass.
-The complete 107-case suite passes locally in Debug, Release and ASan/UBSan
-with leak detection. This is portable-core evidence; native plugin/DAW/device
-checks remain deferred. The two AuditPresetTest cases were also compared assertion
-by assertion to their existing portable replacements and recorded in the CSV.
-All other pending-case-review entries retain their previous status.
-
-## MIDI and envelope assertion reconciliation
-
-Eight MidiBehaviorTest cases now retain the independent held-note/generator
-contract, full 128-key set comparison, duplicate and unmatched releases,
-CC120/123 release/immediate-stop distinction, every mapped controller, 14-bit
-pairs, pitch-wheel endpoints, whole-patch preservation on CC121, cleared
-performance MSBs after reset, and direct normalized performance edits. Velocity
-is checked both at the generator interface and through equal nonzero real-core
-audio for all five waveforms at 44.1/48/96 kHz. Sixteen historical MIDI cases are
-recorded as replaced-core-assertions. Initialization and every-controller tests
-retain partial status because their native metadata/notification assertions
-remain outside portable-core evidence. JUCE timer/listener assumptions are
-retired; three notification/replay/teardown cases are recorded as deferred native
-UI verification, with the current SDK publication path described in the CSV.
-
-Four more EGContinuityTest cases retain the frozen reference's live attack bounds,
-release branch target after time edits with sustain zero, edited-sustain retriggers
-during and after release, and lifecycle/observation reset across sample rates.
-The current suite is 143 cases (135 core plus eight SDK-interface); test counts
-are not a statement of full historical assertion parity. Remaining unreviewed
-cases stay pending in the inventory.
-
-## Oscillator timing and source lifecycle reconciliation
-
-Fifteen VcoBehaviorTest cases add independent stepped-pitch schedules, live
-semitone-step timing edits, measured fine pitch/MIDI bend, held-wheel range edits,
-PWM duty-cycle periods and empirical per-second decay constants. Three host rates
-and their fourfold internal processing rates are covered where the historical
-PWM/glissando scenarios require them. Glissando's historical float multiplication
-before integer sample quantization is retained in the timing oracle. PWM retains
-the original bounded period count and 0.5% tolerance; tuning retains 0.1% tolerance.
-
-Source-lifecycle assertions cover held tone/noise round trips, both release-switch
-directions, new-note cancellation of previous release deadlines, unmatched
-note-off immunity and preserved wheel/note/remaining release time. Live panel
-waveform/Feet changes retain the held note and finite nonzero audio. Explicit LFO
-semitone offsets are measured through the actual oscillator rather than the old
-mock generator. Eleven historical cases are replaced; four have partial status
-because removed callback/block/mock APIs or gated-output assertions require
-separate treatment. In particular, upstream VCO audio intentionally free-runs;
-its inactive note state does not mean its continuous rendering API outputs zero.
-Engine/VCA-gate silence is a separate contract. No native UI behavior is inferred.
-
-The current suite contains 143 cases (135 core plus eight SDK-interface).
-Remaining historical cases stay unreviewed or partial as recorded in the CSV.
-
-## Preset and filter-model assertion reconciliation
-
-Nine PresetBehaviorTest cases retain factory XML/control reload, independent
-manual panel readings, finite audible sound without breath input, user-file
-round trips, session performance exclusions, selected-file identity through
-sorted insertion/rename/deletion and retention of edited sound. The seven factory
-sounds are rendered through the independent core at 44.1/48/96kHz. All 18 factory
-XML controls are perturbed before loading each embedded sound. The six manual
-sound tables retain their original .02 normalized-position tolerance; this is
-software preset provenance, not a hardware sound calibration claim.
-
-Thirteen historical ProgramManager/ProductionState/PresetSelection cases are
-recorded as fully replaced. Current XML schema and production parameter ranges
-replace JUCE binary envelopes and minimal fixture ranges; old project/binary
-compatibility remains out of scope. Selection tests use filenames and preset
-type rather than an index that changes when another file sorts ahead of it.
-
-The two existing filter-model suites were diffed against the full frozen main
-sources. Seven regressions retain their original counts, rates, stimuli and
-bounds/tolerances, including saturation, impulse decay and four-pole response.
-Three characterization cases retain their measurement loops, but are separately
-marked replaced-core-observation; output reports do not prove historical native
-performance or hardware calibration. The current 143-case suite contains 135
-core cases plus eight simulated SDK-interface cases; native runtime checks remain
-deferred. Remaining inventory rows retain their earlier pending/partial status.
+Optional onset WAV/CSV export and separate research equations are active. Fifteen
+Python archive/signing fixtures cover package integrity, source identity and safe
+opt-in command preparation; four conditional hardware equation checks retain the
+old Python algebra work. Source ZIPs are rebuilt offline in CI. Real SDK callback
+locks/allocations, native gestures/repaints/dialogs, DAW loading/latency and standalone
+device/preferences interactions remain runtime gates; no core mock substitutes.
