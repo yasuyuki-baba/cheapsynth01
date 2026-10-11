@@ -1,4 +1,6 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # CS-01 EG model: implementation decision
 
@@ -173,7 +175,7 @@ with transistor/FET operating points. The two
 timing branches cannot safely be assumed to alternate as a conventional
 software ADSR without that derivation. Keep production integration deferred.
 
-The production EG uses the [stateful exponential software model](EG-stateful-model.md).
+The production EG uses the [stateful exponential software model](../software/EG-stateful-model.md).
 Its lifecycle, stage timing and parameter-update behavior are implemented and
 regression-tested. Curvature k = 2 is provisional; it is not claimed to reproduce
 verified analog charging/discharging trajectories. Circuit-derived integration

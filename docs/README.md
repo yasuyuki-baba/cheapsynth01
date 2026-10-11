@@ -3,6 +3,11 @@
 CheapSynth01 uses iPlug2 on Windows/macOS. Start with the user guide for playing
 and presets, or the development guide for building and testing.
 
+Maintained product documentation lives directly in `docs/`. Hardware evidence
+and technical background live in `hardware/`; frozen JUCE software records live
+in `legacy-juce/`. Superseded copies are indexed under
+[`legacy-juce/earlier-revisions/`](legacy-juce/earlier-revisions/README.md).
+
 ## Playing and Presets
 
 - [User guide](User-guide.md): device settings, keyboard input, controls/defaults,
@@ -40,6 +45,8 @@ replace those runtime checks.
 
 ## Hardware Evidence and Modeling Limits
 
+- [Hardware documentation index](hardware/README.md): circuit audits, source
+  provenance, unresolved details and device background
 - [Circuit-model limitations](hardware/Circuit-model-unknowns.md)
 - [Circuit evidence status](hardware/Circuit-evidence-status.md)
 - [Hardware source catalog](hardware/Source-catalog.md)
@@ -60,3 +67,7 @@ software design, audits and measurement results. In particular:
 
 These describe the frozen JUCE revision. Use the current architecture and migration
 references above for the iPlug2 implementation and verification status.
+
+Older versions formerly stored under `docs/` and `docs/tech/` are preserved in
+[the earlier-version index](legacy-juce/earlier-revisions/README.md). They are
+historical references; use the maintained links above when updating documents.

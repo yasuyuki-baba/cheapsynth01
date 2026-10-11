@@ -1,4 +1,6 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # TC7476BP online investigation
 
@@ -56,7 +58,7 @@ listed there; this is not yet a complete EG state model.
 IC-specific logic is now supported by the local datasheet, not the catalog
 description. An analog threshold or EG stage duration is still not established.
 Keep the current regression-tested provisional stateful exponential EG (see
-[EG-stateful-model.md](EG-stateful-model.md)) until the remaining wiring and operating
+[EG-stateful-model.md](../software/EG-stateful-model.md)) until the remaining wiring and operating
 states can be validated. This investigation changes no
 audio behavior and adds no executable test because no new circuit behavior
 has been established.

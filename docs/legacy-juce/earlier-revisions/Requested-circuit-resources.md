@@ -1,8 +1,10 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # Requested Circuit Resources
 
-See [Circuit model unknowns](Circuit-model-unknowns.md) for unresolved details and
+See [Circuit model unknowns](../../hardware/Circuit-model-unknowns.md) for unresolved details and
 current approximations. TC7476BP documentation has already been provided locally
 as `docs/tech/TC7476BP.pdf`. The items below require analysis and wiring mapping,
 not acquisition of a missing document. Local PDFs are not necessarily tracked.
@@ -37,7 +39,7 @@ characteristics.
 ## Implementation policy until evidence is sufficient
 
 Keep the production EG as a provisional stateful exponential envelope with
-durations in seconds, as described in [EG-stateful-model.md](EG-stateful-model.md).
+durations in seconds, as described in [EG-stateful-model.md](../software/EG-stateful-model.md).
 Its implemented and regression-tested curvature is not verified hardware behavior.
 RC charging/discharging calculations have been tested, but CS-01 switching
 conditions remain unresolved. Prioritize continuity, monotonicity, retriggering,

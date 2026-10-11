@@ -1,4 +1,6 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # CS-01 Circuit Model: Unresolved Details
 
@@ -24,12 +26,12 @@ establish internal transfer characteristics.
 
 | Target | Unresolved details / current treatment | Detailed record |
 | --- | --- | --- |
-| EG stage switching | Local TC7476BP truth table and asynchronous reset/feedback wiring mapped; conditional attack/decay/release sequence identified. Actual input thresholds, loaded logic levels and transient behavior remain unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
-| EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
-| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](EG-time-range-validation.md) |
+| EG stage switching | Local TC7476BP truth table and asynchronous reset/feedback wiring mapped; conditional attack/decay/release sequence identified. Actual input thresholds, loaded logic levels and transient behavior remain unresolved | [EG audit](../../hardware/EG-model-audit.md), [TC7476BP investigation](../../hardware/TC7476BP-online-investigation.md) |
+| EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](../../hardware/EG-model-audit.md) |
+| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](../software/EG-time-range-validation.md) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
 | Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `Source/CS01Synth/VCAProcessor.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
-| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Timing validation](EG-time-range-validation.md) |
+| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](../../hardware/Glissando-circuit-audit.md), [Timing validation](../software/EG-time-range-validation.md) |
 
 ## 3. Distinguish hardware unknowns from software properties
 
@@ -52,6 +54,6 @@ Creating this inventory did not change production audio processing.
 
 ## 5. External-circuit audit closeout
 
-See [external-circuit closeout](External-circuit-closeout.md) for completed
+See [external-circuit closeout](../../hardware/External-circuit-closeout.md) for completed
 analysis, reproducible verification and the remaining evidence required before
 production changes. Audit completion is not hardware-model completion.

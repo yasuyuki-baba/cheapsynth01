@@ -1,4 +1,6 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # EG time range audit
 
@@ -18,7 +20,7 @@ Without the switching thresholds and effective load, expanding or contracting
 these ranges would be a usability choice, not verified circuit calibration.
 
 The timing audit originally retained the linear ADSR. Production now uses the
-[stateful exponential EG](EG-stateful-model.md), with the same ranges and seconds
+[stateful exponential EG](../software/EG-stateful-model.md), with the same ranges and seconds
 units. Parameter mappings and software stage durations are regression-tested;
 curvature k = 2 and hardware calibration remain provisional.
 Existing envelope tests cover sample-rate scaling and stage behavior, but

@@ -1,4 +1,6 @@
-> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../README.md). Content and measurements below retain their original scope.
+
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](../../iPlug2-migration.md) and [hardware index](../../hardware/Source-catalog.md).
 
 # External-circuit audit closeout
 
@@ -9,7 +11,7 @@ with a stateful exponential recurrence and provisional curvature k = 2. Each
 moving stage begins at the current level and reaches its endpoint after the
 configured duration. Retriggers and active-stage edits preserve level continuity;
 sustain edits slew using decay time. Parameter identifiers, ranges and preset
-units remain unchanged. See [the current EG policy](EG-stateful-model.md) for
+units remain unchanged. See [the current EG policy](../software/EG-stateful-model.md) for
 implementation and regression coverage.
 
 This software policy supersedes both the linear JUCE ADSR and the intermediate
