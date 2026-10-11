@@ -79,7 +79,7 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite now has 53 cases (50 regression assertions and three
+The portable suite now has 62 cases (59 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -98,7 +98,7 @@ in Debug, Release and a Debug build with AddressSanitizer/UndefinedBehaviorSanit
 detection). Formatting with clang-format 21.1.7, SDK setup idempotence and plist
 parsing pass. The Windows editor and resource script also cross-compile.
 These checks do not establish a complete native plugin build or DAW validation;
-the updated Windows/macOS workflow has not been run from this workspace.
+native CI evidence is recorded below.
 
 The repository GPLv3 license is retained. iPlug2's permissive license removes the
 JUCE dependency but does not authorize relicensing third-party contributions.
@@ -115,7 +115,7 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 53/53 cases pass in Debug, Release and
+Current local completion-batch checks: 62/62 cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
 confirming they detect the missing behavior. The moved project configures APP,
@@ -123,3 +123,15 @@ VST3 and CLAP targets for Windows and cross-compiles the core and editor against
 the real SDK headers; this is still not a native Windows/macOS executable/host test.
 macOS deployment metadata now matches the core's `std::filesystem` requirement
 (macOS 10.15). The existing plugin IDs and 16-frame converter latency are unchanged.
+
+
+The previous implementation commit `6a082be` passed Windows/macOS native-product
+builds and all four platform/configuration core jobs in
+[CI run 38099506282](https://github.com/yasuyuki-baba/cheapsynth01/actions/runs/38099506282).
+The only failing job was lint because the macOS runner lacked `rg`; the formatter
+script now falls back to Git's tracked-file enumeration. This run predates the
+host-program integration and does not establish its native runtime behavior.
+
+Host preset catalogues are now prepared once per instance and exposed through
+SDK-supported AU/VST3 interfaces, independently of editor creation. See
+[host integration scope and limitations](iPlug2-host-integration.md).

@@ -40,6 +40,7 @@
 #define AUV2_VIEW_CLASS CheapSynth01_View
 #define AUV2_VIEW_CLASS_STR "CheapSynth01_View"
 #define VST3_SUBCATEGORY "Instrument|Synth"
+#define VST3_PRESET_LIST
 #define CLAP_MANUAL_URL "https://github.com/yasuyuki-baba/cheapsynth01"
 #define CLAP_SUPPORT_URL "https://github.com/yasuyuki-baba/cheapsynth01/issues"
 #define CLAP_DESCRIPTION "CS01-inspired monophonic synthesizer"
