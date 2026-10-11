@@ -35,17 +35,23 @@ remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 62 active cases: 59 correctness regressions and
+The current suite has 72 active core cases: 69 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
 same-name overwrite, failed replacement and missing-selected-file fallback.
 `unit/PluginIdentityTest.cpp` guards retained plugin IDs and existing parameter
-index order; it does not prove legacy host automation mapping.
+index order and the VST3 legacy-ID mapping contract; native old-project
+compatibility still requires host fixtures.
 
 Host-selection core assertions cover latest-valid requests, repeated selection,
 cached user sound, malformed request chunks, pending-session identity, held-note
 output equivalence, concurrent panel refresh and instance isolation. The request
 and boundary-apply allocation probe runs 4096 pairs. This does not instrument
-SDK callbacks or prove native host/UI thread safety; XML state parsing/publication
-and native wrapper assertions remain completion work.
+SDK callbacks or prove native host/UI thread safety. Whole-patch publication
+now has concurrent regression assertions in `unit/PatchPublicationTest.cpp`.
+
+Native product builds also run eight `vst3-boundary` tests against real SDK
+interface types using simulated queues/streams. They do not load a plugin binary
+or open an editor/device. Core-only builds remain independent of the SDK; use
+`-DBUILD_VST3_BOUNDARY_TESTS=ON` to opt in with prepared SDK headers.

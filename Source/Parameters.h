@@ -4,10 +4,13 @@
 #include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
+#include <thread>
 
 namespace cs01 {
-// Order is permanent: iPlug2 uses these indices as host parameter IDs.
+// Order is permanent: iPlug2 uses these internal indices; adapters preserve format-specific host
+// IDs.
 enum class Param : int {
     WaveType,
     Feet,
@@ -84,6 +87,7 @@ inline float toNormalized(Param id, float value) {
 }
 class ParameterState {
    public:
+    using Values = std::array<float, parameterCount>;
     ParameterState() {
         for (int i = 0; i < parameterCount; ++i)
             values[i].store(parameterDefinitions[i].initial);
@@ -98,7 +102,7 @@ class ParameterState {
         value = std::clamp(value, d.minimum, d.maximum);
         if (d.integer)
             value = std::round(value);
-        values[static_cast<int>(id)].store(value, std::memory_order_relaxed);
+        values[static_cast<int>(id)].store(value, std::memory_order_release);
         if (midi)
             midiChanges.fetch_or(1u << static_cast<int>(id), std::memory_order_release);
     }
@@ -108,12 +112,96 @@ class ParameterState {
     unsigned takeMidiChanges() {
         return midiChanges.exchange(0, std::memory_order_acquire);
     }
+    // Scalar automation/MIDI edits remain independent atomic operations. Whole
+    // patches use a versioned writer so a renderer never sees half a restore.
+    bool trySetPatch(const Values& patch, unsigned mask, bool resetNotes = false) noexcept {
+        return trySetPatchIf(patch, mask, [] { return true; }, resetNotes);
+    }
+    template <typename Accept>
+    bool trySetPatchIf(const Values& patch, unsigned mask, Accept&& accept,
+                       bool resetNotes = false) noexcept {
+        if (!validPatch(patch, mask))
+            return false;
+        auto version = patchVersion.load(std::memory_order_acquire);
+        if ((version & 1) ||
+            !patchVersion.compare_exchange_strong(version, version + 1, std::memory_order_acq_rel))
+            return false;
+        // Recheck cancellation while owning the patch writer. A restore that
+        // cancels an acquired host request then publishes will always win.
+        if (!accept()) {
+            patchVersion.store(version, std::memory_order_release);
+            return false;
+        }
+        for (int i = 0; i < parameterCount; ++i)
+            if (mask & (1u << i))
+                set(static_cast<Param>(i), patch[i]);
+        if (resetNotes)
+            resetSerial.fetch_add(1, std::memory_order_release);
+        patchVersion.store(version + 2, std::memory_order_release);
+        return true;
+    }
+    // XML/file operations already run outside the real-time contract. Only
+    // those callers may retry; the audio callback must use the bounded variant.
+    bool setPatch(const Values& patch, unsigned mask, bool resetNotes = false) {
+        if (!validPatch(patch, mask))
+            return false;
+        while (!trySetPatch(patch, mask, resetNotes))
+            std::this_thread::yield();
+        return true;
+    }
+    bool trySnapshot(Values& snapshot, uint64_t* reset = nullptr) const noexcept {
+        const auto version = patchVersion.load(std::memory_order_acquire);
+        if (version & 1)
+            return false;
+        Values candidate;
+        for (int i = 0; i < parameterCount; ++i)
+            candidate[i] = values[i].load(std::memory_order_acquire);
+        const auto serial = resetSerial.load(std::memory_order_acquire);
+        if (patchVersion.load(std::memory_order_acquire) != version)
+            return false;
+        snapshot = candidate;
+        if (reset)
+            *reset = serial;
+        return true;
+    }
+    Values snapshot() const {
+        Values result;
+        while (!trySnapshot(result))
+            std::this_thread::yield();
+        return result;
+    }
+    // Destination belongs exclusively to the rendering thread. Failure leaves
+    // every destination value intact and can be retried at the next boundary.
+    bool tryCopyTo(ParameterState& destination) const noexcept {
+        Values snapshot;
+        uint64_t serial;
+        if (!trySnapshot(snapshot, &serial))
+            return false;
+        for (int i = 0; i < parameterCount; ++i)
+            destination.set(static_cast<Param>(i), snapshot[i]);
+        destination.resetSerial.store(serial, std::memory_order_release);
+        return true;
+    }
+    uint64_t stateResetSerial() const noexcept {
+        return resetSerial.load(std::memory_order_acquire);
+    }
 
    private:
     static_assert(std::atomic<float>::is_always_lock_free);
     static_assert(std::atomic<unsigned>::is_always_lock_free);
+    static_assert(std::atomic<uint64_t>::is_always_lock_free);
+    static bool validPatch(const Values& patch, unsigned mask) noexcept {
+        if (mask >> parameterCount)
+            return false;
+        for (int i = 0; i < parameterCount; ++i)
+            if ((mask & (1u << i)) && !std::isfinite(patch[i]))
+                return false;
+        return true;
+    }
     std::array<std::atomic<float>, parameterCount> values;
     std::atomic<unsigned> midiChanges{0};
+    std::atomic<uint64_t> patchVersion{0};
+    std::atomic<uint64_t> resetSerial{0};
 };
 }  // namespace cs01
 namespace ParameterIds {

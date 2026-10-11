@@ -1,6 +1,7 @@
 #pragma once
 #include "Parameters.h"
 #include <filesystem>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -23,6 +24,7 @@ class ProgramManager {
         refreshUserPresets();
     }
     void setUserDirectory(std::filesystem::path directory);
+    void setBeforePatchCommit(std::function<void()> callback);
     std::vector<Program> programs() const;
     int getCurrentProgram() const;
     Program currentProgramIdentity() const;
@@ -51,4 +53,5 @@ class ProgramManager {
     std::vector<Program> allPresets;
     int currentProgram = 0;
     mutable std::recursive_mutex mutex;
+    std::function<void()> beforePatchCommit;
 };

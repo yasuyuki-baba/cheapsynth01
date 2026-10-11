@@ -1,5 +1,5 @@
 #pragma once
-#include "IPlug_include_in_plug_hdr.h"
+#include "PluginAPI.h"
 // iPlug2 generates a format-specific bundle ID; retain JUCE's shared macOS ID.
 #ifdef OS_MAC
 #undef BUNDLE_ID
@@ -16,7 +16,7 @@
 #include "IControls.h"
 #endif
 
-class CS01AudioProcessor final : public iplug::Plugin {
+class CS01AudioProcessor final : public cs01::PluginAPI {
    public:
     explicit CS01AudioProcessor(const iplug::InstanceInfo& info);
     bool SerializeState(iplug::IByteChunk& chunk) const override;
@@ -53,10 +53,11 @@ class CS01AudioProcessor final : public iplug::Plugin {
     std::unique_ptr<cs01::HostProgramBank> hostPrograms;
     std::atomic<bool> refreshUI{false};
 #if IPLUG_DSP
-    SynthEngine engine{parameters};
+    cs01::ParameterState renderParameters;
+    SynthEngine engine{renderParameters};
     cs01::MidiQueue midi;
     iplug::IBufferSender<1, 64, 512> scope{-100, 512};
-    std::atomic<bool> pendingPanic{false};
+    uint64_t appliedStateReset = 0;
     std::atomic<bool> pendingPanelBend{false};
 #endif
     std::atomic<bool> monitorEnabled{false};

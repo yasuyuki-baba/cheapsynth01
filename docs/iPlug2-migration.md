@@ -71,15 +71,15 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
   `org.github.yasuyukibaba.cheapsynth01`. VST3 explicitly retains JUCE's component
   UID `ABCDEF019182FAEB4241424143533031` and controller UID
   `ABCDEF011234ABCD4241424143533031` (SDK byte order follows the platform).
-  Hosts can identify the new version as the same plugin. Old JUCE automation
-  IDs are not yet translated to iPlug2 parameter indices; full DAW-project
-  restoration still requires native validation. XML preset import remains available.
+  Hosts can identify the new version as the same plugin. Old JUCE VST3 automation
+  IDs are translated at public API boundaries. AU/CLAP mapping and full DAW-project
+  restoration still require native validation. XML preset import remains available.
 - Products, development and CI testing target Windows/macOS. Linux is excluded
   from the supported environments and there is no LV2 target.
 
 ## Verification and limits
 
-The portable suite now has 62 cases (59 regression assertions and three
+The portable suite now has 72 core cases (69 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -115,7 +115,8 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 62/62 cases pass in Debug, Release and
+Current local completion-batch checks: 72 core and eight SDK-interface boundary
+cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
 confirming they detect the missing behavior. The moved project configures APP,
@@ -135,3 +136,10 @@ host-program integration and does not establish its native runtime behavior.
 Host preset catalogues are now prepared once per instance and exposed through
 SDK-supported AU/VST3 interfaces, independently of editor creation. See
 [host integration scope and limitations](iPlug2-host-integration.md).
+
+Whole-state publication now transfers a complete patch and its note-reset serial
+to audio-owned parameters at block boundaries. A busy writer leaves the previous
+snapshot active. Session saves capture complete parameter snapshots and retry if
+host selection changes. VST3 has a bidirectional legacy-ID adapter and explicit
+state-stream/trailer handling; AU/CLAP mappings and actual old-project fixtures
+remain pending. See the host integration document for the precise validation scope.
