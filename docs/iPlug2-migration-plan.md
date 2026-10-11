@@ -13,7 +13,7 @@ products or replace real host, editor and device validation.
 - Python tests: release archives, signing preparation and conditional hardware equations
 - CI: formatting, Windows/macOS core/native builds and offline source rebuild
 
-See [the test guide](../Tests/README.md), [DSP design](DSP-design.md),
+See [the test guide](../CheapSynth01/tests/README.md), [DSP design](DSP-design.md),
 [host integration](iPlug2-host-integration.md) and
 [release preparation](iPlug2-release-packaging.md) for scope and commands.
 

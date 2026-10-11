@@ -20,8 +20,8 @@ Use [the DSP design guide](../DSP-design.md) for current software models and
 - [TC7476BP investigation](TC7476BP-online-investigation.md): logic-device evidence and source limitations
 
 The conditional EG equation checks are maintained in
-`Tests/research/test_eg_decay_equations.py`. From the repository root, run
-`python3 -m unittest discover -s Tests/research -v`.
+`CheapSynth01/tests/research/test_eg_decay_equations.py`. From the repository root, run
+`python3 -m unittest discover -s CheapSynth01/tests/research -v`.
 
 ## Device background
 
