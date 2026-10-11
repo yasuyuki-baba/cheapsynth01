@@ -1,6 +1,7 @@
 #include "CS01Synth/EGProcessor.h"
 
 #include <cmath>
+#include "CS01Synth/EGTiming.h"
 
 //==============================================================================
 EGProcessor::EGProcessor(cs01::ParameterState& parameters) : parameters(parameters) {}
@@ -29,14 +30,15 @@ float EGProcessor::processSample() {
     return lastOutput;
 }
 
-// A fresh stage keeps the existing k=2 curve. Attack uses a fixed target, so
-// retriggering retains charge rather than choosing a new target to fill a whole
-// duration. Targets and curvature remain software approximations, not IC voltages.
+// Attack retains a provisional fixed charging target and peak threshold.
+// Decay/release approach their actual endpoint, retaining an RC tail.
 void EGProcessor::beginStage(Stage next, double endpoint, double seconds) {
     stage = next;
     stageEndpoint = endpoint;
-    const double reference = next == Stage::attack ? 0.0 : level;
-    stageTarget = reference + (endpoint - reference) / (-std::expm1(-2.0));
+    stageTarget = next == Stage::attack ? 1.0 / (-std::expm1(-2.0)) : endpoint;
+    stageThresholdDistance = next == Stage::attack
+                                 ? stageTarget - endpoint
+                                 : std::abs(level - endpoint) * EGTiming::settlingRatio;
     remainingSamples = 0;
     updateStageTiming(seconds);
 }
@@ -45,19 +47,16 @@ void EGProcessor::updateStageTiming(double seconds) {
     seconds = std::max(seconds, 1.0e-6);
     const double previousSeconds = stageReferenceSeconds;
     stageReferenceSeconds = seconds;
-    stageCoefficient = -std::expm1(-2.0 / (seconds * envelopeSampleRate));
-    const double endpointDistance = std::abs(stageTarget - stageEndpoint);
+    stageCoefficient = -std::expm1(-1.0 / (seconds * envelopeSampleRate));
     const double currentDistance = std::abs(stageTarget - level);
-    // Remaining threshold time, not a restarted full stage. A zero-distance
-    // branch retains a clock for the independent non-EG gate, even at sustain
-    // zero. Speed edits rescale that clock rather than dropping its release.
+    // Zero-level branches retain a clock for the non-EG VCA gate.
     const double remainingSeconds =
-        endpointDistance == 0.0
+        stageThresholdDistance == 0.0
             ? (remainingSamples > 0 && previousSeconds > 0.0
                    ? remainingSamples * seconds / (envelopeSampleRate * previousSeconds)
-                   : seconds)
-        : currentDistance > endpointDistance
-            ? seconds * 0.5 * std::log(currentDistance / endpointDistance)
+                   : seconds * std::log(1.0 / EGTiming::settlingRatio))
+        : currentDistance > stageThresholdDistance
+            ? seconds * std::log(currentDistance / stageThresholdDistance)
             : 0.0;
     remainingSamples = std::max<int64_t>(
         1, static_cast<int64_t>(std::ceil(remainingSeconds * envelopeSampleRate)));
@@ -93,7 +92,7 @@ void EGProcessor::releaseEnvelope() {
     updateADSR();
     if (stage != Stage::idle) {
         beginStage(Stage::release, 0.0, settings.release);
-        beginNoteGate(0.0, settings.release);
+        beginNoteGate(0.0, remainingSamples / envelopeSampleRate);
     }
 }
 

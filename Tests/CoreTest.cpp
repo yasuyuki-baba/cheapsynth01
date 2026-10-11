@@ -461,18 +461,18 @@ TEST(EnvelopeTest, AttackDecayReleaseDurationsHoldAtAllRates) {
         eg.prepareToPlay(internal, 1);
         eg.startEnvelope();
         const int attack =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Attack)) * internal));
+            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Attack)) * 2 * internal));
         for (int i = 0; i < attack; ++i)
             eg.processSample();
         EXPECT_NEAR(eg.getLastOutputForTesting(), 1, 1.e-6);
-        const int decay =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Decay)) * internal));
+        const int decay = static_cast<int>(
+            std::ceil(static_cast<double>(p.get(Param::Decay)) * std::log(10000.) * internal));
         for (int i = 0; i < decay; ++i)
             eg.processSample();
         EXPECT_NEAR(eg.getLastOutputForTesting(), .4f, 1.e-6);
         eg.releaseEnvelope();
-        const int release =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Release)) * internal));
+        const int release = static_cast<int>(
+            std::ceil(static_cast<double>(p.get(Param::Release)) * std::log(10000.) * internal));
         for (int i = 0; i < release; ++i)
             eg.processSample();
         EXPECT_FALSE(eg.isActive());

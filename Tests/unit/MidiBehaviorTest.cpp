@@ -137,7 +137,7 @@ TEST_F(MidiBehaviorTest, HeldKeysKeepEnvelopeGateOpenAndRestartAfterRelease) {
     };
     midi.handleMidiEvent(on(64));
     ASSERT_TRUE(eg.isActive());
-    EXPECT_NEAR(advance(48000), .5f, 1e-5);
+    EXPECT_NEAR(advance(144000), .5f, 1e-5);
     const std::array messages{on(60), on(67), off(67), off(64)};
     const std::array pitches{64, 67, 64, 60};
     for (size_t i = 0; i < messages.size(); ++i) {
@@ -150,7 +150,7 @@ TEST_F(MidiBehaviorTest, HeldKeysKeepEnvelopeGateOpenAndRestartAfterRelease) {
     midi.handleMidiEvent(off(60));
     EXPECT_TRUE(midi.getActiveNotes().none());
     EXPECT_LT(advance(256), .5f);
-    EXPECT_FLOAT_EQ(advance(48000), 0.f);
+    EXPECT_FLOAT_EQ(advance(240000), 0.f);
     EXPECT_FALSE(eg.isActive());
     midi.handleMidiEvent(on(60));
     EXPECT_GT(advance(256), 0.f);
@@ -226,7 +226,9 @@ TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs)
             float normalized = i < lsbs.size() ? value * 128 / 16383.f : value / 127.f;
             const auto& d = cs01::definition(ids[i]);
             const auto expected = [&](float n) {
-                return d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
+                return cs01::isEnvelopeTime(ids[i])
+                           ? float(.00396 + 4.4 * (std::pow(81., double(n)) - 1) / 80.)
+                           : d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
             };
             EXPECT_FLOAT_EQ(state.get(ids[i]), expected(normalized));
             if (i < lsbs.size()) {
@@ -312,7 +314,7 @@ TEST_F(MidiBehaviorTest, ResetDuringAttackCentersWheelWithoutRetriggeringEnvelop
     midi.handleMidiEvent(on(69));
     reference.startEnvelope();
     midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, 16383));
-    for (int i = 0; i < 30000; ++i) {
+    for (int i = 0; i < 60000; ++i) {
         if (i == 209)
             midi.handleMidiEvent(cc(121, 0));
         ASSERT_NEAR(actual.processSample(), reference.processSample(), 1e-6);
