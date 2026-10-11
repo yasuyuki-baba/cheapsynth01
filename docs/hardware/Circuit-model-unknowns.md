@@ -1,4 +1,4 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # CS-01 Circuit Model: Unresolved Details
 
@@ -11,11 +11,11 @@ filter or MIDI extensions.
 
 | Target | Known external configuration | Unresolved internals | Current approximation / impact | Main implementation |
 | --- | --- | --- | --- | --- |
-| YM10150: waveform generation | Waveform/feet selection roles summarized; GLS branch detailed separately; complete external pin table not preserved | Generation method, amplitude, harmonics, output impedance | BLEP, integration, custom waveform corrections, and tanh shaping affect waveform and timbre | `Source/CS01Synth/ToneGenerator.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
-| YM10150: keyboard and gate | Keyboard/gate roles summarized; EG reset connections recorded separately | Key priority, retrigger conditions, transition state | Highest-note priority and legato gate retention; consistency tests do not prove hardware behavior | `Source/CS01Synth/MidiProcessor.cpp` |
-| YM10150: glissando | GLS connections to 22 kohm, A1M, and 0.022 uF components transcribed | Oscillation thresholds, division, resistance-to-semitone timing, phase during adjustment | Maximum 208 ms per semitone with a provisional control curve; changes preserve fractional step progress | `Source/CS01Synth/ToneGenerator.cpp` |
-| IG02610: VCF | IC identification, cutoff/High–Low controls and selected EG/coupling branches; complete audio netlist not preserved | Internal topology, control-to-cutoff relationship, loading, resonance, distortion | TPT state-variable behavioral core with nonlinear feedback; damping/drive values and modulation depth are provisional | `Source/CS01Synth/IG02610BehavioralModel.h`, `Source/CS01Synth/CS01VCFCircuit.cpp`, `Source/CS01Synth/OriginalVCFProcessor.cpp` and `.h` |
-| IG02600: VCA | Audio/EG/breath path roles summarized and EG depth branch recorded; complete audio/breath netlist not preserved | Control-voltage-to-gain relationship, input combination, saturation, loading | Provisional EG/independent-note-gate/breath gain composition and custom saturation; physical transfer curves remain unresolved | `Source/CS01Synth/IG02600BehavioralModel.cpp`, `Source/CS01Synth/VCAEmpiricalStages.h`, `Source/CS01Synth/VCAProcessor.cpp` |
+| YM10150: waveform generation | Waveform/feet selection roles summarized; GLS branch detailed separately; complete external pin table not preserved | Generation method, amplitude, harmonics, output impedance | BLEP, integration, custom waveform corrections, and tanh shaping affect waveform and timbre | `CheapSynth01/core/cs01synth/ToneGenerator.cpp`, `CheapSynth01/core/cs01synth/WaveformStrategies.h` |
+| YM10150: keyboard and gate | Keyboard/gate roles summarized; EG reset connections recorded separately | Key priority, retrigger conditions, transition state | Highest-note priority and legato gate retention; consistency tests do not prove hardware behavior | `CheapSynth01/core/cs01synth/MidiProcessor.cpp` |
+| YM10150: glissando | GLS connections to 22 kohm, A1M, and 0.022 uF components transcribed | Oscillation thresholds, division, resistance-to-semitone timing, phase during adjustment | Maximum 208 ms per semitone with a provisional control curve; changes preserve fractional step progress | `CheapSynth01/core/cs01synth/ToneGenerator.cpp` |
+| IG02610: VCF | IC identification, cutoff/High–Low controls and selected EG/coupling branches; complete audio netlist not preserved | Internal topology, control-to-cutoff relationship, loading, resonance, distortion | TPT state-variable behavioral core with nonlinear feedback; damping/drive values and modulation depth are provisional | `CheapSynth01/core/cs01synth/IG02610BehavioralModel.h`, `CheapSynth01/core/cs01synth/CS01VCFCircuit.cpp`, `CheapSynth01/core/cs01synth/OriginalVCFProcessor.cpp` and `.h` |
+| IG02600: VCA | Audio/EG/breath path roles summarized and EG depth branch recorded; complete audio/breath netlist not preserved | Control-voltage-to-gain relationship, input combination, saturation, loading | Provisional EG/independent-note-gate/breath gain composition and custom saturation; physical transfer curves remain unresolved | `CheapSynth01/core/cs01synth/IG02600BehavioralModel.cpp`, `CheapSynth01/core/cs01synth/VCAEmpiricalStages.h`, `CheapSynth01/core/cs01synth/VCAProcessor.cpp` |
 
 Implementation paths are relative to the repository root. Pinouts alone do not
 establish internal transfer characteristics.
@@ -26,10 +26,10 @@ establish internal transfer characteristics.
 | --- | --- | --- |
 | EG stage switching | Earlier TC7476BP inspection recorded the truth table and conditional reset/feedback mapping. Tr13 attack-drive polarity/terminal attribution is inconsistent as transcribed; actual thresholds, loaded logic levels and transient behavior are unresolved | [EG audit](EG-model-audit.md), [TC7476BP investigation](TC7476BP-online-investigation.md) |
 | EG charging/discharging | 2.2 uF and resistor branches transcribed; conduction states, effective loading, terminal voltages, buffer transfer unresolved; production uses a regression-tested stateful exponential envelope with provisional, uncalibrated curvature | [EG audit](EG-model-audit.md) |
-| EG timing/control curves | 1 ms–2 s is provisional; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Timing validation](../legacy-juce/software/EG-time-range-validation.md) |
+| EG timing/control curves | RC time constants use an assumed A taper; manual S–L markings do not specify seconds; generic RC tests do not prove hardware agreement | [Envelope timing policy](../DSP-design.md#envelope-and-note-gate) |
 | Coupling/low-frequency response | IC input impedance and effective loads unresolved; DC-removal/coupling cutoffs uncalibrated | VCF/VCA implementation comments |
-| Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `Source/CS01Synth/VCAProcessor.cpp`, `Source/CS01Synth/WaveformStrategies.h` |
-| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Timing validation](../legacy-juce/software/EG-time-range-validation.md) |
+| Buffers/distortion | Transistor/FET operating points, asymmetry, saturation uncalibrated; custom corrections are not device models | `CheapSynth01/core/cs01synth/VCAProcessor.cpp`, `CheapSynth01/core/cs01synth/WaveformStrategies.h` |
+| Sliders | A-taper labels do not establish exact position-to-resistance curves; software skew is provisional | [Glissando audit](Glissando-circuit-audit.md), [Envelope timing policy](../DSP-design.md#envelope-and-note-gate) |
 
 ## 3. Distinguish hardware unknowns from software properties
 
@@ -50,4 +50,4 @@ the scope of preserved connections and the limits of circuit conclusions.
 See [external-circuit closeout](External-circuit-closeout.md) for completed
 analysis, reproducible verification and its circuit-analysis limits. Audit completion is not hardware-model completion.
 
-For current production stage ownership and terminology, see [DSP responsibility boundaries](../legacy-juce/software/DSP-responsibility-boundaries.md).
+For current production stage ownership and terminology, see [DSP responsibility boundaries](../DSP-design.md#signal-path).

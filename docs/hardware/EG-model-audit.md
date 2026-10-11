@@ -1,10 +1,10 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # CS-01 EG model: implementation decision
 
 > This document records circuit evidence and conditional model analysis.
 > For the current provisional production envelope policy, see
-> [Stateful provisional EG](../legacy-juce/software/EG-stateful-model.md). The equations below do not
+> [Stateful provisional EG](../DSP-design.md#envelope-and-note-gate). The equations below do not
 > establish hardware calibration of that software model.
 
 ## Attack transcription: unresolved inconsistency
@@ -20,7 +20,7 @@ not settled hardware behavior.
 
 Production now preserves a fixed provisional attack target across retriggers
 and changes active-stage speed without redefining the target. See
-[current EG policy](../legacy-juce/software/EG-stateful-model.md). This adopts residual-state handling,
+[current EG policy](../DSP-design.md#envelope-and-note-gate). This adopts residual-state handling,
 not the unresolved Tr13 mapping or illustrative nonlinear device parameters.
 
 ## Recorded passive connections
@@ -204,7 +204,7 @@ points. The attack and decay branches cannot be assumed to alternate as a conven
 software ADSR on the recorded evidence. No circuit-derived production
 integration is established.
 
-The production EG uses the [stateful exponential software model](../legacy-juce/software/EG-stateful-model.md).
+The production EG uses the [stateful exponential software model](../DSP-design.md#envelope-and-note-gate).
 Its lifecycle, stage timing and parameter-update behavior are implemented and
 regression-tested. Curvature k = 2 is provisional; it is not claimed to reproduce
 verified analog charging/discharging trajectories. Circuit-derived integration
@@ -212,7 +212,7 @@ remains deferred.
 
 ## Verified candidate
 
-`Tests/unit/RCEnvelopeModelTest.cpp` evaluates an ideal isolated RC section:
+`CheapSynth01/tests/unit/RCEnvelopeModelTest.cpp` evaluates an ideal isolated RC section:
 
     V(t) = target + (V(0) - target) * exp(-t / tau)
     tau = R * C
@@ -441,9 +441,9 @@ replace the production EG or extend this approximation across region changes.
 
 ### Reproducible checks and boundary of the approximation
 
-`Tests/eg_decay_equation_check.py` preserves the algebra checks as a
+`CheapSynth01/tests/research/test_eg_decay_equations.py` preserves the algebra checks as a
 standalone Python 3 unittest suite. Run it from the repository root with
-`python3 Tests/eg_decay_equation_check.py -v`. It is not part of the CMake
+`python3 CheapSynth01/tests/research/test_eg_decay_equations.py -v`. It is not part of the CMake
 regression runner and has no third-party dependencies.
 
 The suite checks 72 illustrative parameter combinations for Tr11 current
@@ -485,7 +485,7 @@ evidence. Unidentified ON/OFF states and analog thresholds remain unknown.
 
 ## Current software and analysis boundary
 
-Production uses the [provisional stateful exponential EG](../legacy-juce/software/EG-stateful-model.md).
+Production uses the [provisional stateful exponential EG](../DSP-design.md#envelope-and-note-gate).
 Its software curvature and regression tests do not establish hardware calibration.
 The recorded passive paths, conditional logic states and reduced stage equations
 are distinct from unresolved transistor branch voltages, sustain loading and

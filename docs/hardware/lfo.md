@@ -1,4 +1,4 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # Yamaha CS-01 LFO — Technical Summary
 
@@ -8,7 +8,7 @@ The recorded LFO speed range is 0.8–21 Hz, with a separate PWM speed range
 of 0.6–12 Hz. These are preserved owner's-manual endpoints; source provenance
 is in [the source catalog](Source-catalog.md).
 The LFO target control selects VCO pitch or VCF cutoff modulation.
-[Modulation speed ranges](../legacy-juce/software/Modulation-speed-ranges.md) records the software
+[Modulation speed ranges](../DSP-design.md#parameters-and-modulation) records the software
 parameters, defaults and saved-state implications.
 
 ## Internal implementation: unverified interpretation
