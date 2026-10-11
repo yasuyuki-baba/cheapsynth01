@@ -205,8 +205,8 @@ TEST(NoiseRegressionTest, PitchAndWheelDoNotChangeNoiseAndPrepareResetsSequence)
 TEST(TonePitchRegressionTest, PitchAndFeetMatchMeasuredPeriods) {
     for (double rate : {44100., 48000., 96000.})
         for (int feet = 0; feet < 4; ++feet)
-            for (int waveform : {0, 1, 2})
-                for (int note : {48, 69}) {
+            for (int waveform : {0, 1, 2, 3, 4})
+                for (int note : {45, 69, 93}) {
                     SCOPED_TRACE(rate);
                     SCOPED_TRACE(feet);
                     SCOPED_TRACE(waveform);
@@ -253,7 +253,7 @@ TEST(TonePitchRegressionTest, ResetReproducesFreshWaveformForAllWaveforms) {
         };
         start(a);
         start(b);
-        for (int i = 0; i < 4096; ++i)
+        for (int i = 0; i < 12345; ++i)
             a.renderSample();
         start(a);
         for (int i = 0; i < 4096; ++i)
@@ -445,4 +445,36 @@ TEST(NumericalRecoveryTest, ModulatedOriginalFilterFallsBackAndRestoresBaseContr
         const float input = std::sin(i * .17f);
         EXPECT_FLOAT_EQ(circuit.processSample(0, input), reference.processSample(0, input));
     }
+}
+
+TEST(NoiseRegressionTest, InitialSilenceChangedNoteAndExact49SampleRelease) {
+    cs01::ParameterState state;
+    NoiseGenerator noise(state);
+    noise.prepare(48000);
+    EXPECT_FALSE(noise.isActive());
+    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 0);
+    for (int i = 0; i < 512; ++i)
+        EXPECT_FLOAT_EQ(noise.renderSample(), 0);
+    noise.startNote(60, 1, 8192);
+    EXPECT_TRUE(noise.isActive());
+    noise.changeNote(64);
+    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 64);
+    double energy = 0;
+    for (int i = 0; i < 512; ++i) {
+        float x = noise.renderSample();
+        energy += x * x;
+    }
+    EXPECT_GT(energy, 0);
+    noise.stopNote(false);
+    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 0);
+    EXPECT_FLOAT_EQ(noise.renderSample(), 0);
+    noise.startNote(60, 1, 8192);
+    noise.stopNote(true);
+    noise.setReleaseSamplesRemaining(49);
+    for (int i = 0; i < 256; ++i) {
+        float sample = noise.renderSample();
+        if (i >= 49)
+            EXPECT_FLOAT_EQ(sample, 0);
+    }
+    EXPECT_FALSE(noise.isActive());
 }

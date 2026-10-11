@@ -1,3 +1,5 @@
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+
 # VCF musical-model validation: first implementation pass
 
 ## Goal and scope

@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <bit>
+#include <vector>
 
 namespace {
 using cs01::Param;
@@ -428,5 +429,152 @@ TEST(EGContinuityTest, LifecycleClearsObservationGateAndRepreparesAtOtherRates) 
         EXPECT_FALSE(eg.isActive());
         EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
         EXPECT_FLOAT_EQ(eg.getNoteGate(), 0.f);
+    }
+}
+
+TEST(EGContinuityTest, ProductionRangeStageDurationsIncludingMaximumInternalRate) {
+    for (double rate : {44100., 48000., 96000., 192000., 384000.})
+        for (float position : {0.f, .5f, 1.f}) {
+            cs01::ParameterState state;
+            for (auto id : {Param::Attack, Param::Decay, Param::Release})
+                state.set(id, cs01::fromNormalized(id, position));
+            state.set(Param::Sustain, .5f);
+            EGProcessor eg(state);
+            eg.prepareToPlay(rate, 256);
+            eg.startEnvelope();
+            auto duration = [&](auto done) {
+                for (int n = 1; n <= static_cast<int>(rate * 3); ++n)
+                    if (done(eg.processSample()))
+                        return n;
+                return static_cast<int>(rate * 3) + 1;
+            };
+            auto check = [&](Param id, int count) {
+                double expected = state.get(id);
+                EXPECT_NEAR(count / rate, expected, expected * .01 + 2 / rate);
+            };
+            check(Param::Attack, duration([](float x) { return x >= 1; }));
+            check(Param::Decay, duration([](float x) { return x <= .5f; }));
+            eg.releaseEnvelope();
+            check(Param::Release, duration([](float x) { return x == 0; }));
+        }
+}
+TEST(EGContinuityTest, RepeatedEditsRetriggersAndGateClockArePartitionIndependent) {
+    for (double rate : {44100., 48000., 96000.}) {
+        auto render = [&](int block, bool gate) {
+            cs01::ParameterState state;
+            settings(state);
+            if (gate)
+                state.set(Param::Release, .01f);
+            EGProcessor eg(state);
+            eg.prepareToPlay(rate, block);
+            std::vector<float> output;
+            std::vector<int> boundaries =
+                gate ? std::vector<int>{0, 100, 200, 300, 400, 1500}
+                     : std::vector<int>{0, 200, 400, 600, 800, 1000, 1200, 30000};
+            for (size_t event = 0; event + 1 < boundaries.size(); ++event) {
+                if (gate) {
+                    if (event == 0 || event == 3)
+                        eg.startEnvelope();
+                    if (event == 1 || event == 4)
+                        eg.releaseEnvelope();
+                    if (event == 2)
+                        state.set(Param::Release, .005f);
+                } else {
+                    if (event == 0 || event == 5)
+                        eg.startEnvelope();
+                    if (event == 3 || event == 6)
+                        eg.releaseEnvelope();
+                    if (event == 1 || event == 2 || event == 4)
+                        state.set(event == 4 ? Param::Release : Param::Attack,
+                                  event == 2 ? .05f : .2f);
+                }
+                for (int i = boundaries[event]; i < boundaries[event + 1];) {
+                    int count = std::min(block, boundaries[event + 1] - i);
+                    for (int j = 0; j < count; ++j) {
+                        float value = eg.processSample();
+                        output.push_back(gate ? eg.getNoteGate() : value);
+                    }
+                    i += count;
+                }
+            }
+            return output;
+        };
+        for (bool gate : {false, true}) {
+            auto expected = render(1, gate);
+            for (int size : {7, 64, 256})
+                EXPECT_EQ(render(size, gate), expected);
+            if (gate) {
+                EXPECT_GT(expected[99], .99f);
+                EXPECT_GT(expected[399], expected[300]);
+            } else
+                EXPECT_GT(expected[599], 0);
+            EXPECT_FLOAT_EQ(expected.back(), 0);
+            for (float value : expected) {
+                ASSERT_GE(value, 0);
+                ASSERT_LE(value, 1);
+            }
+        }
+    }
+}
+TEST(EGContinuityTest, EarlyReleaseUsesNoteOffLevelAndRateWithZeroSustain) {
+    for (double rate : {44100., 48000., 96000.}) {
+        cs01::ParameterState state;
+        settings(state);
+        state.set(Param::Sustain, 0);
+        EGProcessor eg(state);
+        eg.prepareToPlay(rate, 1);
+        eg.startEnvelope();
+        advance(eg, static_cast<int>(rate * .037));
+        float initial = eg.getLastOutputForTesting();
+        ASSERT_GT(initial, 0);
+        eg.releaseEnvelope();
+        EXPECT_LE(eg.processSample(), initial);
+        advance(eg, static_cast<int>(rate * .05) - 1);
+        double expected = initial * (1 - (1 - std::exp(-1.)) / (1 - std::exp(-2.)));
+        EXPECT_NEAR(eg.getLastOutputForTesting(), expected, initial * .002);
+        EXPECT_TRUE(eg.isActive());
+        advance(eg, static_cast<int>(rate * .06));
+        EXPECT_FALSE(eg.isActive());
+        EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0);
+    }
+}
+
+TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainHistoricalSlopeBounds) {
+    for (double rate : {44100., 48000., 96000.}) {
+        cs01::ParameterState state;
+        settings(state);
+        state.set(Param::Sustain, .5f);
+        state.set(Param::Release, .5f);
+        EGProcessor eg(state);
+        eg.prepareToPlay(rate, 1);
+        eg.startEnvelope();
+        float previous = 0;
+        bool reachedPeak = false;
+        for (int i = 0; i < static_cast<int>(rate * .5); ++i) {
+            float value = eg.processSample();
+            ASSERT_TRUE(std::isfinite(value));
+            ASSERT_GE(value, 0);
+            ASSERT_LE(value, 1);
+            ASSERT_LE(std::abs(value - previous), 2.32 / (.1 * rate) + .00001);
+            if (!reachedPeak) {
+                ASSERT_GE(value + .000001f, previous);
+                if (value >= 1)
+                    reachedPeak = true;
+            } else
+                ASSERT_LE(value, previous + .000001f);
+            previous = value;
+        }
+        EXPECT_TRUE(reachedPeak);
+        EXPECT_NEAR(previous, .5f, .00001f);
+        eg.releaseEnvelope();
+        for (int i = 0; i < static_cast<int>(rate * .6); ++i) {
+            float value = eg.processSample();
+            ASSERT_GE(value, 0);
+            ASSERT_LE(value, previous + .000001f);
+            ASSERT_LE(std::abs(value - previous), 1.16 / (.5 * rate) + .00001);
+            previous = value;
+        }
+        EXPECT_FLOAT_EQ(previous, 0);
+        EXPECT_FALSE(eg.isActive());
     }
 }

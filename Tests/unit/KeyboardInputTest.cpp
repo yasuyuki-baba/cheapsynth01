@@ -3,6 +3,7 @@
 #include "SynthEngine.h"
 #include <gtest/gtest.h>
 #include <vector>
+#include <thread>
 
 TEST(KeyboardInputTest, MappingRepeatModifiersAndUnrecognizedKeys) {
     cs01::QwertyKeyboard keys;
@@ -140,4 +141,39 @@ TEST(KeyboardInputTest, GlobalHostPanicClearsAllSourceOwnership) {
     ownership.process({0x80, 60, 0}, false, send);
     ownership.process({0x80, 60, 0}, true, send);
     EXPECT_EQ(events, 3u);
+}
+
+TEST(KeyboardInputTest, ProducerChangesOverlapAudioConsumeAndAudioOnlyResets) {
+    cs01::ParameterState state;
+    SynthEngine engine(state);
+    engine.prepare(48000);
+    cs01::UiNoteBridge bridge;
+    std::atomic<bool> done{false};
+    std::thread producer([&] {
+        for (int i = 0; i < 10000; ++i) {
+            bridge.set(48 + i % 24, 127, cs01::UiNoteBridge::PC);
+            bridge.set(48 + (i + 7) % 24, 0, cs01::UiNoteBridge::PC);
+            if (i % 31 == 0)
+                bridge.releaseAll();
+        }
+        bridge.releaseAll();
+        done.store(true);
+    });
+    unsigned count = 0;
+    bool finite = true;
+    do {
+        if (++count % 17 == 0) {
+            engine.panic();
+            bridge.resetAudio();
+        }
+        bridge.consume([&](auto message) { engine.handleUiMidi(message); });
+        finite &= std::isfinite(engine.renderSample());
+        bridge.publishExternal(engine.externalNotes());
+    } while (!done.load());
+    producer.join();
+    bridge.consume([&](auto message) { engine.handleUiMidi(message); });
+    EXPECT_TRUE(finite);
+    EXPECT_EQ(engine.currentNote(), 0);
+    for (int i = 48; i < 72; ++i)
+        EXPECT_FALSE(bridge.displayed(i));
 }

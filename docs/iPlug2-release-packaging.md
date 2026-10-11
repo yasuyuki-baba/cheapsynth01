@@ -40,3 +40,38 @@ Windows Git text attributes can report the restored CLAP SDK placeholder notices
 as modified. Only the named SDK README/readme placeholders may differ in LF/CRLF
 representation, and their complete text must still match iPlug2's fixed Git blob.
 Other SDK modifications continue to block packaging.
+
+
+## Optional signing and notarization preparation
+
+Signing is opt-in and uses a certificate already installed on the native machine.
+`scripts/sign_products.py` prints its commands by default and does not read private
+keys or certificate passwords. Inspect the plan before adding `--execute`:
+
+```sh
+python scripts/sign_products.py --platform macOS --output build-native/out --identity "Developer ID Application: Your Team"
+python scripts/sign_products.py --platform Windows --output build-native/out --identity YOUR_40_HEX_CERTIFICATE_THUMBPRINT
+```
+
+Windows signs/verifies APP, CLAP and the inner VST3 executable with SHA256 and a
+trusted timestamp. macOS signs nested Mach-O code before enclosing APP/VST3/AUv2/
+CLAP bundles, with hardened runtime and timestamp, then verifies nested signatures.
+The script requires its native platform to execute signing. Dry-run fixture tests
+check product discovery, command order and escaping symlink rejection; no products
+are signed by ordinary CI. Certificates/SDK tools must be provisioned separately.
+
+For macOS notarization, prepare a `notarytool` keychain profile outside the
+repository. After signing, create the macOS archive and submit that exact ZIP:
+
+```sh
+xcrun notarytool submit release-packages/cheapsynth01-macOS.zip --keychain-profile CheapSynth01 --wait
+```
+
+Check the returned acceptance result. ZIP files cannot themselves be stapled;
+plugin bundles rely on Apple's online notarization ticket. If distributing the
+standalone APP for offline launch, staple its accepted ticket with `xcrun stapler
+staple build-native/out/CheapSynth01.app`, validate the ticket, then recreate and
+verify the archive so its manifest includes the stapled contents. These commands
+are release hooks, not evidence of a completed signed/notarized release. Validate
+real products and installation before publishing a release; those runtime checks
+are currently deferred. No credentials or release tags are created by this migration.

@@ -290,3 +290,48 @@ TEST_F(PresetBehaviorTest, SessionRestoresSelectedProgramAndWaveWhileKeepingPerf
     EXPECT_FLOAT_EQ(state.get(Param::BreathInput), .1f);
     EXPECT_NEAR(cs01::toNormalized(Param::PitchBend, state.get(Param::PitchBend)), .1f, .000001);
 }
+
+TEST_F(PresetBehaviorTest, SessionSavedImmediatelyAfterMidiEditIncludesItsNewValue) {
+    SynthEngine engine(state);
+    engine.prepare(48000);
+    engine.handleMidi({0xb0, 73, 100});
+    const float changed = state.get(Param::Attack);
+    const auto saved = manager.getStateInformation();
+    state.set(Param::Attack, .001f);
+    ASSERT_TRUE(manager.setStateInformation(saved));
+    EXPECT_FLOAT_EQ(state.get(Param::Attack), changed);
+}
+TEST_F(PresetBehaviorTest, SessionRestoresAllRoutesAndResetSerialWithoutSerializingHeldNotes) {
+    for (int filter : {0, 1})
+        for (int target : {0, 1}) {
+            state.set(Param::FilterType, filter);
+            state.set(Param::LfoTarget, target);
+            state.set(Param::Volume, 1);
+            SynthEngine played(state);
+            played.prepare(48000);
+            played.handleMidi({0x90, 69, 127});
+            for (int i = 0; i < 256; ++i)
+                played.renderSample();
+            const auto saved = manager.getStateInformation();
+            state.set(Param::FilterType, 1 - filter);
+            state.set(Param::LfoTarget, 1 - target);
+            auto reset = state.stateResetSerial();
+            ASSERT_TRUE(manager.setStateInformation(saved));
+            EXPECT_GT(state.stateResetSerial(), reset);
+            EXPECT_FLOAT_EQ(state.get(Param::FilterType), filter);
+            EXPECT_FLOAT_EQ(state.get(Param::LfoTarget), target);
+            SynthEngine restored(state);
+            restored.prepare(48000);
+            for (int i = 0; i < 256; ++i)
+                EXPECT_FLOAT_EQ(restored.renderSample(), 0);
+            EXPECT_TRUE(restored.externalNotes().none());
+            restored.handleMidi({0x90, 69, 127});
+            double energy = 0;
+            for (int i = 0; i < 10240; ++i) {
+                float x = restored.renderSample();
+                ASSERT_TRUE(std::isfinite(x));
+                energy += x * x;
+            }
+            EXPECT_GT(energy, 1e-6);
+        }
+}

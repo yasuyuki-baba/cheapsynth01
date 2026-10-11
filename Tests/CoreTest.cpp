@@ -16,6 +16,7 @@
 namespace {
 std::atomic<bool> countAllocations{false};
 std::atomic<int> allocations{0};
+std::atomic<int> deallocations{0};
 }  // namespace
 void* operator new(std::size_t size) {
     if (countAllocations.load())
@@ -25,19 +26,21 @@ void* operator new(std::size_t size) {
     throw std::bad_alloc();
 }
 void operator delete(void* p) noexcept {
+    if (p && countAllocations.load())
+        deallocations.fetch_add(1);
     std::free(p);
 }
 void operator delete(void* p, std::size_t) noexcept {
-    std::free(p);
+    ::operator delete(p);
 }
 void* operator new[](std::size_t size) {
     return ::operator new(size);
 }
 void operator delete[](void* p) noexcept {
-    std::free(p);
+    ::operator delete(p);
 }
 void operator delete[](void* p, std::size_t) noexcept {
-    std::free(p);
+    ::operator delete(p);
 }
 void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
     try {
@@ -50,10 +53,10 @@ void* operator new[](std::size_t size, const std::nothrow_t& tag) noexcept {
     return ::operator new(size, tag);
 }
 void operator delete(void* p, const std::nothrow_t&) noexcept {
-    std::free(p);
+    ::operator delete(p);
 }
 void operator delete[](void* p, const std::nothrow_t&) noexcept {
-    std::free(p);
+    ::operator delete(p);
 }
 namespace {
 using cs01::Param;
@@ -800,4 +803,42 @@ TEST(KeyboardInputTest, AudioDrainAndSourceOwnershipDoNotAllocate) {
     }
     countAllocations.store(false);
     EXPECT_EQ(allocations.load(), 0);
+}
+
+TEST_F(EngineTest, FirstVariableLengthDenseMidiAndRouteChangesHaveNoHeapOperations) {
+    cs01::MidiQueue queue;
+    cs01::UiNoteBridge bridge;
+    allocations.store(0);
+    deallocations.store(0);
+    bool finite = true;
+    countAllocations.store(true);
+    for (int block = 0; block < 100; ++block) {
+        const std::array sizes{0, 1, 7, 16, 64, 127, 64, 7, 1};
+        int frames = sizes[block % sizes.size()];
+        parameters.set(Param::FilterType, block % 2);
+        parameters.set(Param::LfoTarget, (block / 2) % 2);
+        parameters.set(Param::Feet, block % 3 == 0 ? 4 : 2);
+        bridge.set(48 + block % 12, 127, cs01::UiNoteBridge::PC);
+        if (block % 5 == 0)
+            bridge.releaseAll();
+        if (block % 7 == 0)
+            bridge.resetAudio();
+        bridge.consume([&](auto message) { engine.handleUiMidi(message); });
+        for (int i = 0; i < frames; ++i) {
+            queue.add(i, noteOn(60 + i % 12));
+            queue.add(i, cc(1, i % 128));
+            queue.add(i, noteOff(60 + i % 12));
+        }
+        queue.consumeThrough(0, [&](auto message) { engine.handleMidi(message); });
+        for (int i = 0; i < frames; ++i) {
+            queue.consumeThrough(i, [&](auto message) { engine.handleMidi(message); });
+            finite &= std::isfinite(engine.renderSample());
+        }
+        queue.flush(frames);
+        bridge.publishExternal(engine.externalNotes());
+    }
+    countAllocations.store(false);
+    EXPECT_TRUE(finite);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_EQ(deallocations.load(), 0);
 }

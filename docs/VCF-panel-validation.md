@@ -1,3 +1,5 @@
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+
 # CS-01 VCF panel validation
 
 The production cutoff range is 20-20000 Hz with skew 0.3 and 1 Hz steps.

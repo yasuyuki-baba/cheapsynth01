@@ -39,8 +39,7 @@ the CS01 (I) filter. RES is a two-position L/H switch, encoded as 0/1.
 ## Conversion to plugin values
 
 XML stores plain parameter values, not normalized slider positions. Use the
-current `CS01AudioProcessor::createParameterLayout` ranges and JUCE's
-`NormalisableRange::convertFrom0to1` mapping:
+current `Source/Parameters.h` definitions and `cs01::fromNormalized` mapping:
 
 `value = minimum + (maximum - minimum) * position^(1 / skew)`
 
@@ -69,6 +68,7 @@ Breath sensitivity follows the drawn knobs, but breath input remains an external
 performance control. The manual's prose also suggests optional variations (for
 example piccolo and trombone); those are not the base diagrams transcribed here.
 
-Tests link the same generated binary preset resources as the plugin. Regression
+Tests check the compiled presets against the source XML and independent manual
+readings. Regression
 checks cover the decoded sound controls, switch settings, normalized panel
 positions, and preservation of live performance controls.

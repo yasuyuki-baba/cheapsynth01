@@ -1,3 +1,5 @@
+> Retained reference from the JUCE baseline. Software paths, test counts and runtime measurements apply to that historical revision; hardware analysis retains its recorded provenance. See [current iPlug2 status](iPlug2-migration.md) and [hardware index](hardware/Source-catalog.md).
+
 # EG control-link first pass
 
 OriginalVCFProcessor and VCAProcessor now ramp EG depth over 5 ms using the

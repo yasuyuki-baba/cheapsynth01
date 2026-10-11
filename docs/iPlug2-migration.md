@@ -7,8 +7,8 @@ oscillator, envelope, MIDI state, both filters, VCA and output converter. The
 former JUCE graph is replaced by explicit LFO/EG → VCO → selected VCF → VCA
 processing at four times the host rate. MIDI is applied before the corresponding
 host frame. No runtime graph mutation or GUI notification is required for
-routing/source changes. Core parameters use lock-free atomics; MIDI notifications
-are forwarded with iPlug2's deferred queue.
+routing/source changes. Core parameters use lock-free atomics; MIDI parameter changes are published atomically; the iPlug2 idle callback refreshes
+controls and the VST3 controller cache outside audio rendering.
 
 `CS01AudioProcessor` is an iPlug2 plugin; the editor uses IGraphics. The panel
 restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
@@ -79,116 +79,41 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite now has 135 core cases (132 regression assertions and three
-observational measurements). It retains the two independent filter-model test suites and
-adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
-regression tests. Same-name preset saves overwrite through a temporary file;
-failed replacement preserves the old target. Missing selected user files revert
-to Default on catalogue refresh. Historical
-JUCE-only editor/graph tests are archived in `Tests/legacy-juce` as reference
-scenarios, not counted as current coverage. Older modeling documents may describe
-that architecture and converter; this document describes the production iPlug2 path.
+The non-runtime migration work is complete: OOS layout, main reconciliation,
+portable behavior/assertion review, current XML/host-program publication,
+keyboard ownership, build/CI reports, complete source/native ZIP contracts,
+optional signing preparation and current documentation.
 
-Windows/macOS CI builds the native products and tests the core in Debug/Release.
-Native graphics, audio-device I/O, DAW scanning/automation, AU validation and host
-latency compensation require verification in the corresponding native hosts.
+There are 197 portable cases: 183 correctness regressions (including three
+hypothetical RC research equations) and 14 observations. Eight additional cases
+use real VST3 SDK interface types with simulated queues/streams, for 205 total.
+The 272-row historical inventory has no unreviewed/partial dispositions. It records
+retained assertions, adapted contracts, observations, reasoned retirement and
+39 deferred native-runtime/UI cases. Counts do not claim one-to-one assertion
+parity or equivalent sound after replacing framework primitives.
 
-Historical local migration checks in the Linux workspace: all 38 core tests pass
-in Debug, Release and a Debug build with AddressSanitizer/UndefinedBehaviorSanitizer (including leak
-detection). Formatting with clang-format 21.1.7, SDK setup idempotence and plist
-parsing pass. The Windows editor and resource script also cross-compile.
-These checks do not establish a complete native plugin build or DAW validation;
-native CI evidence is recorded below.
+Frozen model arithmetic exposed a resonance precision difference: the original
+model now subtracts damping endpoints as double, retaining the former formula's
+precision. Exact model/wrapper references, independent VCA transfer equations,
+live EG/source/route timelines, full waveform/pitch/Feet ranges, breath controls,
+MIDI boundaries and no-heap portable paths are checked. Whole JUCE graph/IIR bit
+comparisons and Linux lock probes are intentionally retired with reasons.
 
-The repository GPLv3 license is retained. iPlug2's permissive license removes the
-JUCE dependency but does not authorize relicensing third-party contributions.
+Debug, Release and ASan/UBSan verification results and the final Windows/macOS
+native build/archive CI revision are recorded in PR #40. Native compilation and
+ZIP verification do not load a plugin. Fifteen Python archive/signing contract
+checks and four conditional hardware equation checks run separately.
 
-## Completion plan
+Real plugin/DAW/editor/device checks, validators that instantiate products,
+host latency compensation and standalone preferences/device persistence remain
+deferred as requested. Whole SDK callback allocation/locking and native control
+thread/gesture/lifecycle behavior are part of that runtime validation. Optional
+signing/notarization hooks are prepared; no credentials, signed release or tags
+are produced by this migration. The PR remains a draft until runtime gates pass.
 
-See the [migration completion plan](iPlug2-migration-plan.md) for the audit of newer main,
-remaining behavior and validation gaps, iPlug2OOS alignment and validation gates.
-The linked case inventory tracks the 272 Google Test definitions in the frozen
-main baseline; their assertion coverage is tracked individually in that inventory.
+See [completion status](iPlug2-migration-plan.md), [assertion inventory](iPlug2-test-inventory.csv),
+[main reconciliation](iPlug2-main-reconciliation.md), [host integration](iPlug2-host-integration.md)
+and [release preparation](iPlug2-release-packaging.md).
 
-The OOS layout places the native wrapper/config/resources in `CheapSynth01/`, the
-SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platform
-CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
-or unused platforms are copied from the template. See CONTRIBUTING for commands.
-
-Current local completion-batch checks: 135 core and eight SDK-interface boundary
-cases pass in Debug, Release and
-AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
-new EG regression cases fail when linked against the pre-port EG implementation,
-confirming they detect the missing behavior. The moved project configures APP,
-VST3 and CLAP targets for Windows and cross-compiles the core and editor against
-the real SDK headers; this is still not a native Windows/macOS executable/host test.
-macOS deployment metadata now matches the core's `std::filesystem` requirement
-(macOS 10.15). The existing plugin IDs and 16-frame converter latency are unchanged.
-
-
-The previous implementation commit `6a082be` passed Windows/macOS native-product
-builds and all four platform/configuration core jobs in
-[CI run 38099506282](https://github.com/yasuyuki-baba/cheapsynth01/actions/runs/38099506282).
-The only failing job was lint because the macOS runner lacked `rg`; the formatter
-script now falls back to Git's tracked-file enumeration. This run predates the
-host-program integration and does not establish its native runtime behavior.
-
-Host preset catalogues are now prepared once per instance and exposed through
-SDK-supported AU/VST3 interfaces, independently of editor creation. See
-[host integration scope and limitations](iPlug2-host-integration.md).
-
-Whole-state publication now transfers a complete patch and its note-reset serial
-to audio-owned parameters at block boundaries. A busy writer leaves the previous
-snapshot active. Session saves capture complete parameter snapshots and retry if
-host selection changes. VST3 retains explicit native state-stream/trailer and
-preset-queue handling. Public parameter APIs use the standard SDK IDs. Old JUCE
-DAW projects, automation and binary-state compatibility were removed from scope
-on 2026-10-11; XML preset import/export remains available.
-
-
-The keyboard bridge now owns QWERTY state per editor instance, coalesces UI
-notes without a bounded-event-queue overflow, and separates UI ownership from
-external MIDI ownership. Hide, close, text entry and native focus loss release
-only UI notes. The keyboard displays the union of both sources. Nine portable
-regressions cover ownership/lifecycle; actual native focus and pointer interactions
-remain deferred. Twelve additional DSP regressions cover LFO periods/live edits,
-modern filter response/modulation/reset, noise release/reset and measured pitch/Feet.
-The current suite contains 143 CTest cases (135 core and eight SDK-interface).
-All 143 cases pass locally in Debug, Release and ASan/UBSan with leak detection.
-Eleven Python archive-contract cases also pass. Current native CI results are recorded in PR #40.
-
-Release packaging includes license notices and BUILD-INFO.json, with the full
-source revision, dependency revisions and SHA-256/mode of every payload file.
-CI checks both native archives and an offline core/SDK-interface rebuild of the
-complete source archive. Eleven independent Python archive-contract tests cover
-corruption, omitted/duplicate files, revision/version mismatches, unsafe paths
-and symlink targets. Native compilation is enabled; plugin loading, DAW/device
-checks and interactive native validation are deferred at the user's request.
-
-
-The main revision `32b91c8` is structurally reconciled; all 272 historical cases
-and their source references are retained under Tests/legacy-juce. The current
-core adopts behavioral model names and empirical VCF/VCA stage boundaries with
-independent old-expression/reset regressions. MIDI offsets are clamped before
-stable sorting, and offset-zero events apply even in empty callbacks. Events
-scheduled at/after a nonempty block's end carry into the next block rather than
-being played early. This differs intentionally from the archived JUCE callback's
-clamping of all events into its block. Native loading/GUI/device checks are deferred.
-
-
-Editor-scoped lifetime guards discard replies after close, hierarchy replacement
-or processor destruction. Save/rename text actions and asynchronous XML import
-use this guard. Rename captures the selected user preset's identity when the
-action starts, resolves it under the preset manager's lock, and retains safe
-unique-name behavior. Two portable lifecycle tests and one identity/rename
-regression cover these contracts; actual native dialogs are still deferred.
-Windows packaging verifies restored SDK placeholder text against the fixed
-iPlug2 Git blob, allowing only LF/CRLF differences for those named notices.
-A separate fixture rejects changed notice text and non-notice paths.
-
-
-The concurrent whole-patch/reset-serial stress case now includes an explicit
-completed-publication rendezvous. A bounded reader may legitimately reject
-every attempt while the writer is busy; successful progress is not assumed
-from scheduler timing. The 20,000-publication stress phase and mixed-patch/serial
-checks remain. The corrected Release case also passes 100 repeated runs.
+The repository remains GPLv3. iPlug2's permissive license removes JUCE as a
+dependency; it does not authorize relicensing existing contributions.
