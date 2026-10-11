@@ -1,3 +1,5 @@
+> Earlier document version preserved during documentation cleanup. For the maintained reference, see [the documentation index](../../../README.md). Content and measurements below retain their original scope.
+
 # Yamaha CS-01 LFO — Technical Summary
 
 ## Short summary

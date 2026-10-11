@@ -2,6 +2,11 @@
 
 # Documentation guide
 
+This index describes the frozen JUCE baseline. References to current software
+inside its documents apply to that baseline. For maintained product instructions,
+use [the iPlug2 documentation index](../README.md). Additional earlier versions
+are preserved in [the earlier-version index](earlier-revisions/README.md).
+
 Documents describe two subjects: current software behavior and recorded
 hardware analysis. `software/` contains implementation and validation documents;
 `hardware/` contains circuit analysis and source information.
