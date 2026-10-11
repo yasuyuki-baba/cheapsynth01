@@ -9,9 +9,14 @@ elseif(NOT IPLUG2_CLAP_SUPPORTED)
     message(FATAL_ERROR "CLAP SDK missing. Run bash scripts/setup-iplug2.sh")
 endif()
 iplug_add_plugin(CheapSynth01
-    SOURCES CS01AudioProcessor.cpp CS01AudioProcessor.h
-        CS01AudioProcessorEditor.cpp KeyboardFocus.cpp
-        UI/PanelControls.h UI/OwnedKeyboardControl.h resources/resource.h
+    SOURCES
+        CS01AudioProcessor.cpp
+        CS01AudioProcessor.h
+        CS01AudioProcessorEditor.cpp
+        KeyboardFocus.cpp
+        UI/PanelControls.h
+        UI/OwnedKeyboardControl.h
+        resources/resource.h
     RESOURCES resources/fonts/Roboto-Regular.ttf
     FORMATS ${formats}
     LINK CheapSynth01Core
