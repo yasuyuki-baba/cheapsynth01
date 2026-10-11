@@ -82,13 +82,32 @@ def dependency_revisions(root, build):
     return result
 
 
+def restored_notice_matches(sdk, name):
+    if not re.fullmatch(r'Dependencies/IPlug/(VST3_SDK|CLAP_SDK|CLAP_HELPERS)/(README.md|readme.txt)', name):
+        return False
+    path = sdk / name
+    if path.is_symlink() or not path.is_file():
+        return False
+    try:
+        expected = subprocess.check_output(['git', '-C', str(sdk), 'show', 'HEAD:' + name], stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        return False
+    # Windows text:auto can report these nested SDK placeholders dirty because
+    # setup restores the outer Git blob while nested attributes differ. Verify
+    # their actual notice text; no other SDK source changes are permitted.
+    return path.read_bytes().replace(b'\r\n', b'\n') == expected.replace(b'\r\n', b'\n')
+
+
 def package(root, build, platform, output):
     dirty = git(root, 'status', '--porcelain', '--untracked-files=no', '--ignore-submodules=all')
     if dirty:
         raise ValueError('Commit tracked source changes before packaging: ' + dirty)
     sdk = root / 'iPlug2'
-    if git(sdk, 'status', '--porcelain', '--untracked-files=no'):
-        raise ValueError('iPlug2 checkout has tracked modifications: ' + git(sdk, 'status', '--porcelain', '--untracked-files=no'))
+    dirty = git(sdk, 'status', '--porcelain', '--untracked-files=no')
+    for line in dirty.splitlines():
+        name = line[2:] if line.startswith('M ') else line[3:]
+        if not restored_notice_matches(sdk, name):
+            raise ValueError('iPlug2 checkout has tracked modifications: ' + line)
     dependencies = dependency_revisions(root, build)
     commits = {'iPlug2': git(sdk, 'rev-parse', 'HEAD')}
     if git(root, 'ls-tree', 'HEAD', 'iPlug2').split()[2] != commits['iPlug2']:
@@ -106,7 +125,7 @@ def package(root, build, platform, output):
                 raise ValueError(f'{name} has tracked modifications: {notice}')
             expected = subprocess.check_output(['git', '-C', str(sdk), 'show',
                                                 f'HEAD:Dependencies/IPlug/{name}/{notice}'])
-            if (directory / notice).read_bytes() != expected:
+            if (directory / notice).read_bytes().replace(b'\r\n', b'\n') != expected.replace(b'\r\n', b'\n'):
                 raise ValueError(f'{name} has a modified placeholder notice')
         if any(line.startswith(('+', 'U')) for line in git(directory, 'submodule', 'status', '--recursive').splitlines()):
             raise ValueError(f'{name} submodules differ from pinned revisions')

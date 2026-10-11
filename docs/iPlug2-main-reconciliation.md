@@ -76,4 +76,10 @@ are deferred; native compilation and archive verification continue in CI.
 Additional MIDI coverage fixes negative-offset stable ordering and applies due
 offset-zero events during empty callbacks. Future events retain iPlug2 queue
 carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 92 core cases plus eight SDK-interface cases.
+restored. The current suite contains 95 core cases plus eight SDK-interface cases.
+
+Editor session guards now invalidate asynchronous replies on close, control
+hierarchy replacement and owner destruction. Rename requests resolve captured
+filename/type identity rather than whatever selection happens to be current
+at reply time. Portable session lifecycle and rename preservation assertions
+pass; actual native dialog/SDK control destruction remains deferred.
