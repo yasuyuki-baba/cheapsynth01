@@ -56,7 +56,9 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## State and identifiers
 
-- The same parameter XML IDs, ranges, defaults and skew mappings are used.
+- Parameter XML IDs remain stable. Attack, Decay and Release now store RC time
+  constants using the assumed A-taper mapping described in [EG RC timing](EG-RC-timing.md).
+  Old timing values are not automatically converted.
 - All seven existing factory XML files are embedded at build time.
 - User XML files are read from the former folders: macOS
   `~/Library/Application Support/CheapSynth01/UserPresets`, Windows
@@ -94,17 +96,18 @@ MIDI boundaries and no-heap portable paths are checked. The active regression
 references test current model arithmetic; they do not maintain the removed JUCE
 graph or IIR converter.
 
-Debug, Release and ASan/UBSan verification results and the final Windows/macOS
-native build/archive CI revision are recorded in PR #40. Native compilation and
+Historical migration verification results are recorded in
+[PR #40](https://github.com/yasuyuki-baba/cheapsynth01/pull/40); those results apply
+to its tested revision. Native compilation and
 ZIP verification do not load a plugin. Fifteen Python archive/signing contract
 checks and four conditional hardware equation checks run separately.
 
 Real plugin/DAW/editor/device checks, validators that instantiate products,
 host latency compensation and standalone preferences/device persistence remain
-deferred as requested. Whole SDK callback allocation/locking and native control
+pending. Whole SDK callback allocation/locking and native control
 thread/gesture/lifecycle behavior are part of that runtime validation. Optional
 signing/notarization hooks are prepared; no credentials, signed release or tags
-are produced by this migration. The PR remains a draft until runtime gates pass.
+are produced by compilation or archive verification.
 
 See [native validation status](iPlug2-migration-plan.md),
 [DSP design](DSP-design.md), [host integration](iPlug2-host-integration.md)
