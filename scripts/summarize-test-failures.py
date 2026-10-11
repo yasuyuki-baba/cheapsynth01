@@ -10,3 +10,6 @@ for case in report.iter("testcase"):
     if failures:
         print(f"\n{case.get('classname')}.{case.get('name')}: {len(failures)} assertions")
         print((failures[0].get("message") or failures[0].text or "")[:2000])
+        output = case.findtext("system-out") or ""
+        if output:
+            print(output[:4000])

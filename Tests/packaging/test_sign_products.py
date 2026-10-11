@@ -11,7 +11,7 @@ spec.loader.exec_module(signing)
 class SigningPreparationTest(unittest.TestCase):
     def test_windows_signs_inner_vst3_binary_and_standalone_and_clap(self):
         with tempfile.TemporaryDirectory() as path:
-            root = Path(path)
+            root = Path(path).resolve()
             binary = root / 'Synth.vst3/Contents/x86_64-win/Synth.vst3'
             binary.parent.mkdir(parents=True)
             for product in [binary, root / 'Synth.exe', root / 'Synth.clap']:
@@ -23,7 +23,7 @@ class SigningPreparationTest(unittest.TestCase):
 
     def test_mac_signs_nested_macho_before_enclosing_bundle(self):
         with tempfile.TemporaryDirectory() as path:
-            root = Path(path)
+            root = Path(path).resolve()
             product = root / 'Synth.app'
             binary = product / 'Contents/MacOS/Synth'
             binary.parent.mkdir(parents=True)
@@ -42,7 +42,7 @@ class SigningPreparationTest(unittest.TestCase):
 
     def test_escaping_product_symlink_is_rejected(self):
         with tempfile.TemporaryDirectory() as path:
-            root = Path(path)
+            root = Path(path).resolve()
             outside = root / 'outside'; outside.mkdir()
             product = root / 'out'; product.mkdir()
             (product / 'Synth.app').symlink_to(outside, target_is_directory=True)
