@@ -22,7 +22,7 @@ endif()
 string(REPLACE "${graph_needle}"
     "currentAudioOutputBuffer.setSize (jmax (1, buffer.getNumChannels()), numSamples, false, false, true);"
     graph_patched "${graph_original}")
-set(graph_patched "// Modified by CheapSynth01 on 2026-10-09: reuse prepared graph output storage.\n// Reproduce this change with cmake/JuceGraphRealtimePatch.cmake.\n${graph_patched}")
+set(graph_patched "// Modified by CheapSynth01 on 2026-10-09: reuse prepared graph output storage.\n// Reproduce this change with Tests/legacy-juce/cmake/JuceGraphRealtimePatch.cmake.\n${graph_patched}")
 set(graph_override "${CHEAPSYNTH_JUCE_RT_INCLUDE}/juce_audio_processors_headless/processors/juce_AudioProcessorGraph.cpp")
 set(graph_existing "")
 if(EXISTS "${graph_override}")

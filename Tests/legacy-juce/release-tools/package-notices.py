@@ -34,7 +34,7 @@ if __name__ == '__main__':
         if not product.is_dir() or product.name not in {'Standalone','VST3','AU','LV2','CLAP'}:
             continue
         shutil.copyfile(ROOT / 'LICENSE', product / 'LICENSE.txt')
-        shutil.copyfile(ROOT / 'ThirdParty/AGPL-3.0.txt', product / 'AGPL-3.0.txt')
+        shutil.copyfile(Path(__file__).resolve().parents[1] / 'ThirdParty/AGPL-3.0.txt', product / 'AGPL-3.0.txt')
         (product / 'SOURCE.txt').write_text(source_text)
         (product / 'ThirdPartyNotices.txt').write_text(
             'CheapSynth01: GPLv3 (LICENSE.txt).\n'
@@ -66,7 +66,7 @@ if __name__ == '__main__':
             'product_version': re.search(r'project\(CheapSynth01 VERSION (\d+\.\d+\.\d+)', (ROOT / 'CMakeLists.txt').read_text()).group(1),
             'juce_commit': revision(args.juce),
             'juce_version': '9.0.3',
-            'juce_patch': 'cmake/JuceGraphRealtimePatch.cmake',
+            'juce_patch': 'Tests/legacy-juce/cmake/JuceGraphRealtimePatch.cmake',
             'build_machine': platform.machine(),
             'build_platform': platform.platform(),
             'runner': {key: os.environ.get(key) for key in ('RUNNER_OS', 'RUNNER_ARCH', 'ImageOS', 'ImageVersion')},
