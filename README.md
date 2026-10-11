@@ -133,9 +133,12 @@ hardware. Current DSP design and modeling limits are described in
 [the DSP design guide](docs/DSP-design.md). Earlier implementations and records
 are available in Git history.
 
-## Version 2 Migration
+## 0.4.0 Migration
 
-The iPlug2 version uses each format's native parameter IDs and current XML state.
+See the [0.4.0 release notes](docs/release-notes-0.4.0.md) for changes and upgrade
+considerations.
+
+CheapSynth01 0.4.0 uses each format's native parameter IDs and current XML state.
 Loading JUCE-era DAW projects, automation or binary state is outside the migration
 scope. Plugin identities and the macOS bundle ID remain unchanged. XML presets can
 still be imported and exported.

@@ -1,5 +1,31 @@
 # Release archives
 
+## Preparing 0.4.0
+
+The release tag is `v0.4.0`. CMake, `CheapSynth01/config.h`, Windows resource
+versions and macOS bundle metadata must all describe 0.4.0 before tagging.
+The plugin's packed version is `0x00000400`. Release CI rejects archives whose
+version or source commit differs from the tag checkout.
+
+Before publishing:
+
+1. Merge the release preparation changes and require successful lint, core,
+   native Windows/macOS and source-package CI for the final revision.
+2. Complete and record the pending [native runtime and installation checks](iPlug2-migration-plan.md#remaining-runtime-checks),
+   including scanning/loading, automation, current state save/reload, editor
+   controls, standalone devices and 16-sample latency compensation.
+3. Prepare signed/notarized products when distributing signed builds, and verify
+   the resulting archives as described below.
+4. Review the [0.4.0 release notes](release-notes-0.4.0.md), especially old-session
+   incompatibility and changed envelope timing. Update validation status when
+   actual runtime and signing results are available.
+5. Create and push `v0.4.0` at the verified release revision. **Pushing a tag
+   triggers CI to publish a GitHub Release automatically** after its checks pass.
+   CI requires `docs/release-notes-0.4.0.md` and uses it as the release
+   description, alongside generated commit-based notes.
+
+## Creating and verifying archives
+
 `scripts/release_package.py` packages built artifacts without installing or loading
 plugins. Native products support Windows (APP/VST3/CLAP) and macOS
 (APP/VST3/AUv2/CLAP). The iPlug2 submodule and fetched SDK/dependency sources must
@@ -9,7 +35,7 @@ The setup script's restored SDK placeholder notices are verified against iPlug2.
 ```
 python scripts/release_package.py create --build build-native --platform macOS --output release-packages/cheapsynth01-macOS.zip
 python scripts/release_package.py create --build build-native --platform source --output release-packages/cheapsynth01-source.zip
-python scripts/release_package.py verify --commit FULL_COMMIT_SHA --version 2.0.0 --platform source release-packages/cheapsynth01-source.zip
+python scripts/release_package.py verify --commit FULL_COMMIT_SHA --version 0.4.0 --platform source release-packages/cheapsynth01-source.zip
 ```
 
 Each archive contains the project license, dependency notices and BUILD-INFO.json.
