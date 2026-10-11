@@ -27,6 +27,8 @@ if(BUILD_VST3_BOUNDARY_TESTS)
     target_include_directories(CheapSynth01ParameterPresentationTests PRIVATE
         "${PROJECT_SOURCE_DIR}/CheapSynth01" "${PROJECT_SOURCE_DIR}/Source"
         "${IPLUG2_DIR}/IPlug" "${IPLUG2_DIR}/WDL")
+    # Match SDK product compilation: Windows headers must not replace std::min/max.
+    target_compile_definitions(CheapSynth01ParameterPresentationTests PRIVATE NOMINMAX _USE_MATH_DEFINES)
     target_link_libraries(CheapSynth01ParameterPresentationTests PRIVATE GTest::gtest_main)
     gtest_discover_tests(CheapSynth01ParameterPresentationTests DISCOVERY_TIMEOUT 30
         PROPERTIES LABELS "regression;integration;parameter-presentation")
