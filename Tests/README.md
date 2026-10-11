@@ -35,7 +35,7 @@ remaining behavior and validation gaps, iPlug2OOS alignment and validation gates
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 126 active core cases: 123 correctness regressions and
+The current suite has 135 active core cases: 132 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
@@ -65,7 +65,7 @@ LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
 references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 134 active CTest cases with SDK-interface
+callback boundary processing. There are 143 active CTest cases with SDK-interface
 tests enabled; this count does not claim historical assertion parity.
 
 Archive contract tests run independently, without loading a product:
@@ -96,3 +96,11 @@ release time, including unmatched key release and new-note recovery.
 Live waveform/Feet choices preserve held note identity and finite nonzero audio.
 Upstream sources intentionally run continuously; engine/VCA-gate silence is
 separate from source note-state inactivity and archived JUCE block APIs.
+
+`unit/PresetBehaviorTest.cpp` checks all 18 embedded factory controls against
+resource XML after perturbation, independent manual-panel readings, all 7 audible
+factory sounds, user-file/session exclusions and sorted catalogue identity.
+Selection and rename preserve edited sound without reloading the preset file.
+Seven filter-model regressions and three separate observations were diffed
+against the frozen main reference; counts and numerical tolerances are retained.
+Observations characterize this build and are not native-host performance gates.
