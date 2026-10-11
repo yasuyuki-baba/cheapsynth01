@@ -79,7 +79,7 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite now has 89 core cases (84 regression assertions and three
+The portable suite now has 92 core cases (89 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -115,7 +115,7 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 89 core and eight SDK-interface boundary
+Current local completion-batch checks: 92 core and eight SDK-interface boundary
 cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
@@ -149,11 +149,13 @@ on 2026-10-11; XML preset import/export remains available.
 The keyboard bridge now owns QWERTY state per editor instance, coalesces UI
 notes without a bounded-event-queue overflow, and separates UI ownership from
 external MIDI ownership. Hide, close, text entry and native focus loss release
-only UI notes. The keyboard displays the union of both sources. Eight portable
+only UI notes. The keyboard displays the union of both sources. Nine portable
 regressions cover ownership/lifecycle; actual native focus and pointer interactions
 remain deferred. Twelve additional DSP regressions cover LFO periods/live edits,
 modern filter response/modulation/reset, noise release/reset and measured pitch/Feet.
-The current suite contains 97 CTest cases; the previous 95-case batch passed locally in Debug, Release and ASan/UBSan with leak detection.
+The current suite contains 100 CTest cases (92 core and eight SDK-interface).
+All 100 cases pass locally in Debug, Release and ASan/UBSan with leak detection.
+Ten Python archive-contract cases also pass. Current native CI results are recorded in PR #40.
 
 Release packaging includes license notices and BUILD-INFO.json, with the full
 source revision, dependency revisions and SHA-256/mode of every payload file.
@@ -162,3 +164,13 @@ complete source archive. Ten independent Python archive-contract tests cover
 corruption, omitted/duplicate files, revision/version mismatches, unsafe paths
 and symlink targets. Native compilation is enabled; plugin loading, DAW/device
 checks and interactive native validation are deferred at the user's request.
+
+
+The main revision `32b91c8` is structurally reconciled; all 272 historical cases
+and their source references are retained under Tests/legacy-juce. The current
+core adopts behavioral model names and empirical VCF/VCA stage boundaries with
+independent old-expression/reset regressions. MIDI offsets are clamped before
+stable sorting, and offset-zero events apply even in empty callbacks. Events
+scheduled at/after a nonempty block's end carry into the next block rather than
+being played early. This differs intentionally from the archived JUCE callback's
+clamping of all events into its block. Native loading/GUI/device checks are deferred.

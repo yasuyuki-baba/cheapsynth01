@@ -165,7 +165,7 @@ else()
         -Wformat=2     # Stricter format checking
         -fvisibility=hidden  # Better optimization/binary size
     )
-    
+
     # Extra optimization flags for non-Debug builds
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_options(CheapSynth01Tests

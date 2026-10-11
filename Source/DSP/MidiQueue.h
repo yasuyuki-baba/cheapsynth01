@@ -19,12 +19,13 @@ class MidiQueue {
             count = front = 0;
             return;
         }
+        offset = std::max(0, offset);
         int i = count++;
         while (i > front && events[i - 1].offset > offset) {
             events[i] = events[i - 1];
             --i;
         }
-        events[i] = {std::max(0, offset), message};
+        events[i] = {offset, message};
     }
     bool empty() const {
         return front == count;
@@ -34,6 +35,13 @@ class MidiQueue {
     }
     void remove() {
         ++front;
+    }
+    template <typename Handler>
+    void consumeThrough(int offset, Handler&& handle) {
+        while (!empty() && peek().offset <= offset) {
+            handle(peek().message);
+            remove();
+        }
     }
     void flush(int frames) {
         int kept = 0;

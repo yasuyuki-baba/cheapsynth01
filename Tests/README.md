@@ -35,7 +35,7 @@ remaining behavior and validation gaps, iPlug2OOS alignment and validation gates
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 69 active core cases: 66 correctness regressions and
+The current suite has 92 active core cases: 89 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
@@ -55,3 +55,24 @@ Native product builds also run eight `vst3-boundary` tests against real SDK
 interface types using simulated queues/streams. They do not load a plugin binary
 or open an editor/device. Core-only builds remain independent of the SDK; use
 `-DBUILD_VST3_BOUNDARY_TESTS=ON` to opt in with prepared SDK headers.
+
+
+The complete audited main Tests snapshot and source references are under
+`legacy-juce` (272 historical definitions), excluded from active builds.
+`unit/KeyboardInputTest.cpp` and the allocation probe cover UI/external note
+ownership, per-instance PC input and cleanup. `unit/DspRegressionTest.cpp` adds
+LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
+references. MidiQueue cases guard stable clamping, future-event carry and empty
+callback boundary processing. There are 100 active CTest cases with SDK-interface
+tests enabled; this count does not claim historical assertion parity.
+
+Archive contract tests run independently, without loading a product:
+
+```sh
+python -m unittest discover -s Tests/packaging -v
+```
+
+Ten independently constructed fixtures check file hashes, exact payload
+coverage, required content, release identity, modes and safe ZIP/symlink paths.
+Native compilation and source-archive offline rebuild run in CI. Actual plugin
+loading, DAW/device and interactive UI verification are deferred.

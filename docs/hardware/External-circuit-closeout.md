@@ -1,10 +1,12 @@
+> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+
 # External-circuit audit closeout
 
 ## Current implementation boundary
 
-The [stateful EG policy](../software/EG-stateful-model.md) describes production
+The [stateful EG policy](../legacy-juce/software/EG-stateful-model.md) describes production
 stages, residual-state handling and active-stage edits. The independent VCA gate
-and free-running sources are in [note onset continuity](../software/Note-onset-continuity.md).
+and free-running sources are in [note onset continuity](../legacy-juce/software/Note-onset-continuity.md).
 These supersede the earlier linear ADSR and intermediate k = 0.5 output shaping.
 The unchanged-DSP decisions and counts below refer to the historical audit phase.
 
@@ -44,7 +46,7 @@ sequence is not established hardware behavior.
 | Controls | Existing timing audit distinguishes software seconds/skew from hardware S-L markings | Position/resistance measurements and stage endpoint calibration |
 
 Detailed records: [EG circuit audit](EG-model-audit.md),
-[EG time-range validation](../software/EG-time-range-validation.md), and
+[EG time-range validation](../legacy-juce/software/EG-time-range-validation.md), and
 [low-frequency circuit audit](Low-frequency-circuit-audit.md).
 
 ## Verification performed

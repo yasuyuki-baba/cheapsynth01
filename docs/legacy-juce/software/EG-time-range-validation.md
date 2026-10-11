@@ -28,7 +28,7 @@ Parameter mappings and software stage durations are regression-tested;
 curvature k = 2 and hardware calibration remain provisional.
 Existing envelope tests cover sample-rate scaling and stage behavior, but
 do not establish hardware agreement.
- 
+
 ## Production duration verification
 
 The timing test uses the production APVTS rather than the unit fixture (whose
