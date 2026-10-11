@@ -12,7 +12,7 @@ struct MidiMessage {
     bool isController() const {
         return (status & 0xf0) == 0xb0;
     }
-    bool isPitchWheel() const {
+    bool isPitchBend() const {
         return (status & 0xf0) == 0xe0;
     }
     bool isAllSoundOff() const {
@@ -30,7 +30,7 @@ struct MidiMessage {
     int getChannel() const {
         return (status & 15) + 1;
     }
-    int getPitchWheelValue() const {
+    int getPitchBendValue() const {
         return (data1 & 127) | ((data2 & 127) << 7);
     }
     int getControllerNumber() const {
@@ -39,7 +39,7 @@ struct MidiMessage {
     int getControllerValue() const {
         return data2 & 127;
     }
-    static MidiMessage pitchWheel(int channel, int value) {
+    static MidiMessage pitchBend(int channel, int value) {
         return {static_cast<uint8_t>(0xe0 | ((channel - 1) & 15)),
                 static_cast<uint8_t>(value & 127), static_cast<uint8_t>((value >> 7) & 127)};
     }

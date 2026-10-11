@@ -12,7 +12,7 @@
 #define PLUG_URL_STR "https://github.com/yasuyuki-baba/cheapsynth01"
 #define PLUG_EMAIL_STR ""
 #define PLUG_COPYRIGHT_STR "Copyright Yasuyuki Baba"
-#define PLUG_CLASS_NAME CS01AudioProcessor
+#define PLUG_CLASS_NAME CheapSynth01
 #define BUNDLE_NAME "cheapsynth01"
 #define BUNDLE_MFR "yasuyukibaba"
 #define BUNDLE_DOMAIN "com"

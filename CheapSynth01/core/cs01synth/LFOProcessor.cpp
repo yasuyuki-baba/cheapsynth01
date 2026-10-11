@@ -8,12 +8,12 @@ LFOProcessor::LFOProcessor(cs01::ParameterState& parameters) : parameters(parame
 LFOProcessor::~LFOProcessor() {}
 
 //==============================================================================
-void LFOProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void LFOProcessor::prepare(double sampleRate) {
     lfo.prepare(sampleRate);
     lfo.setFrequency(parameters.get(ParameterIds::lfoSpeed), true);
 }
 
-void LFOProcessor::releaseResources() {}
+void LFOProcessor::reset() {}
 
 float LFOProcessor::processSample() {
     updateParameters();

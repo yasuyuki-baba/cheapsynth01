@@ -63,7 +63,7 @@ class MidiQueue {
     }
     bool containsPitchBend(int frames) const {
         for (int i = front; i < count; ++i)
-            if (events[i].offset < frames && events[i].message.isPitchWheel())
+            if (events[i].offset < frames && events[i].message.isPitchBend())
                 return true;
         return false;
     }
