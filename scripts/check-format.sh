@@ -31,7 +31,7 @@ list_source_files() {
 files=()
 while IFS= read -r -d '' file; do
     case "$file" in
-        Tests/legacy-juce/*|CheapSynth01/resources/*) continue ;;
+        CheapSynth01/resources/*) continue ;;
         *.cpp|*.h) files+=("$file") ;;
     esac
 done < <(list_source_files)

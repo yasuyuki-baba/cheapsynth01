@@ -2,8 +2,8 @@
 
 These documents record source provenance, circuit interpretations and modeling
 limits. They do not establish calibration against physical Yamaha hardware.
-Software references into the JUCE archive describe that historical revision;
-use [the product documentation index](../README.md) for current iPlug2 behavior.
+Use [the DSP design guide](../DSP-design.md) for current software models and
+[the product documentation index](../README.md) for iPlug2 behavior.
 
 ## Sources and unresolved details
 
@@ -29,4 +29,4 @@ The conditional EG equation checks are maintained in
 - [LFO](lfo.md): technical background and attribution limits
 - [IG00156 filter](filter.md): related CS-series filter background; this is a different part from CS-01's IG02610 and CS-01II's IG05630
 
-Earlier summaries are retained in [the earlier-version index](../legacy-juce/earlier-revisions/README.md).
+Earlier summaries and implementations are available in Git history.

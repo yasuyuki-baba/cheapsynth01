@@ -30,6 +30,6 @@ validated off audio and copied coherently at boundaries; their note-reset serial
 is captured with the patch. Live scalar edits remain separate.
 
 See [the implementation chart](MIDI-Implementation.md), [host/state publication](iPlug2-host-integration.md)
-and [active assertions](../Tests/README.md). Former APVTS pointers/listeners,
-message-thread timers and JUCE graph lock evidence are retained only in
-[the historical software audit](legacy-juce/software/MIDI-realtime-control.md).
+and [active assertions](../Tests/README.md). Current stage ownership and modeling
+limits are described in [the DSP design guide](DSP-design.md). Earlier framework
+implementation and lock measurements are available in Git history.

@@ -129,8 +129,9 @@ and hardware investigation material.
 - [Hardware source catalog](docs/hardware/Source-catalog.md)
 
 Regression tests verify software behavior, not calibration against original
-hardware. Earlier JUCE design and measurement records remain available as
-[historical documentation](docs/legacy-juce/README.md).
+hardware. Current DSP design and modeling limits are described in
+[the DSP design guide](docs/DSP-design.md). Earlier implementations and records
+are available in Git history.
 
 ## Version 2 Migration
 

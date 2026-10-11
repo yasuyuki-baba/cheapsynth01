@@ -76,7 +76,8 @@ Keep iPlug2-dependent code in `CheapSynth01/`, including IGraphics controls in
 and editor-lifetime logic shared with the tests; it must not include iPlug2
 headers. `Source/Resources/Presets/` belongs to the core preset catalogue, while
 `CheapSynth01/resources/` contains product and platform resources. Active tests
-live in `Tests/`; `Tests/legacy-juce/` is an inactive historical reference.
+live in `Tests/`. Historical implementations and documents are available in Git
+history; they are not maintained in the working tree.
 
 With CMake 3.25+, use the platform presets, for example:
 

@@ -24,25 +24,24 @@ core rendering, FIR delay/gain/rejection, XML factory/user/session state and
 truncated XML rejection. The two independent filter model suites retain
 their original numerical assertions.
 
-`legacy-juce/` contains historical scenarios that are not part of this suite.
 Native editor interaction, DAW automation, plugin scanning, AU validation and
 host latency compensation still need testing on Windows/macOS.
 
-## Completion plan
+## Current coverage
 
-See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
-reviewed behavior and deferred native validation gates, iPlug2OOS alignment and validation gates.
-The linked case inventory tracks the 272 Google Test definitions in the frozen
-main baseline; their assertion coverage is tracked individually in that inventory.
+The portable suite has 200 cases: 186 correctness regressions (including three
+research equation cases) and 14 observational cases. Native product builds add
+eight VST3 boundary cases and three parameter-presentation cases, for 211 total.
+Use CTest discovery for the current count. See the
+[native validation status](../docs/iPlug2-migration-plan.md) for remaining host,
+editor and device checks.
 
-The current suite has 197 active portable cases: 183 correctness regressions (including three
-research equation cases) and 14 observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
-residual EG trajectory, live timing and gate assertions and exercises free-running
-source continuity and extended release/source switching. Preset assertions cover
-same-name overwrite, failed replacement and missing-selected-file fallback.
-`unit/PluginIdentityTest.cpp` guards retained plugin IDs and existing parameter
-index order. JUCE project/automation/binary-state compatibility is out of scope;
-its ID-mapping assertions have been removed.
+`unit/EnvelopeContinuityTest.cpp` exercises residual EG trajectories, live timing,
+free-running source continuity and release/source switching. Preset assertions
+cover same-name overwrite, failed replacement and missing-selected-file fallback.
+`unit/PluginIdentityTest.cpp` guards plugin IDs and parameter index order.
+Compatibility with old JUCE DAW projects, automation and binary state is outside
+scope; XML presets remain supported.
 
 Host-selection core assertions cover latest-valid requests, repeated selection,
 cached user sound, malformed request chunks, pending-session identity, held-note
@@ -57,16 +56,13 @@ or open an editor/device. Core-only builds remain independent of the SDK; use
 `-DBUILD_VST3_BOUNDARY_TESTS=ON` to opt in with prepared SDK headers.
 
 
-The complete audited main Tests snapshot and source references are under
-`legacy-juce` (272 historical definitions), excluded from active builds.
 `unit/KeyboardInputTest.cpp` and the allocation probe cover UI/external note
 ownership, per-instance PC input and cleanup. `unit/DspRegressionTest.cpp` adds
 LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
 references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 205 active CTest cases with SDK-interface
-tests enabled; this count does not claim historical assertion parity.
+callback boundary processing. Native callback behavior requires verification in actual products.
 
 Archive contract tests run independently, without loading a product:
 
@@ -86,8 +82,7 @@ velocity invariance across all waveforms. It covers every controller's productio
 range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
 Additional EG continuity regressions retain live attack bounds, residual release
 targets after edits, sustain retrigger behavior and lifecycle observation reset.
-JUCE listener/thread/teardown assumptions do not establish iPlug2 UI correctness;
-those native scenarios remain explicitly deferred in the assertion inventory.
+Native listener/thread/teardown behavior requires actual iPlug2 runtime checks.
 
 `unit/VcoBehaviorTest.cpp` retains glissando timing against an independent pitch
 schedule, PWM periods from carrier-cycle means, live held-wheel range changes,
@@ -96,7 +91,7 @@ Source tests check held and released tone/noise transitions and exact remaining
 release time, including unmatched key release and new-note recovery.
 Live waveform/Feet choices preserve held note identity and finite nonzero audio.
 Upstream sources intentionally run continuously; engine/VCA-gate silence is
-separate from source note-state inactivity and archived JUCE block APIs.
+separate from source note-state inactivity.
 
 `unit/PresetBehaviorTest.cpp` checks all 18 embedded factory controls against
 resource XML after perturbation, independent manual-panel readings, all 7 audible
@@ -106,15 +101,7 @@ Seven filter-model regressions and three separate observations were diffed
 against the frozen main reference; counts and numerical tolerances are retained.
 Observations characterize this build and are not native-host performance gates.
 
-## Historical assertion closeout
-
-All 272 frozen definitions have reviewed dispositions. Run
-`python scripts/check-test-inventory.py` to check provenance, complete coverage,
-evidence file paths and absence of unresolved rows. This verifies traceability;
-it cannot prove semantic equivalence. Adapted scalar/queue/FIR contracts are
-explicitly distinguished from retained assertions and obsolete JUCE interfaces.
-39 historical native UI/runtime cases remain deferred; no empty UI suite or core
-mock is counted as passing native verification.
+## Signal-path and timeline checks
 
 `unit/SignalPathTest.cpp` includes frozen model bit references, VCA analytical
 transfer/precision, Original modulation independence, FIR folded-bin controls and

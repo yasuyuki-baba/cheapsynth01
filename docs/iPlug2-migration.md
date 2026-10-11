@@ -79,26 +79,20 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The non-runtime migration work is complete: OOS layout, main reconciliation,
-portable behavior/assertion review, current XML/host-program publication,
-keyboard ownership, build/CI reports, complete source/native ZIP contracts,
-optional signing preparation and current documentation.
-
-There are 200 portable cases: 186 correctness regressions (including three
-hypothetical RC research equations) and 14 observations. Eight additional cases
-use real VST3 SDK interface types with simulated queues/streams. Three more
-exercise real iPlug2 parameter presentation, for 211 total.
-The 272-row historical inventory has no unreviewed/partial dispositions. It records
-retained assertions, adapted contracts, observations, reasoned retirement and
-39 deferred native-runtime/UI cases. Counts do not claim one-to-one assertion
-parity or equivalent sound after replacing framework primitives.
+Current verification covers the portable DSP/state core, SDK interface boundaries,
+XML/host-program publication, keyboard ownership and source/native ZIP contracts.
+There are 200 portable CTest cases, eight VST3 boundary cases and three iPlug2
+parameter-presentation cases. Fifteen Python packaging/signing tests and four
+conditional hardware equation tests run separately. Counts describe current
+coverage and do not establish equivalent sound or old-project compatibility.
 
 Frozen model arithmetic exposed a resonance precision difference: the original
 model now subtracts damping endpoints as double, retaining the former formula's
 precision. Exact model/wrapper references, independent VCA transfer equations,
 live EG/source/route timelines, full waveform/pitch/Feet ranges, breath controls,
-MIDI boundaries and no-heap portable paths are checked. Whole JUCE graph/IIR bit
-comparisons and Linux lock probes are intentionally retired with reasons.
+MIDI boundaries and no-heap portable paths are checked. The active regression
+references test current model arithmetic; they do not maintain the removed JUCE
+graph or IIR converter.
 
 Debug, Release and ASan/UBSan verification results and the final Windows/macOS
 native build/archive CI revision are recorded in PR #40. Native compilation and
@@ -112,8 +106,8 @@ thread/gesture/lifecycle behavior are part of that runtime validation. Optional
 signing/notarization hooks are prepared; no credentials, signed release or tags
 are produced by this migration. The PR remains a draft until runtime gates pass.
 
-See [completion status](iPlug2-migration-plan.md), [assertion inventory](iPlug2-test-inventory.csv),
-[main reconciliation](iPlug2-main-reconciliation.md), [host integration](iPlug2-host-integration.md)
+See [native validation status](iPlug2-migration-plan.md),
+[DSP design](DSP-design.md), [host integration](iPlug2-host-integration.md)
 and [release preparation](iPlug2-release-packaging.md).
 
 The repository remains GPLv3. iPlug2's permissive license removes JUCE as a
