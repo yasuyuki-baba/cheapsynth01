@@ -71,9 +71,9 @@ zero-frame callbacks, concurrent state/automation and restoration with/without U
 
 ## Native parameter and state APIs
 
-As agreed on 2026-10-11, JUCE-era project, automation and binary-state
-compatibility is outside scope. Plugin identities remain unchanged, but all
-formats use their standard iPlug2 parameter IDs. No legacy ID adapter, hash
+JUCE-era project, automation and binary-state compatibility is outside scope.
+Plugin identities remain unchanged, but all formats use their standard iPlug2
+parameter IDs. No legacy ID adapter, hash
 manifest, migration aliases or old-session fixture gate is maintained.
 
 `PluginAPI.h` inherits metadata, parameter queries, edit notifications, MIDI
