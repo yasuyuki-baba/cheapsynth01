@@ -189,8 +189,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,0,0,0
- PRODUCTVERSION 2,0,0,0
+ FILEVERSION 0,4,0,0
+ PRODUCTVERSION 0,4,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -205,8 +205,8 @@ BEGIN
     BEGIN
         BLOCK "040004e4"
         BEGIN
-            VALUE "FileVersion", "2.0.0"
-            VALUE "ProductVersion", "2.0.0"
+            VALUE "FileVersion", "0.4.0"
+            VALUE "ProductVersion", "0.4.0"
             VALUE "FileDescription", "CheapSynth01"
             VALUE "InternalName", "CheapSynth01"
             VALUE "ProductName", "CheapSynth01"

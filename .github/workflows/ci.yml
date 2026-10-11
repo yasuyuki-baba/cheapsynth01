@@ -150,9 +150,12 @@ jobs:
           path: release-packages
           merge-multiple: true
       - name: Verify release identity and write checksums
+        id: release_identity
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
+          test -f "docs/release-notes-${version}.md"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           for platform in Windows macOS source; do
             python scripts/release_package.py verify --commit "$GITHUB_SHA" --version "$version" --platform "$platform" "release-packages/cheapsynth01-${platform}.zip"
           done
@@ -161,6 +164,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          body_path: docs/release-notes-${{ steps.release_identity.outputs.version }}.md
           files: |
             release-packages/*.zip
             release-packages/SHA256SUMS.txt

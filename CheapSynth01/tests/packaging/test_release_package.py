@@ -15,7 +15,7 @@ spec = importlib.util.spec_from_file_location('release_package', MODULE)
 pkg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pkg)
 COMMIT = '1234567890abcdef1234567890abcdef12345678'
-VERSION = '2.0.0'
+VERSION = '0.4.0'
 REGULAR = stat.S_IFREG | 0o644
 
 

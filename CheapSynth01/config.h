@@ -1,8 +1,8 @@
 #pragma once
 #define PLUG_NAME "CheapSynth01"
 #define PLUG_MFR "Yasuyuki Baba"
-#define PLUG_VERSION_HEX 0x00020000
-#define PLUG_VERSION_STR "2.0.0"
+#define PLUG_VERSION_HEX 0x00000400
+#define PLUG_VERSION_STR "0.4.0"
 // Retain the identifiers used by the JUCE release.
 #define PLUG_UNIQUE_ID 'CS01'
 #define PLUG_MFR_ID 'BABA'
