@@ -185,3 +185,10 @@ regression cover these contracts; actual native dialogs are still deferred.
 Windows packaging verifies restored SDK placeholder text against the fixed
 iPlug2 Git blob, allowing only LF/CRLF differences for those named notices.
 A separate fixture rejects changed notice text and non-notice paths.
+
+
+The concurrent whole-patch/reset-serial stress case now includes an explicit
+completed-publication rendezvous. A bounded reader may legitimately reject
+every attempt while the writer is busy; successful progress is not assumed
+from scheduler timing. The 20,000-publication stress phase and mixed-patch/serial
+checks remain. The corrected Release case also passes 100 repeated runs.
