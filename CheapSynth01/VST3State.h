@@ -31,10 +31,8 @@ bool restoreVst3State(Steinberg::IBStream* stream, Restore restore, bool& bypass
         return false;
     std::string_view payload(bytes);
     bool savedBypass = false;
-    // JUCE VC2! chunks carry their own length and may have a JUCE-private tail;
-    // let the existing length-checked decoder handle them. Their private bypass
-    // field is not an iPlug2 trailer and is not interpreted here.
-    if (!payload.starts_with("VC2!") && payload.size() >= 4) {
+    // Native iPlug2 VST3 state appends a little-endian four-byte bypass value.
+    if (payload.size() >= 4) {
         const auto tail = payload.substr(payload.size() - 4);
         if (tail == std::string_view("\0\0\0\0", 4) || tail == std::string_view("\1\0\0\0", 4)) {
             savedBypass = tail.front() != 0;

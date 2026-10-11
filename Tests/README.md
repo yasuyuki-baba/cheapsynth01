@@ -21,7 +21,7 @@ Coverage includes MIDI note priority, controller reset and panic, 14-bit CCs,
 source switching during held/releasing notes, event offsets and block partition
 independence, re-preparation, sample-rate/filter/waveform safety, allocation-free
 core rendering, FIR delay/gain/rejection, XML factory/user/session state and
-legacy JUCE XML chunk decoding. The two independent filter model suites retain
+truncated XML rejection. The two independent filter model suites retain
 their original numerical assertions.
 
 `legacy-juce/` contains historical scenarios that are not part of this suite.
@@ -31,18 +31,18 @@ host latency compensation still need testing on Windows/macOS.
 ## Completion plan
 
 See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
-remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
+remaining behavior and validation gaps, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 72 active core cases: 69 correctness regressions and
+The current suite has 69 active core cases: 66 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
 same-name overwrite, failed replacement and missing-selected-file fallback.
 `unit/PluginIdentityTest.cpp` guards retained plugin IDs and existing parameter
-index order and the VST3 legacy-ID mapping contract; native old-project
-compatibility still requires host fixtures.
+index order. JUCE project/automation/binary-state compatibility is out of scope;
+its ID-mapping assertions have been removed.
 
 Host-selection core assertions cover latest-valid requests, repeated selection,
 cached user sound, malformed request chunks, pending-session identity, held-note

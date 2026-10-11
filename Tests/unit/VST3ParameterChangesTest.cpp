@@ -10,7 +10,7 @@ using namespace Steinberg::Vst;
 constexpr auto cutoff = static_cast<unsigned>(cs01::Param::Cutoff);
 class Queue final : public IParamValueQueue {
    public:
-    ParamID id = cs01::vstHostId(cutoff);
+    ParamID id = cutoff;
     std::array<ParamValue, 2> values{.2, .8};
     std::array<int32, 2> offsets{3, 47};
     int32 count = 2;
@@ -64,13 +64,13 @@ class Changes final : public IParameterChanges {
     }
 };
 }  // namespace
-TEST(VST3BoundaryTest, LegacyAutomationPreservesHostQueuePointsAndOffsets) {
+TEST(VST3BoundaryTest, NativeAutomationPreservesOriginalQueueIdsPointsAndOffsets) {
     Changes host;
     int presets = 0;
     cs01::VST3ParameterChangesView view(host, [&](double) { ++presets; });
     ASSERT_EQ(view.getParameterCount(), 1);
     auto* queue = view.getParameterData(0);
-    ASSERT_NE(queue, nullptr);
+    ASSERT_EQ(queue, &host.queue);
     EXPECT_EQ(queue->getParameterId(), cutoff);
     ASSERT_EQ(queue->getPointCount(), 2);
     for (int i = 0; i < 2; ++i) {
@@ -80,12 +80,12 @@ TEST(VST3BoundaryTest, LegacyAutomationPreservesHostQueuePointsAndOffsets) {
         EXPECT_EQ(offset, host.queue.offsets[i]);
         EXPECT_EQ(value, host.queue.values[i]);
     }
-    EXPECT_EQ(host.queue.id, cs01::vstHostId(cutoff));
+    EXPECT_EQ(host.queue.id, cutoff);
     EXPECT_EQ(presets, 0);
 }
 TEST(VST3BoundaryTest, ProgramQueueUsesOnlyLastValidPoint) {
     Changes host;
-    host.queue.id = cs01::legacyVstProgram;
+    host.queue.id = cs01::vstProgramParam;
     double selected = -1;
     int requests = 0;
     cs01::VST3ParameterChangesView view(host, [&](double value) {
@@ -117,19 +117,19 @@ TEST(VST3BoundaryTest, UnknownIdsAndMissingQueuesAreIgnored) {
     EXPECT_EQ(view.getParameterData(1), nullptr);
     EXPECT_EQ(requests, 0);
 }
-TEST(VST3BoundaryTest, MidiChannelAndMigrationAliasesAreMappedWithoutChangingHost) {
+TEST(VST3BoundaryTest, NativeMidiAndBypassQueuesPassThroughUnchanged) {
     Changes host;
     cs01::VST3ParameterChangesView view(host, [](double) {});
-    for (unsigned i = 0; i < cs01::vstMidiCount; ++i) {
-        host.queue.id = cs01::legacyVstMidiStart + i;
+    for (unsigned i = 0; i < cs01::vstMidiParamCount; ++i) {
+        host.queue.id = cs01::vstMidiParamStart + i;
         auto* queue = view.getParameterData(0);
         ASSERT_NE(queue, nullptr);
-        EXPECT_EQ(queue->getParameterId(), cs01::internalVstMidiStart + i);
-        EXPECT_EQ(host.queue.id, cs01::legacyVstMidiStart + i);
+        EXPECT_EQ(queue->getParameterId(), cs01::vstMidiParamStart + i);
+        EXPECT_EQ(host.queue.id, cs01::vstMidiParamStart + i);
     }
-    host.queue.id = cutoff;
-    ASSERT_NE(view.getParameterData(0), nullptr);
-    EXPECT_EQ(view.getParameterData(0)->getParameterId(), cutoff);
+    host.queue.id = cs01::vstBypassParam;
+    ASSERT_EQ(view.getParameterData(0), &host.queue);
+    EXPECT_EQ(view.getParameterData(0)->getParameterId(), cs01::vstBypassParam);
 }
 TEST(VST3BoundaryTest, BorrowedViewsExposeCorrectReadOnlyComInterfaces) {
     Changes host;
@@ -140,8 +140,7 @@ TEST(VST3BoundaryTest, BorrowedViewsExposeCorrectReadOnlyComInterfaces) {
     EXPECT_EQ(view.queryInterface(IParameterChanges_iid, nullptr), kInvalidArgument);
     auto* queue = view.getParameterData(0);
     ASSERT_NE(queue, nullptr);
-    EXPECT_EQ(queue->queryInterface(IParamValueQueue_iid, &result), kResultOk);
-    EXPECT_EQ(result, queue);
+    EXPECT_EQ(queue, &host.queue);
     int32 index = -1;
     EXPECT_EQ(queue->addPoint(0, .5, index), kNotImplemented);
     EXPECT_EQ(view.addParameterData(host.queue.id, index), nullptr);
@@ -221,18 +220,31 @@ TEST(VST3BoundaryTest, FailedOrOversizedStateDoesNotCommitBypass) {
     EXPECT_FALSE(called);
     EXPECT_TRUE(bypass);
 }
-TEST(VST3BoundaryTest, LegacyBinaryXmlAndPrivateTailReachLengthCheckedDecoderUnchanged) {
-    Stream stream;
-    stream.bytes = "VC2!";
-    stream.bytes.append("\3\0\0\0xml", 7);
-    stream.bytes.append("\0\0\0\0", 4);
+TEST(VST3BoundaryTest, RawXmlShortAndEmptyStreamsHaveDefinedResults) {
+    for (const bool falseOnFinal : {false, true}) {
+        Stream stream;
+        stream.bytes = "<Parameters/>";
+        stream.falseOnFinal = falseOnFinal;
+        bool bypass = true;
+        EXPECT_TRUE(cs01::restoreVst3State(
+            &stream,
+            [&](std::string_view payload) {
+                EXPECT_EQ(payload, stream.bytes);
+                return payload == stream.bytes;
+            },
+            bypass));
+        EXPECT_FALSE(bypass);
+    }
+    Stream empty;
     bool bypass = true;
-    EXPECT_TRUE(cs01::restoreVst3State(
-        &stream,
-        [&](std::string_view payload) {
-            EXPECT_EQ(payload, stream.bytes);
-            return payload == stream.bytes;
+    bool called = false;
+    EXPECT_FALSE(cs01::restoreVst3State(
+        &empty,
+        [&](auto) {
+            called = true;
+            return true;
         },
         bypass));
-    EXPECT_FALSE(bypass);
+    EXPECT_FALSE(called);
+    EXPECT_TRUE(bypass);
 }

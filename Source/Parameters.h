@@ -9,8 +9,7 @@
 #include <thread>
 
 namespace cs01 {
-// Order is permanent: iPlug2 uses these internal indices; adapters preserve format-specific host
-// IDs.
+// Order is permanent: iPlug2 uses these indices as native host parameter IDs.
 enum class Param : int {
     WaveType,
     Feet,

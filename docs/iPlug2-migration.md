@@ -54,7 +54,7 @@ reported by the plugin. Its magnitude response and phase differ from JUCE's
 polyphase IIR; bit-identical audio and equal high-frequency response are not
 claimed. No fixed envelope offset is added: all stages share the internal clock.
 
-## Compatibility
+## State and identifiers
 
 - The same parameter XML IDs, ranges, defaults and skew mappings are used.
 - All seven existing factory XML files are embedded at build time.
@@ -64,22 +64,22 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 - Preset loading preserves volume, pitch bend, modulation and breath input.
 - Session loading restores volume and patch settings while excluding transient
   performance controls. Notes are not serialized.
-- The state reader accepts raw XML and legacy JUCE binary XML chunks. It validates
+- The state reader accepts current XML payloads. It validates
   the entire XML before committing parameter updates.
 - Plugin identifiers are retained: AU `aumu/CS01/BABA`, CLAP
   `com.yasuyukibaba.cheapsynth01`, and macOS bundle ID
   `org.github.yasuyukibaba.cheapsynth01`. VST3 explicitly retains JUCE's component
   UID `ABCDEF019182FAEB4241424143533031` and controller UID
   `ABCDEF011234ABCD4241424143533031` (SDK byte order follows the platform).
-  Hosts can identify the new version as the same plugin. Old JUCE VST3 automation
-  IDs are translated at public API boundaries. AU/CLAP mapping and full DAW-project
-  restoration still require native validation. XML preset import remains available.
+  Plugin identities stay unchanged as agreed. Parameter IDs use iPlug2's native
+  scheme. JUCE-era projects, automation and binary state are outside scope;
+  legacy ID adapters and host migration fixtures are no longer required.
 - Products, development and CI testing target Windows/macOS. Linux is excluded
   from the supported environments and there is no LV2 target.
 
 ## Verification and limits
 
-The portable suite now has 72 core cases (69 regression assertions and three
+The portable suite now has 69 core cases (66 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -106,7 +106,7 @@ JUCE dependency but does not authorize relicensing third-party contributions.
 ## Completion plan
 
 See the [migration completion plan](iPlug2-migration-plan.md) for the audit of newer main,
-remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
+remaining behavior and validation gaps, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
@@ -115,7 +115,7 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 72 core and eight SDK-interface boundary
+Current local completion-batch checks: 69 core and eight SDK-interface boundary
 cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
@@ -140,6 +140,7 @@ SDK-supported AU/VST3 interfaces, independently of editor creation. See
 Whole-state publication now transfers a complete patch and its note-reset serial
 to audio-owned parameters at block boundaries. A busy writer leaves the previous
 snapshot active. Session saves capture complete parameter snapshots and retry if
-host selection changes. VST3 has a bidirectional legacy-ID adapter and explicit
-state-stream/trailer handling; AU/CLAP mappings and actual old-project fixtures
-remain pending. See the host integration document for the precise validation scope.
+host selection changes. VST3 retains explicit native state-stream/trailer and
+preset-queue handling. Public parameter APIs use the standard SDK IDs. Old JUCE
+DAW projects, automation and binary-state compatibility were removed from scope
+on 2026-10-11; XML preset import/export remains available.

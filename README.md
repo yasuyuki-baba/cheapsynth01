@@ -18,17 +18,16 @@ Desktop products: Windows/macOS Standalone, VST3 and CLAP, plus AUv2 on macOS.
 Supported development and test environments are Windows and macOS.
 
 See [development/build instructions](CONTRIBUTING.md), [test guide](Tests/README.md),
-[migration and compatibility notes](docs/iPlug2-migration.md),
+[migration notes](docs/iPlug2-migration.md),
 [factory presets](docs/Factory-presets.md), [MIDI implementation](docs/MIDI-Implementation.md),
 and [model limitations](docs/Circuit-model-unknowns.md).
 
-## Version 2 compatibility
+## Version 2 migration
 
-The iPlug2 version retains the JUCE version's AU, CLAP and VST3 plugin identifiers
-and macOS bundle ID. The state reader accepts legacy JUCE binary XML payloads.
-VST3 translates old automation IDs to internal indices. AU/CLAP mappings and
-old-project fixtures remain pending; full DAW-project compatibility is unverified.
-Exported XML presets can also be imported in the new version.
+The iPlug2 version uses each format's native parameter IDs and current XML state.
+Loading JUCE-era DAW projects, automation or binary state is outside the migration
+scope. Plugin identities and the macOS bundle ID remain unchanged as agreed.
+XML presets can still be imported and exported.
 
 The output converter has 16 host samples of latency, which is reported to the
 host. Its high-frequency response and phase differ from the previous JUCE IIR

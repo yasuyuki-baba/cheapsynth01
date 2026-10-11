@@ -365,16 +365,17 @@ TEST_F(StateTest, SessionRestoresVolumeAndPatchButPreservesPerformance) {
     EXPECT_FLOAT_EQ(parameters.get(Param::ModDepth), .6f);
     EXPECT_FLOAT_EQ(parameters.get(Param::PitchBend), .3f);
 }
-TEST_F(StateTest, LoadsLegacyJuceBinaryXmlAndRejectsTruncation) {
-    const std::string xml = "<Parameters><PARAM id=\"CUTOFF\" value=\"1200\"/></Parameters>";
-    std::string binary = "VC2!";
-    for (unsigned i = 0; i < 4; ++i)
-        binary.push_back(static_cast<char>((xml.size() >> (8 * i)) & 255));
-    binary += xml;
-    binary.push_back(0);
-    ASSERT_TRUE(manager.setStateInformation(binary));
+TEST_F(StateTest, TruncatedXmlCannotPartiallyChangePatch) {
+    parameters.set(Param::Cutoff, 1200);
+    const auto state = manager.getStateInformation();
+    parameters.set(Param::Cutoff, 500);
+    const auto reset = parameters.stateResetSerial();
+    ASSERT_NE(state.rfind("</Parameters>"), std::string::npos);
+    EXPECT_FALSE(manager.setStateInformation(state.substr(0, state.rfind("</Parameters>"))));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 500);
+    EXPECT_EQ(parameters.stateResetSerial(), reset);
+    ASSERT_TRUE(manager.setStateInformation(state));
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 1200);
-    EXPECT_FALSE(manager.setStateInformation(binary.substr(0, 12)));
 }
 TEST_F(StateTest, MalformedStateCannotPartiallyChangePatch) {
     const float cutoff = parameters.get(Param::Cutoff);
