@@ -148,7 +148,14 @@ TEST(SignalPathTest, OriginalCombinedModulationMatchesIndependentSemitoneCutoff)
         for (int i = 0; i < 8192; ++i) {
             float eg = static_cast<float>(i % 101) / 100;
             float lfo = std::sin(i * .017f);
-            float semitones = eg * .3f * 36.f + lfo * .4f * 24.f + .6f * .7f * 24.f;
+            // Read the independently configured inputs at runtime: constant folding
+            // of .6f * .7f * 24.f differs from runtime fused arithmetic on ARM.
+            const float egDepth = state.get(Param::VcfEgDepth);
+            const float modDepth = state.get(Param::ModDepth);
+            const float breath = state.get(Param::BreathInput);
+            const float breathDepth = state.get(Param::BreathVcf);
+            float semitones =
+                eg * egDepth * 36.f + lfo * modDepth * 24.f + breath * breathDepth * 24.f;
             reference.setCutoffFrequency(
                 std::clamp(730.f * std::exp2(semitones / 12.f), 20.f, 20000.f));
             EXPECT_FLOAT_EQ(filter.processSample(stimulus(i), eg, lfo),
