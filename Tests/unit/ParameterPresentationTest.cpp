@@ -34,7 +34,10 @@ TEST(ParameterPresentationTest, EveryHostParameterKeepsCoreNormalizedAutomation)
             const double plain = double(d.minimum) + fraction * (double(d.maximum) - d.minimum);
             const double core = d.integer ? std::round(plain) : plain;
             const double expected =
-                std::pow((core - d.minimum) / (double(d.maximum) - d.minimum), double(d.skew));
+                cs01::isEnvelopeTime(id)
+                    ? EGTiming::position(core)
+                    : std::pow((core - d.minimum) / (double(d.maximum) - d.minimum),
+                               double(d.skew));
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, core)), expected, 1.e-6);
             EXPECT_NEAR(cs01::fromHostValue(id, parameter.FromNormalized(expected)), core, 1.e-6);
         }
@@ -53,5 +56,19 @@ TEST(ParameterPresentationTest, GroupsIncludeEnumsAndPreservePerformanceFlags) {
         EXPECT_STREQ(parameter.GetGroup(), expected[i]);
         EXPECT_EQ(parameter.GetCanAutomate(), i != static_cast<int>(cs01::Param::PitchBend) &&
                                                   i != static_cast<int>(cs01::Param::ModDepth));
+    }
+}
+
+TEST(ParameterPresentationTest, EnvelopeHostTaperMatchesCoreAtEveryPanelPosition) {
+    for (auto id : {cs01::Param::Attack, cs01::Param::Decay, cs01::Param::Release}) {
+        iplug::IParam parameter;
+        cs01::initializeHostParameter(parameter, id);
+        for (int i = 0; i <= 1000; ++i) {
+            const double position = i / 1000.;
+            const double seconds = cs01::fromHostValue(id, parameter.FromNormalized(position));
+            EXPECT_NEAR(seconds, EGTiming::timeConstant(position), 1e-6);
+            EXPECT_NEAR(cs01::toNormalized(id, float(seconds)), position, 1e-6);
+            EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, seconds)), position, 1e-6);
+        }
     }
 }

@@ -41,22 +41,30 @@ the CS01 (I) filter. RES is a two-position L/H switch, encoded as 0/1.
 XML stores plain parameter values, not normalized slider positions. Use the
 current `Source/Parameters.h` definitions and `cs01::fromNormalized` mapping:
 
+For Attack, Decay and Release, use the assumed 10% midpoint A taper:
+
+`tau = (1800 + 2e6 * (81^position - 1) / 80) * 2.2e-6`
+
+Other continuous parameters use:
+
 `value = minimum + (maximum - minimum) * position^(1 / skew)`
 
-Round to the parameter's interval. Sustain, EG depths, and breath depths are
+For the existing non-EG factory values, round to the parameter's interval. Sustain, EG depths, and breath depths are
 linear fractions. Feet indices are 32'=0, 16'=1, 8'=2, 4'=3; waveform indices
 are Triangle=0, Sawtooth=1, Square=2, Pulse=3, PWM=4.
 
 | Parameter | Minimum | Maximum | Skew | Interval |
 | --- | --- | --- | --- | --- |
 | Cutoff | 20 Hz | 20000 Hz | .30 | 1 Hz |
-| Attack/Decay/Release | .001 s | 2 s | .30 | .001 s |
+| Attack/Decay/Release | .00396 s | 4.40396 s | A taper (10% midpoint) | .000001 s |
 | LFO speed | .8 Hz | 21 Hz | .30 | .01 Hz |
 | PWM speed | .6 Hz | 12 Hz | .25 | .01 Hz |
 
 The manual gives S–L for EG times, not seconds. The timing range and all
 continuous tapers above are the plugin's current approximations. LFO and PWM
 endpoints match the manual's specifications, but their tapers are not calibrated.
+EG values are RC time constants rather than total stage durations; see
+[EG timing assumptions](EG-RC-timing.md).
 PWM speed is retained even when the selected waveform does not use it.
 
 ## Using the programs

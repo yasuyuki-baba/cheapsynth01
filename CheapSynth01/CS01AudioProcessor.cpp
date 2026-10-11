@@ -139,6 +139,8 @@ void CS01AudioProcessor::OnReset() {
     uiNotes.publishExternal(engine.externalNotes());
     appliedStateReset = renderParameters.stateResetSerial();
     SetLatency(SynthEngine::latency);
+    SetTailSize(static_cast<int>(std::ceil(EGTiming::maximumTailSeconds() * GetSampleRate())) +
+                SynthEngine::latency);
 }
 void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
