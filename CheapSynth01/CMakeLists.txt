@@ -19,6 +19,11 @@ if(WIN32)
     foreach(format vst3 clap)
         if(TARGET CheapSynth01-${format})
             target_sources(CheapSynth01-${format} PRIVATE resources/main.rc)
+            # Both SDK targets use CheapSynth01 as OUTPUT_NAME. MSVC otherwise
+            # races while writing their same-named .lib/.exp and linker PDB.
+            set_target_properties(CheapSynth01-${format} PROPERTIES
+                ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/link/${format}/$<CONFIG>"
+                PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/link/${format}/$<CONFIG>")
         endif()
     endforeach()
 endif()
