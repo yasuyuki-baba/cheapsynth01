@@ -79,7 +79,7 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite now has 99 core cases (96 regression assertions and three
+The portable suite now has 111 core cases (108 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -115,7 +115,7 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 99 core and eight SDK-interface boundary
+Current local completion-batch checks: 111 core and eight SDK-interface boundary
 cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
@@ -153,8 +153,8 @@ only UI notes. The keyboard displays the union of both sources. Nine portable
 regressions cover ownership/lifecycle; actual native focus and pointer interactions
 remain deferred. Twelve additional DSP regressions cover LFO periods/live edits,
 modern filter response/modulation/reset, noise release/reset and measured pitch/Feet.
-The current suite contains 107 CTest cases (99 core and eight SDK-interface).
-All 107 cases pass locally in Debug, Release and ASan/UBSan with leak detection.
+The current suite contains 119 CTest cases (111 core and eight SDK-interface).
+All 119 cases pass locally in Debug, Release and ASan/UBSan with leak detection.
 Eleven Python archive-contract cases also pass. Current native CI results are recorded in PR #40.
 
 Release packaging includes license notices and BUILD-INFO.json, with the full

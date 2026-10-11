@@ -35,7 +35,7 @@ remaining behavior and validation gaps, iPlug2OOS alignment and validation gates
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 99 active core cases: 96 correctness regressions and
+The current suite has 111 active core cases: 108 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
@@ -65,7 +65,7 @@ LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
 references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 107 active CTest cases with SDK-interface
+callback boundary processing. There are 119 active CTest cases with SDK-interface
 tests enabled; this count does not claim historical assertion parity.
 
 Archive contract tests run independently, without loading a product:
@@ -78,3 +78,12 @@ Eleven independently constructed fixtures check file hashes, exact payload
 coverage, required content, release identity, modes and safe ZIP/symlink paths.
 Native compilation and source-archive offline rebuild run in CI. Actual plugin
 loading, DAW/device and interactive UI verification are deferred.
+
+`unit/MidiBehaviorTest.cpp` replaces historical MIDI assertions with an independent
+recording generator, a std::set oracle for all 128 keys and actual core audio for
+velocity invariance across all waveforms. It covers every controller's production
+range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
+Additional EG continuity regressions retain live attack bounds, residual release
+targets after edits, sustain retrigger behavior and lifecycle observation reset.
+JUCE listener/thread/teardown assumptions do not establish iPlug2 UI correctness;
+those native scenarios remain explicitly deferred in the assertion inventory.
