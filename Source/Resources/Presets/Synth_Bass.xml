@@ -9,10 +9,10 @@
   <PARAM id="RESONANCE" value="1"/>
   <PARAM id="VCF_EG_DEPTH" value="0.25"/>
   <PARAM id="VCA_EG_DEPTH" value="1"/>
-  <PARAM id="ATTACK" value="0.001"/>
-  <PARAM id="DECAY" value="0.037"/>
+  <PARAM id="ATTACK" value="0.003960000"/>
+  <PARAM id="DECAY" value="0.154505605"/>
   <PARAM id="SUSTAIN" value="0"/>
-  <PARAM id="RELEASE" value="0.199"/>
+  <PARAM id="RELEASE" value="0.443960000"/>
   <PARAM id="LFO_SPEED" value="0.81"/>
   <PARAM id="LFO_TARGET" value="1"/>
   <PARAM id="BREATH_VCF" value="0"/>

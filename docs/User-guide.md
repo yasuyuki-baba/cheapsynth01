@@ -54,10 +54,10 @@ Depths and levels use normalized values from 0 to 1.
 | Resonance | 0–1 | 0.2 | Original uses Low/High (threshold 0.5); Modern uses continuous resonance. |
 | VCF EG Depth | 0–1 | 0 | Amount of envelope-driven cutoff increase. |
 | VCA EG Depth | 0–1 | 1 | Blends note-gated level at 0 with envelope-controlled level at 1. Zero still becomes silent after note release. |
-| Attack | 1 ms–2 s | 100 ms | Reference rise time from zero to the envelope peak. |
-| Decay | 1 ms–2 s | 100 ms | Reference transition time from the peak to Sustain. |
+| Attack | 3.96–4403.96 ms | 100 ms | RC time constant; a fresh attack reaches the peak after twice this value. |
+| Decay | 3.96–4403.96 ms | 100 ms | RC time constant for the approach to Sustain. |
 | Sustain | 0–1 | 0.8 | Held envelope level. |
-| Release | 1 ms–2 s | 100 ms | Reference return time after releasing the last held note. |
+| Release | 3.96–4403.96 ms | 100 ms | RC time constant for the return to zero. |
 | LFO Speed | 0.8–21 Hz | 5 Hz | Pitch/cutoff modulation rate. |
 | LFO Target | VCO, VCF | VCO | Routes the LFO to pitch or cutoff. |
 | Mod Depth / modulation wheel | 0–1 | 0 | LFO amount; at zero, LFO Speed/Target do not create audible modulation. |
@@ -69,7 +69,7 @@ Depths and levels use normalized values from 0 to 1.
 | Breath VCA | 0–1 | 0 | At zero, breath does not affect gain; at one, zero Breath Input mutes the sound. |
 | Volume | 0–1 | 0.7 | Final level control with a nonlinear response. |
 
-Envelope times are reference durations. Retriggering from a residual level can
+Envelope times are RC time constants. Retriggering from a residual level can
 shorten attack; changing a running stage's time changes its remaining duration
 without resetting its level. The engine runs internally at four times the host
 sample rate, and its output converter adds 16 host samples of reported latency.
@@ -138,7 +138,9 @@ selecting a sound does not move those performance controls.
 Parameters have VCO, VCF, VCA, EG, LFO and Performance groups for hosts that display
 parameter groups. Their IDs and order remain unchanged. Attack, Decay and Release
 are displayed and entered in milliseconds; Glissando uses milliseconds per
-semitone. The DSP and XML preset/session values remain in seconds.
+semitone. The DSP and XML preset/session values remain in seconds. EG times are RC time
+constants, with an assumed 10% midpoint A taper. Decay and Release settle after
+about 9.21 time constants. See [EG timing assumptions](EG-RC-timing.md).
 
 Right-clicking a parameter control uses iPlug2's host context menu in VST3 hosts
 that support it. Available commands depend on the DAW. Double-click a slider or

@@ -3,6 +3,20 @@
 #include "ParameterPresentation.h"
 
 namespace cs01 {
+struct EnvelopeTimeShape final : iplug::IParam::Shape {
+    Shape* Clone() const override {
+        return new EnvelopeTimeShape(*this);
+    }
+    iplug::IParam::EDisplayType GetDisplayType() const override {
+        return iplug::IParam::kDisplayLog;
+    }
+    double NormalizedToValue(double value, const iplug::IParam&) const override {
+        return 1000.0 * EGTiming::timeConstant(value);
+    }
+    double ValueToNormalized(double value, const iplug::IParam&) const override {
+        return EGTiming::position(value / 1000.0);
+    }
+};
 inline void initializeHostParameter(iplug::IParam& parameter, Param id) {
     using iplug::IParam;
     const auto& d = definition(id);
@@ -36,9 +50,14 @@ inline void initializeHostParameter(iplug::IParam& parameter, Param id) {
         parameter.InitInt(d.name.data(), static_cast<int>(d.initial), static_cast<int>(d.minimum),
                           static_cast<int>(d.maximum), label, flags, group);
     } else {
+        const EnvelopeTimeShape envelopeShape;
+        const IParam::ShapePowCurve powerShape(1.0 / d.skew);
+        const IParam::Shape& shape = isEnvelopeTime(id)
+                                         ? static_cast<const IParam::Shape&>(envelopeShape)
+                                         : static_cast<const IParam::Shape&>(powerShape);
         parameter.InitDouble(d.name.data(), toHostValue(id, d.initial), toHostValue(id, d.minimum),
                              toHostValue(id, d.maximum), toHostValue(id, d.step), label, flags,
-                             group, IParam::ShapePowCurve(1.0 / d.skew), unit);
+                             group, shape, unit);
         if (milliseconds || id == Param::Cutoff)
             parameter.SetDisplayPrecision(0);
     }
