@@ -441,9 +441,9 @@ replace the production EG or extend this approximation across region changes.
 
 ### Reproducible checks and boundary of the approximation
 
-`Tests/eg_decay_equation_check.py` preserves the algebra checks as a
+`Tests/research/test_eg_decay_equations.py` preserves the algebra checks as a
 standalone Python 3 unittest suite. Run it from the repository root with
-`python3 Tests/eg_decay_equation_check.py -v`. It is not part of the CMake
+`python3 Tests/research/test_eg_decay_equations.py -v`. It is not part of the CMake
 regression runner and has no third-party dependencies.
 
 The suite checks 72 illustrative parameter combinations for Tr11 current

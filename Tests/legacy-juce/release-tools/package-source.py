@@ -35,13 +35,13 @@ if __name__ == '__main__':
         add_tree(archive, args.juce, 'dependencies/juce')
         add_tree(archive, args.googletest, 'dependencies/googletest')
         archive.write(ROOT / 'LICENSE', 'LICENSE.txt')
-        archive.write(ROOT / 'ThirdParty/AGPL-3.0.txt', 'AGPL-3.0.txt')
+        archive.write(Path(__file__).resolve().parents[1] / 'ThirdParty/AGPL-3.0.txt', 'AGPL-3.0.txt')
         archive.writestr('SOURCE.txt', f'Source commit: {commit}\n'
             'This archive includes JUCE 9.0.3, GoogleTest v1.14.0 and CLAP submodule sources.\n'
             'Configure with -DFETCHCONTENT_SOURCE_DIR_JUCE=<source>/dependencies/juce and\n'
             '-DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=<source>/dependencies/googletest.\n'
             'See CONTRIBUTING.md and .github/workflows/ci.yml for build conditions.\n'
-            'cmake/JuceGraphRealtimePatch.cmake applies the documented JUCE memory patch.\n')
+            'Tests/legacy-juce/cmake/JuceGraphRealtimePatch.cmake applies the documented JUCE memory patch.\n')
         archive.writestr('ThirdPartyNotices.txt', 'See JUCE LICENSE.md/SPDX inventory, AGPL-3.0.txt,\n'
             'CLAP dependency licence files and docs/software/Distribution.md.\n')
         hashes = {}

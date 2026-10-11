@@ -1,6 +1,6 @@
 #pragma once
 #include "IControls.h"
-#include "KeyboardInput.h"
+#include "UI/KeyboardInput.h"
 
 namespace cs01::ui {
 // Retains iPlug2's vector keyboard drawing and geometry. Mouse events publish
