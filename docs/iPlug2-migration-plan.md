@@ -38,7 +38,7 @@ handles native bypass trailers and final short stream reads.
 Scope updated on 2026-10-11: JUCE project/automation/binary-state compatibility is
 not required. Legacy ID adapters, import decoders, mapping inventories and
 old-session fixture gates have been removed. Use iPlug2's native IDs and APIs;
-keep the previously agreed plugin identities. There are 69 core cases plus eight
+keep the previously agreed plugin identities. There are 87 core cases plus eight
 SDK-interface boundary cases. Current-version host/state/automation validation,
 GUI lifecycle coverage and behavioral test reconciliation remain open. Retire
 compatibility-only historical tests explicitly instead of reproducing them.
@@ -243,3 +243,14 @@ the 272-row Google Test inventory is not the entire verification surface.
 Implement phases as small reviewable commits/PRs. Finish structural changes
 before investing in native UI harness paths. Do not mark a phase complete from archived tests, test count alone, cross
 compilation alone or validators that skipped the relevant UI paths.
+
+
+## Current verification scope
+
+Per the user's 2026-10-11 instruction, real plugin/DAW/device verification is
+deferred. Continue core/SDK-interface regression coverage, packaging, offline
+source reproduction and main reconciliation. Keyboard lifecycle/source ownership
+is implemented and covered by eight portable cases; native focus behavior remains
+unverified. LFO/filter/noise/pitch assertion replacements add ten cases. Release
+ZIP production/validation and ten archive-contract cases are implemented. None
+of these substitutes for the deferred native interaction gates.

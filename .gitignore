@@ -17,3 +17,7 @@ references/
 # Separate core/native migration builds
 build-*/
 /test_results.xml
+
+# Python tooling and generated release bundles
+__pycache__/
+release-packages/

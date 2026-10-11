@@ -22,6 +22,8 @@ jobs:
         run: python -m pip install clang-format==21.1.7
       - name: Check formatting
         run: bash scripts/check-format.sh
+      - name: Test release archive validation
+        run: python -m unittest discover -s Tests/packaging -v
   core:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -76,36 +78,73 @@ jobs:
           name: cheapsynth01-iplug2-${{ runner.os }}
           path: build-native/out/
           if-no-files-found: error
-      - name: Package native products for release
-        if: github.ref_type == 'tag'
-        run: |
-          mkdir -p release-packages
-          cd build-native
-          cmake -E tar cf "../release-packages/cheapsynth01-${RUNNER_OS}.zip" --format=zip out
+      - name: Package and verify native products without loading plugins
+        run: python scripts/release_package.py create --build build-native --platform "${RUNNER_OS}" --output "release-packages/cheapsynth01-${RUNNER_OS}.zip"
       - name: Upload release package
-        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v7
         with:
           name: cheapsynth01-${{ runner.os }}-packages
           path: release-packages/*.zip
           if-no-files-found: error
           retention-days: 5
+  source-package:
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Fetch pinned SDKs
+        run: bash scripts/setup-iplug2.sh
+      - name: Fetch core dependencies
+        run: cmake -S . -B build-source -DBUILD_PLUGINS=OFF -DCMAKE_BUILD_TYPE=Release
+      - name: Package and verify complete source
+        run: python scripts/release_package.py create --build build-source --platform source --output release-packages/cheapsynth01-source.zip
+      - name: Verify offline build from extracted source
+        run: |
+          mkdir build-source-extracted
+          cd build-source-extracted
+          cmake -E tar xf ../release-packages/cheapsynth01-source.zip
+          cmake -S . -B build-offline -DBUILD_PLUGINS=OFF -DBUILD_VST3_BOUNDARY_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_TINYXML2="$PWD/dependencies/tinyxml2" -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST="$PWD/dependencies/googletest"
+          cmake --build build-offline --parallel 2
+          ctest --test-dir build-offline --output-on-failure
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cheapsynth01-source-packages
+          path: release-packages/cheapsynth01-source.zip
+          if-no-files-found: error
+          retention-days: 5
   create-release:
-    needs: [lint, core, native]
+    needs: [lint, core, native, source-package]
     if: github.ref_type == 'tag'
     runs-on: macos-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
         with:
           pattern: cheapsynth01-*-packages
           path: release-packages
           merge-multiple: true
+      - name: Verify release identity and write checksums
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for platform in Windows macOS source; do
+            python scripts/release_package.py verify --commit "$GITHUB_SHA" --version "$version" --platform "$platform" "release-packages/cheapsynth01-${platform}.zip"
+          done
+          cd release-packages
+          shasum -a 256 *.zip > SHA256SUMS.txt
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-packages/*.zip
+          files: |
+            release-packages/*.zip
+            release-packages/SHA256SUMS.txt
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -149,6 +149,8 @@ void CS01AudioProcessor::OnReset() {
     parameters.tryCopyTo(renderParameters);
     engine.prepare(GetSampleRate());
     midi.clear();
+    uiNotes.resetAudio();
+    uiNotes.publishExternal(engine.externalNotes());
     appliedStateReset = renderParameters.stateResetSerial();
     SetLatency(SynthEngine::latency);
 }
@@ -176,6 +178,7 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
         const int value = 8192 + static_cast<int>(std::lround(bend * (bend >= 0 ? 8191 : 8192)));
         engine.handleMidi(cs01::MidiMessage::pitchWheel(1, value));
     }
+    uiNotes.consume([this](auto message) { engine.handleUiMidi(message); });
     for (int i = 0; i < frames; ++i) {
         while (!midi.empty() && midi.peek().offset <= i) {
             engine.handleMidi(midi.peek().message);
@@ -186,6 +189,7 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
             outputs[channel][i] = output;
     }
     midi.flush(frames);
+    uiNotes.publishExternal(engine.externalNotes());
     // Publish parameter values atomically; the idle callback refreshes controls.
     const unsigned changed = renderParameters.takeMidiChanges();
     for (int i = 0; i < cs01::parameterCount; ++i)
@@ -205,6 +209,9 @@ void CS01AudioProcessor::OnRestoreState() {
     refreshUI.store(true, std::memory_order_release);
 }
 void CS01AudioProcessor::OnIdle() {
+#if IPLUG_EDITOR
+    updateKeyboardInput();
+#endif
     if (refreshUI.exchange(false, std::memory_order_acquire)) {
         // Control/API values can be updated during rendering; use one completed
         // patch for both the editor and the separate VST3 controller cache.

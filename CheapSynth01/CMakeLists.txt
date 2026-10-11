@@ -10,7 +10,7 @@ elseif(NOT IPLUG2_CLAP_SUPPORTED)
 endif()
 iplug_add_plugin(CheapSynth01
     SOURCES CS01AudioProcessor.cpp CS01AudioProcessor.h
-        CS01AudioProcessorEditor.cpp resources/resource.h
+        CS01AudioProcessorEditor.cpp KeyboardFocus.cpp resources/resource.h
     RESOURCES resources/fonts/Roboto-Regular.ttf
     FORMATS ${formats}
     LINK CheapSynth01Core
@@ -21,4 +21,8 @@ if(WIN32)
             target_sources(CheapSynth01-${format} PRIVATE resources/main.rc)
         endif()
     endforeach()
+endif()
+
+if(APPLE)
+    set_source_files_properties(KeyboardFocus.cpp PROPERTIES LANGUAGE OBJCXX)
 endif()

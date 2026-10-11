@@ -120,7 +120,7 @@ source_commit,source_path,source_line,suite,case,present_at_migration_baseline,a
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/LFOProcessorTest.cpp,63,LFOProcessorTest,ParameterSettings,yes,dsp-or-realtime,,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/LFOProcessorTest.cpp,76,LFOProcessorTest,BusesLayout,yes,dsp-or-realtime,,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/LFOProcessorTest.cpp,100,LFOProcessorTest,WaveformGeneration,yes,dsp-or-realtime,,pending-case-review,
-32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/LFOProcessorTest.cpp,164,LFOProcessorTest,PeriodAmplitudeAndContinuity,yes,dsp-or-realtime,,pending-case-review,
+32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/LFOProcessorTest.cpp,164,LFOProcessorTest,PeriodAmplitudeAndContinuity,yes,dsp-or-realtime,,replaced-core-assertions,LfoRegressionTest.PeriodAmplitudeAndContinuity; Tests/unit/DspRegressionTest.cpp; Debug/Release/ASan/UBSan pass
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/MidiProcessorTest.cpp,85,MidiProcessorTest,GlissandoUsesFourteenBitControllerPair,yes,dsp-or-realtime,EngineTest;MidiQueueTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/MidiProcessorTest.cpp,100,MidiProcessorTest,ResetControllersPreservesHeldNotesAndPatch,yes,dsp-or-realtime,EngineTest;MidiQueueTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/MidiProcessorTest.cpp,124,MidiProcessorTest,HeldKeysKeepEnvelopeGateOpen,yes,dsp-or-realtime,EngineTest;MidiQueueTest,pending-case-review,
@@ -152,8 +152,8 @@ source_commit,source_path,source_line,suite,case,present_at_migration_baseline,a
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,249,ModernVCFProcessorTest,ResonanceParameter,yes,dsp-or-realtime,EngineTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,271,ModernVCFProcessorTest,Modulation,yes,dsp-or-realtime,EngineTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,301,ModernVCFProcessorTest,ModulationIsIndependentOfBlockPartition,yes,dsp-or-realtime,EngineTest,pending-case-review,
-32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,335,ModernVCFProcessorTest,FourPoleResponseAndFiniteResonance,yes,dsp-or-realtime,EngineTest,pending-case-review,
-32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,370,CS01IIVCFCircuitTest,BehavioralCoreRemainsBoundedAndResetsDeterministically,no,dsp-or-realtime,EngineTest,pending-case-review,
+32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,335,ModernVCFProcessorTest,FourPoleResponseAndFiniteResonance,yes,dsp-or-realtime,EngineTest,replaced-core-assertions,ModernFilterRegressionTest.FourPoleResponseAndFiniteResonance; Tests/unit/DspRegressionTest.cpp; Debug/Release/ASan/UBSan pass
+32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/ModernVCFProcessorTest.cpp,370,CS01IIVCFCircuitTest,BehavioralCoreRemainsBoundedAndResetsDeterministically,no,dsp-or-realtime,EngineTest,replaced-core-assertions,ModernFilterRegressionTest.ResetAndDrivenModulationAreDeterministicAndBounded; Tests/unit/DspRegressionTest.cpp; Debug/Release/ASan/UBSan pass
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/NoiseGeneratorTest.cpp,45,NoiseGeneratorTest,Initialization,yes,dsp-or-realtime,EngineTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/NoiseGeneratorTest.cpp,54,NoiseGeneratorTest,PrepareToPlay,yes,dsp-or-realtime,EngineTest,pending-case-review,
 32b91c8344a0581232afd7e0a79c5d25da22f42a,Tests/unit/NoiseGeneratorTest.cpp,74,NoiseGeneratorTest,ProcessBlock,yes,dsp-or-realtime,EngineTest,pending-case-review,

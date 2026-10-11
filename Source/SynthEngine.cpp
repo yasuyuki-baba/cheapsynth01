@@ -5,6 +5,7 @@ SynthEngine::SynthEngine(cs01::ParameterState& p)
     midi.setEGProcessor(&eg);
 }
 void SynthEngine::prepare(double rate) {
+    noteOwnership.reset();
     if (!std::isfinite(rate) || rate < 8000 || rate > 384000)
         rate = 44100.0;  // Protect host reset callbacks from invalid/uninitialized rates.
     const double internal = rate * cs01::OutputConverter::factor;
@@ -19,6 +20,7 @@ void SynthEngine::prepare(double rate) {
     converter.reset();
 }
 void SynthEngine::panic() {
+    noteOwnership.reset();
     midi.releaseResources();
     original.releaseResources();
     modern.releaseResources();
@@ -26,6 +28,12 @@ void SynthEngine::panic() {
     converter.reset();
 }
 void SynthEngine::handleMidi(const cs01::MidiMessage& message) {
+    noteOwnership.process(message, false, [this](auto event) { applyMidi(event); });
+}
+void SynthEngine::handleUiMidi(const cs01::MidiMessage& message) {
+    noteOwnership.process(message, true, [this](auto event) { applyMidi(event); });
+}
+void SynthEngine::applyMidi(const cs01::MidiMessage& message) {
     vco.applyPendingGeneratorChange();
     midi.setSoundGenerator(vco.getSoundGenerator());
     midi.handleMidiEvent(message);
