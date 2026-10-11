@@ -79,7 +79,7 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite now has 87 core cases (84 regression assertions and three
+The portable suite now has 89 core cases (84 regression assertions and three
 observational measurements). It retains the two independent filter-model test suites and
 adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
 regression tests. Same-name preset saves overwrite through a temporary file;
@@ -115,7 +115,7 @@ SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platfor
 CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
 or unused platforms are copied from the template. See CONTRIBUTING for commands.
 
-Current local completion-batch checks: 87 core and eight SDK-interface boundary
+Current local completion-batch checks: 89 core and eight SDK-interface boundary
 cases pass in Debug, Release and
 AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
 new EG regression cases fail when linked against the pre-port EG implementation,
@@ -151,9 +151,9 @@ notes without a bounded-event-queue overflow, and separates UI ownership from
 external MIDI ownership. Hide, close, text entry and native focus loss release
 only UI notes. The keyboard displays the union of both sources. Eight portable
 regressions cover ownership/lifecycle; actual native focus and pointer interactions
-remain deferred. Ten additional DSP regressions cover LFO periods/live edits,
+remain deferred. Twelve additional DSP regressions cover LFO periods/live edits,
 modern filter response/modulation/reset, noise release/reset and measured pitch/Feet.
-All 95 CTest cases pass locally in Debug, Release and ASan/UBSan with leak detection.
+The current suite contains 97 CTest cases; the previous 95-case batch passed locally in Debug, Release and ASan/UBSan with leak detection.
 
 Release packaging includes license notices and BUILD-INFO.json, with the full
 source revision, dependency revisions and SHA-256/mode of every payload file.

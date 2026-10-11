@@ -1,4 +1,4 @@
-#include "CS01Synth/ExperimentalOriginalVCF.h"
+#include "CS01Synth/IG02610BehavioralModel.h"
 #include "CS01Synth/CS01VCFCircuit.h"
 
 #include <gtest/gtest.h>
@@ -43,15 +43,14 @@ double projectedAmplitude(const std::vector<float>& audio, double sampleRate, do
 
 TEST(ExperimentalOriginalVCFTest, RemainsFiniteAndBoundedDuringFastModulation) {
     for (const double rate : {44100.0, 48000.0, 96000.0}) {
-        ExperimentalOriginalVCF filter;
+        IG02610BehavioralModel filter;
         filter.prepare(rate * 4.0);  // Match the project's 4x internal filter rate.
         for (int i = 0; i < 200000; ++i) {
             const float cutoff = (i & 1) ? 20.0f : 20000.0f;
             const float input = 4.0f * std::sin(static_cast<float>(i) * 0.17f);
             const float output = filter.processSample(input, cutoff, 1.0f);
             ASSERT_TRUE(std::isfinite(output));
-            EXPECT_LE(std::abs(output),
-                      ExperimentalOriginalVCF::EmpiricalParameters::maximumOutput);
+            EXPECT_LE(std::abs(output), IG02610BehavioralModel::EmpiricalParameters::maximumOutput);
         }
     }
 }
@@ -59,7 +58,7 @@ TEST(ExperimentalOriginalVCFTest, RemainsFiniteAndBoundedDuringFastModulation) {
 TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndependent) {
     constexpr int count = 4096;
     std::vector<float> whole(count), split(count);
-    ExperimentalOriginalVCF a, b;
+    IG02610BehavioralModel a, b;
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < count; ++i) {

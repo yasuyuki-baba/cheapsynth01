@@ -1,0 +1,325 @@
+{
+  "note": "File-history commits identify archived file content, not proven DSP measurement source commits. Unknown provenance is null. Preserve these historical CSVs; use artifacts/audit for current production measurements.",
+  "files": [
+    {
+      "file": "artifacts/dsp/eg_trajectory.csv",
+      "classification": "idealized_reference_not_production_DSP",
+      "sha256": "cf8659d7581d7d0d630d2b8569fa4498466528397b2dcc21ae196ee06752799b",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "sample_index",
+        "time_seconds",
+        "envelope_stage",
+        "envelope_value"
+      ],
+      "regeneration": "python3 tools/dsp_characterize.py (only these three reference CSVs)"
+    },
+    {
+      "file": "artifacts/dsp/ig05630_cpp_benchmark.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "9bda525f7f4fbf8a0b44cd2928c7046626af44f5a6e8d1ef8037eb7c11a0dcb9",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_mode",
+        "samples",
+        "elapsed_seconds",
+        "ns_per_sample",
+        "finite_output",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/ig05630_cpp_harmonics.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "0a28ae3b7a88c976cddbabec3f2a745cd930912ddac39cf133cd1cb3bf55b687",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_hz",
+        "resonance",
+        "input_peak",
+        "fundamental_hz",
+        "harmonic",
+        "relative_db",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/ig05630_cpp_response.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "697d4df69025cc006b60e8d814c6782b1ea758358ae64cbf7b2c322ac302d2e2",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_hz",
+        "resonance",
+        "frequency_hz",
+        "gain_db",
+        "finite",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_cpp_benchmark.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "97a8d57ba945897ada16e4b3b61d923a9d7f3fcffa9be94200f40035909ba8b7",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_mode",
+        "samples",
+        "elapsed_seconds",
+        "ns_per_sample",
+        "finite_output",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_cpp_harmonics.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "8086a67a3e4d80977343397d79553ec7aee9681c578d45016938a54c465c8883",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_hz",
+        "resonance",
+        "input_peak",
+        "fundamental_hz",
+        "harmonic",
+        "relative_db",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_cpp_response.csv",
+      "classification": "historical_compiled_VCF_comparison_not_current_whole_graph",
+      "sha256": "ab0f658e21f6110b81b886f2023d6a9247b73ff31cdc8a9317f3f59ae7bfe004",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "model",
+        "host_rate",
+        "internal_rate",
+        "cutoff_hz",
+        "resonance",
+        "frequency_hz",
+        "gain_db",
+        "finite",
+        "build_type",
+        "environment"
+      ],
+      "regeneration": "removed dual-model C++ harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_legacy_update_optimization.csv",
+      "classification": "historical_kernel_or_processor_comparison_not_whole_graph",
+      "sha256": "1257ed10727065eb3f108d114d5af5b3b20652b03938c165b2a88081d237ae37",
+      "archived_file_last_change_commit": "3799739115760a75c18912787717dc42ae3f2c76",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "build_type",
+        "host_rate",
+        "internal_rate",
+        "cutoff_mode",
+        "samples",
+        "legacy_before_ns_per_sample",
+        "legacy_after_ns_per_sample",
+        "relative_speedup",
+        "finite_output"
+      ],
+      "regeneration": "historical comparison harness; recover recorded source before regenerating"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_modulation_exp2_comparison.csv",
+      "classification": "historical_kernel_or_processor_comparison_not_whole_graph",
+      "sha256": "b96f6026744a0d61285713c97ae17999d4315b25e4b43a04d9f28e751b3da70b",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "build_type",
+        "repetition",
+        "samples",
+        "three_exp2_seconds",
+        "one_exp2_seconds",
+        "speedup",
+        "max_relative_cutoff_error",
+        "max_absolute_audio_difference"
+      ],
+      "regeneration": "historical comparison harness; recover recorded source before regenerating"
+    },
+    {
+      "file": "artifacts/dsp/original_vcf_processblock_clear_comparison.csv",
+      "classification": "historical_kernel_or_processor_comparison_not_whole_graph",
+      "sha256": "d281a6f769a7a10218d31335367a6f0e5bca9fb518ad2269528c0e3ea51ada1c",
+      "archived_file_last_change_commit": "68317fdd95b1e56d7d5e23efb15e415f1f91c6aa",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "variant",
+        "repetition",
+        "block_size",
+        "blocks",
+        "total_samples",
+        "elapsed_seconds",
+        "ns_per_sample",
+        "finite_output"
+      ],
+      "regeneration": "historical comparison harness; recover recorded source before regenerating"
+    },
+    {
+      "file": "artifacts/dsp/vca_low_frequency.csv",
+      "classification": "idealized_reference_not_production_DSP",
+      "sha256": "e7f9561a955d9752c1f15ba86ae60ce13b0e146d9c1abe47c263b9635f2e2d44",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "sample_rate",
+        "frequency_hz",
+        "enabled_stage_mask_input_hp_dc_tr7_output",
+        "gain_db",
+        "phase_degrees"
+      ],
+      "regeneration": "python3 tools/dsp_characterize.py (only these three reference CSVs)"
+    },
+    {
+      "file": "artifacts/dsp/vcf_benchmark.csv",
+      "classification": "historical_removed_biquad_reference",
+      "sha256": "2c83b57df072d49ff8a369b337cd1a12fe78ceac4fa6dfc3e011906cee82e3ba",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [
+        "Linux-6.18.44-x86_64-with-glibc2.41"
+      ],
+      "condition_columns": [
+        "environment",
+        "host_sample_rate",
+        "internal_sample_rate",
+        "block_size",
+        "rendered_samples",
+        "elapsed_seconds",
+        "ns_per_sample",
+        "realtime_factor",
+        "resonance",
+        "cutoff_mode",
+        "estimated_coefficient_updates"
+      ],
+      "regeneration": "removed Phase 2 harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/vcf_harmonics.csv",
+      "classification": "historical_removed_biquad_reference",
+      "sha256": "45b5241f100d3112baa0c0c63967bb1ec4d9e1d61a643a7a5e2b52cbd4faae12",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "model",
+        "sample_rate",
+        "cutoff_hz",
+        "resonance",
+        "input_peak_amplitude",
+        "harmonic_number",
+        "harmonic_db"
+      ],
+      "regeneration": "removed Phase 2 harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/vcf_response.csv",
+      "classification": "historical_removed_biquad_reference",
+      "sha256": "1c048c501bb07c7c4e9f79acf7307a16fb6737f9042cf73149c5bd8a2eb8e110",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "model",
+        "sample_rate",
+        "cutoff_parameter",
+        "resonance_parameter",
+        "input_frequency_hz",
+        "output_db"
+      ],
+      "regeneration": "removed Phase 2 harness; cannot regenerate from current tree"
+    },
+    {
+      "file": "artifacts/dsp/vco_spectrum.csv",
+      "classification": "idealized_reference_not_production_DSP",
+      "sha256": "87dec316aa49bca795da027731b984931ecce18d9ac2d2ba8f994b9c3a4703e0",
+      "archived_file_last_change_commit": "3751948a2c2410f68dc4f397b2d985b37f6d53ca",
+      "measurement_source_commit": null,
+      "measurement_toolchain": null,
+      "reported_environment_labels": [],
+      "condition_columns": [
+        "note_number",
+        "frequency_hz",
+        "sample_rate",
+        "waveform",
+        "harmonic_number",
+        "harmonic_amplitude_db"
+      ],
+      "regeneration": "python3 tools/dsp_characterize.py (only these three reference CSVs)"
+    }
+  ]
+}

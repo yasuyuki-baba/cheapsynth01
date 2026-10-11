@@ -1,9 +1,8 @@
-# Historical JUCE regression scenarios
+# Historical JUCE assertion reference
 
-These sources describe the pre-migration JUCE graph, editor and APVTS behavior.
-They are retained as reference scenarios, not compiled or linked by the iPlug2
-build. Several refer to removed JUCE-only classes and cannot be run in this tree.
-The active suite is `Tests/CoreTest.cpp` plus the two portable filter test files
-in `Tests/unit`. Do not interpret historical test counts in old documents as
-coverage of the iPlug2 version. The previous working JUCE suite is available in
-the Git history before this migration.
+Full Tests snapshot of origin/main at `32b91c8344a0581232afd7e0a79c5d25da22f42a`: 272 Google Test definitions.
+These files/CMake metadata are inactive reference inputs. Active replacements
+live in Tests/CoreTest.cpp and Tests/unit. Individual assertion dispositions are
+recorded in docs/iPlug2-test-inventory.csv. JUCE internals and old session/automation
+compatibility are outside the current scope. Current release contracts live in
+Tests/packaging; archived release tools describe JUCE-era distribution.

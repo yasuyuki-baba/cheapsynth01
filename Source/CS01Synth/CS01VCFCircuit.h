@@ -2,7 +2,8 @@
 
 #include "DSP/Primitives.h"
 
-#include "CS01Synth/ExperimentalOriginalVCF.h"
+#include "CS01Synth/IG02610BehavioralModel.h"
+#include "CS01Synth/VCFCouplingStages.h"
 
 //==============================================================================
 // CS-01 VCF signal path: IG02610-inspired behavioral core plus external coupling.
@@ -32,46 +33,8 @@ class CS01VCFCircuit {
 
    private:
     float cutoff, resonance, sampleRate;
-    ExperimentalOriginalVCF model;
+    IG02610BehavioralModel model;
 
-    // Input stage model
-    struct InputStage {
-        float prevSample = 0.0f;
-        cs01::Biquad dcBlocker;
-
-        void prepare(double sampleRate) {
-            dcBlocker.reset();
-            dcBlocker.highPass(sampleRate, 20.0);
-        }
-
-        void reset() {
-            prevSample = 0.0f;
-            dcBlocker.reset();
-        }
-    };
-
-    // Output stage model
-    struct OutputStage {
-        float prevInput = 0.0f;
-        float prevOutput = 0.0f;
-        double sampleRate = 44100.0;
-
-        void prepare(double newSampleRate) {
-            sampleRate = newSampleRate;
-        }
-
-        void reset() {
-            prevInput = 0.0f;
-            prevOutput = 0.0f;
-        }
-    };
-
-    InputStage inputStage;
-    OutputStage outputStage;
-
-    // Input stage processing
-    float processInputStage(float sample);
-
-    // Output stage processing
-    float processOutputStage(float sample);
+    EmpiricalVCFInputCoupling inputCoupling;
+    EmpiricalVCFOutputCoupling outputCoupling;
 };

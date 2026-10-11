@@ -2,8 +2,84 @@
 
 #include "CS01AudioProcessor.h"
 #include "CS01AudioProcessorEditor.h"
+#include "CS01Synth/MidiProcessor.h"
+#include "Parameters.h"
 
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <cmath>
+#include <thread>
+#include <vector>
+
+TEST(EditorVisibilityTest, ModWheelFollowsMidiWithoutSendingControllerFeedback) {
+    CS01AudioProcessor processor;
+    processor.getMidiMessageCollector().reset(48000);
+    MidiProcessor midiProcessor(processor.getValueTreeState());
+    ModulationComponent controls(processor);
+    juce::Slider* mod = nullptr;
+    juce::Slider* bend = nullptr;
+    for (auto* child : controls.getChildren()) {
+        if (auto* slider = dynamic_cast<juce::Slider*>(child)) {
+            if (slider->getSliderStyle() != juce::Slider::LinearVertical)
+                continue;
+            if (slider->getMinimum() == 0.0)
+                mod = slider;
+            else
+                bend = slider;
+        }
+    }
+    ASSERT_NE(mod, nullptr);
+    ASSERT_NE(bend, nullptr);
+    auto waitUntil = [](auto condition) {
+        // MIDI notifications and UI polling use separate best-effort timers.
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (!condition() && std::chrono::steady_clock::now() < deadline) {
+            if (!juce::MessageManager::getInstance()->runDispatchLoopUntil(10))
+                break;
+        }
+        return condition();
+    };
+    auto waitForMod = [&](double expected) {
+        return waitUntil([&] { return std::abs(mod->getValue() - expected) <= 0.001; });
+    };
+    auto receive = [&](int controller, int value) {
+        juce::AudioBuffer<float> audio(2, 64);
+        juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, value), 0);
+        midiProcessor.processBlock(audio, midi);
+    };
+    receive(1, 64);
+    ASSERT_TRUE(waitForMod(8192.0 / 16383.0));
+    EXPECT_NEAR(mod->getValue(), 8192.0 / 16383.0, 0.001);
+    receive(33, 127);
+    ASSERT_TRUE(waitForMod(8319.0 / 16383.0));
+    EXPECT_NEAR(mod->getValue(), 8319.0 / 16383.0, 0.001);
+
+    // Bend dragging must not suspend the independent MOD display.
+    bend->onDragStart();
+    receive(1, 127);
+    EXPECT_TRUE(waitForMod(1.0));
+    EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
+    bend->onDragEnd();
+
+    mod->onDragStart();
+    receive(121, 0);
+    EXPECT_TRUE(waitUntil([&] {
+        return processor.getValueTreeState().getRawParameterValue(ParameterIds::modDepth)->load() ==
+               0.0f;
+    }));
+    // Observe timer delivery while dragging; the display must retain its value.
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    EXPECT_DOUBLE_EQ(mod->getValue(), 1.0);
+    mod->onDragEnd();
+    ASSERT_TRUE(waitForMod(0.0));
+    EXPECT_DOUBLE_EQ(mod->getValue(), 0.0);
+
+    juce::MidiBuffer feedback;
+    processor.getMidiMessageCollector().removeNextBlockOfMessages(feedback, 64);
+    EXPECT_TRUE(feedback.isEmpty());
+}
 
 TEST(EditorVisibilityTest, EnvelopeLabelsAreCenteredUnderTheirSliders) {
     CS01AudioProcessor processor;
@@ -57,10 +133,10 @@ TEST(EditorVisibilityTest, FilterModesUseHeaderRow) {
     EXPECT_EQ(modern->getWidth(), 36);
     EXPECT_LE(original->getRight(), modern->getX());
     EXPECT_LE(modern->getBottom(), 22);
-    modern->onClick();
+    modern->setToggleState(true, juce::sendNotificationSync);
     EXPECT_TRUE(modern->getToggleState());
     EXPECT_FALSE(original->getToggleState());
-    original->onClick();
+    original->setToggleState(true, juce::sendNotificationSync);
     EXPECT_TRUE(original->getToggleState());
     EXPECT_FALSE(modern->getToggleState());
 }
@@ -201,4 +277,111 @@ TEST(EditorVisibilityTest, SoundSlidersHaveUniformSpacing) {
             EXPECT_NEAR(centres[i] - centres[i - 1], expected, 2.0);
         }
     }
+}
+
+namespace {
+void checkChoiceButtons(juce::Component& panel, juce::AudioParameterChoice& parameter,
+                        int groupId) {
+    std::vector<juce::ToggleButton*> buttons;
+    for (auto* child : panel.getChildren())
+        if (auto* button = dynamic_cast<juce::ToggleButton*>(child))
+            if (button->getRadioGroupId() == groupId)
+                buttons.push_back(button);
+    ASSERT_EQ(buttons.size(), static_cast<size_t>(parameter.choices.size()));
+    const auto matches = [&](int index) {
+        for (size_t i = 0; i < buttons.size(); ++i)
+            if (buttons[i]->getToggleState() != (static_cast<int>(i) == index))
+                return false;
+        return true;
+    };
+    EXPECT_TRUE(matches(parameter.getIndex()));
+    struct Spy : juce::AudioProcessorParameter::Listener {
+        void parameterValueChanged(int, float) override {
+            ++values;
+        }
+        void parameterGestureChanged(int, bool start) override {
+            start ? ++starts : ++ends;
+        }
+        int values = 0, starts = 0, ends = 0;
+    } spy;
+    parameter.addListener(&spy);
+    int expectedChanges = 0;
+    for (int cycle = 0; cycle < 2; ++cycle) {
+        for (int i = 0; i < static_cast<int>(buttons.size()); ++i) {
+            expectedChanges += parameter.getIndex() != i;
+            // Exercise JUCE's deselection notification to the previous button too.
+            buttons[i]->setToggleState(true, juce::sendNotificationSync);
+            EXPECT_EQ(parameter.getIndex(), i);
+            EXPECT_TRUE(matches(i));
+            EXPECT_EQ(spy.values, expectedChanges);
+            EXPECT_EQ(spy.starts, expectedChanges);
+            EXPECT_EQ(spy.ends, expectedChanges);
+        }
+    }
+    // MIDI-style writes do not notify parameter listeners.
+    std::thread worker([&] {
+        static_cast<juce::AudioProcessorParameter&>(parameter).setValue(
+            parameter.convertTo0to1(0.0f));
+    });
+    worker.join();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!matches(0) && std::chrono::steady_clock::now() < deadline)
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(10);
+    EXPECT_TRUE(matches(0));
+    EXPECT_EQ(spy.values, expectedChanges);
+    parameter.removeListener(&spy);
+}
+}  // namespace
+
+TEST(EditorVisibilityTest, ChoiceSwitchesStayExclusiveAndFollowSilentParameterWrites) {
+    CS01AudioProcessor processor;
+    VCOComponent oscillator(processor.apvts);
+    VCFComponent filter(processor.apvts);
+    ModulationComponent modulation(processor);
+    const auto check = [&](juce::Component& panel, const juce::String& id, int group) {
+        auto* parameter =
+            dynamic_cast<juce::AudioParameterChoice*>(processor.apvts.getParameter(id));
+        ASSERT_NE(parameter, nullptr);
+        checkChoiceButtons(panel, *parameter, group);
+    };
+    check(oscillator, ParameterIds::waveType, 1);
+    check(oscillator, ParameterIds::feet, 2);
+    check(modulation, ParameterIds::lfoTarget, 3);
+    check(filter, ParameterIds::filterType, 100);
+}
+
+TEST(EditorVisibilityTest, FilterChoiceSwapsResonanceControlsWithTheSelectedMode) {
+    CS01AudioProcessor processor;
+    auto* parameter = processor.apvts.getParameter(ParameterIds::filterType);
+    parameter->setValueNotifyingHost(0.0f);
+    VCFComponent filter(processor.apvts);
+    juce::ToggleButton* original = nullptr;
+    juce::ToggleButton* modern = nullptr;
+    juce::ToggleButton* high = nullptr;
+    juce::Slider* resonance = nullptr;
+    for (auto* child : filter.getChildren()) {
+        if (auto* button = dynamic_cast<juce::ToggleButton*>(child)) {
+            if (button->getButtonText() == "I")
+                original = button;
+            if (button->getButtonText() == "II")
+                modern = button;
+            if (button->getButtonText() == "HIGH")
+                high = button;
+        }
+        if (auto* slider = dynamic_cast<juce::Slider*>(child))
+            if (slider->getTooltip().startsWith("Resonance"))
+                resonance = slider;
+    }
+    ASSERT_NE(original, nullptr);
+    ASSERT_NE(modern, nullptr);
+    ASSERT_NE(high, nullptr);
+    ASSERT_NE(resonance, nullptr);
+    EXPECT_TRUE(high->isVisible());
+    EXPECT_FALSE(resonance->isVisible());
+    modern->setToggleState(true, juce::sendNotificationSync);
+    EXPECT_FALSE(high->isVisible());
+    EXPECT_TRUE(resonance->isVisible());
+    original->setToggleState(true, juce::sendNotificationSync);
+    EXPECT_TRUE(high->isVisible());
+    EXPECT_FALSE(resonance->isVisible());
 }

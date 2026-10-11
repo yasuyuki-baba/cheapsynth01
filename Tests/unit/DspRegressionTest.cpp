@@ -1,3 +1,5 @@
+#include "CS01Synth/VCAEmpiricalStages.h"
+#include "CS01Synth/VCFCouplingStages.h"
 #include "CS01Synth/LFOProcessor.h"
 #include "CS01Synth/ModernVCFProcessor.h"
 #include "CS01Synth/NoiseGenerator.h"
@@ -140,7 +142,7 @@ TEST(ModernFilterRegressionTest, ResetAndDrivenModulationAreDeterministicAndBoun
         EXPECT_EQ(first, second);
         for (float value : first) {
             ASSERT_TRUE(std::isfinite(value));
-            ASSERT_LE(std::abs(value), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+            ASSERT_LE(std::abs(value), IG05630BehavioralModel::EmpiricalParameters::maximumOutput);
         }
     }
 }
@@ -254,5 +256,68 @@ TEST(TonePitchRegressionTest, ResetReproducesFreshWaveformForAllWaveforms) {
         start(a);
         for (int i = 0; i < 4096; ++i)
             ASSERT_FLOAT_EQ(a.renderSample(), b.renderSample());
+    }
+}
+
+TEST(EmpiricalStagesTest, VcaSplitRetainsPreviousArithmeticAndResets) {
+    for (const double rate : {44100., 48000., 96000.}) {
+        EmpiricalVCACoupling inputCoupling{.997f}, outputCoupling{.9995f};
+        Tr7EmpiricalBuffer buffer;
+        inputCoupling.prepare(rate, .997f);
+        outputCoupling.prepare(rate, .9995f);
+        const float inputPole =
+            static_cast<float>(std::pow(static_cast<double>(.997f), 44100. / rate));
+        const float outputPole =
+            static_cast<float>(std::pow(static_cast<double>(.9995f), 44100. / rate));
+        std::array<float, 2048> first{};
+        for (int pass = 0; pass < 2; ++pass) {
+            float inputState = 0, previous = 0, outputState = 0;
+            inputCoupling.reset();
+            outputCoupling.reset();
+            buffer.reset();
+            for (int i = 0; i < 2048; ++i) {
+                const float sample = static_cast<float>(.9 * std::sin(.117 * i));
+                // Independent expression from the pre-split VCA implementation.
+                inputState = inputState * inputPole + sample * (1.f - inputPole);
+                const float coupled = sample - inputState;
+                const float transistor = coupled > 0 ? coupled * .95f : coupled * .92f;
+                const float highFrequency = (transistor - previous) * (1.f - .998f) * 2.f;
+                previous = transistor;
+                const float buffered = transistor + highFrequency;
+                outputState = outputState * outputPole + buffered * (1.f - outputPole);
+                const float expected = buffered - outputState;
+                const float actual = outputCoupling.processSample(
+                    buffer.processSample(inputCoupling.processSample(sample)));
+                EXPECT_FLOAT_EQ(actual, expected) << "rate=" << rate << " sample=" << i;
+                if (!pass)
+                    first[i] = actual;
+                else
+                    EXPECT_FLOAT_EQ(actual, first[i]);
+            }
+        }
+    }
+}
+
+TEST(EmpiricalStagesTest, VcfOutputCouplingRetainsMixedPrecisionAndResets) {
+    for (const double rate : {44100., 48000., 96000.}) {
+        EmpiricalVCFOutputCoupling stage;
+        stage.prepare(rate);
+        std::array<float, 2048> first{};
+        for (int pass = 0; pass < 2; ++pass) {
+            stage.reset();
+            float previousInput = 0, previousOutput = 0;
+            for (int i = 0; i < 2048; ++i) {
+                const float input = static_cast<float>(.2 + .3 * std::sin(.081 * i));
+                const float alpha = 1.f / (1.f + 2.f * std::numbers::pi_v<float> * 8.f / rate);
+                previousOutput = alpha * (previousOutput + input - previousInput);
+                previousInput = input;
+                const float actual = stage.processSample(input);
+                EXPECT_FLOAT_EQ(actual, previousOutput);
+                if (!pass)
+                    first[i] = actual;
+                else
+                    EXPECT_FLOAT_EQ(actual, first[i]);
+            }
+        }
     }
 }

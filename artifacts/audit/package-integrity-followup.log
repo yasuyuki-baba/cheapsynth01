@@ -1,0 +1,55 @@
+test_changed_payload_with_valid_crc_is_rejected (__main__.ReleaseValidationTest.test_changed_payload_with_valid_crc_is_rejected) ... FAIL
+
+======================================================================
+FAIL: test_changed_payload_with_valid_crc_is_rejected (__main__.ReleaseValidationTest.test_changed_payload_with_valid_crc_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/cheapsynth01-audit/Tests/release_validation_test.py", line 99, in test_changed_payload_with_valid_crc_is_rejected
+    with self.assertRaisesRegex(ValueError, 'hash'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=1)
+version 0.3.0: tag and supplied assets validated
+
+FINAL PYTHON REGRESSION
+test_ambiguous_manifests_are_rejected (__main__.ReleaseValidationTest.test_ambiguous_manifests_are_rejected) ... ok
+test_assets_must_match_requested_release_commit (__main__.ReleaseValidationTest.test_assets_must_match_requested_release_commit) ... ok
+test_binary_and_source_commits_must_match (__main__.ReleaseValidationTest.test_binary_and_source_commits_must_match) ... ok
+test_changed_payload_with_valid_crc_is_rejected (__main__.ReleaseValidationTest.test_changed_payload_with_valid_crc_is_rejected) ... ok
+test_complete_assets_and_notices (__main__.ReleaseValidationTest.test_complete_assets_and_notices) ... ok
+test_directory_and_empty_file_have_unambiguous_hash_coverage (__main__.ReleaseValidationTest.test_directory_and_empty_file_have_unambiguous_hash_coverage) ... ok
+test_duplicate_file_is_rejected (__main__.ReleaseValidationTest.test_duplicate_file_is_rejected) ... ok
+test_linux_subset_can_be_verified_locally (__main__.ReleaseValidationTest.test_linux_subset_can_be_verified_locally) ... ok
+test_malformed_hash_is_rejected (__main__.ReleaseValidationTest.test_malformed_hash_is_rejected) ... ok
+test_manifest_commit_has_exact_string_form (__main__.ReleaseValidationTest.test_manifest_commit_has_exact_string_form) ... ok
+test_manifest_product_version_must_match (__main__.ReleaseValidationTest.test_manifest_product_version_must_match) ... ok
+test_mismatch_is_rejected (__main__.ReleaseValidationTest.test_mismatch_is_rejected) ... ok
+test_missing_declared_file_is_rejected (__main__.ReleaseValidationTest.test_missing_declared_file_is_rejected) ... ok
+test_missing_windows_clap_is_rejected (__main__.ReleaseValidationTest.test_missing_windows_clap_is_rejected) ... ok
+test_noncanonical_member_paths_are_rejected (__main__.ReleaseValidationTest.test_noncanonical_member_paths_are_rejected) ... ok
+test_nonobject_manifest_is_rejected (__main__.ReleaseValidationTest.test_nonobject_manifest_is_rejected) ... ok
+test_payload_without_notices_is_rejected (__main__.ReleaseValidationTest.test_payload_without_notices_is_rejected) ... ok
+test_prefixed_product_manifest_is_valid (__main__.ReleaseValidationTest.test_prefixed_product_manifest_is_valid) ... ok
+test_requested_commit_must_be_exact (__main__.ReleaseValidationTest.test_requested_commit_must_be_exact) ... ok
+test_source_requires_complete_hashes (__main__.ReleaseValidationTest.test_source_requires_complete_hashes) ... ok
+test_tag_version_matches (__main__.ReleaseValidationTest.test_tag_version_matches) ... ok
+test_unlisted_file_is_rejected (__main__.ReleaseValidationTest.test_unlisted_file_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.073s
+
+OK
+version 0.3.0: tag and supplied assets validated
+version 0.3.0: tag and supplied assets validated
+version 0.3.0: tag and supplied assets validated
+version 0.3.0: tag and supplied assets validated
+version 0.3.0: tag and supplied assets validated
+version 0.3.0: tag and supplied assets validated
+
+ACTUAL LINUX PACKAGE SMOKE
+version 0.3.0: tag and supplied assets validated
+assets do not match the requested source commit
