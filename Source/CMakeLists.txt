@@ -20,9 +20,9 @@ add_library(CheapSynth01Core STATIC
     CS01Synth/NoiseGenerator.cpp CS01Synth/EGProcessor.cpp
     CS01Synth/LFOProcessor.cpp CS01Synth/MidiProcessor.cpp
     CS01Synth/OriginalVCFProcessor.cpp CS01Synth/ModernVCFProcessor.cpp
-    CS01Synth/VCAProcessor.cpp CS01Synth/IG02600.cpp
+    CS01Synth/VCAProcessor.cpp CS01Synth/IG02600BehavioralModel.cpp
     CS01Synth/CS01VCFCircuit.cpp CS01Synth/CS01IIVCFCircuit.cpp
-    CS01Synth/ExperimentalIG05630.cpp)
+    CS01Synth/IG05630BehavioralModel.cpp)
 set_target_properties(CheapSynth01Core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(CheapSynth01Core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_link_libraries(CheapSynth01Core PRIVATE tinyxml2::tinyxml2)

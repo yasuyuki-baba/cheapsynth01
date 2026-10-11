@@ -2,7 +2,8 @@
 
 #include "DSP/Primitives.h"
 
-#include "CS01Synth/IG02600.h"
+#include "CS01Synth/IG02600BehavioralModel.h"
+#include "CS01Synth/VCAEmpiricalStages.h"
 #include "Parameters.h"
 
 //==============================================================================
@@ -32,20 +33,11 @@ class VCAProcessor {
     // Simple high frequency rolloff filter
     cs01::Biquad highFreqRolloff;
 
-    // IG02600 VCA chip emulation
-    IG02600 vcaModel;
+    // IG02600BehavioralModel VCA chip emulation
+    IG02600BehavioralModel vcaModel;
     cs01::LinearRamp egDepthControl;
 
-    // Tr7 transistor buffer emulation
-    float processTr7Buffer(float input);
-
-    // Output coupling capacitor emulation
-    float processOutputCoupling(float input);
-
-    // State variables for analog circuit emulation
-    float capacitorState = 0.0f;
-    float prevOutput = 0.0f;
-    float outCapacitorState = 0.0f;
-    float bufferCouplingPole = 0.997f;
-    float outputCouplingPole = 0.9995f;
+    EmpiricalVCACoupling bufferCoupling{0.997f};
+    Tr7EmpiricalBuffer tr7Buffer;
+    EmpiricalVCACoupling outputCoupling{0.9995f};
 };

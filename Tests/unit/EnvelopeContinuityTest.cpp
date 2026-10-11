@@ -1,6 +1,6 @@
 #include "CS01Synth/EGProcessor.h"
 #include "SynthEngine.h"
-#include "CS01Synth/IG02600.h"
+#include "CS01Synth/IG02600BehavioralModel.h"
 #include "CS01Synth/ToneGenerator.h"
 #include "CS01Synth/NoiseGenerator.h"
 #include <gtest/gtest.h>
@@ -201,7 +201,7 @@ TEST(EGContinuityTest, SustainEditsAndLifecycleRemainBounded) {
 }
 
 TEST(VcaGateTest, GateCorrectionLeavesEgComponentAndOpenGateArithmeticIntact) {
-    IG02600 model;
+    IG02600BehavioralModel model;
     for (float input : {-.9f, -.1f, .1f, .9f}) {
         for (float envelope : {0.f, .3f, 1.f}) {
             for (float depth : {0.f, .3f, 1.f}) {

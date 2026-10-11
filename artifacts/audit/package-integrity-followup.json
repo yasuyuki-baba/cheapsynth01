@@ -1,0 +1,51 @@
+{
+  "source_commit": "0ec2ab1ebe07013ccf459978e6cba37c48b5a643",
+  "scope": "release scripts, Python regressions and CI only; production C++ and DSP tests unchanged from 904da99",
+  "python_tests": {
+    "tests": 22,
+    "failures": 0,
+    "log_sha256": "260b0ab933b7e0e48d6d418227100831b1727b7e988d526a4e799df451275683"
+  },
+  "baseline_reproduction": {
+    "tests": 1,
+    "expected_failures": 1,
+    "reason": "changed payload with valid ZIP CRC passed the old validator",
+    "log_sha256": "61c0b03be2fe2e71fa94ea2c8aa99483d09fdaf0edc71cd11fff6b2ac9193b2b"
+  },
+  "actual_linux_smoke": {
+    "assets": [
+      {
+        "asset": "cheapsynth01-linux-clap.zip",
+        "source_commit": "b34cc4e477c4d6daa742cc597cd1c3ce6080a69f",
+        "hashed_files": 40
+      },
+      {
+        "asset": "cheapsynth01-linux-lv2.zip",
+        "source_commit": "b34cc4e477c4d6daa742cc597cd1c3ce6080a69f",
+        "hashed_files": 43
+      },
+      {
+        "asset": "cheapsynth01-linux-standalone.zip",
+        "source_commit": "b34cc4e477c4d6daa742cc597cd1c3ce6080a69f",
+        "hashed_files": 40
+      },
+      {
+        "asset": "cheapsynth01-linux-vst3.zip",
+        "source_commit": "b34cc4e477c4d6daa742cc597cd1c3ce6080a69f",
+        "hashed_files": 41
+      },
+      {
+        "asset": "cheapsynth01-source.zip",
+        "source_commit": "b34cc4e477c4d6daa742cc597cd1c3ce6080a69f",
+        "hashed_files": 5963
+      }
+    ],
+    "matching_source_exit": 0,
+    "newer_source_expected_rejection_exit": 1,
+    "log_sha256": "5f4826bd2b6d283dedee1aa9430c5c01bb7fcf039d538da14b9da456eaf97f66"
+  },
+  "unexecuted": [
+    "Windows/macOS actual products and GitHub Actions run"
+  ],
+  "limits": "SHA-256 inside the same ZIP establishes consistency, not provenance authentication or reproducible-build identity. No source licence change, no release."
+}

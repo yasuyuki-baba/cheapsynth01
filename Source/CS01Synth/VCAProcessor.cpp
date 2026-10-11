@@ -11,10 +11,8 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     egDepthControl.reset(sampleRate, 0.005);
     egDepthControl.setCurrentAndTargetValue(parameters.get(ParameterIds::vcaEgDepth));
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
-    bufferCouplingPole =
-        static_cast<float>(std::pow(static_cast<double>(0.997f), 44100.0 / sampleRate));
-    outputCouplingPole =
-        static_cast<float>(std::pow(static_cast<double>(0.9995f), 44100.0 / sampleRate));
+    bufferCoupling.prepare(sampleRate, 0.997f);
+    outputCoupling.prepare(sampleRate, 0.9995f);
     // Empirical second-order 40 Hz high-pass; not derived from the schematic's
     // 1 uF / 50 V coupling capacitor and 82 kohm series resistor.
     inputHighPass.highPass(sampleRate, 40.0);
@@ -30,13 +28,15 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     highFreqRolloff.reset();
 
     // Reset state variables
-    capacitorState = 0.0f;
-    prevOutput = 0.0f;
-    outCapacitorState = 0.0f;
+    bufferCoupling.reset();
+    tr7Buffer.reset();
+    outputCoupling.reset();
 }
 
 void VCAProcessor::releaseResources() {
-    capacitorState = prevOutput = outCapacitorState = 0.0f;
+    bufferCoupling.reset();
+    tr7Buffer.reset();
+    outputCoupling.reset();
     inputHighPass.reset();
     dcBlocker.reset();
     highFreqRolloff.reset();
@@ -50,39 +50,6 @@ float VCAProcessor::processSample(float audio, float eg, float noteGate) {
                                    parameters.get(ParameterIds::breathInput),
                                    parameters.get(ParameterIds::breathVca),
                                    std::pow(parameters.get(ParameterIds::volume), 2.5f), noteGate);
-    return highFreqRolloff.processSample(processOutputCoupling(processTr7Buffer(audio)));
-}
-
-// Tr7 transistor buffer emulation
-float VCAProcessor::processTr7Buffer(float input) {
-    // Output coupling capacitor (1/50) - high-pass characteristic
-    const float rc1 = bufferCouplingPole;
-    capacitorState = capacitorState * rc1 + input * (1.0f - rc1);
-    float hpOutput = input - capacitorState;
-
-    // Tr7 transistor non-linear characteristic
-    float transistorOutput;
-    if (hpOutput > 0) {
-        // NPN transistor is more linear for positive signals
-        transistorOutput = hpOutput * 0.95f;
-    } else {
-        // Slight asymmetry for negative signals
-        transistorOutput = hpOutput * 0.92f;
-    }
-
-    // Transistor high-frequency response (slight treble boost)
-    const float rc2 = 0.998f;
-    float highFreqComponent = (transistorOutput - prevOutput) * (1.0f - rc2) * 2.0f;
-    prevOutput = transistorOutput;
-
-    return transistorOutput + highFreqComponent;
-}
-
-// Output coupling capacitor emulation (4.7/25)
-float VCAProcessor::processOutputCoupling(float input) {
-    // Empirical output coupling time constant, preserved from the 44.1 kHz model.
-    const float rc3 = outputCouplingPole;
-    outCapacitorState = outCapacitorState * rc3 + input * (1.0f - rc3);
-
-    return input - outCapacitorState;
+    return highFreqRolloff.processSample(
+        outputCoupling.processSample(tr7Buffer.processSample(bufferCoupling.processSample(audio))));
 }

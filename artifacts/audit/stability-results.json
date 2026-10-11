@@ -1,0 +1,154 @@
+{
+  "measurement_date": "2026-10-09 JST (XML timestamps and host logs use UTC 2026-10-08)",
+  "source_commit": "ec12e588f57b78fc199a001418a632463f2aa626",
+  "baseline_commit": "4f2e59d722ca2c761ce7a72d2f6ee719bcc9e900",
+  "environment": {
+    "os": "Debian 13 x86_64",
+    "kernel": "6.18.44",
+    "cpu_visible": "AMD EPYC 9V74, 3 visible logical CPUs",
+    "cpu_quota": "200000/100000 = 2 CPU",
+    "compiler": "GCC 14.2.0",
+    "cmake": "3.31.6",
+    "libc": "2.41",
+    "juce": "9.0.3",
+    "juce_commit": "be29c81492b6151c8ea8d14c840e1311963b3a83",
+    "clap_extensions_commit": "55525c9858d4b25687be7759a5e0f70eccef218e"
+  },
+  "verification": [
+    {
+      "configuration": "Debug",
+      "xml": "build/all-debug-verified.xml",
+      "xml_sha256": "fb91871952ed098db7911fe202d2acd3f72a51f5b04bd12e063d63878c5b4462",
+      "summary": {
+        "tests": "238",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "159.614",
+        "timestamp": "2026-10-08T20:31:55.018",
+        "name": "AllTests"
+      },
+      "log": "/tmp/audit-debug-verified.log"
+    },
+    {
+      "configuration": "Release",
+      "xml": "build-release/all-release-verified.xml",
+      "xml_sha256": "b7d1b19654339645e587adc9deb771d2b9a97d53818ef4c08c5c9d89d31d395e",
+      "summary": {
+        "tests": "238",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "49.503",
+        "timestamp": "2026-10-08T20:32:02.116",
+        "name": "AllTests"
+      },
+      "log": "/tmp/audit-release-verified.log"
+    },
+    {
+      "configuration": "project ASan+UBSan+LSan",
+      "xml": "build-sanitized/all-sanitized-verified.xml",
+      "xml_sha256": "d9dce50dc3d9b29a4030906080f3b8b658fb4719242a30ed56e0a9f92e18bc6e",
+      "summary": {
+        "tests": "236",
+        "failures": "0",
+        "disabled": "0",
+        "errors": "0",
+        "time": "157.879",
+        "timestamp": "2026-10-08T20:32:09.006",
+        "name": "AllTests"
+      },
+      "log": "/tmp/audit-sanitized-verified.log"
+    },
+    {
+      "configuration": "baseline reproduction",
+      "xml": "build/baseline-final.xml",
+      "xml_sha256": "5d1c26548e7105536d17d55df6b9db60c9bc934ff04ea41369743fb701e3f53a",
+      "summary": {
+        "tests": "7",
+        "failures": "7",
+        "disabled": "0",
+        "errors": "0",
+        "time": "4.028",
+        "timestamp": "2026-10-08T19:24:23.498",
+        "name": "AllTests"
+      },
+      "log": "/tmp/audit-baseline-final.log",
+      "failed_cases": [
+        "AuditMidiTest.BoundaryEventsAreAppliedIncludingEmptyBlocks",
+        "AuditMidiTest.SamePositionOrderSurvivesBoundaryAndUnsupportedLongMessage",
+        "AuditReleaseTest.WholeGraphExtensionShorteningAndSwitchUseEnvelopeLifetime",
+        "AuditNoiseTest.StopsInsideBlockAtRemainingSampleCount",
+        "AuditNumericalTest.OriginalCouplingRecoversAfterNonfiniteInput",
+        "AuditNumericalTest.VcaRecoversInternalCouplingAfterBadAudioOrEnvelope",
+        "AuditUiTest.WorkerChoiceNotificationsWaitForMessageThreadAndLatestValueWins"
+      ]
+    }
+  ],
+  "quiet_release_benchmark": {
+    "host_rate": 48000,
+    "oversampling": 4,
+    "callbacks_per_block_size": 1000,
+    "block_sizes": [
+      1,
+      16,
+      64
+    ],
+    "thread_priority": "default std::thread, not a real audio-device host",
+    "load": "no concurrent project builds or test runs; platform background load unknown",
+    "observations": [
+      "RT callback probe: allocation=0 free=0 pthread_mutex_lock=44900 (including JUCE graph nodes and MessageManager thread checks)",
+      "graph-tail block=1 n=1000 p95_us=4.447 p99_us=6.179 max_us=95.405 program_switch_p99_us=5.649 program_switch_max_us=11.277 gui_edits=5 deadline_us=20.8333 (observation, not a deadline guarantee)",
+      "graph-tail block=16 n=1000 p95_us=123.096 p99_us=224.56 max_us=1806.78 program_switch_p99_us=175.305 program_switch_max_us=280.215 gui_edits=67 deadline_us=333.333 (observation, not a deadline guarantee)",
+      "graph-tail block=64 n=1000 p95_us=373.144 p99_us=530.893 max_us=1152.95 program_switch_p99_us=469.41 program_switch_max_us=537.763 gui_edits=287 deadline_us=1333.33 (observation, not a deadline guarantee)",
+      "routing-signal peak=0.317756 max_sample_step=0.197058 switch_block_max_sample_step=0.170279 (no calibrated click/audibility threshold)",
+      "routing-cost both_filter_inputs=0 p50_us=114.574 p99_us=379.665 max_us=604.686",
+      "routing-cost both_filter_inputs=1 p50_us=117.789 p99_us=378.964 max_us=632.227"
+    ],
+    "exit_status": 0,
+    "limits": "Single-run observations, not hard realtime deadline or click-audibility guarantees."
+  },
+  "sanitizer_coverage": "52 project/test sources; JUCE and GoogleTest module objects reused without instrumentation. Two ELF heap/lock probes excluded from sanitizer executable.",
+  "linux_artifacts": [
+    {
+      "file": "build-release/CheapSynth01_artefacts/Release/Standalone/CheapSynth01",
+      "architecture": "build-release/CheapSynth01_artefacts/Release/Standalone/CheapSynth01: ELF 64-bit LSB pie executable, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=6a39e182e6748574454e3a3479ea526aa8a12765, for GNU/Linux 3.2.0, not stripped",
+      "symbol_version_requirements": {
+        "GLIBC": "2.38",
+        "GLIBCXX": "3.4.32",
+        "CXXABI": "1.3.15"
+      },
+      "build_rpath_removed": true
+    },
+    {
+      "file": "build-release/CheapSynth01_artefacts/Release/CLAP/CheapSynth01.clap",
+      "architecture": "build-release/CheapSynth01_artefacts/Release/CLAP/CheapSynth01.clap: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=a617fc6441c99ed0c55575e95218096b38ac1c83, not stripped",
+      "symbol_version_requirements": {
+        "GLIBC": "2.38",
+        "GLIBCXX": "3.4.32",
+        "CXXABI": "1.3.15"
+      },
+      "build_rpath_removed": true
+    },
+    {
+      "file": "build-release/CheapSynth01_artefacts/Release/LV2/CheapSynth01.lv2/libCheapSynth01.so",
+      "architecture": "build-release/CheapSynth01_artefacts/Release/LV2/CheapSynth01.lv2/libCheapSynth01.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=26dec171ef9ed686c9c53b446549560555e9b6d4, not stripped",
+      "symbol_version_requirements": {
+        "GLIBC": "2.38",
+        "GLIBCXX": "3.4.32",
+        "CXXABI": "1.3.15"
+      },
+      "build_rpath_removed": true
+    },
+    {
+      "file": "build-release/CheapSynth01_artefacts/Release/VST3/CheapSynth01.vst3/Contents/x86_64-linux/CheapSynth01.so",
+      "architecture": "build-release/CheapSynth01_artefacts/Release/VST3/CheapSynth01.vst3/Contents/x86_64-linux/CheapSynth01.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=dbb5a8f33e9b991a5ceb1224f97f148fc4ec1578, not stripped",
+      "symbol_version_requirements": {
+        "GLIBC": "2.38",
+        "GLIBCXX": "3.4.32",
+        "CXXABI": "1.3.15"
+      },
+      "build_rpath_removed": true
+    }
+  ]
+}

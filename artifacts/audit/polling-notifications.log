@@ -1,0 +1,16 @@
+STANDARD JUCE BASELINE
+Attachment worker probe: allocations=1 frees=0 locks=6003
+
+QUIET RELEASE CURRENT
+RT callback probe: allocation=0 free=0 pthread_mutex_lock=44800 (including JUCE graph nodes)
+Attachment worker probe: allocations=0 frees=0 locks=3000
+Editor automation probe: closed allocations=0 frees=0 locks=4530; opened allocations=0 frees=0 locks=4530
+Whole graph: fs=44100, waveform=1, seventh-fold-bin=5180, relative=-91.3334 dBc, processing-ms-per-audio-second=40.047
+Whole graph: fs=44100, waveform=2, seventh-fold-bin=5180, relative=-153.927 dBc, processing-ms-per-audio-second=38.0267
+Whole graph: fs=48000, waveform=1, seventh-fold-bin=1280, relative=-43.2158 dBc, processing-ms-per-audio-second=42.7885
+Whole graph: fs=48000, waveform=2, seventh-fold-bin=1280, relative=-97.025 dBc, processing-ms-per-audio-second=40.4009
+Whole graph: fs=96000, waveform=1, seventh-fold-bin=46720, relative=-75.7824 dBc, processing-ms-per-audio-second=82.8473
+Whole graph: fs=96000, waveform=2, seventh-fold-bin=46720, relative=-71.9194 dBc, processing-ms-per-audio-second=79.9639
+graph-tail block=1 n=1000 p95_us=2.994 p99_us=4.788 max_us=78.318 program_switch_p99_us=4.487 program_switch_max_us=19.36 gui_edits=3 deadline_us=20.8333 (observation, not a deadline guarantee)
+graph-tail block=16 n=1000 p95_us=59.07 p99_us=116.826 max_us=267.795 program_switch_p99_us=102.755 program_switch_max_us=176.287 gui_edits=41 deadline_us=333.333 (observation, not a deadline guarantee)
+graph-tail block=64 n=1000 p95_us=238.931 p99_us=1106.57 max_us=2229.82 program_switch_p99_us=349.168 program_switch_max_us=2210.77 gui_edits=210 deadline_us=1333.33 (observation, not a deadline guarantee)

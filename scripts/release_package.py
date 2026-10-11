@@ -83,11 +83,12 @@ def dependency_revisions(root, build):
 
 
 def package(root, build, platform, output):
-    if git(root, 'status', '--porcelain', '--untracked-files=no'):
-        raise ValueError('Commit tracked source changes before packaging')
+    dirty = git(root, 'status', '--porcelain', '--untracked-files=no', '--ignore-submodules=all')
+    if dirty:
+        raise ValueError('Commit tracked source changes before packaging: ' + dirty)
     sdk = root / 'iPlug2'
     if git(sdk, 'status', '--porcelain', '--untracked-files=no'):
-        raise ValueError('iPlug2 checkout has tracked modifications')
+        raise ValueError('iPlug2 checkout has tracked modifications: ' + git(sdk, 'status', '--porcelain', '--untracked-files=no'))
     dependencies = dependency_revisions(root, build)
     commits = {'iPlug2': git(sdk, 'rev-parse', 'HEAD')}
     if git(root, 'ls-tree', 'HEAD', 'iPlug2').split()[2] != commits['iPlug2']:

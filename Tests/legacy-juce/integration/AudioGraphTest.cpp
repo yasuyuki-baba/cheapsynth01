@@ -3,6 +3,9 @@
 #include "CS01AudioProcessor.h"
 #include "CS01Synth/EGProcessor.h"
 #include "CS01Synth/SynthConstants.h"
+#include "CS01Synth/VCOProcessor.h"
+#include "CS01Synth/ModernVCFProcessor.h"
+#include "CS01Synth/OriginalVCFProcessor.h"
 #include "MidiParameterValue.h"
 #include "Parameters.h"
 
@@ -10,6 +13,7 @@
 
 #include <array>
 #include <chrono>
+#include <thread>
 
 TEST(MidiResetGraphTest, CentersBendWithoutRetriggeringEnvelope) {
     for (int blockSize : {64, 256}) {
@@ -108,11 +112,28 @@ TEST(SessionGraphTest, RestoresRoutingWithoutRestoringHeldNotes) {
         const auto& graph = restored.getAudioGraphForTesting();
         EXPECT_TRUE(graph.isConnected({{restored.getVcoNodeIdForTesting(), 0}, {selected, 0}}));
         EXPECT_TRUE(graph.isConnected({{selected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
-        EXPECT_FALSE(graph.isConnected({{unselected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_TRUE(graph.isConnected({{unselected, 0}, {restored.getVcaNodeIdForTesting(), 0}}));
+        EXPECT_TRUE(graph.isConnected({{restored.getVcoNodeIdForTesting(), 0}, {unselected, 0}}));
+        EXPECT_TRUE(graph.isConnected({{restored.getLfoNodeIdForTesting(), 0}, {unselected, 2}}));
         EXPECT_TRUE(graph.isConnected({{restored.getLfoNodeIdForTesting(), 0}, {selected, 2}}));
         midi.clear();
         buffer.clear();
         restored.processBlock(buffer, midi);
+        EXPECT_EQ(restored.getAppliedFilterTypeForTesting(), filter);
+        EXPECT_EQ(restored.getAppliedLfoTargetForTesting(), 1);
+        EXPECT_EQ(
+            static_cast<OriginalVCFProcessor*>(
+                graph.getNodeForId(restored.getOriginalFilterNodeIdForTesting())->getProcessor())
+                ->isRoutingOutputEnabledForTesting(),
+            filter == 0);
+        EXPECT_EQ(
+            static_cast<ModernVCFProcessor*>(
+                graph.getNodeForId(restored.getModernFilterNodeIdForTesting())->getProcessor())
+                ->isRoutingOutputEnabledForTesting(),
+            filter == 1);
+        EXPECT_FALSE(static_cast<VCOProcessor*>(
+                         graph.getNodeForId(restored.getVcoNodeIdForTesting())->getProcessor())
+                         ->isLfoRoutingEnabledForTesting());
         EXPECT_EQ(buffer.getMagnitude(0, 256), 0.0f);
         double energy = 0.0;
         for (int block = 0; block < 40; ++block) {
@@ -1003,13 +1024,29 @@ TEST_F(AudioGraphTest, FilterAndLfoRoutingStayConsistent) {
             const auto lfo = processor.getLfoNodeIdForTesting();
             const auto vca = processor.getVcaNodeIdForTesting();
 
-            EXPECT_EQ(hasConnection(vco, 0, originalFilter, 0), filterType == 0);
-            EXPECT_EQ(hasConnection(originalFilter, 0, vca, 0), filterType == 0);
-            EXPECT_EQ(hasConnection(vco, 0, modernFilter, 0), filterType == 1);
-            EXPECT_EQ(hasConnection(modernFilter, 0, vca, 0), filterType == 1);
-            EXPECT_EQ(hasConnection(lfo, 0, vco, 0), lfoTarget == 0);
-            EXPECT_EQ(hasConnection(lfo, 0, originalFilter, 2), lfoTarget == 1 && filterType == 0);
-            EXPECT_EQ(hasConnection(lfo, 0, modernFilter, 2), lfoTarget == 1 && filterType == 1);
+            EXPECT_EQ(hasConnection(vco, 0, originalFilter, 0), true);
+            EXPECT_EQ(hasConnection(originalFilter, 0, vca, 0), true);
+            EXPECT_EQ(hasConnection(vco, 0, modernFilter, 0), true);
+            EXPECT_EQ(hasConnection(modernFilter, 0, vca, 0), true);
+            EXPECT_EQ(hasConnection(lfo, 0, vco, 0), true);
+            EXPECT_EQ(hasConnection(lfo, 0, originalFilter, 2), true);
+            EXPECT_EQ(hasConnection(lfo, 0, modernFilter, 2), true);
+            EXPECT_EQ(processor.getAppliedFilterTypeForTesting(), filterType);
+            EXPECT_EQ(processor.getAppliedLfoTargetForTesting(), lfoTarget);
+            EXPECT_EQ(static_cast<OriginalVCFProcessor*>(processor.getAudioGraphForTesting()
+                                                             .getNodeForId(originalFilter)
+                                                             ->getProcessor())
+                          ->isRoutingOutputEnabledForTesting(),
+                      filterType == 0);
+            EXPECT_EQ(
+                static_cast<ModernVCFProcessor*>(
+                    processor.getAudioGraphForTesting().getNodeForId(modernFilter)->getProcessor())
+                    ->isRoutingOutputEnabledForTesting(),
+                filterType == 1);
+            EXPECT_EQ(static_cast<VCOProcessor*>(
+                          processor.getAudioGraphForTesting().getNodeForId(vco)->getProcessor())
+                          ->isLfoRoutingEnabledForTesting(),
+                      lfoTarget == 0);
         }
     }
 
@@ -1054,6 +1091,11 @@ TEST_F(AudioGraphTest, ProgramChangeEffect) {
     // Change to a different program
     int newProgram = (initialProgram + 1) % numPrograms;
     processor->setCurrentProgram(newProgram);
+
+    // Host selection is visible immediately; sound applies on the next callback.
+    EXPECT_EQ(processor->getCurrentProgram(), newProgram);
+    juce::AudioBuffer<float> emptyBuffer(2, 0);
+    processor->processBlock(emptyBuffer, midiBuffer);
 
     // Verify program change
     EXPECT_EQ(processor->getCurrentProgram(), newProgram) << "Current program should be updated";
@@ -1283,4 +1325,137 @@ TEST(MidiRealtimeGraphTest, SessionSaveBeforeNotificationIncludesMidiEdits) {
     EXPECT_FLOAT_EQ(getMidiParameterValue(restored.getValueTreeState(), ParameterIds::attack),
                     getMidiParameterValue(processor.getValueTreeState(), ParameterIds::attack));
     processor.releaseResources();
+}
+
+TEST(WholeGraphObservationTest, Observation_DenseMidiShortBlocksAndGuiSwitchTailCost) {
+    for (int blockSize : {1, 16, 64}) {
+        CS01AudioProcessor processor;
+        processor.prepareToPlay(48000, 64);
+        auto editor = std::unique_ptr<juce::AudioProcessorEditor>(processor.createEditor());
+        std::vector<double> costs;
+        std::vector<double> switching;
+        costs.reserve(1000);
+        switching.reserve(1000);
+        std::atomic<bool> ready{false}, done{false};
+        std::thread audio([&] {
+            juce::AudioBuffer<float> buffer(2, blockSize);
+            juce::MidiBuffer midi;
+            midi.ensureSize(4096);
+            ready = true;
+            for (int block = 0; block < 1000; ++block) {
+                midi.clear();
+                for (int offset = 0; offset < blockSize; ++offset) {
+                    midi.addEvent(juce::MidiMessage::noteOn(1, 60 + offset % 12, 1.0f), offset);
+                    midi.addEvent(juce::MidiMessage::controllerEvent(1, 1, offset % 128), offset);
+                    midi.addEvent(juce::MidiMessage::noteOff(1, 60 + offset % 12), offset);
+                }
+                const bool change = block % 8 == 0;
+                if (change)
+                    processor.setCurrentProgram((block / 8) % 7);
+                const auto before = std::chrono::steady_clock::now();
+                processor.processBlock(buffer, midi);
+                const double microseconds = std::chrono::duration<double, std::micro>(
+                                                std::chrono::steady_clock::now() - before)
+                                                .count();
+                costs.push_back(microseconds);
+                if (change)
+                    switching.push_back(microseconds);
+            }
+            done = true;
+        });
+        int edit = 0;
+        while (!done.load()) {
+            if (ready.load()) {
+                auto* filter = processor.apvts.getParameter(ParameterIds::filterType);
+                filter->setValueNotifyingHost(static_cast<float>(edit % 2));
+                auto* target = processor.apvts.getParameter(ParameterIds::lfoTarget);
+                target->setValueNotifyingHost(static_cast<float>((edit / 2) % 2));
+                ++edit;
+                juce::MessageManager::getInstance()->runDispatchLoopUntil(1);
+            }
+        }
+        audio.join();
+        std::sort(costs.begin(), costs.end());
+        std::sort(switching.begin(), switching.end());
+        ASSERT_EQ(costs.size(), 1000u);
+        std::cout << "graph-tail block=" << blockSize << " n=" << costs.size()
+                  << " p95_us=" << costs[949] << " p99_us=" << costs[989]
+                  << " max_us=" << costs.back() << " program_switch_p99_us="
+                  << switching[static_cast<size_t>(0.99 * (switching.size() - 1))]
+                  << " program_switch_max_us=" << switching.back() << " gui_edits=" << edit
+                  << " deadline_us=" << blockSize * 1e6 / 48000.0
+                  << " (observation, not a deadline guarantee)\n";
+    }
+}
+
+TEST(WholeGraphObservationTest, Observation_RoutingSwitchSignalAndDualFilterCost) {
+    constexpr int blockSize = 64;
+    CS01AudioProcessor processor;
+    // Retain the original dynamic-graph observation as the comparison reference.
+    processor.useLegacyRoutingForTesting();
+    processor.prepareToPlay(48000, blockSize);
+    auto editor = std::unique_ptr<juce::AudioProcessorEditor>(processor.createEditor());
+    juce::AudioBuffer<float> buffer(2, blockSize);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
+    double peak = 0, step = 0, switchStep = 0;
+    float previous = 0;
+    for (int block = 0; block < 1000; ++block) {
+        const bool change = block % 50 == 0;
+        if (change) {
+            processor.apvts.getParameter(ParameterIds::filterType)
+                ->setValueNotifyingHost(static_cast<float>((block / 50) % 2));
+            processor.apvts.getParameter(ParameterIds::lfoTarget)
+                ->setValueNotifyingHost(static_cast<float>((block / 100) % 2));
+            // Service the real timer and JUCE async rebuild between callbacks.
+            juce::MessageManager::getInstance()->runDispatchLoopUntil(40);
+        }
+        processor.processBlock(buffer, midi);
+        for (int sample = 0; sample < blockSize; ++sample) {
+            const float value = buffer.getSample(0, sample);
+            ASSERT_TRUE(std::isfinite(value));
+            peak = std::max(peak, std::abs(static_cast<double>(value)));
+            const double delta = std::abs(static_cast<double>(value) - previous);
+            step = std::max(step, delta);
+            if (change)
+                switchStep = std::max(switchStep, delta);
+            previous = value;
+        }
+    }
+    std::cout << "routing-signal peak=" << peak << " max_sample_step=" << step
+              << " switch_block_max_sample_step=" << switchStep
+              << " (no calibrated click/audibility threshold)\n";
+
+    // Estimate additional nonzero-input filter work using the existing graph.
+    // This is not a fixed-graph/crossfade implementation or a CPU guarantee.
+    processor.apvts.getParameter(ParameterIds::filterType)->setValueNotifyingHost(0);
+    processor.flushPendingGraphChangesForTesting();
+    juce::AudioProcessorGraph::Node::Ptr vco, modern;
+    for (auto* node : processor.getAudioGraphForTesting().getNodes()) {
+        if (dynamic_cast<VCOProcessor*>(node->getProcessor()))
+            vco = node;
+        if (dynamic_cast<ModernVCFProcessor*>(node->getProcessor()))
+            modern = node;
+    }
+    ASSERT_NE(vco, nullptr);
+    ASSERT_NE(modern, nullptr);
+    for (bool bothInputs : {false, true}) {
+        if (bothInputs) {
+            ASSERT_TRUE(const_cast<juce::AudioProcessorGraph&>(processor.getAudioGraphForTesting())
+                            .addConnection({{vco->nodeID, 0}, {modern->nodeID, 0}},
+                                           juce::AudioProcessorGraph::UpdateKind::sync));
+        }
+        std::vector<double> costs;
+        costs.reserve(1000);
+        for (int block = 0; block < 1000; ++block) {
+            const auto before = std::chrono::steady_clock::now();
+            processor.processBlock(buffer, midi);
+            costs.push_back(
+                std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - before)
+                    .count());
+        }
+        std::sort(costs.begin(), costs.end());
+        std::cout << "routing-cost both_filter_inputs=" << bothInputs << " p50_us=" << costs[499]
+                  << " p99_us=" << costs[989] << " max_us=" << costs.back() << "\n";
+    }
 }

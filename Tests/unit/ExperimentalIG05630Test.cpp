@@ -1,7 +1,7 @@
 #include "DSP/Primitives.h"
 
 #include "CS01Synth/CS01IIVCFCircuit.h"
-#include "CS01Synth/ExperimentalIG05630.h"
+#include "CS01Synth/IG05630BehavioralModel.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -45,7 +45,7 @@ double amplitudeAt(const std::vector<float>& signal, double sampleRate, double f
 
 TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
-        ExperimentalIG05630 filter;
+        IG05630BehavioralModel filter;
         filter.prepare(hostRate * 4.0);
         for (int i = 0; i < 100000; ++i) {
             filter.setCutoffFrequency((i & 1) ? 20.0f : 20000.0f);
@@ -53,13 +53,13 @@ TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
             const float input = 4.0f * std::sin(i * 0.19f);
             const float output = filter.processSample(input);
             ASSERT_TRUE(std::isfinite(output));
-            EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+            EXPECT_LE(std::abs(output), IG05630BehavioralModel::EmpiricalParameters::maximumOutput);
         }
     }
 }
 
 TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
-    ExperimentalIG05630 filter;
+    IG05630BehavioralModel filter;
     filter.prepare(192000.0);
     filter.setCutoffFrequency(1000.0f);
     filter.setResonance(1.0f);
@@ -69,7 +69,7 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
     for (int i = 0; i < sampleCount; ++i) {
         const float output = filter.processSample(i == 0 ? 0.5f : 0.0f);
         ASSERT_TRUE(std::isfinite(output));
-        EXPECT_LE(std::abs(output), ExperimentalIG05630::EmpiricalParameters::maximumOutput);
+        EXPECT_LE(std::abs(output), IG05630BehavioralModel::EmpiricalParameters::maximumOutput);
         if (i >= sampleCount * 3 / 4)
             latePower += static_cast<double>(output) * output;
     }
@@ -80,7 +80,7 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
 TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
     constexpr int sampleCount = 8192;
     std::vector<float> whole(sampleCount), partitioned(sampleCount);
-    ExperimentalIG05630 a, b;
+    IG05630BehavioralModel a, b;
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < sampleCount; ++i) {
