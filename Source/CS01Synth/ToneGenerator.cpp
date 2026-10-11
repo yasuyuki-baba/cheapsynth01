@@ -96,6 +96,9 @@ int ToneGenerator::getCurrentlyPlayingNote() const {
 float ToneGenerator::renderSample() {
     if (!isActive())
         return 0;
+    return renderContinuousSample();
+}
+float ToneGenerator::renderContinuousSample() {
     const float output = getNextSample();
     if (tailOff && ++tailOffCounter >= tailOffDuration)
         tailOff = false;
@@ -271,4 +274,16 @@ float ToneGenerator::generateMasterSquareWave(float finalPitch) {
 float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
     return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement, internalSampleRate,
                                           pwmLfo);
+}
+
+// The production engine's EG owns the release clock, including live edits.
+void ToneGenerator::setReleaseSamplesRemaining(int samples) {
+    if (!tailOff)
+        return;
+    tailOffCounter = 0;
+    tailOffDuration = std::max(0, samples);
+    if (samples <= 0) {
+        tailOff = false;
+        noteOn = false;
+    }
 }

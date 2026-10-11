@@ -407,7 +407,7 @@ TEST_F(StateTest, FactoryPresetsAndPathsAreProtected) {
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("Patch"));
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("Patch"));
     EXPECT_TRUE(std::filesystem::exists(directory / "Patch.xml"));
-    EXPECT_TRUE(std::filesystem::exists(directory / "Patch (1).xml"));
+    EXPECT_FALSE(std::filesystem::exists(directory / "Patch (1).xml"));
 }
 TEST(EnvelopeTest, AttackDecayReleaseDurationsHoldAtAllRates) {
     for (double rate : {44100., 48000., 96000.}) {
@@ -474,4 +474,53 @@ TEST_F(StateTest, UnicodeUserPresetsRoundTrip) {
     EXPECT_EQ(manager.programs()[7].name, "フルート");
     ASSERT_TRUE(manager.setCurrentProgram(7));
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 456);
+}
+
+TEST(PresetSafetyTest, PortableNameValidation) {
+    for (const auto* name : {"", "../escape", "a/b", "a\\b", ".", "..", " a", "a ", "a.", "CON",
+                             "nul.txt", "COM1", "LPT9", "a:b", "a?b", "a\nb"})
+        EXPECT_FALSE(ProgramManager::isValidPresetName(name)) << name;
+    for (const auto* name : {"My Preset", "音色", "lead.v2", "COM10"})
+        EXPECT_TRUE(ProgramManager::isValidPresetName(name)) << name;
+}
+TEST_F(StateTest, SavingSameNameOverwritesSoundWithoutCreatingAnotherPreset) {
+    parameters.set(Param::Cutoff, 250);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("lead"));
+    parameters.set(Param::Cutoff, 500);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("lead"));
+    EXPECT_EQ(manager.programs().size(), 8u);
+    EXPECT_FALSE(std::filesystem::exists(directory / "lead (1).xml"));
+    parameters.set(Param::Cutoff, 1000);
+    ASSERT_TRUE(manager.loadPresetFile(directory / "lead.xml"));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 500);
+}
+TEST_F(StateTest, FailedLoadsAndWritesPreserveSelectionAndExistingFile) {
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("good"));
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    const float cutoff = parameters.get(Param::Cutoff);
+    const auto file = directory / "good.xml";
+    std::ofstream(file) << "broken XML";
+    EXPECT_FALSE(manager.setCurrentProgram(7));
+    EXPECT_EQ(manager.getCurrentProgram(), 1);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), cutoff);
+    std::filesystem::remove(file);
+    EXPECT_FALSE(manager.setCurrentProgram(7));
+    EXPECT_EQ(manager.getCurrentProgram(), 1);
+    std::filesystem::create_directory(file);
+    std::ofstream(file / "keep") << "preserve";
+    EXPECT_FALSE(manager.saveCurrentStateAsPreset("good"));
+    EXPECT_TRUE(std::filesystem::is_regular_file(file / "keep"));
+    EXPECT_EQ(manager.getCurrentProgram(), 1);
+    EXPECT_FALSE(manager.saveCurrentStateAsPreset("../escape"));
+    for (const auto& entry : std::filesystem::directory_iterator(directory))
+        EXPECT_NE(entry.path().extension(), ".tmp");
+}
+TEST_F(StateTest, RemovingSelectedFileDuringRefreshLoadsDefault) {
+    parameters.set(Param::Cutoff, 250);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("selected"));
+    ASSERT_TRUE(manager.setCurrentProgram(7));
+    std::filesystem::remove(directory / "selected.xml");
+    manager.refreshUserPresets();
+    EXPECT_EQ(manager.getCurrentProgram(), 0);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 20000);
 }

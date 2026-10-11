@@ -6,6 +6,14 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <cstdio>
+#include <chrono>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 namespace {
 std::string pathText(const std::filesystem::path& path) {
     const auto utf8 = path.u8string();
@@ -24,6 +32,42 @@ std::string readFile(const std::filesystem::path& path) {
         return {};
     input.seekg(0, std::ios::beg);
     return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+}
+// Exclusive temporary file in the target directory; replacement is a single
+// filesystem operation. A failed write/replace never truncates the old preset.
+bool replaceFile(const std::filesystem::path& target, std::string_view bytes) {
+    static std::atomic<unsigned> sequence{0};
+    std::filesystem::path temporary;
+    FILE* file = nullptr;
+    for (int attempt = 0; attempt < 16 && !file; ++attempt) {
+        temporary = target;
+        temporary += "." +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) +
+                     "." + std::to_string(sequence.fetch_add(1)) + ".tmp";
+#ifdef _WIN32
+        file = _wfopen(temporary.c_str(), L"wbx");
+#else
+        file = std::fopen(temporary.c_str(), "wbx");
+#endif
+    }
+    if (!file)
+        return false;
+    const bool written = std::fwrite(bytes.data(), 1, bytes.size(), file) == bytes.size();
+    const bool closed = std::fclose(file) == 0;
+    bool replaced = false;
+    std::error_code ec;
+    if (written && closed) {
+#ifdef _WIN32
+        replaced = MoveFileExW(temporary.c_str(), target.c_str(),
+                               MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+        std::filesystem::rename(temporary, target, ec);
+        replaced = !ec;
+#endif
+    }
+    if (!replaced)
+        std::filesystem::remove(temporary, ec);
+    return replaced;
 }
 }  // namespace
 void ProgramManager::setUserDirectory(std::filesystem::path path) {
@@ -63,9 +107,14 @@ void ProgramManager::refreshUnlocked() {
         allPresets.insert(allPresets.end(), user.begin(), user.end());
     }
     currentProgram = 0;
+    bool retained = false;
     for (size_t i = 0; i < allPresets.size(); ++i)
-        if (allPresets[i].filename == selected.filename && allPresets[i].type == selected.type)
+        if (allPresets[i].filename == selected.filename && allPresets[i].type == selected.type) {
             currentProgram = static_cast<int>(i);
+            retained = true;
+        }
+    if (!retained && !selected.filename.empty())
+        loadXml(cs01::factoryPresets[0].xml, false);
 }
 bool ProgramManager::setCurrentProgram(int index) {
     std::lock_guard lock(mutex);
@@ -181,14 +230,28 @@ bool ProgramManager::setStateInformation(std::string_view bytes) {
     }
     return loadXml(bytes, true);
 }
-std::filesystem::path ProgramManager::uniquePath(std::string_view name) const {
-    if (directory.empty() || name.empty() || name == "." || name == ".." || name.size() > 128 ||
+bool ProgramManager::isValidPresetName(std::string_view name) {
+    if (name.empty() || name == "." || name == ".." || name.size() > 128 || name.front() == ' ' ||
         name.back() == '.' || name.back() == ' ')
-        return {};
+        return false;
     for (unsigned char c : name)
-        if (c < 32 ||
+        if (c < 32 || c == 127 ||
             std::string_view("/\\:*?\"<>|").find(static_cast<char>(c)) != std::string_view::npos)
-            return {};
+            return false;
+    std::string stem(name.substr(0, name.find('.')));
+    for (char& c : stem)
+        if (c >= 'a' && c <= 'z')
+            c = static_cast<char>(c - 'a' + 'A');
+    if (stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL")
+        return false;
+    if (stem.size() == 4 && (stem.starts_with("COM") || stem.starts_with("LPT")) &&
+        stem[3] >= '1' && stem[3] <= '9')
+        return false;
+    return true;
+}
+std::filesystem::path ProgramManager::uniquePath(std::string_view name) const {
+    if (directory.empty() || !isValidPresetName(name))
+        return {};
     const std::string base(name);
     auto path = directory / cs01::utf8Path(base + ".xml");
     std::error_code ec;
@@ -200,15 +263,14 @@ std::filesystem::path ProgramManager::uniquePath(std::string_view name) const {
 }
 bool ProgramManager::saveCurrentStateAsPreset(std::string_view name) {
     std::lock_guard lock(mutex);
-    const auto path = uniquePath(name);
-    if (path.empty())
+    if (directory.empty() || !isValidPresetName(name))
         return false;
-    std::ofstream file(path, std::ios::binary);
-    if (!file)
+    std::error_code ec;
+    std::filesystem::create_directories(directory, ec);
+    if (ec)
         return false;
-    file << serialize(false);
-    file.close();
-    if (!file)
+    const auto path = directory / cs01::utf8Path(std::string(name) + ".xml");
+    if (!replaceFile(path, serialize(false)))
         return false;
     refreshUnlocked();
     return true;

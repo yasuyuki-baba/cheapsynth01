@@ -29,6 +29,7 @@ class ISoundGenerator {
         return {};
     }
     virtual void restorePlaybackState(const PlaybackState&) {}
+    virtual void setReleaseSamplesRemaining(int samples) {}
 
     // Sound generation methods
     virtual void prepare(double sampleRate) = 0;

@@ -4,6 +4,23 @@ Status: planning baseline for draft [PR #40](https://github.com/yasuyuki-baba/ch
 This document records the audit and proposed implementation order; it does not
 claim the missing behavior or native validation has been completed.
 
+## Implementation progress (2026-10-11)
+
+The first implementation batch adopts the OOS CMake layout: root `iPlug2/`,
+project-local `CheapSynth01/` wrapper/config/resources and independent `Source/`
+core target. macOS/Windows core/native/standalone presets generate native IDE
+projects; redundant manual IDE/common setting copies are not maintained. The SDK
+pin and plugin identities are unchanged.
+
+Main's residual envelope trajectory, independent VCA note gate and continuous
+upstream source rendering are ported, with targeted numerical/lifecycle tests.
+The macOS minimum is aligned to 10.15 for `std::filesystem`.
+Preset overwrite, safe file replacement, portable names and missing-selected-file
+fallback are restored. CTest labels/test groups and CI JUnit uploads are added.
+See [the reconciliation ledger](iPlug2-main-reconciliation.md) and updated case
+inventory for remaining work. Native build/host/GUI gates and complete test parity
+remain open; structural completion alone does not satisfy those gates.
+
 ## Frozen comparison points
 
 | Source | Commit | Purpose |

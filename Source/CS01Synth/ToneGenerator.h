@@ -22,6 +22,7 @@ class ToneGenerator : public ISoundGenerator {
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
     void stopNote(bool allowTailOff) override;
     PlaybackState getPlaybackState() const override;
+    void setReleaseSamplesRemaining(int samples) override;
     void restorePlaybackState(const PlaybackState& state) override;
     int lastNote = 0;
     int lastPitchWheel = 8192;
@@ -35,6 +36,7 @@ class ToneGenerator : public ISoundGenerator {
     void updateBlockRateParameters();
     void reset();
     float renderSample() override;
+    float renderContinuousSample();
 
     // Sound generation methods
     float getNextSample();

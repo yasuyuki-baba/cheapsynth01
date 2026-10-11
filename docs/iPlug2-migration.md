@@ -39,8 +39,12 @@ than a panel control, matching the former layout; all 24 host parameters remain.
 
 ## Audio differences
 
-The waveform strategies, nonlinear filter equations, EG stage model, VCA model,
-modulation spans, glissando and note-priority rules are retained. JUCE's auxiliary
+The waveform strategies and nonlinear filter equations,
+modulation spans, glissando and note-priority rules are retained. Newer main's
+residual EG branch targets/progress and independent VCA note gate are now ported.
+The selected tone/noise source runs continuously upstream; the non-EG VCA
+contribution follows the note gate, while EG-controlled gain retains its original
+expression. Live release timing is owned by the EG even across source switches. JUCE's auxiliary
 filters, oscillators, smoothing and random generator are replaced by independent
 primitives. Noise uses a deterministic xorshift generator reset during prepare.
 
@@ -75,8 +79,12 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## Verification and limits
 
-The portable suite retains the two independent filter-model test suites and
-adds engine, MIDI, FIR, parameter and preset/state regression tests. Historical
+The portable suite now has 53 cases (50 regression assertions and three
+observational measurements). It retains the two independent filter-model test suites and
+adds engine, MIDI, FIR, parameter, preset/state and envelope/source continuity
+regression tests. Same-name preset saves overwrite through a temporary file;
+failed replacement preserves the old target. Missing selected user files revert
+to Default on catalogue refresh. Historical
 JUCE-only editor/graph tests are archived in `Tests/legacy-juce` as reference
 scenarios, not counted as current coverage. Older modeling documents may describe
 that architecture and converter; this document describes the production iPlug2 path.
@@ -100,4 +108,18 @@ JUCE dependency but does not authorize relicensing third-party contributions.
 See the [migration completion plan](iPlug2-migration-plan.md) for the audit of newer main,
 remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
-main baseline; they are not all covered by the active 38-test suite.
+main baseline; their assertion coverage is tracked individually in that inventory.
+
+The OOS layout places the native wrapper/config/resources in `CheapSynth01/`, the
+SDK submodule at `iPlug2/` and the independent core target in `Source/`. Platform
+CMake presets generate Xcode/Visual Studio projects; no extra manual IDE projects
+or unused platforms are copied from the template. See CONTRIBUTING for commands.
+
+Current local completion-batch checks: 53/53 cases pass in Debug, Release and
+AddressSanitizer/UndefinedBehaviorSanitizer with leak detection. Three selected
+new EG regression cases fail when linked against the pre-port EG implementation,
+confirming they detect the missing behavior. The moved project configures APP,
+VST3 and CLAP targets for Windows and cross-compiles the core and editor against
+the real SDK headers; this is still not a native Windows/macOS executable/host test.
+macOS deployment metadata now matches the core's `std::filesystem` requirement
+(macOS 10.15). The existing plugin IDs and 16-frame converter latency are unchanged.

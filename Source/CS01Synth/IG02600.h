@@ -6,5 +6,5 @@
 class IG02600 {
    public:
     float processSample(float input, float egValue, float egDepth, float breathInput,
-                        float breathDepth, float volumeGain) const;
+                        float breathDepth, float volumeGain, float noteGate = 1.0f) const;
 };

@@ -9,7 +9,12 @@ cmake --build build-core --config Debug --parallel 2
 ctest --test-dir build-core -C Debug --output-on-failure
 ```
 
-`./run_tests.sh` performs these steps. Pass ordinary Google Test arguments to
+`./run_tests.sh` performs these steps and writes a JUnit report.
+Use `./run_tests.sh --group presets` (also `audio`, `dsp`, `core`, `numerical`,
+`midi`, `integration`, `observation`) to select a CTest label. Native UI tests
+remain pending; `--group ui` reports this explicitly rather than passing an empty
+suite. Run `ctest --test-dir build-core -C Debug -L regression` for correctness
+assertions and `-L observation` for characterization cases. Pass ordinary Google Test arguments to
 select cases, e.g. `./run_tests.sh --gtest_filter='StateTest.*'`.
 
 Coverage includes MIDI note priority, controller reset and panic, 14-bit CCs,
@@ -28,4 +33,12 @@ host latency compensation still need testing on Windows/macOS.
 See the [migration completion plan](../docs/iPlug2-migration-plan.md) for the audit of newer main,
 remaining behavior/compatibility gaps, iPlug2OOS alignment and validation gates.
 The linked case inventory tracks the 272 Google Test definitions in the frozen
-main baseline; they are not all covered by the active 38-test suite.
+main baseline; their assertion coverage is tracked individually in that inventory.
+
+The initial completion batch has 53 active cases: 50 correctness regressions and
+three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
+residual EG trajectory, live timing and gate assertions and exercises free-running
+source continuity and extended release/source switching. Preset assertions cover
+same-name overwrite, failed replacement and missing-selected-file fallback.
+`unit/PluginIdentityTest.cpp` guards retained plugin IDs and existing parameter
+index order; it does not prove legacy host automation mapping.

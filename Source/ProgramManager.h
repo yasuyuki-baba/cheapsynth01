@@ -23,6 +23,7 @@ class ProgramManager {
     bool loadPresetFromXml(std::string_view xml);
     bool loadPresetFile(const std::filesystem::path& file);
     bool saveCurrentStateAsPreset(std::string_view name);
+    static bool isValidPresetName(std::string_view name);
     bool deleteUserPreset(int index);
     bool renameUserPreset(int index, std::string_view name);
     void refreshUserPresets();
