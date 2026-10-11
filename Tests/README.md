@@ -35,7 +35,7 @@ remaining behavior and validation gaps, iPlug2OOS alignment and validation gates
 The linked case inventory tracks the 272 Google Test definitions in the frozen
 main baseline; their assertion coverage is tracked individually in that inventory.
 
-The current suite has 111 active core cases: 108 correctness regressions and
+The current suite has 126 active core cases: 123 correctness regressions and
 three observational cases. `unit/EnvelopeContinuityTest.cpp` ports newer main's
 residual EG trajectory, live timing and gate assertions and exercises free-running
 source continuity and extended release/source switching. Preset assertions cover
@@ -65,7 +65,7 @@ LFO/filter/noise/pitch regressions and independent empirical-stage arithmetic
 references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
-callback boundary processing. There are 119 active CTest cases with SDK-interface
+callback boundary processing. There are 134 active CTest cases with SDK-interface
 tests enabled; this count does not claim historical assertion parity.
 
 Archive contract tests run independently, without loading a product:
@@ -87,3 +87,12 @@ Additional EG continuity regressions retain live attack bounds, residual release
 targets after edits, sustain retrigger behavior and lifecycle observation reset.
 JUCE listener/thread/teardown assumptions do not establish iPlug2 UI correctness;
 those native scenarios remain explicitly deferred in the assertion inventory.
+
+`unit/VcoBehaviorTest.cpp` retains glissando timing against an independent pitch
+schedule, PWM periods from carrier-cycle means, live held-wheel range changes,
+measured bend/fine-pitch/LFO offsets and empirical decay-per-second constants.
+Source tests check held and released tone/noise transitions and exact remaining
+release time, including unmatched key release and new-note recovery.
+Live waveform/Feet choices preserve held note identity and finite nonzero audio.
+Upstream sources intentionally run continuously; engine/VCA-gate silence is
+separate from source note-state inactivity and archived JUCE block APIs.

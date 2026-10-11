@@ -76,7 +76,7 @@ are deferred; native compilation and archive verification continue in CI.
 Additional MIDI coverage fixes negative-offset stable ordering and applies due
 offset-zero events during empty callbacks. Future events retain iPlug2 queue
 carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 111 core cases plus eight SDK-interface cases.
+restored. The current suite contains 126 core cases plus eight SDK-interface cases.
 
 Editor session guards now invalidate asynchronous replies on close, control
 hierarchy replacement and owner destruction. Rename requests resolve captured
@@ -123,6 +123,30 @@ UI verification, with the current SDK publication path described in the CSV.
 Four more EGContinuityTest cases retain the frozen reference's live attack bounds,
 release branch target after time edits with sustain zero, edited-sustain retriggers
 during and after release, and lifecycle/observation reset across sample rates.
-The current suite is 119 cases (111 core plus eight SDK-interface); test counts
+The current suite is 134 cases (126 core plus eight SDK-interface); test counts
 are not a statement of full historical assertion parity. Remaining unreviewed
 cases stay pending in the inventory.
+
+## Oscillator timing and source lifecycle reconciliation
+
+Fifteen VcoBehaviorTest cases add independent stepped-pitch schedules, live
+semitone-step timing edits, measured fine pitch/MIDI bend, held-wheel range edits,
+PWM duty-cycle periods and empirical per-second decay constants. Three host rates
+and their fourfold internal processing rates are covered where the historical
+PWM/glissando scenarios require them. Glissando's historical float multiplication
+before integer sample quantization is retained in the timing oracle. PWM retains
+the original bounded period count and 0.5% tolerance; tuning retains 0.1% tolerance.
+
+Source-lifecycle assertions cover held tone/noise round trips, both release-switch
+directions, new-note cancellation of previous release deadlines, unmatched
+note-off immunity and preserved wheel/note/remaining release time. Live panel
+waveform/Feet changes retain the held note and finite nonzero audio. Explicit LFO
+semitone offsets are measured through the actual oscillator rather than the old
+mock generator. Eleven historical cases are replaced; four have partial status
+because removed callback/block/mock APIs or gated-output assertions require
+separate treatment. In particular, upstream VCO audio intentionally free-runs;
+its inactive note state does not mean its continuous rendering API outputs zero.
+Engine/VCA-gate silence is a separate contract. No native UI behavior is inferred.
+
+The current suite contains 134 cases (126 core plus eight SDK-interface).
+Remaining historical cases stay unreviewed or partial as recorded in the CSV.
