@@ -21,11 +21,11 @@ cs01::MidiMessage cc(int number, int value) {
 // Observe the MIDI-to-generator contract, independently of waveform synthesis.
 class RecordingGenerator : public ISoundGenerator {
    public:
-    void startNote(int n, float v, int w) override {
+    void startNote(int n, float v, int bendValue) override {
         ++starts;
         note = n;
         velocity = v;
-        wheel = w;
+        pitchBendValue = bendValue;
         active = true;
     }
     void stopNote(bool tail) override {
@@ -37,20 +37,20 @@ class RecordingGenerator : public ISoundGenerator {
         ++changes;
         note = n;
     }
-    void pitchWheelMoved(int w) override {
-        wheel = w;
+    void setPitchBend(int bendValue) override {
+        pitchBendValue = bendValue;
     }
     bool isActive() const override {
         return active;
     }
-    int getCurrentlyPlayingNote() const override {
+    int currentNote() const override {
         return note;
     }
     void prepare(double) override {}
     float renderSample() override {
         return 0;
     }
-    int starts = 0, stops = 0, changes = 0, note = 0, wheel = 8192;
+    int starts = 0, stops = 0, changes = 0, note = 0, pitchBendValue = 8192;
     float velocity = 0;
     bool active = false, lastTail = false;
 };
@@ -63,14 +63,14 @@ struct MidiBehaviorTest : testing::Test {
 TEST_F(MidiBehaviorTest, DuplicateAndUnmatchedNotesPreserveLegatoAndVelocity) {
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
-    midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, 12000));
+    midi.handleMidiEvent(cs01::MidiMessage::pitchBend(1, 12000));
     midi.handleMidiEvent(on(64, 23));
     midi.handleMidiEvent(on(64, 127));
     midi.handleMidiEvent(on(60));
     EXPECT_EQ(midi.getActiveNotes().count(), 2u);
     EXPECT_EQ(generator.starts, 1);
     EXPECT_FLOAT_EQ(generator.velocity, 23 / 127.f);
-    EXPECT_EQ(generator.wheel, 12000);
+    EXPECT_EQ(generator.pitchBendValue, 12000);
     EXPECT_EQ(generator.note, 64);
     const int changes = generator.changes;
     midi.handleMidiEvent(off(63));
@@ -89,7 +89,7 @@ TEST_F(MidiBehaviorTest, DuplicateAndUnmatchedNotesPreserveLegatoAndVelocity) {
 
 TEST_F(MidiBehaviorTest, NoteSetMatchesIndependentSetAcrossEntireRange) {
     EXPECT_TRUE(midi.getActiveNotes().none());
-    EXPECT_EQ(midi.getCurrentlyPlayingNote(), 0);
+    EXPECT_EQ(midi.currentNote(), 0);
     EXPECT_EQ(midi.getSoundGenerator(), nullptr);
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
@@ -101,7 +101,7 @@ TEST_F(MidiBehaviorTest, NoteSetMatchesIndependentSetAcrossEntireRange) {
         else
             reference.erase(note);
         EXPECT_EQ(midi.getActiveNotes().count(), reference.size());
-        EXPECT_EQ(midi.getCurrentlyPlayingNote(), reference.empty() ? 0 : *reference.rbegin());
+        EXPECT_EQ(midi.currentNote(), reference.empty() ? 0 : *reference.rbegin());
         if (!reference.empty()) {
             EXPECT_TRUE(generator.isActive());
             EXPECT_EQ(generator.note, *reference.rbegin());
@@ -126,7 +126,7 @@ TEST_F(MidiBehaviorTest, HeldKeysKeepEnvelopeGateOpenAndRestartAfterRelease) {
     state.set(Param::Release, .5f);
     RecordingGenerator generator;
     EGProcessor eg(state);
-    eg.prepareToPlay(48000, 256);
+    eg.prepare(48000);
     midi.setSoundGenerator(&generator);
     midi.setEGProcessor(&eg);
     const auto advance = [&](int count) {
@@ -159,7 +159,7 @@ TEST_F(MidiBehaviorTest, HeldKeysKeepEnvelopeGateOpenAndRestartAfterRelease) {
 TEST_F(MidiBehaviorTest, PanicSeparatesReleaseFromImmediateStopAndCanRecover) {
     RecordingGenerator generator;
     EGProcessor eg(state);
-    eg.prepareToPlay(48000, 64);
+    eg.prepare(48000);
     midi.setSoundGenerator(&generator);
     midi.setEGProcessor(&eg);
     midi.handleMidiEvent(on(0));
@@ -191,15 +191,15 @@ TEST_F(MidiBehaviorTest, ResetControllersPreservesWholePatchAndClearsPerformance
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
     midi.handleMidiEvent(on(64));
-    midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, 12000));
+    midi.handleMidiEvent(cs01::MidiMessage::pitchBend(1, 12000));
     for (int number : {1, 33, 2, 34, 7, 39, 5, 37})
         midi.handleMidiEvent(cc(number, 127));
     const auto before = state.snapshot();
     midi.handleMidiEvent(cc(121, 0));
-    EXPECT_EQ(midi.getCurrentlyPlayingNote(), 64);
+    EXPECT_EQ(midi.currentNote(), 64);
     EXPECT_EQ(generator.starts, 1);
     EXPECT_EQ(generator.stops, 0);
-    EXPECT_EQ(generator.wheel, 8192);
+    EXPECT_EQ(generator.pitchBendValue, 8192);
     for (int i = 0; i < cs01::parameterCount; ++i) {
         auto id = static_cast<Param>(i);
         const bool performance =
@@ -239,11 +239,11 @@ TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs)
     }
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
-    for (int wheel : {0, 4096, 8192, 12000, 16383}) {
-        midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, wheel));
-        EXPECT_NEAR(state.get(Param::PitchBend), (wheel - 8192) / (wheel >= 8192 ? 8191.f : 8192.f),
-                    1e-7);
-        EXPECT_EQ(generator.wheel, wheel);
+    for (int pitchBendValue : {0, 4096, 8192, 12000, 16383}) {
+        midi.handleMidiEvent(cs01::MidiMessage::pitchBend(1, pitchBendValue));
+        EXPECT_NEAR(state.get(Param::PitchBend),
+                    (pitchBendValue - 8192) / (pitchBendValue >= 8192 ? 8191.f : 8192.f), 1e-7);
+        EXPECT_EQ(generator.pitchBendValue, pitchBendValue);
     }
     midi.handleMidiEvent(cc(5, 64));
     midi.handleMidiEvent(cc(37, 3));
@@ -294,7 +294,7 @@ TEST_F(MidiBehaviorTest, DirectPerformanceEditsRetainNormalizedParameterValues) 
     EXPECT_FLOAT_EQ(state.get(Param::PitchBend), .5f);
     EXPECT_FLOAT_EQ(state.get(Param::ModDepth), .5f);
     EXPECT_FLOAT_EQ(state.get(Param::BreathInput), .25f);
-    EXPECT_EQ(midi.getCurrentlyPlayingNote(), 60);
+    EXPECT_EQ(midi.currentNote(), 60);
     EXPECT_EQ(generator.starts, 1);
 }
 
@@ -306,14 +306,14 @@ TEST_F(MidiBehaviorTest, ResetDuringAttackCentersWheelWithoutRetriggeringEnvelop
         parameters->set(Param::Sustain, .6f);
     }
     EGProcessor actual(state), reference(referenceState);
-    actual.prepareToPlay(48000, 1);
-    reference.prepareToPlay(48000, 1);
+    actual.prepare(48000);
+    reference.prepare(48000);
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
     midi.setEGProcessor(&actual);
     midi.handleMidiEvent(on(69));
     reference.startEnvelope();
-    midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, 16383));
+    midi.handleMidiEvent(cs01::MidiMessage::pitchBend(1, 16383));
     for (int i = 0; i < 60000; ++i) {
         if (i == 209)
             midi.handleMidiEvent(cc(121, 0));
@@ -321,7 +321,7 @@ TEST_F(MidiBehaviorTest, ResetDuringAttackCentersWheelWithoutRetriggeringEnvelop
         EXPECT_EQ(actual.isActive(), reference.isActive());
     }
     EXPECT_FLOAT_EQ(state.get(Param::PitchBend), 0);
-    EXPECT_EQ(generator.wheel, 8192);
+    EXPECT_EQ(generator.pitchBendValue, 8192);
     EXPECT_EQ(generator.starts, 1);
     EXPECT_NEAR(actual.getLastOutputForTesting(), .6f, 1e-5);
 }

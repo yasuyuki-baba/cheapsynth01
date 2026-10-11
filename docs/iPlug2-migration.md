@@ -10,7 +10,7 @@ host frame. No runtime graph mutation or GUI notification is required for
 routing/source changes. Core parameters use lock-free atomics; MIDI parameter changes are published atomically; the iPlug2 idle callback refreshes
 controls and the VST3 controller cache outside audio rendering.
 
-`CS01AudioProcessor` is an iPlug2 plugin; the editor uses IGraphics. The panel
+`CheapSynth01` is an iPlug2 plugin; the editor uses IGraphics. The panel
 restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
 and EG, with common sound-control columns and cyan accents. Parameter controls
 use iPlug2's standard IVSliderControl, IVKnobControl, IVRadioButtonControl,

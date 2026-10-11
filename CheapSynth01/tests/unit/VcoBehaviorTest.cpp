@@ -17,7 +17,7 @@ struct ToneHarness {
         state.set(Param::Feet, 2);
         tone.prepare(rate);
         tone.startNote(69, 1, 8192);
-        tone.setPitchBend(static_cast<float>(12 * std::log2(frequency / 440.)));
+        tone.setPitchBendSemitones(static_cast<float>(12 * std::log2(frequency / 440.)));
         tone.updateBlockRateParameters();
     }
 };
@@ -101,19 +101,20 @@ TEST(VcoBehaviorTest, LiveGlissandoSpeedPreservesFractionalStepAndZeroJumpsToTar
         }
 }
 
-TEST(VcoBehaviorTest, HeldPitchWheelTracksLiveRangeEdits) {
+TEST(VcoBehaviorTest, HeldPitchBendTracksLiveRangeEdits) {
     for (double rate : {44100., 48000., 96000.})
-        for (int wheel : {0, 16383}) {
+        for (int pitchBendValue : {0, 16383}) {
             ToneHarness h(2, rate);
             h.state.set(Param::BendUp, 12);
             h.state.set(Param::BendDown, 12);
-            h.tone.pitchWheelMoved(wheel);
+            h.tone.setPitchBend(pitchBendValue);
             for (float range : {7.f, 0.f, 12.f}) {
-                h.state.set(wheel == 0 ? Param::BendDown : Param::BendUp, range);
+                h.state.set(pitchBendValue == 0 ? Param::BendDown : Param::BendUp, range);
                 h.tone.updateBlockRateParameters();
-                const double expected = 440. * std::exp2((wheel == 0 ? -range : range) / 12.);
+                const double expected =
+                    440. * std::exp2((pitchBendValue == 0 ? -range : range) / 12.);
                 EXPECT_NEAR(measurePitch(h.tone, rate), expected, expected * .001);
-                EXPECT_EQ(h.tone.getPlaybackState().pitchWheel, wheel);
+                EXPECT_EQ(h.tone.getPlaybackState().pitchBend, pitchBendValue);
             }
         }
 }
@@ -121,17 +122,17 @@ TEST(VcoBehaviorTest, HeldPitchWheelTracksLiveRangeEdits) {
 TEST(VcoBehaviorTest, ManualPitchAndMidiWheelAreAppliedOnce) {
     for (double rate : {44100., 48000., 96000.})
         for (float pitch : {-1.f, 0.f, 1.f})
-            for (int wheel : {0, 8192, 16383}) {
+            for (int pitchBendValue : {0, 8192, 16383}) {
                 ToneHarness h(2, rate);
                 h.state.set(Param::Pitch, pitch);
                 h.state.set(Param::BendUp, 12);
                 h.state.set(Param::BendDown, 12);
                 MidiProcessor midi(h.state);
                 midi.setSoundGenerator(&h.tone);
-                midi.handleMidiEvent(cs01::MidiMessage::pitchWheel(1, wheel));
+                midi.handleMidiEvent(cs01::MidiMessage::pitchBend(1, pitchBendValue));
                 midi.handleMidiEvent({0x90, 69, 100});
                 h.tone.updateBlockRateParameters();
-                const float bend = wheel == 0 ? -1.f : wheel == 16383 ? 1.f : 0.f;
+                const float bend = pitchBendValue == 0 ? -1.f : pitchBendValue == 16383 ? 1.f : 0.f;
                 EXPECT_FLOAT_EQ(h.state.get(Param::PitchBend), bend);
                 const double expected = 440. * std::exp2((pitch + bend * 12) / 12.);
                 EXPECT_NEAR(measurePitch(h.tone, rate), expected, expected * .001);
@@ -144,7 +145,7 @@ TEST(VcoBehaviorTest, PwmTwoHertzRepeatsAtHalfSecondNotQuarterSecond) {
         h.state.set(Param::PwmSpeed, 2);
         h.tone.prepare(rate);
         h.tone.startNote(69, 1, 8192);
-        h.tone.setPitchBend(static_cast<float>(12 * std::log2(480. / 440.)));
+        h.tone.setPitchBendSemitones(static_cast<float>(12 * std::log2(480. / 440.)));
         h.tone.updateBlockRateParameters();
         for (int i = 0; i < static_cast<int>(rate * 2); ++i)
             h.tone.getNextSample();
@@ -181,7 +182,7 @@ TEST(VcoBehaviorTest, PwmManualEndpointsKeepPeriodAtHostAndFourTimesRates) {
                 h.state.set(Param::PwmSpeed, frequency);
                 h.tone.prepare(rate);
                 h.tone.startNote(69, 1, 8192);
-                h.tone.setPitchBend(static_cast<float>(12 * std::log2(480. / 440.)));
+                h.tone.setPitchBendSemitones(static_cast<float>(12 * std::log2(480. / 440.)));
                 h.tone.updateBlockRateParameters();
                 for (int i = 0; i < static_cast<int>(rate); ++i)
                     h.tone.getNextSample();
@@ -238,7 +239,7 @@ TEST(VcoBehaviorTest, HeldNoteSurvivesRepeatedNoiseRoundTrips) {
     cs01::ParameterState state;
     state.set(Param::Feet, 2);
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     auto* original = vco.getSoundGenerator();
     original->startNote(69, 1, 8192);
     for (int selection : {4, 2, 4, 2}) {
@@ -247,7 +248,7 @@ TEST(VcoBehaviorTest, HeldNoteSurvivesRepeatedNoiseRoundTrips) {
         auto* selected = vco.getSoundGenerator();
         EXPECT_EQ(selected == original, selection == 2);
         EXPECT_TRUE(selected->isActive());
-        EXPECT_EQ(selected->getCurrentlyPlayingNote(), 69);
+        EXPECT_EQ(selected->currentNote(), 69);
         double energy = 0;
         for (int i = 0; i < 256; ++i) {
             const float v = vco.processSample(0);
@@ -265,12 +266,12 @@ TEST(VcoBehaviorTest, SwitchingPreservesWheelNoteAndRemainingReleaseDeadline) {
     state.set(Param::Feet, 2);
     state.set(Param::Release, .1f);
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     vco.getSoundGenerator()->startNote(69, 1, 12000);
     state.set(Param::Feet, 4);
     vco.applyPendingGeneratorChange();
-    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchWheel, 12000);
-    vco.getSoundGenerator()->pitchWheelMoved(15000);
+    EXPECT_EQ(vco.getSoundGenerator()->getPlaybackState().pitchBend, 12000);
+    vco.getSoundGenerator()->setPitchBend(15000);
     vco.getSoundGenerator()->stopNote(true);
     advance(vco, 256);
     const auto before = vco.getSoundGenerator()->getPlaybackState();
@@ -281,7 +282,7 @@ TEST(VcoBehaviorTest, SwitchingPreservesWheelNoteAndRemainingReleaseDeadline) {
     const auto after = vco.getSoundGenerator()->getPlaybackState();
     EXPECT_FALSE(after.held);
     EXPECT_EQ(after.note, 69);
-    EXPECT_EQ(after.pitchWheel, 15000);
+    EXPECT_EQ(after.pitchBend, 15000);
     EXPECT_NEAR(after.releaseSecondsRemaining, before.releaseSecondsRemaining, 1. / 48000);
     advance(vco, 48000);
     EXPECT_FALSE(vco.getSoundGenerator()->isActive());
@@ -291,7 +292,7 @@ TEST(VcoBehaviorTest, NewNoteCancelsOldReleaseDeadlineForBothSources) {
     cs01::ParameterState state;
     state.set(Param::Release, .1f);
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     for (int selection : {2, 4}) {
         state.set(Param::Feet, selection);
         vco.applyPendingGeneratorChange();
@@ -302,7 +303,7 @@ TEST(VcoBehaviorTest, NewNoteCancelsOldReleaseDeadlineForBothSources) {
         generator->startNote(69, 1, 8192);
         advance(vco, 40 * 256);
         EXPECT_TRUE(generator->isActive());
-        EXPECT_EQ(generator->getCurrentlyPlayingNote(), 69);
+        EXPECT_EQ(generator->currentNote(), 69);
         EXPECT_TRUE(generator->getPlaybackState().held);
         generator->stopNote(true);
         advance(vco, 40 * 256);
@@ -313,7 +314,7 @@ TEST(VcoBehaviorTest, NewNoteCancelsOldReleaseDeadlineForBothSources) {
 TEST(VcoBehaviorTest, UnmatchedNoteOffCannotRestartReleaseClock) {
     cs01::ParameterState state;
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     MidiProcessor midi(state);
     midi.setSoundGenerator(vco.getSoundGenerator());
     midi.handleMidiEvent({0x90, 69, 100});
@@ -331,7 +332,7 @@ TEST(VcoBehaviorTest, IdleAndExpiredSourceSwitchesKeepHeldStateCleared) {
     state.set(Param::Feet, 2);
     state.set(Param::Release, .1f);
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     for (bool previouslyPlayed : {false, true}) {
         if (previouslyPlayed) {
             vco.getSoundGenerator()->startNote(69, 1, 8192);
@@ -343,7 +344,7 @@ TEST(VcoBehaviorTest, IdleAndExpiredSourceSwitchesKeepHeldStateCleared) {
             vco.applyPendingGeneratorChange();
             EXPECT_FALSE(vco.getSoundGenerator()->isActive());
             EXPECT_FALSE(vco.getSoundGenerator()->getPlaybackState().held);
-            EXPECT_EQ(vco.getSoundGenerator()->getCurrentlyPlayingNote(), 0);
+            EXPECT_EQ(vco.getSoundGenerator()->currentNote(), 0);
             advance(vco, 256);
             EXPECT_FALSE(vco.getSoundGenerator()->isActive());
         }
@@ -354,7 +355,7 @@ TEST(VcoBehaviorTest, BothReleaseSwitchDirectionsExpireWithoutBecomingHeld) {
     cs01::ParameterState state;
     state.set(Param::Release, .1f);
     VCOProcessor vco(state);
-    vco.prepareToPlay(48000, 256);
+    vco.prepare(48000);
     for (int initial : {2, 4}) {
         state.set(Param::Feet, initial);
         vco.applyPendingGeneratorChange();
@@ -377,7 +378,7 @@ TEST(VcoBehaviorTest, LiveWaveformAndFeetChangesPreserveHeldNoteAndFiniteAudio) 
             h.state.set(Param::Feet, feet);
             h.tone.updateBlockRateParameters();
             EXPECT_TRUE(h.tone.isActive());
-            EXPECT_EQ(h.tone.getCurrentlyPlayingNote(), 69);
+            EXPECT_EQ(h.tone.currentNote(), 69);
             double energy = 0;
             for (int i = 0; i < 256; ++i) {
                 const float value = h.tone.renderSample();

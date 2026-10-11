@@ -26,16 +26,16 @@ class NoiseGenerator : public ISoundGenerator {
     float renderContinuousSample();
 
     // ISoundGenerator implementation - note handling methods
-    void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
-    void stopNote(bool allowTailOff) override;
+    void startNote(int midiNoteNumber, float velocity, int pitchBendValue) override;
+    void stopNote(bool allowReleaseTail) override;
     PlaybackState getPlaybackState() const override;
     void setReleaseSamplesRemaining(int samples) override;
     void restorePlaybackState(const PlaybackState& state) override;
     int lastNote = 0;
     void changeNote(int midiNoteNumber) override;
-    void pitchWheelMoved(int newPitchWheelValue) override;
+    void setPitchBend(int pitchBendValue) override;
     bool isActive() const override;
-    int getCurrentlyPlayingNote() const override;
+    int currentNote() const override;
 
    private:
     cs01::ParameterState& parameters;
@@ -47,7 +47,7 @@ class NoiseGenerator : public ISoundGenerator {
     bool tailOff = false;
     int tailOffCounter = 0;
     int tailOffDuration = 0;
-    int currentlyPlayingNote = 0;
+    int currentNoteNumber = 0;
     double sampleRate = 44100.0;
-    int pitchWheelValue = 8192;  // Center value
+    int lastPitchBend = 8192;  // Center value
 };

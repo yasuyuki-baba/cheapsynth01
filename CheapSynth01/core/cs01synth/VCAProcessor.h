@@ -14,8 +14,8 @@ class VCAProcessor {
     ~VCAProcessor();
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock);
-    void releaseResources();
+    void prepare(double sampleRate);
+    void reset();
 
     float processSample(float audio, float eg, float noteGate = 1.0f);
 

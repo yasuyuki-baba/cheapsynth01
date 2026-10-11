@@ -81,7 +81,7 @@ struct ProductionVcoHarness {
         state.set(cs01::Param::ModDepth, 0);
         generator.prepare(rate);
         generator.startNote(69, 1, 8192);
-        generator.setPitchBend(static_cast<float>(12 * std::log2(frequency / 440.)));
+        generator.setPitchBendSemitones(static_cast<float>(12 * std::log2(frequency / 440.)));
         generator.updateBlockRateParameters();
     }
 };
