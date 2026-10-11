@@ -94,7 +94,7 @@ TEST(EngineTimelineTest, EveryWaveformRetainsUpstreamPhaseAcrossInBlockReleaseDe
             EXPECT_GT(idleEnergy, 1);
         }
 }
-TEST(EngineTimelineTest, NoiseHasEnergyPastReleaseDeadlineInside512Samples) {
+TEST(EngineTimelineTest, NoiseHasEnergyPastMinimumReleaseDeadline) {
     for (double rate : {44100., 48000., 96000.}) {
         cs01::ParameterState state;
         state.set(Param::Feet, 4);
@@ -103,14 +103,15 @@ TEST(EngineTimelineTest, NoiseHasEnergyPastReleaseDeadlineInside512Samples) {
         vco.prepareToPlay(rate * 4, 512);
         vco.getSoundGenerator()->startNote(45, 1, 8192);
         vco.getSoundGenerator()->stopNote(true);
+        const int deadline = int(state.get(Param::Release) * rate * 4);
         double tail = 0, next = 0;
-        for (int i = 0; i < 1024; ++i) {
+        for (int i = 0; i < deadline + 512; ++i) {
             float sample = vco.processSample(0);
-            if (i >= 384 && i < 512)
+            if (i >= deadline - 128 && i < deadline)
                 tail += sample * sample;
-            if (i >= 512)
+            if (i >= deadline)
                 next += sample * sample;
-            if (i == 511)
+            if (i == deadline)
                 EXPECT_FALSE(vco.getSoundGenerator()->isActive());
         }
         EXPECT_GT(std::sqrt(tail / 128), 1e-4);

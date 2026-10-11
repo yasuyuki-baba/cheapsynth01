@@ -1,20 +1,28 @@
 {
-    // IntelliSense を使用して利用可能な属性を学べます。
-    // 既存の属性の説明をホバーして表示します。
-    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch (lldb)",
+            "name": "iPlug2 standalone (mac-native)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/CheapSynth01_artefacts/Debug/Standalone/CheapSynth01.app",
+            "program": "${workspaceFolder}/build-mac-native/out/CheapSynth01.app/Contents/MacOS/CheapSynth01",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb"
+        },
+        {
+            "name": "iPlug2 standalone (win-native)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-win-native/out/CheapSynth01.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
         }
     ]
 }

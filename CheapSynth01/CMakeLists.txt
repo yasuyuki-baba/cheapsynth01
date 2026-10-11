@@ -26,6 +26,7 @@ iplug_add_plugin(CheapSynth01
         KeyboardFocus.cpp
         ui/PanelControls.h
         ui/OwnedKeyboardControl.h
+        ui/EditorUtilities.h
         resources/resource.h
     RESOURCES resources/fonts/Roboto-Regular.ttf
     FORMATS ${formats}

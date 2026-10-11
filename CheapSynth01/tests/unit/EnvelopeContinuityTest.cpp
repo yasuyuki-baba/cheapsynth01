@@ -36,8 +36,8 @@ TEST(EGContinuityTest, RetriggerDuringAttackKeepsTheHeldTrajectory) {
             retriggered.prepareToPlay(rate, 1);
             held.startEnvelope();
             retriggered.startEnvelope();
-            const int boundary = static_cast<int>(fraction * state.get(Param::Attack) * rate);
-            for (int i = 0; i < static_cast<int>(rate * .3); ++i) {
+            const int boundary = static_cast<int>(fraction * 2 * state.get(Param::Attack) * rate);
+            for (int i = 0; i < static_cast<int>(rate * 1.2); ++i) {
                 if (i == boundary)
                     retriggered.startEnvelope();
                 ASSERT_NEAR(held.processSample(), retriggered.processSample(), 2.e-6f) << i;
@@ -57,7 +57,8 @@ TEST(EGContinuityTest, TimeEditsKeepIntegratedProgressInEveryMovingStage) {
             eg.prepareToPlay(rate, 1);
             eg.startEnvelope();
             if (id == Param::Decay)
-                advance(eg, static_cast<int>(std::ceil(state.get(Param::Attack) * rate)));
+                advance(eg,
+                        static_cast<int>(std::ceil(2 * double(state.get(Param::Attack)) * rate)));
             if (id == Param::Release) {
                 advance(eg, static_cast<int>(rate * .3));
                 eg.releaseEnvelope();
@@ -72,11 +73,13 @@ TEST(EGContinuityTest, TimeEditsKeepIntegratedProgressInEveryMovingStage) {
             const int second = static_cast<int>(rate * .06);
             advance(eg, second);
             const double progress = first / (rate * oldTime) + second / (rate * newTime);
-            const double expected = initial + (endpoint - initial) *
-                                                  (1. - std::exp(-2. * progress)) /
-                                                  (1. - std::exp(-2.));
+            const double target = id == Param::Attack ? 1. / (1. - std::exp(-2.)) : endpoint;
+            const double expected = target + (initial - target) * std::exp(-progress);
             EXPECT_NEAR(eg.getLastOutputForTesting(), expected, 2.e-5);
-            advance(eg, static_cast<int>(std::ceil((1. - progress) * newTime * rate)) + 1);
+            advance(eg, static_cast<int>(
+                            std::ceil(((id == Param::Attack ? 2. : std::log(10000.)) - progress) *
+                                      newTime * rate)) +
+                            1);
             EXPECT_NEAR(eg.getLastOutputForTesting(), endpoint, .001);
             if (id == Param::Release) {
                 EXPECT_FALSE(eg.isActive());
@@ -104,14 +107,14 @@ TEST(EGContinuityTest, RetriggerFromReleaseUsesResidualThresholdTime) {
             EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), initial);
             const double time = state.get(Param::Attack);
             const double target = 1. / (1. - std::exp(-2.));
-            const double expected = time * .5 * std::log((target - initial) / (target - 1.));
+            const double expected = time * std::log((target - initial) / (target - 1.));
             int count = 0;
             do {
                 eg.processSample();
                 ++count;
-            } while (eg.getLastOutputForTesting() < 1 && count <= time * rate + 2);
+            } while (eg.getLastOutputForTesting() < 1 && count <= 2 * time * rate + 2);
             EXPECT_NEAR(count / rate, expected, 2. / rate);
-            EXPECT_LT(count / rate, time);
+            EXPECT_LT(count / rate, 2 * time);
         }
     }
 }
@@ -126,16 +129,16 @@ TEST(EGContinuityTest, ZeroSustainReleaseKeepsTheIndependentGateClock) {
         EGProcessor eg(state);
         eg.prepareToPlay(rate, 1);
         eg.startEnvelope();
-        advance(eg, static_cast<int>(rate * .03));
+        advance(eg, static_cast<int>(rate * .12));
         ASSERT_FLOAT_EQ(eg.getLastOutputForTesting(), 0);
         ASSERT_FLOAT_EQ(eg.getNoteGate(), 1);
         eg.releaseEnvelope();
         advance(eg, static_cast<int>(rate * .04));
         ASSERT_TRUE(eg.isActive());
-        EXPECT_NEAR(eg.getNoteGate(), .6f, .001f);
+        EXPECT_NEAR(eg.getNoteGate(), 1 - .04 / (.1 * std::log(10000.)), .001f);
         state.set(Param::Release, .2f);
         const int remaining = static_cast<int>(eg.getReleaseSamplesRemaining());
-        EXPECT_NEAR(remaining / rate, .12, 3. / rate);
+        EXPECT_NEAR(remaining / rate, (.1 * std::log(10000.) - .04) * 2, 3. / rate);
         advance(eg, remaining - 1);
         EXPECT_TRUE(eg.isActive());
         eg.processSample();
@@ -175,12 +178,12 @@ TEST(EGContinuityTest, SustainEditsAndLifecycleRemainBounded) {
     EGProcessor eg(state);
     eg.prepareToPlay(48000, 1);
     eg.startEnvelope();
-    advance(eg, 14400);
+    advance(eg, 57600);
     for (float target : {.8f, .2f, 1.f, 0.f, .5f}) {
         const float before = eg.getLastOutputForTesting();
         state.set(Param::Sustain, target);
         EXPECT_LT(std::abs(eg.processSample() - before), .001f);
-        for (int i = 0; i < 6000; ++i) {
+        for (int i = 0; i < 48000; ++i) {
             const float value = eg.processSample();
             ASSERT_TRUE(std::isfinite(value));
             ASSERT_GE(value, 0);
@@ -342,8 +345,7 @@ TEST(EGContinuityTest, ReleaseTimeEditKeepsResidualBranchTargetWithZeroSustain) 
             eg.prepareToPlay(rate, 1);
             eg.startEnvelope();
             advance(eg, static_cast<int>(rate * .025));
-            const double releaseStart = eg.getLastOutputForTesting();
-            const double branchTarget = releaseStart * (1. - 1. / (1. - std::exp(-2.)));
+            const double branchTarget = 0;
             eg.releaseEnvelope();
             advance(eg, static_cast<int>(rate * .05));
             const float initial = eg.getLastOutputForTesting();
@@ -351,14 +353,14 @@ TEST(EGContinuityTest, ReleaseTimeEditKeepsResidualBranchTargetWithZeroSustain) 
             state.set(Param::Release, duration);
             EXPECT_NEAR(eg.processSample(),
                         branchTarget + (initial - branchTarget) *
-                                           std::exp(-2. / (state.get(Param::Release) * rate)),
+                                           std::exp(-1. / (state.get(Param::Release) * rate)),
                         1e-5);
             EXPECT_TRUE(eg.isActive());
             const int halfway = static_cast<int>(duration * rate * .5);
             advance(eg, halfway - 1);
             EXPECT_NEAR(eg.getLastOutputForTesting(),
-                        branchTarget + (initial - branchTarget) * std::exp(-1.), initial * .003);
-            advance(eg, static_cast<int>(duration * rate * .6));
+                        branchTarget + (initial - branchTarget) * std::exp(-.5), initial * .003);
+            advance(eg, static_cast<int>(duration * rate * 10));
             EXPECT_FALSE(eg.isActive());
             EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
         }
@@ -383,19 +385,19 @@ TEST(EGContinuityTest, RetriggerRestoresEditedSustainDuringAndAfterRelease) {
             advance(eg, static_cast<int>(rate * .001));
             ASSERT_TRUE(eg.isActive());
             if (finishRelease) {
-                advance(eg, static_cast<int>(rate * .25));
+                advance(eg, static_cast<int>(rate * 2.1));
                 ASSERT_FALSE(eg.isActive());
             }
             state.set(Param::Sustain, .8f);
             eg.startEnvelope();
-            advance(eg, static_cast<int>(rate * .5));
+            advance(eg, static_cast<int>(rate * 3.1));
             EXPECT_TRUE(eg.isActive());
             EXPECT_NEAR(eg.getLastOutputForTesting(), .8f, 1e-6);
             eg.releaseEnvelope();
             advance(eg, static_cast<int>(rate * .1));
-            const double halfway = .8 * (1. - (1. - std::exp(-1.)) / (1. - std::exp(-2.)));
+            const double halfway = .8 * std::exp(-.5);
             EXPECT_NEAR(eg.getLastOutputForTesting(), halfway, .002);
-            advance(eg, static_cast<int>(rate * .12));
+            advance(eg, static_cast<int>(rate * 2.));
             EXPECT_FALSE(eg.isActive());
             EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
         }
@@ -443,13 +445,13 @@ TEST(EGContinuityTest, ProductionRangeStageDurationsIncludingMaximumInternalRate
             eg.prepareToPlay(rate, 256);
             eg.startEnvelope();
             auto duration = [&](auto done) {
-                for (int n = 1; n <= static_cast<int>(rate * 3); ++n)
+                for (int n = 1; n <= static_cast<int>(rate * 42); ++n)
                     if (done(eg.processSample()))
                         return n;
-                return static_cast<int>(rate * 3) + 1;
+                return static_cast<int>(rate * 42) + 1;
             };
             auto check = [&](Param id, int count) {
-                double expected = state.get(id);
+                double expected = state.get(id) * (id == Param::Attack ? 2. : std::log(10000.));
                 EXPECT_NEAR(count / rate, expected, expected * .01 + 2 / rate);
             };
             check(Param::Attack, duration([](float x) { return x >= 1; }));
@@ -469,8 +471,8 @@ TEST(EGContinuityTest, RepeatedEditsRetriggersAndGateClockArePartitionIndependen
             eg.prepareToPlay(rate, block);
             std::vector<float> output;
             std::vector<int> boundaries =
-                gate ? std::vector<int>{0, 100, 200, 300, 400, 1500}
-                     : std::vector<int>{0, 200, 400, 600, 800, 1000, 1200, 30000};
+                gate ? std::vector<int>{0, 100, 200, 300, 400, 12000}
+                     : std::vector<int>{0, 200, 400, 600, 800, 1000, 1200, 240000};
             for (size_t event = 0; event + 1 < boundaries.size(); ++event) {
                 if (gate) {
                     if (event == 0 || event == 3)
@@ -530,16 +532,16 @@ TEST(EGContinuityTest, EarlyReleaseUsesNoteOffLevelAndRateWithZeroSustain) {
         eg.releaseEnvelope();
         EXPECT_LE(eg.processSample(), initial);
         advance(eg, static_cast<int>(rate * .05) - 1);
-        double expected = initial * (1 - (1 - std::exp(-1.)) / (1 - std::exp(-2.)));
+        double expected = initial * std::exp(-.5);
         EXPECT_NEAR(eg.getLastOutputForTesting(), expected, initial * .002);
         EXPECT_TRUE(eg.isActive());
-        advance(eg, static_cast<int>(rate * .06));
+        advance(eg, static_cast<int>(rate * 1.));
         EXPECT_FALSE(eg.isActive());
         EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0);
     }
 }
 
-TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainHistoricalSlopeBounds) {
+TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainSlopeBoundsIncludingSettlingThreshold) {
     for (double rate : {44100., 48000., 96000.}) {
         cs01::ParameterState state;
         settings(state);
@@ -550,7 +552,7 @@ TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainHistoricalSlopeBound
         eg.startEnvelope();
         float previous = 0;
         bool reachedPeak = false;
-        for (int i = 0; i < static_cast<int>(rate * .5); ++i) {
+        for (int i = 0; i < static_cast<int>(rate * 1.2); ++i) {
             float value = eg.processSample();
             ASSERT_TRUE(std::isfinite(value));
             ASSERT_GE(value, 0);
@@ -567,14 +569,26 @@ TEST(EGContinuityTest, ContinuousAttackDecayAndReleaseRetainHistoricalSlopeBound
         EXPECT_TRUE(reachedPeak);
         EXPECT_NEAR(previous, .5f, .00001f);
         eg.releaseEnvelope();
-        for (int i = 0; i < static_cast<int>(rate * .6); ++i) {
+        for (int i = 0; i < static_cast<int>(rate * 5); ++i) {
             float value = eg.processSample();
             ASSERT_GE(value, 0);
             ASSERT_LE(value, previous + .000001f);
-            ASSERT_LE(std::abs(value - previous), 1.16 / (.5 * rate) + .00001);
+            ASSERT_LE(std::abs(value - previous),
+                      1.16 / (.5 * rate) + .5 * EGTiming::settlingRatio + .00001);
             previous = value;
         }
         EXPECT_FLOAT_EQ(previous, 0);
         EXPECT_FALSE(eg.isActive());
     }
+}
+
+TEST(EGTimingTest, AssumedATaperMatchesCircuitAndRoundTrips) {
+    EXPECT_NEAR(EGTiming::timeConstant(0), .00396, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(.5), .44396, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(1), 4.40396, 1e-12);
+    for (auto id : {Param::Attack, Param::Decay, Param::Release})
+        for (int i = 0; i <= 1000; ++i) {
+            const float position = i / 1000.f;
+            EXPECT_NEAR(cs01::toNormalized(id, cs01::fromNormalized(id, position)), position, 1e-6);
+        }
 }

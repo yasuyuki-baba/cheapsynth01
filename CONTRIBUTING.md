@@ -122,3 +122,16 @@ ctest --preset win-native-release
 `mac-standalone`/`win-standalone` presets configure APP only. Both Debug and Release
 build/test presets are available. Preset builds stay in separate `build-*`
 directories and produce JUnit reports. Existing direct CMake commands remain valid.
+
+### VS Code
+
+Install the Microsoft C/C++ and CMake Tools extensions. Select a configure preset
+with CMake Tools and configure the project; IntelliSense obtains the active
+target's include paths and definitions from CMake Tools, including with Xcode and
+Visual Studio generators that do not produce `compile_commands.json`.
+
+To debug the standalone application, build `mac-native-debug` or
+`win-native-debug`, then select the matching `iPlug2 standalone` launch
+configuration. These configurations use the native presets' `build-*/out`
+products. For standalone-only presets or a custom build directory, adjust the
+launch configuration's `program` path to that build's output.

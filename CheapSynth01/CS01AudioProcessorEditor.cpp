@@ -3,6 +3,8 @@
 #if IPLUG_EDITOR
 #include "ui/PanelControls.h"
 #include "ui/OwnedKeyboardControl.h"
+#include "ui/EditorUtilities.h"
+#include "IBubbleControl.h"
 #include "KeyboardFocus.h"
 #include "IVNumberBoxControl.h"
 #endif
@@ -25,7 +27,9 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     g->AttachPopupMenuControl();
     g->EnableMouseOver(true);
     g->EnableTooltips(true);
+    g->SetScaleConstraints(.75f, 2.f);
     g->AttachCornerResizer(EUIResizerMode::Scale, false);
+    g->AttachBubbleControl(new IBubbleControl(text(12), handle, dim));
     const auto style = DEFAULT_STYLE.WithDrawShadows(false)
                            .WithRoundness(.08f)
                            .WithColor(kBG, background)
@@ -50,7 +54,14 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     };
     auto button = [g, style](IRECT bounds, const char* title, IActionFunction action,
                              int tag = kNoTag) {
-        return g->AttachControl(new IVButtonControl(bounds, action, title, style), tag);
+        // Custom actions replace IVButtonControl's default click animation, which
+        // also clears its pressed value. Retain it for every momentary button.
+        auto click = [action = std::move(action)](IControl* control) {
+            SplashClickActionFunc(control);
+            if (action)
+                action(control);
+        };
+        return g->AttachControl(new IVButtonControl(bounds, std::move(click), title, style), tag);
     };
     auto section = [g](IRECT bounds, const char* title) {
         g->AttachControl(new Section(bounds, title));
@@ -66,6 +77,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                           "Click the value to type; double-click the slider to reset. "
                           "Right-click for the DAW parameter menu where supported.";
         control->SetTooltip(help.c_str());
+        control->SetActionFunction(ShowBubbleVerticalActionFunc);
         return g->AttachControl(control, tag);
     };
     auto knob = [g, parameterStyle](IRECT bounds, Param parameter, const char* title) {
@@ -75,6 +87,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                           "Click the value to type; double-click the knob to reset. "
                           "Right-click for the DAW parameter menu where supported.";
         control->SetTooltip(help.c_str());
+        control->SetActionFunction(ShowBubbleVerticalActionFunc);
         return g->AttachControl(control);
     };
     auto choices = [g, choiceStyle](IRECT bounds, Param parameter,
@@ -182,6 +195,11 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                                     }));
         },
         DeletePreset);
+    g->AttachControl(new EditorMenuControl(IRECT(792, 28, 856, 56), style,
+                                           std::string("CheapSynth01 ") + PLUG_VERSION_STR + "\n" +
+                                               (GetAPI() == kAPIAPP ? "Standalone" : GetAPIStr()) +
+                                               "\n\n" + PLUG_COPYRIGHT_STR +
+                                               "\nBuilt with iPlug2."));
     button(IRECT(866, 28, 972, 56), "Import XML", [this](IControl*) {
         GetUI()->PromptForFile(
             dialogFile, dialogPath, EFileAction::Open, "xml",
@@ -204,6 +222,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
             monitorEnabled.store(enabled);
             GetUI()->GetControlWithTag(Keyboard)->Hide(!enabled);
             GetUI()->GetControlWithTag(Scope)->Hide(!enabled);
+            GetUI()->GetControlWithTag(OutputMeter)->Hide(!enabled);
             GetUI()->Resize(PLUG_WIDTH, enabled ? 640 : 400, GetUI()->GetDrawScale());
         },
         "", style, "KEYBOARD + MONITOR", "KEYBOARD + MONITOR"));
@@ -262,7 +281,14 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     auto* keyboard = new OwnedKeyboardControl(IRECT(20, 420, 808, 620), uiNotes);
     keyboard->SetBlackToWhiteRatios(.6f, .6f);
     g->AttachControl(keyboard, Keyboard)->Hide(true);
-    g->AttachControl(new IVScopeControl<1, 512>(IRECT(820, 420, 1220, 620), "Output",
+    g->AttachControl(new OutputMeterControl(IRECT(820, 420, 884, 620),
+                                            style.WithColor(kFG, cyan)
+                                                .WithColor(kX1, ink)
+                                                .WithColor(kX2, IColor(255, 235, 90, 72))
+                                                .WithShowValue(false)),
+                     OutputMeter)
+        ->Hide(true);
+    g->AttachControl(new IVScopeControl<1, 512>(IRECT(896, 420, 1220, 620), "Output",
                                                 style.WithColor(kFG, cyan)),
                      Scope)
         ->Hide(true);

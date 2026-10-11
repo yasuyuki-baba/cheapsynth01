@@ -2,6 +2,7 @@
 #include "ProgramManager.h"
 #include "HostProgramBank.h"
 #include "dsp/MidiQueue.h"
+#include "dsp/OutputMeter.h"
 #include "interaction/KeyboardInput.h"
 #include <gtest/gtest.h>
 #include <fstream>
@@ -460,18 +461,18 @@ TEST(EnvelopeTest, AttackDecayReleaseDurationsHoldAtAllRates) {
         eg.prepareToPlay(internal, 1);
         eg.startEnvelope();
         const int attack =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Attack)) * internal));
+            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Attack)) * 2 * internal));
         for (int i = 0; i < attack; ++i)
             eg.processSample();
         EXPECT_NEAR(eg.getLastOutputForTesting(), 1, 1.e-6);
-        const int decay =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Decay)) * internal));
+        const int decay = static_cast<int>(
+            std::ceil(static_cast<double>(p.get(Param::Decay)) * std::log(10000.) * internal));
         for (int i = 0; i < decay; ++i)
             eg.processSample();
         EXPECT_NEAR(eg.getLastOutputForTesting(), .4f, 1.e-6);
         eg.releaseEnvelope();
-        const int release =
-            static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Release)) * internal));
+        const int release = static_cast<int>(
+            std::ceil(static_cast<double>(p.get(Param::Release)) * std::log(10000.) * internal));
         for (int i = 0; i < release; ++i)
             eg.processSample();
         EXPECT_FALSE(eg.isActive());
@@ -839,6 +840,22 @@ TEST_F(EngineTest, FirstVariableLengthDenseMidiAndRouteChangesHaveNoHeapOperatio
     }
     countAllocations.store(false);
     EXPECT_TRUE(finite);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_EQ(deallocations.load(), 0);
+}
+
+TEST(OutputMeterTest, RenderAndMonitoringResetPerformNoHeapOperations) {
+    cs01::OutputMeter meter;
+    cs01::OutputMeter::Reading reading;
+    allocations.store(0);
+    deallocations.store(0);
+    countAllocations.store(true);
+    for (int i = 0; i < 48000; ++i) {
+        if (i == 12000)
+            meter.reset(96000.);
+        meter.process(i % 11 == 0 ? 1.1f : .1f, reading);
+    }
+    countAllocations.store(false);
     EXPECT_EQ(allocations.load(), 0);
     EXPECT_EQ(deallocations.load(), 0);
 }

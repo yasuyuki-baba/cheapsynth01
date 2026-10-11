@@ -81,7 +81,7 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 Current verification covers the portable DSP/state core, SDK interface boundaries,
 XML/host-program publication, keyboard ownership and source/native ZIP contracts.
-There are 200 portable CTest cases, eight VST3 boundary cases and three iPlug2
+There are 206 portable CTest cases, eight VST3 boundary cases and three iPlug2
 parameter-presentation cases. Fifteen Python packaging/signing tests and four
 conditional hardware equation tests run separately. Counts describe current
 coverage and do not establish equivalent sound or old-project compatibility.

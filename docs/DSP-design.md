@@ -35,7 +35,7 @@ internal circuitry.
 
 [Parameters.h](../CheapSynth01/core/Parameters.h) defines stable host IDs, ranges, defaults
 and skew mappings. Current ranges include LFO 0.8–21 Hz, PWM 0.6–12 Hz,
-glissando 0–0.208 seconds per semitone, and attack/decay/release 1 ms–2 s.
+glissando 0–0.208 seconds per semitone, and attack/decay/release RC time constants 3.96 ms–4.40396 s.
 Manual panel marks do not establish exact electrical taper or envelope seconds;
 these mappings remain provisional. Factory panel readings and their conversion
 are documented in [factory presets](Factory-presets.md).
@@ -47,26 +47,20 @@ must remain stable.
 
 ## Envelope and note gate
 
-[EGProcessor](../CheapSynth01/core/cs01synth/EGProcessor.cpp) keeps its level and branch
-state across retriggers and live timing edits. Each active exponential stage
-uses `level += (target - level) * coefficient`, with
-`coefficient = 1 - exp(-2 / (seconds * internal_sample_rate))`. Attack has a
-fixed target `1 / (1 - exp(-2))`; retriggering from residual charge shortens the
-remaining attack instead of starting a full-duration transition.
+[EGProcessor](../CheapSynth01/core/cs01synth/EGProcessor.cpp) retains level,
+branch targets and thresholds across retriggers and live timing edits. Attack,
+decay and release store RC time constants using an assumed A-taper resistance
+mapping. Each branch uses `level += (target - level) * (1 - exp(-dt/tau))`.
+Attack retains the provisional target `1 / (1 - exp(-2))`, reaching its peak from
+zero after `2*tau`. Decay and release finish at 0.0001 of their initial distance;
+these are software thresholds, not calibrated IC voltages.
 
-Decay/release targets derive from their entry level and selected endpoint.
-Timing edits change the coefficient and remaining time while preserving the
-current level, target and endpoint. Remaining threshold time is
-`(seconds / 2) * log(abs((target - level) / (target - endpoint)))`, rounded
-upward to samples. Zero-distance branches retain a reference clock; completed
-stages clamp to their endpoint. Sustain edits slew using decay time.
-
-The non-EG VCA gain has a separate note gate: a 1 ms implementation fade at
-note onset and an EG-owned release trajectory. Upstream oscillation can remain
-active while the final output is silent. The EG curve, stage targets, timing
-ranges and gate are product approximations, not calibrated IC voltages or
-switching behavior. [The circuit audit](hardware/EG-model-audit.md) records
-conditional equations and unresolved transistor details separately.
+The non-EG VCA gain has a separate note gate with a 1 ms onset fade and an
+EG-owned release clock. Upstream oscillation can remain active while final output
+is silent. The complete timing mapping, thresholds, maximum tail and verification
+scope are documented in [EG RC timing](EG-RC-timing.md). The
+[circuit audit](hardware/EG-model-audit.md) records conditional equations and
+unresolved transistor details separately.
 
 ## Filter models
 

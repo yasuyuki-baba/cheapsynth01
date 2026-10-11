@@ -371,3 +371,26 @@ TEST_F(PresetBehaviorTest, OverwriteQueryFindsFilesOutsideMenuAndRejectsInvalidN
     EXPECT_FALSE(manager.userPresetExists("../External"));
     EXPECT_FALSE(manager.userPresetExists("CON"));
 }
+
+TEST_F(PresetBehaviorTest, ClavinetAndSynthBassRetainAudibleDecayBeyondInitialClick) {
+    for (const char* filename : {"Clavinet.xml", "Synth_Bass.xml"}) {
+        const auto programs = manager.programs();
+        for (size_t i = 0; i < programs.size(); ++i)
+            if (programs[i].filename == filename)
+                ASSERT_TRUE(manager.setCurrentProgram(int(i)));
+        state.set(Param::BreathInput, 0);
+        for (double rate : {44100., 48000., 96000.}) {
+            SynthEngine engine(state);
+            engine.prepare(rate);
+            engine.handleMidi({0x90, 60, 127});
+            double energy = 0;
+            for (int sample = 0; sample < int(rate * .3); ++sample) {
+                const float value = engine.renderSample();
+                ASSERT_TRUE(std::isfinite(value));
+                if (sample >= int(rate * .1))
+                    energy += value * value;
+            }
+            EXPECT_GT(std::sqrt(energy / (rate * .2)), .00001) << filename << " at " << rate;
+        }
+    }
+}

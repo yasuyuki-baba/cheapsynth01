@@ -43,8 +43,8 @@ Production uses a [stateful exponential EG](../DSP-design.md#envelope-and-note-g
 behavioral VCF/VCA models and empirical control curves. The independent
 [note gate](../DSP-design.md#envelope-and-note-gate), numerical recovery and regression tests
 establish software behavior; they do not establish physical circuit equivalence.
-The 1 ms–2 s EG range is a reference-time mapping, not a measured hardware RC
-range. Retriggers retain residual state and time edits recalculate remaining time.
+The [EG RC timing mapping](../EG-RC-timing.md) uses assumed A-taper resistance
+and software thresholds, not measured potentiometer or IC behavior. Retriggers retain residual state and time edits recalculate remaining time.
 
 The [TC7476BP logic record](TC7476BP-online-investigation.md) preserves the
 part-specific pin assignment, truth table and supply limits. Those records

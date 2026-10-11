@@ -1,11 +1,8 @@
 {
     "configurations": [
         {
-            "name": "Mac",
-            "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
-            ],
-            "cStandard": "c23",
+            "name": "iPlug2 CMake",
+            "configurationProvider": "ms-vscode.cmake-tools",
             "cppStandard": "c++20"
         }
     ],
