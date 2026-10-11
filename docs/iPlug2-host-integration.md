@@ -28,7 +28,7 @@ Saving before a queued selection is rendered serializes its requested patch and
 identity, with the live volume. After application, edits to that patch are saved.
 Panel preset/import and successful XML session restore supersede queued host
 selection. Session output remains XML; the internal request format is not a new
-persisted session format. Legacy raw/binary JUCE XML decoding remains supported.
+persisted session format. State and preset payloads use the current XML format.
 
 The processor overrides `OnRestoreState()` to schedule UI work. Parameters are
 atomic; `OnIdle()` updates controls, selection labels and filter visibility.
@@ -52,7 +52,7 @@ remain non-real-time operations; scalar automation/MIDI edits remain independent
 
 ## Evidence and remaining gates
 
-The portable suite has 72 cases (69 correctness regressions and three
+The portable suite has 69 cases (66 correctness regressions and three
 observations). Patch tests deliberately stall a writer, publish 20,000 concurrent
 changes, serialize during publication, and check cancellation, note-reset
 ordering and allocation-free boundary copies. Prepared-host regressions cover
@@ -62,34 +62,29 @@ sound, invalid chunks, pending-session identity and instance isolation.
 Eight additional tests use the real VST3 SDK interfaces with simulated host
 queues/streams. They cover queue IDs, every MIDI channel, original point offsets,
 invalid program values/IDs, read-only COM interfaces, short state reads, bypass
-trailers, malformed/oversized state and legacy binary payload forwarding. Native
+trailers, malformed/oversized state and raw XML/empty stream handling. Native
 product CI runs these in addition to the core suite. They do not load a plugin
 binary, instrument SDK callback threads, open an editor, or establish DAW behavior.
 Actual host tests must still exercise AU/VST3 lists, panel/host synchronization,
 zero-frame callbacks, concurrent state/automation and restoration with/without UI.
 
-## Legacy automation identifiers
+## Native parameter and state APIs
 
-Plugin identities are retained. The [numeric inventory](iPlug2-legacy-parameter-ids.csv)
-derives 24 AUv2/VST3 IDs from frozen main `32b91c8`, JUCE 9.0.3 and default
-`JUCE_USE_STUDIO_ONE_COMPATIBLE_PARAMETERS=1`: 32-bit multiply-by-31 string hashes
-with the high bit cleared. Original CMake does not force legacy index IDs.
+As agreed on 2026-10-11, JUCE-era project, automation and binary-state
+compatibility is outside scope. Plugin identities remain unchanged, but all
+formats use their standard iPlug2 parameter IDs. No legacy ID adapter, hash
+manifest, migration aliases or old-session fixture gate is maintained.
 
-`PluginAPI.h` translates VST3 metadata, normalized/plain/string queries, edit
-notifications, MIDI assignment and input queues in both directions. Program and
-bypass IDs and JUCE's 16×130 MIDI window are preserved too. The early WIP index
-IDs are accepted as input aliases; only JUCE IDs are advertised. Unknown IDs are
-ignored instead of becoming accidental MIDI CCs. The adapter leaves the pinned
-SDK unchanged. It preserves the SDK's last-point processing semantics.
+`PluginAPI.h` inherits metadata, parameter queries, edit notifications, MIDI
+assignment and program metadata directly from iPlug2. Its input-queue filter
+passes the original native parameter/MIDI queues through unchanged, checks ID
+bounds and handles program selection missing from the pinned SDK's process path.
+It does not allocate or modify host queues. Normal automation retains the SDK's
+last-point processing semantics.
 
 The VST3 state entry reads the complete bounded stream, including final short
 reads, separates iPlug2's four-byte bypass trailer and restores the XML payload.
-Legacy JUCE binary XML is forwarded to its length-checked decoder; JUCE-private
-bypass metadata and VST2-compatible envelopes are not yet migrated. The default
-SDK entry previously sought past the trailer because our XML reader consumed
-the whole chunk. Native state round trips and old-project fixtures remain gates.
-
-AU parameter-address translation is still pending. CLAP IDs must be captured
-independently from the original `clap-juce-extensions` pin `55525c9`; do not infer
-them from AU/VST3. Old-project sound/automation fixtures remain the final
-compatibility gate for every format.
+The default SDK entry previously sought past the trailer because our XML reader
+consumed the whole chunk. New-version state round trips, automation and host
+program selection in actual native hosts remain validation gates. JUCE binary
+XML, private tails and VST2 envelopes are not supported.

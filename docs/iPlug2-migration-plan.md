@@ -25,18 +25,23 @@ The second batch adds immutable per-instance prepared factory/user host programs
 lock-free request publication, block-boundary application and idle UI/cache
 refresh. Pending host selections save requested sound/identity before rendering.
 Nine additional core regressions bring the suite to 62 cases. This is partial
-phase 3 progress: arbitrary XML state publication, native wrapper instrumentation
-and legacy automation translation remain open. See [host integration scope](iPlug2-host-integration.md).
+phase 3 progress: arbitrary XML state publication and native wrapper instrumentation
+were still open after that batch. See [host integration scope](iPlug2-host-integration.md).
 Previous commit `6a082be` now has successful Windows/macOS native build and core CI
 evidence; its lint job lacked ripgrep, addressed with a Git enumeration fallback.
 
 The third batch publishes complete XML patches and their note-reset serial to
 separate render parameters at block boundaries. Audio callbacks make one bounded
-snapshot attempt; saving retries outside the real-time path. VST3 public IDs are
-translated in both directions without changing the SDK, and its state entry
-handles native bypass trailers and final short stream reads. There are 72 core
-cases plus eight SDK-interface boundary cases. Actual plugin/DAW fixtures, AU/CLAP
-mapping, GUI lifecycle coverage and full 272-case assertion parity remain open.
+snapshot attempt; saving retries outside the real-time path. The VST3 state entry
+handles native bypass trailers and final short stream reads.
+
+Scope updated on 2026-10-11: JUCE project/automation/binary-state compatibility is
+not required. Legacy ID adapters, import decoders, mapping inventories and
+old-session fixture gates have been removed. Use iPlug2's native IDs and APIs;
+keep the previously agreed plugin identities. There are 69 core cases plus eight
+SDK-interface boundary cases. Current-version host/state/automation validation,
+GUI lifecycle coverage and behavioral test reconciliation remain open. Retire
+compatibility-only historical tests explicitly instead of reproducing them.
 
 ## Frozen comparison points
 
@@ -58,8 +63,8 @@ HEAD was found during this audit. The PR also needs reconciliation with newer ma
 ## Scope and invariants
 
 - Windows/macOS standalone, VST3 and CLAP; macOS AUv2. Linux remains excluded.
-- Retain CheapSynth01 naming, current plugin identities, preset paths and legacy
-  state import. Do not generate fresh IDs while duplicating an OOS template.
+- Retain CheapSynth01 naming, current plugin identities and preset paths. Use
+  iPlug2 native parameter IDs; JUCE binary-state/project compatibility is excluded.
 - Preserve the chosen standard iPlug2 interactions and CS01-inspired panel,
   including upright CheapSynth01 lettering and striped Synth lettering.
 - Keep the independent core and its device-free test target.
@@ -72,7 +77,7 @@ HEAD was found during this audit. The PR also needs reconciliation with newer ma
 | Priority | Area / evidence in audited migration | Gap and required outcome |
 | --- | --- | --- |
 | P0 | Branch divergence; `Source/CS01Synth`, inactive `Tests/legacy-juce` | Main added DSP, real-time, preset and UI fixes after the branch point. Port their behavior and regression assertions; do not merge JUCE implementation mechanically. |
-| P0 | `Source/CS01AudioProcessor.cpp`, `Source/Parameters.h` | Plugin IDs are retained. VST3 legacy IDs have a bidirectional adapter; AU/CLAP remain pending. XML ID compatibility alone does not restore DAW automation. Establish a format-specific compatibility manifest and old-session fixtures. |
+| Out of scope | JUCE host-ID/state migration | Removed by user decision on 2026-10-11. Use iPlug2 native parameter IDs and current XML state; plugin identities remain as agreed. |
 | P0 | Processor construction uses one default host preset | The UI has factory/user presets, but the former host program catalogue/current-program behavior is absent. Restore supported host program interfaces and stable selection identity. |
 | P0 | `Source/ProgramManager.cpp`, processor state callbacks | Review callback threads, coherent patch publication and UI dispatch. Current state synchronization can call `SendParameterValueFromDelegate`, documented by iPlug2 as unsuitable for the audio thread. Validate wrapper callbacks before deciding the implementation; this is a risk identified by inspection, not an observed crash. |
 | P1 | Tone/noise, EG and VCA implementations | Newer main's continuous upstream synthesis, retrigger/time-edit branch handling and gate/arithmetic corrections are not incorporated. Bring these behaviors and their tests across. |
@@ -94,7 +99,7 @@ HEAD was found during this audit. The PR also needs reconciliation with newer ma
    test, release tooling, documentation or obsolete JUCE implementation.
 3. Resolve PR conflicts by carrying applicable behavior across. Preserve explicit
    product decisions made during this migration.
-4. Capture old parameter IDs/order/flags/groups, program identities and representative
+4. Record native parameter IDs/order/flags/groups, program identities and representative
    state/DAW projects before changing the wrapper further.
 
 Gate: every applicable main change has an implementation/test destination or a
@@ -158,10 +163,10 @@ converter differences have documented thresholds and no unexplained sound change
 
 ### 3. Restore host, preset and real-time integration
 
-- Map legacy host parameter identifiers per format, including order, flags,
-  groups and normalization. Verify old projects retain sound and automation.
-  Keep SDK changes out of the submodule working tree; if an adapter/patch is
-  necessary, record it reproducibly and test each affected format.
+- Use the standard iPlug2 parameter IDs and public host APIs per format. Verify
+  current-version parameter order, flags, normalization and automation behavior.
+  Keep the SDK pin and checkout unchanged; limit wrapper overrides to required
+  native functionality such as VST3 preset queues and XML state framing.
 - Publish prepared preset/state snapshots at audio block boundaries. Keep disk I/O,
   parsing, locks and allocation outside real-time program selection. Defer UI
   updates through supported iPlug2 mechanisms after determining callback threads.
@@ -171,10 +176,10 @@ converter differences have documented thresholds and no unexplained sound change
 - Restore deliberate overwrite behavior using safe replacement. Test malformed
   state, failed writes/imports, Unicode paths and Windows filename restrictions;
   preserve both existing files and selection on failure.
-- Exercise all parameters, legacy raw/binary XML, automation without an editor,
+- Exercise all parameters, current XML state, automation without an editor,
   concurrent preset/state changes and close/reopen with multiple instances.
 
-Gate: native old-session fixtures pass for VST3/AU/CLAP as applicable, including
+Gate: native current-version host tests pass for VST3/AU/CLAP as applicable, including
 program selection, state round trips, automation and reported latency compensation.
 Thread/real-time checks cover the actual wrapper paths.
 
@@ -235,7 +240,6 @@ behavior must remain covered. Main's Python release-validation and equation chec
 reference fixtures, sanitizer tooling and manual evidence are additional work;
 the 272-row Google Test inventory is not the entire verification surface.
 
-Implement phases as small reviewable commits/PRs. Compatibility investigation can
-begin with phase 0; finish structural changes before investing in native UI harness
-paths. Do not mark a phase complete from archived tests, test count alone, cross
+Implement phases as small reviewable commits/PRs. Finish structural changes
+before investing in native UI harness paths. Do not mark a phase complete from archived tests, test count alone, cross
 compilation alone or validators that skipped the relevant UI paths.

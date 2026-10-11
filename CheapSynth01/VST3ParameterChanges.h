@@ -1,56 +1,24 @@
 #pragma once
-#include "LegacyHostIds.h"
+#include "Parameters.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
+#include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include <cstring>
 
 namespace cs01 {
-// Borrowed, read-only views used only inside one SDK process() call. The pinned
-// SDK consumes queues sequentially without retaining them; no queue is copied,
-// resized, allocated or modified. COM references never transfer stack ownership.
-class VST3QueueView final : public Steinberg::Vst::IParamValueQueue {
-   public:
-    void bind(Steinberg::Vst::IParamValueQueue* queue, Steinberg::Vst::ParamID id) noexcept {
-        original = queue;
-        internalId = id;
-    }
-    Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid,
-                                                 void** result) override {
-        if (!result)
-            return Steinberg::kInvalidArgument;
-        *result = nullptr;
-        if (!std::memcmp(iid, Steinberg::FUnknown_iid, 16) ||
-            !std::memcmp(iid, Steinberg::Vst::IParamValueQueue_iid, 16)) {
-            *result = static_cast<Steinberg::Vst::IParamValueQueue*>(this);
-            return Steinberg::kResultOk;
-        }
-        return Steinberg::kNoInterface;
-    }
-    Steinberg::uint32 PLUGIN_API addRef() override {
-        return 1;
-    }
-    Steinberg::uint32 PLUGIN_API release() override {
-        return 1;
-    }
-    Steinberg::Vst::ParamID PLUGIN_API getParameterId() override {
-        return internalId;
-    }
-    Steinberg::int32 PLUGIN_API getPointCount() override {
-        return original->getPointCount();
-    }
-    Steinberg::tresult PLUGIN_API getPoint(Steinberg::int32 index, Steinberg::int32& offset,
-                                           Steinberg::Vst::ParamValue& value) override {
-        return original->getPoint(index, offset, value);
-    }
-    Steinberg::tresult PLUGIN_API addPoint(Steinberg::int32, Steinberg::Vst::ParamValue,
-                                           Steinberg::int32&) override {
-        return Steinberg::kNotImplemented;
-    }
+// Constants checked against the pinned iPlug2 wrapper by PluginAPI.h. All
+// public IDs are the SDK's standard indices, without JUCE hashes or aliases.
+inline constexpr Steinberg::Vst::ParamID vstBypassParam = 65536;
+inline constexpr Steinberg::Vst::ParamID vstProgramParam = 65537;
+inline constexpr Steinberg::Vst::ParamID vstMidiParamStart = 65538;
+inline constexpr unsigned vstMidiParamCount = 16 * Steinberg::Vst::kCountCtrlNumber;
+constexpr bool validVstParameterId(Steinberg::Vst::ParamID id) noexcept {
+    return id < parameterCount || id == vstBypassParam || id == vstProgramParam ||
+           (id >= vstMidiParamStart && id - vstMidiParamStart < vstMidiParamCount);
+}
 
-   private:
-    Steinberg::Vst::IParamValueQueue* original = nullptr;
-    Steinberg::Vst::ParamID internalId = 0;
-};
-
+// Borrow the original queues without changing their IDs, points or offsets.
+// Intercept program selection because the pinned SDK's process queue does not
+// handle it. Unknown IDs must not accidentally become MIDI controllers.
 template <typename PresetChange>
 class VST3ParameterChangesView final : public Steinberg::Vst::IParameterChanges {
    public:
@@ -81,10 +49,10 @@ class VST3ParameterChangesView final : public Steinberg::Vst::IParameterChanges 
         auto* queue = original.getParameterData(index);
         if (!queue)
             return nullptr;
-        const int id = vstInternalId(queue->getParameterId());
-        if (id < 0)
+        const auto id = queue->getParameterId();
+        if (!validVstParameterId(id))
             return nullptr;
-        if (id == static_cast<int>(internalVstProgram)) {
+        if (id == vstProgramParam) {
             Steinberg::int32 offset;
             Steinberg::Vst::ParamValue value;
             const auto count = queue->getPointCount();
@@ -93,8 +61,7 @@ class VST3ParameterChangesView final : public Steinberg::Vst::IParameterChanges 
                 onPreset(value);
             return nullptr;
         }
-        view.bind(queue, static_cast<Steinberg::Vst::ParamID>(id));
-        return &view;
+        return queue;
     }
     Steinberg::Vst::IParamValueQueue* PLUGIN_API addParameterData(const Steinberg::Vst::ParamID&,
                                                                   Steinberg::int32&) override {
@@ -104,6 +71,5 @@ class VST3ParameterChangesView final : public Steinberg::Vst::IParameterChanges 
    private:
     Steinberg::Vst::IParameterChanges& original;
     PresetChange onPreset;
-    VST3QueueView view;
 };
 }  // namespace cs01

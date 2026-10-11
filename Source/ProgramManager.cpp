@@ -279,15 +279,6 @@ std::string ProgramManager::getStateInformation(const PreparedProgram* selected,
 }
 bool ProgramManager::setStateInformation(std::string_view bytes) {
     std::lock_guard lock(mutex);
-    // Legacy JUCE XML chunk: little-endian magic 0x21324356 and a byte length.
-    if (bytes.size() >= 8 && bytes.substr(0, 4) == std::string_view("VC2!", 4)) {
-        uint32_t length = 0;
-        for (unsigned i = 0; i < 4; ++i)
-            length |= static_cast<uint32_t>(static_cast<unsigned char>(bytes[4 + i])) << (8 * i);
-        if (length > bytes.size() - 8)
-            return false;
-        bytes = bytes.substr(8, length);
-    }
     return loadXml(bytes, true);
 }
 bool ProgramManager::isValidPresetName(std::string_view name) {
