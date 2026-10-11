@@ -179,11 +179,10 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
         engine.handleMidi(cs01::MidiMessage::pitchWheel(1, value));
     }
     uiNotes.consume([this](auto message) { engine.handleUiMidi(message); });
+    // Even an empty callback must apply events due at its block boundary.
+    midi.consumeThrough(0, [this](auto message) { engine.handleMidi(message); });
     for (int i = 0; i < frames; ++i) {
-        while (!midi.empty() && midi.peek().offset <= i) {
-            engine.handleMidi(midi.peek().message);
-            midi.remove();
-        }
+        midi.consumeThrough(i, [this](auto message) { engine.handleMidi(message); });
         const float output = engine.renderSample();
         for (int channel = 0; channel < NOutChansConnected(); ++channel)
             outputs[channel][i] = output;

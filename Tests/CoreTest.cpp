@@ -2,6 +2,7 @@
 #include "ProgramManager.h"
 #include "HostProgramBank.h"
 #include "DSP/MidiQueue.h"
+#include "UI/KeyboardInput.h"
 #include <gtest/gtest.h>
 #include <fstream>
 #include <iterator>
@@ -259,6 +260,38 @@ TEST(MidiQueueTest, StableOffsetsAndBlockBoundaryCarry) {
     queue.flush(64);
     EXPECT_EQ(queue.peek().offset, 0);
     EXPECT_TRUE(queue.peek().message.isNoteOff());
+}
+TEST(MidiQueueTest, NegativeOffsetsKeepArrivalOrderAtTheClampedBoundary) {
+    cs01::MidiQueue queue;
+    queue.add(0, noteOn(60));
+    queue.add(-10, noteOn(64));
+    queue.add(0, noteOn(67));
+    for (const int expected : {60, 64, 67}) {
+        ASSERT_FALSE(queue.empty());
+        EXPECT_EQ(queue.peek().offset, 0);
+        EXPECT_EQ(queue.peek().message.data1, expected);
+        queue.remove();
+    }
+    EXPECT_TRUE(queue.empty());
+}
+TEST(MidiQueueTest, EmptyBoundaryAppliesDueNotesAndPanicWithoutAdvancingFutureEvents) {
+    cs01::ParameterState parameters;
+    SynthEngine engine(parameters);
+    engine.prepare(48000);
+    cs01::MidiQueue queue;
+    queue.add(0, noteOn(60));
+    queue.add(1, noteOn(72));
+    queue.consumeThrough(0, [&](auto message) { engine.handleMidi(message); });
+    queue.flush(0);
+    EXPECT_EQ(engine.currentNote(), 60);
+    ASSERT_FALSE(queue.empty());
+    EXPECT_EQ(queue.peek().offset, 1);
+    queue.add(0, cs01::MidiMessage{0xb0, 120, 0});
+    queue.consumeThrough(0, [&](auto message) { engine.handleMidi(message); });
+    EXPECT_FALSE(engine.externalNotes().any());
+    queue.consumeThrough(1, [&](auto message) { engine.handleMidi(message); });
+    EXPECT_EQ(engine.currentNote(), 72);
+    EXPECT_TRUE(queue.empty());
 }
 TEST(MidiQueueTest, OverflowIsReportedWithoutAllocation) {
     cs01::MidiQueue queue;
@@ -723,4 +756,26 @@ TEST(ParametersTest, PatchSnapshotAndBoundaryCopyDoNotAllocate) {
     EXPECT_TRUE(successful);
     EXPECT_EQ(allocations.load(), 0);
     EXPECT_EQ(audio.stateResetSerial(), 4096u);
+}
+
+TEST(KeyboardInputTest, AudioDrainAndSourceOwnershipDoNotAllocate) {
+    cs01::ParameterState parameters;
+    SynthEngine engine(parameters);
+    engine.prepare(48000);
+    cs01::UiNoteBridge bridge;
+    allocations.store(0);
+    countAllocations.store(true);
+    for (int i = 0; i < 4096; ++i) {
+        const int note = 36 + i % 48;
+        engine.handleMidi(noteOn(note));
+        bridge.set(note, 100, cs01::UiNoteBridge::PC);
+        bridge.consume([&](auto message) { engine.handleUiMidi(message); });
+        bridge.releaseAll();
+        bridge.consume([&](auto message) { engine.handleUiMidi(message); });
+        bridge.publishExternal(engine.externalNotes());
+        engine.renderSample();
+        engine.handleMidi(noteOff(note));
+    }
+    countAllocations.store(false);
+    EXPECT_EQ(allocations.load(), 0);
 }

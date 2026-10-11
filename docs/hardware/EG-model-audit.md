@@ -1,8 +1,10 @@
+> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+
 # CS-01 EG model: implementation decision
 
 > This document records circuit evidence and conditional model analysis.
 > For the current provisional production envelope policy, see
-> [Stateful provisional EG](../software/EG-stateful-model.md). The equations below do not
+> [Stateful provisional EG](../legacy-juce/software/EG-stateful-model.md). The equations below do not
 > establish hardware calibration of that software model.
 
 ## Attack transcription: unresolved inconsistency
@@ -18,7 +20,7 @@ not settled hardware behavior.
 
 Production now preserves a fixed provisional attack target across retriggers
 and changes active-stage speed without redefining the target. See
-[current EG policy](../software/EG-stateful-model.md). This adopts residual-state handling,
+[current EG policy](../legacy-juce/software/EG-stateful-model.md). This adopts residual-state handling,
 not the unresolved Tr13 mapping or illustrative nonlinear device parameters.
 
 ## Recorded passive connections
@@ -202,7 +204,7 @@ points. The attack and decay branches cannot be assumed to alternate as a conven
 software ADSR on the recorded evidence. No circuit-derived production
 integration is established.
 
-The production EG uses the [stateful exponential software model](../software/EG-stateful-model.md).
+The production EG uses the [stateful exponential software model](../legacy-juce/software/EG-stateful-model.md).
 Its lifecycle, stage timing and parameter-update behavior are implemented and
 regression-tested. Curvature k = 2 is provisional; it is not claimed to reproduce
 verified analog charging/discharging trajectories. Circuit-derived integration
@@ -483,7 +485,7 @@ evidence. Unidentified ON/OFF states and analog thresholds remain unknown.
 
 ## Current software and analysis boundary
 
-Production uses the [provisional stateful exponential EG](../software/EG-stateful-model.md).
+Production uses the [provisional stateful exponential EG](../legacy-juce/software/EG-stateful-model.md).
 Its software curvature and regression tests do not establish hardware calibration.
 The recorded passive paths, conditional logic states and reduced stage equations
 are distinct from unresolved transistor branch voltages, sustain loading and

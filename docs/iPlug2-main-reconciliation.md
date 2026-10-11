@@ -72,3 +72,8 @@ docs/README.md. Old session and automation compatibility remains explicitly out
 of scope. Framework-specific optimization/locking/listener probes remain historical
 evidence, not current native product guarantees. Real plugin/DAW/device checks
 are deferred; native compilation and archive verification continue in CI.
+
+Additional MIDI coverage fixes negative-offset stable ordering and applies due
+offset-zero events during empty callbacks. Future events retain iPlug2 queue
+carry semantics; the legacy beyond-block clamp policy is intentionally not
+restored. The current suite contains 92 core cases plus eight SDK-interface cases.

@@ -1,3 +1,5 @@
+> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+
 # Yamaha CS-series VCF (IG00156): recorded background
 
 This concerns IG00156 in related CS-series products, not the CS-01's IG02610
@@ -19,5 +21,5 @@ Optional source provenance is recorded in [the source catalog](Source-catalog.md
 
 These related-product interpretations do not establish IG02610/IG05630
 equivalence. Current software architecture and its limits
-are documented in [Original VCF design](../software/Original-VCF-behavioral-design.md)
-and [CS-01II VCF model](../software/CS01II-VCF-model.md).
+are documented in [Original VCF design](../legacy-juce/software/Original-VCF-behavioral-design.md)
+and [CS-01II VCF model](../legacy-juce/software/CS01II-VCF-model.md).
