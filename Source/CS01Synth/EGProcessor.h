@@ -25,6 +25,14 @@ class EGProcessor {
         return lastOutput;
     }
 
+    float getNoteGate() const {
+        return static_cast<float>(noteGateLevel);
+    }
+    int64_t getReleaseSamplesRemaining() {
+        updateADSR();
+        return stage == Stage::release ? remainingSamples : 0;
+    }
+
     // Methods to control ADSR from outside
     void startEnvelope();
     void stopEnvelopeImmediately();
@@ -44,6 +52,11 @@ class EGProcessor {
     double stageCoefficient = 0.0;
     int64_t remainingSamples = 0;
     float lastOutput = 0.0f;
+    double stageReferenceSeconds = 0.0;
+    double noteGateLevel = 0.0, noteGateTarget = 0.0, noteGateIncrement = 0.0;
+    int64_t noteGateRemainingSamples = 0;
     void beginStage(Stage next, double endpoint, double seconds);
+    void updateStageTiming(double seconds);
+    void beginNoteGate(double target, double seconds);
     float nextEnvelopeSample();
 };

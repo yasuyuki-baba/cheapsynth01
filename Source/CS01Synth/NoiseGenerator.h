@@ -23,11 +23,13 @@ class NoiseGenerator : public ISoundGenerator {
         stopNote(false);
     }
     float renderSample() override;
+    float renderContinuousSample();
 
     // ISoundGenerator implementation - note handling methods
     void startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) override;
     void stopNote(bool allowTailOff) override;
     PlaybackState getPlaybackState() const override;
+    void setReleaseSamplesRemaining(int samples) override;
     void restorePlaybackState(const PlaybackState& state) override;
     int lastNote = 0;
     void changeNote(int midiNoteNumber) override;

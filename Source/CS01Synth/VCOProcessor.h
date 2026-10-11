@@ -31,7 +31,7 @@ class VCOProcessor {
     float processSample(float lfo) {
         tone.updateBlockRateParameters();
         tone.setLfoValue(lfo * parameters.get(ParameterIds::modDepth));
-        return current->renderSample();
+        return current == &tone ? tone.renderContinuousSample() : noise.renderContinuousSample();
     }
 
    private:

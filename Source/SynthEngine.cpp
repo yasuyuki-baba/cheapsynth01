@@ -33,6 +33,8 @@ void SynthEngine::handleMidi(const cs01::MidiMessage& message) {
         panic();
 }
 float SynthEngine::renderSample() {
+    vco.getSoundGenerator()->setReleaseSamplesRemaining(
+        static_cast<int>(eg.getReleaseSamplesRemaining()));
     vco.applyPendingGeneratorChange();
     midi.setSoundGenerator(vco.getSoundGenerator());
     float output = 0;
@@ -40,12 +42,14 @@ float SynthEngine::renderSample() {
         const float modulation = lfo.processSample();
         const bool pitchTarget = parameters.get(ParameterIds::lfoTarget) == 0;
         const float envelope = eg.processSample();
+        vco.getSoundGenerator()->setReleaseSamplesRemaining(
+            static_cast<int>(eg.getReleaseSamplesRemaining()));
         float audio = vco.processSample(pitchTarget ? modulation : 0);
         if (parameters.get(ParameterIds::filterType) == 0)
             audio = original.processSample(audio, envelope, pitchTarget ? 0 : modulation);
         else
             audio = modern.processSample(audio, envelope, pitchTarget ? 0 : modulation);
-        converter.push(vca.processSample(audio, envelope));
+        converter.push(vca.processSample(audio, envelope, eg.getNoteGate()));
         // Sample the internal clock at multiples of four. FIR delay is exactly 16 frames.
         if (i == 0)
             output = converter.output();

@@ -11,6 +11,9 @@ void NoiseGenerator::prepare(double rate) {
 float NoiseGenerator::renderSample() {
     if (!isActive())
         return 0;
+    return renderContinuousSample();
+}
+float NoiseGenerator::renderContinuousSample() {
     randomState ^= randomState << 13;
     randomState ^= randomState >> 17;
     randomState ^= randomState << 5;
@@ -86,5 +89,17 @@ void NoiseGenerator::restorePlaybackState(const PlaybackState& state) {
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
         currentlyPlayingNote = 0;
+    }
+}
+
+// The production engine's EG owns the release clock, including live edits.
+void NoiseGenerator::setReleaseSamplesRemaining(int samples) {
+    if (!tailOff)
+        return;
+    tailOffCounter = 0;
+    tailOffDuration = std::max(0, samples);
+    if (samples <= 0) {
+        tailOff = false;
+        noteOn = false;
     }
 }
