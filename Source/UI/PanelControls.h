@@ -228,27 +228,43 @@ class PresetDisplay final : public ITextControl {
         : ITextControl(bounds, "Default", text(13), COLOR_BLACK),
           programs(std::move(programs)),
           current(std::move(current)),
-          select(std::move(select)) {}
+          select(std::move(select)) {
+        SetIgnoreMouse(false);
+        SetTooltip("Click to choose from all Factory and User presets.");
+    }
+    void Draw(IGraphics& g) override {
+        g.FillRect(COLOR_BLACK, mRECT);
+        g.DrawRect(mMouseIsOver ? cyan : dim, mRECT);
+        g.DrawText(mText.WithAlign(EAlign::Near), GetStr(),
+                   IRECT(mRECT.L + 8.f, mRECT.T, mRECT.R - 28.f, mRECT.B));
+        const float x = mRECT.R - 14.f;
+        const float y = mRECT.MH();
+        g.DrawLine(cyan, x - 4.f, y - 2.f, x, y + 2.f);
+        g.DrawLine(cyan, x, y + 2.f, x + 4.f, y - 2.f);
+    }
     void OnMouseDown(float, float, const IMouseMod&) override {
         menu.Clear();
         snapshot = programs();
         const auto selected = current();
-        auto* factory = new IPopupMenu();
-        auto* user = new IPopupMenu();
-        menu.AddItem("Factory", factory);
-        menu.AddItem("User", user);
-        for (size_t i = 0; i < snapshot.size(); ++i) {
-            const auto& program = snapshot[i];
-            const bool checked =
-                program.type == selected.type && program.filename == selected.filename;
-            auto* category = program.type == PresetType::Factory ? factory : user;
-            category->AddItem(new IPopupMenu::Item(program.name.c_str(),
-                                                   checked ? IPopupMenu::Item::kChecked
-                                                           : IPopupMenu::Item::kNoFlags,
-                                                   static_cast<int>(i)));
+        for (const auto type : {PresetType::Factory, PresetType::User}) {
+            menu.AddItem(new IPopupMenu::Item(type == PresetType::Factory ? "Factory" : "User",
+                                              IPopupMenu::Item::kDisabled, -1));
+            bool hasPresets = false;
+            for (size_t i = 0; i < snapshot.size(); ++i) {
+                const auto& program = snapshot[i];
+                if (program.type != type)
+                    continue;
+                hasPresets = true;
+                const bool checked =
+                    program.type == selected.type && program.filename == selected.filename;
+                menu.AddItem(new IPopupMenu::Item(program.name.c_str(),
+                                                  checked ? IPopupMenu::Item::kChecked
+                                                          : IPopupMenu::Item::kNoFlags,
+                                                  static_cast<int>(i)));
+            }
+            if (!hasPresets)
+                menu.AddItem(new IPopupMenu::Item("No presets", IPopupMenu::Item::kDisabled, -1));
         }
-        if (user->NItems() == 0)
-            menu.GetItem(1)->SetEnabled(false);
         GetUI()->CreatePopupMenu(*this, menu, mRECT);
     }
     void OnPopupMenuSelection(IPopupMenu* selected, int) override {
