@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import stat
+import subprocess
 import tempfile
 import unittest
 import warnings
@@ -121,6 +122,28 @@ class ArchiveContractTest(unittest.TestCase):
         self.write()
         with self.assertRaisesRegex(ValueError, 'Missing product'):
             pkg.verify(self.path, COMMIT, VERSION, 'Windows')
+
+
+class RestoredNoticeTest(unittest.TestCase):
+    def test_only_pinned_notice_text_and_line_endings_are_accepted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            name = 'Dependencies/IPlug/CLAP_HELPERS/readme.txt'
+            path = root / name
+            path.parent.mkdir(parents=True)
+            original = b'Place the pinned SDK here\nLicense remains in its source tree\n'
+            path.write_bytes(original)
+            for command in (['init'], ['config', 'core.autocrlf', 'false'], ['add', '.'],
+                            ['-c', 'user.name=Archive Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-m', 'fixture']):
+                subprocess.run(['git', '-C', str(root), *command], check=True,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.assertTrue(pkg.restored_notice_matches(root, name))
+            path.write_bytes(original.replace(b'\n', b'\r\n'))
+            self.assertTrue(pkg.restored_notice_matches(root, name))
+            path.write_bytes(b'Changed notice text\r\n')
+            self.assertFalse(pkg.restored_notice_matches(root, name))
+            self.assertFalse(pkg.restored_notice_matches(root, 'Dependencies/IPlug/CLAP_HELPERS/LICENSE'))
+            self.assertFalse(pkg.restored_notice_matches(root, '../readme.txt'))
 
 
 if __name__ == '__main__':

@@ -35,3 +35,8 @@ platform generator. CI independently rebuilds/tests the extracted core and SDK
 interface tests with FetchContent disconnected, verifies native archives, and
 checks every release ZIP against the tag version and checkout SHA before producing
 SHA256SUMS.txt. Archive checks run on ordinary branch/PR builds as well as tags.
+
+Windows Git text attributes can report the restored CLAP SDK placeholder notices
+as modified. Only the named SDK README/readme placeholders may differ in LF/CRLF
+representation, and their complete text must still match iPlug2's fixed Git blob.
+Other SDK modifications continue to block packaging.

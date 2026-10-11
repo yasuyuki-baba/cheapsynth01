@@ -37,6 +37,7 @@ class ProgramManager {
     static bool isValidPresetName(std::string_view name);
     bool deleteUserPreset(int index);
     bool renameUserPreset(int index, std::string_view name);
+    bool renameUserPreset(const Program& identity, std::string_view name);
     void refreshUserPresets();
     std::string getStateInformation(const PreparedProgram* selected = nullptr,
                                     bool pending = false) const;

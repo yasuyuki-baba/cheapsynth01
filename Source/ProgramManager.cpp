@@ -340,6 +340,16 @@ bool ProgramManager::deleteUserPreset(int index) {
         setCurrentProgram(0);
     return true;
 }
+bool ProgramManager::renameUserPreset(const Program& identity, std::string_view name) {
+    std::lock_guard lock(mutex);
+    if (identity.type != PresetType::User)
+        return false;
+    const auto found = std::find_if(allPresets.begin(), allPresets.end(), [&](const Program& item) {
+        return item.type == PresetType::User && item.filename == identity.filename;
+    });
+    return found != allPresets.end() &&
+           renameUserPreset(static_cast<int>(found - allPresets.begin()), name);
+}
 bool ProgramManager::renameUserPreset(int index, std::string_view name) {
     std::lock_guard lock(mutex);
     if (index < 0 || index >= static_cast<int>(allPresets.size()) ||
@@ -349,7 +359,14 @@ bool ProgramManager::renameUserPreset(int index, std::string_view name) {
     if (path.empty())
         return false;
     std::error_code ec;
-    std::filesystem::rename(directory / cs01::utf8Path(allPresets[index].filename), path, ec);
+    const auto source = directory / cs01::utf8Path(allPresets[index].filename);
+    // Rename must never replace another preset (POSIX rename would overwrite it).
+    if (source != path && std::filesystem::exists(std::filesystem::symlink_status(path, ec)))
+        return false;
+    if (ec && ec != std::errc::no_such_file_or_directory)
+        return false;
+    ec.clear();
+    std::filesystem::rename(source, path, ec);
     if (ec)
         return false;
     allPresets[index].filename = pathText(path.filename());

@@ -15,6 +15,7 @@ constexpr int index(cs01::Param id) {
 }
 }  // namespace
 void CS01AudioProcessor::layoutEditor(IGraphics* g) {
+    editorSession.begin();
     using namespace cs01::ui;
     using cs01::Param;
     g->AttachPanelBackground(background);
@@ -128,7 +129,7 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         }
     });
     button(IRECT(596, 36, 646, 59), "Save", [this, display](IControl*) {
-        display()->PromptName("My Preset", [this](const char* name) {
+        display()->PromptName("My Preset", editorSession.wrap([this](const char* name) {
             if (!programs.saveCurrentStateAsPreset(name))
                 reportPresetError();
             else {
@@ -136,22 +137,22 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                 syncHostProgramIndex();
             }
             updateProgramLabel();
-        });
+        }));
     });
     button(
         IRECT(651, 36, 711, 59), "Rename",
         [this, display](IControl*) {
-            const auto list = programs.programs();
-            display()->PromptName(
-                list[programs.getCurrentProgram()].name.c_str(), [this](const char* name) {
-                    if (!programs.renameUserPreset(programs.getCurrentProgram(), name))
-                        reportPresetError();
-                    else {
-                        hostPrograms->cancel();
-                        syncHostProgramIndex();
-                    }
-                    updateProgramLabel();
-                });
+            const auto target = programs.currentProgramIdentity();
+            display()->PromptName(target.name.c_str(),
+                                  editorSession.wrap([this, target](const char* name) {
+                                      if (!programs.renameUserPreset(target, name))
+                                          reportPresetError();
+                                      else {
+                                          hostPrograms->cancel();
+                                          syncHostProgramIndex();
+                                      }
+                                      updateProgramLabel();
+                                  }));
         },
         RenamePreset);
     button(
@@ -166,16 +167,17 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         },
         DeletePreset);
     button(IRECT(866, 28, 972, 56), "Import XML", [this](IControl*) {
-        GetUI()->PromptForFile(dialogFile, dialogPath, EFileAction::Open, "xml",
-                               [this](const WDL_String& file, const WDL_String&) {
-                                   if (!file.GetLength())
-                                       return;
-                                   if (programs.loadPresetFile(cs01::utf8Path(file.Get()))) {
-                                       syncParameters(true);
-                                       updateFilterControls();
-                                   } else
-                                       reportPresetError();
-                               });
+        GetUI()->PromptForFile(
+            dialogFile, dialogPath, EFileAction::Open, "xml",
+            editorSession.wrap([this](const WDL_String& file, const WDL_String&) {
+                if (!file.GetLength())
+                    return;
+                if (programs.loadPresetFile(cs01::utf8Path(file.Get()))) {
+                    syncParameters(true);
+                    updateFilterControls();
+                } else
+                    reportPresetError();
+            }));
     });
     g->AttachControl(new IVToggleControl(
         IRECT(1000, 20, 1220, 64),
@@ -272,6 +274,7 @@ void CS01AudioProcessor::OnUIOpen() {
     updateFilterControls();
 }
 void CS01AudioProcessor::OnUIClose() {
+    editorSession.end();
     releaseEditorNotes();
     monitorEnabled.store(false);
 }

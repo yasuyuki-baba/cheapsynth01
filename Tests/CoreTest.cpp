@@ -530,6 +530,28 @@ TEST_F(StateTest, SavingSameNameOverwritesSoundWithoutCreatingAnotherPreset) {
     ASSERT_TRUE(manager.loadPresetFile(directory / "lead.xml"));
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 500);
 }
+TEST_F(StateTest, RenameUsesCapturedIdentityAndCannotReplaceAnotherPreset) {
+    parameters.set(Param::Cutoff, 250);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("z-target"));
+    ASSERT_TRUE(manager.setCurrentProgram(7));
+    const auto target = manager.currentProgramIdentity();
+    parameters.set(Param::Cutoff, 800);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("a-other"));
+    ASSERT_TRUE(manager.setCurrentProgram(7));
+    const auto other = manager.currentProgramIdentity();
+    ASSERT_TRUE(manager.renameUserPreset(target, "renamed"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, other.filename);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 800);
+    EXPECT_TRUE(std::filesystem::is_regular_file(directory / "renamed.xml"));
+    EXPECT_FALSE(std::filesystem::exists(directory / "z-target.xml"));
+    EXPECT_FALSE(manager.renameUserPreset(target, "stale"));
+    ASSERT_TRUE(manager.renameUserPreset(other, "renamed"));
+    EXPECT_TRUE(std::filesystem::is_regular_file(directory / "renamed (1).xml"));
+    ASSERT_TRUE(manager.loadPresetFile(directory / "renamed.xml"));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 250);
+    ASSERT_TRUE(manager.loadPresetFile(directory / "renamed (1).xml"));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 800);
+}
 TEST_F(StateTest, FailedLoadsAndWritesPreserveSelectionAndExistingFile) {
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("good"));
     ASSERT_TRUE(manager.setCurrentProgram(1));

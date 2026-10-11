@@ -12,6 +12,7 @@
 #include "SynthEngine.h"
 #include "DSP/MidiQueue.h"
 #include "UI/KeyboardInput.h"
+#include "UI/EditorSession.h"
 #include "ISender.h"
 #if IPLUG_EDITOR
 #include "IControls.h"
@@ -72,6 +73,7 @@ class CS01AudioProcessor final : public cs01::PluginAPI {
     void releaseEditorNotes();
     void updateKeyboardInput();
     void OnParamChangeUI(int index, iplug::EParamSource source) override;
+    cs01::EditorSession editorSession;
     WDL_String dialogFile, dialogPath;
 #endif
 };
