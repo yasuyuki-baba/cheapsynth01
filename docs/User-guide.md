@@ -76,8 +76,10 @@ sample rate, and its output converter adds 16 host samples of reported latency.
 
 ## Factory and User Presets
 
-The **MEMORY** menu separates **Factory** (Default and six named sounds) and
-**User** presets. A checkmark identifies the current preset.
+Click the preset name or its downward arrow under **MEMORY** to open the full
+preset list. **Factory** (Default and six named sounds) and **User** headings
+group the names in one menu. A checkmark identifies the current preset; an empty
+User section shows **No presets**.
 Select a name or use `<` / `>` to move through the list. The named sounds and
 manual panel settings are listed in [factory presets](Factory-presets.md).
 

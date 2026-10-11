@@ -54,7 +54,14 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     };
     auto button = [g, style](IRECT bounds, const char* title, IActionFunction action,
                              int tag = kNoTag) {
-        return g->AttachControl(new IVButtonControl(bounds, action, title, style), tag);
+        // Custom actions replace IVButtonControl's default click animation, which
+        // also clears its pressed value. Retain it for every momentary button.
+        auto click = [action = std::move(action)](IControl* control) {
+            SplashClickActionFunc(control);
+            if (action)
+                action(control);
+        };
+        return g->AttachControl(new IVButtonControl(bounds, std::move(click), title, style), tag);
     };
     auto section = [g](IRECT bounds, const char* title) {
         g->AttachControl(new Section(bounds, title));
