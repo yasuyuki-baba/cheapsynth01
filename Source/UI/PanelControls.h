@@ -153,20 +153,11 @@ class HardwarePanel final : public IControl {
     }
     void Draw(IGraphics& g) override {
         g.FillRect(handle, mRECT);
-        g.FillRoundRect(bezel, IRECT(8, 72, 1232, 392), 4);
-        g.FillRect(background, IRECT(18, 80, 1222, 382));
-        g.DrawLine(ink, 10, 74, 1230, 74);
-        g.DrawLine(IColor(255, 76, 84, 82), 10, 390, 1230, 390);
+        g.FillRect(background, IRECT(0, 72, 1240, 392));
         g.DrawLine(cyan, 20, 68, 1220, 68, nullptr, 2);
-        for (float x : {13.f, 1227.f}) {
-            for (float y : {78.f, 386.f}) {
-                g.FillCircle(handle, x, y, 2.f);
-                g.DrawLine(dim, x - 1, y, x + 1, y);
-            }
-        }
         // The optional keyboard/monitor drawer continues the casing below the panel.
-        g.FillRect(background, IRECT(8, 408, 1232, 632));
-        g.DrawLine(bezel, 8, 408, 1232, 408, nullptr, 2);
+        g.FillRect(background, IRECT(0, 408, 1240, 640));
+        g.DrawLine(bezel, 0, 408, 1240, 408, nullptr, 2);
     }
 };
 
