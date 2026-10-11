@@ -22,7 +22,10 @@ a held note. See [MIDI assignments and panic messages](MIDI-Implementation.md).
 
 ## Keyboard and Controls
 
-Enable **KEYBOARD + MONITOR** to display the keyboard and output scope. Click the
+Enable **KEYBOARD + MONITOR** to display the keyboard, output scope and
+output meter. The meter shows RMS level and a peak held for 500 ms; a red peak
+indicates output above 0 dBFS. It measures the final mono signal sent to the
+outputs, which is duplicated when stereo output is selected. Click the
 keys or play with the PC keys `A W S E D F T G Y H U J K O L`, starting at MIDI note
 48. `Z` lowers the PC-keyboard octave and `X` raises it. PC playing requires the
 editor to have focus and pauses during text entry. Hiding the keyboard, changing
@@ -31,7 +34,8 @@ externally held MIDI notes.
 
 Sliders and knobs use standard iPlug2 interactions: drag or scroll to adjust,
 Shift/Ctrl for fine adjustment, click the displayed value to type, and double-click
-the control to reset. Pitch bend range number boxes support typed editing.
+the control to reset. A temporary bubble shows the value and unit during slider
+and knob adjustment. Pitch bend range number boxes support typed editing.
 Filter tabs **I** and **II** select Original and Modern; both use the label **RES**.
 
 The defaults below are parameter initialization values. **Default** restores the
@@ -140,3 +144,14 @@ Right-clicking a parameter control uses iPlug2's host context menu in VST3 hosts
 that support it. Available commands depend on the DAW. Double-click a slider or
 knob to reset its default, or click its value to type a number in the shown unit.
 Native editor and DAW interaction verification remains pending.
+
+## Display Scale and Help
+
+Open **Menu** in the header to select **Display scale** from 75% to 200%. The
+current preset scale is checked; the submenu title also shows the current scale
+when adjusted by dragging the editor corner. Changing scale keeps the keyboard
+and monitor open or closed. This setting affects the editor only.
+
+The menu also opens the user guide, project website and issue tracker in your
+browser. **About CheapSynth01** shows the product version and active format
+(standalone, VST3, CLAP or AU), plus the copyright and iPlug2 framework credit.

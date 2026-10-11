@@ -42,9 +42,9 @@ runtime coverage. Audited main is an ancestor of the migration branch. See
 | CI/package/release preparation | Core Debug/Release and native Windows/macOS jobs, JUnit/full logs with bounded failure summaries, complete source/native ZIP hash/mode/source/version/tag verification, offline source rebuild; opt-in signing plan and notarization instructions | 15 Python archive/signing fixtures; native compile/ZIP checks; no release/credentials created |
 | Documentation/research | Current MIDI/host/build/preset/release docs; old software paths/measurements explicitly historical; portable onset WAV/CSV export, retained RC and conditional hardware equations | Four Python equation checks and three C++ research cases; no hardware calibration claim |
 
-The active suite is 200 portable cases (186 correctness regressions, including
+The active suite is 204 portable cases (190 correctness regressions, including
 three research cases, and 14 observations), plus eight simulated SDK-interface
-cases and three real iPlug2 parameter-presentation cases: 211 total. Counts are
+cases and three real iPlug2 parameter-presentation cases: 215 total. Counts are
 not one-to-one historical assertion parity. The
 inventory separates 39 deferred native cases and reasoned retirement of removed
 JUCE interfaces, test doubles, old compatibility and Linux probes.
