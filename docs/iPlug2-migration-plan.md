@@ -38,7 +38,7 @@ handles native bypass trailers and final short stream reads.
 Scope updated on 2026-10-11: JUCE project/automation/binary-state compatibility is
 not required. Legacy ID adapters, import decoders, mapping inventories and
 old-session fixture gates have been removed. Use iPlug2's native IDs and APIs;
-keep the previously agreed plugin identities. There are 95 core cases plus eight
+keep the previously agreed plugin identities. There are 99 core cases plus eight
 SDK-interface boundary cases. Current-version host/state/automation validation,
 GUI lifecycle coverage and behavioral test reconciliation remain open. Retire
 compatibility-only historical tests explicitly instead of reproducing them.

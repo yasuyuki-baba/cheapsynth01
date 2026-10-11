@@ -43,6 +43,10 @@ void VCAProcessor::releaseResources() {
 }
 
 float VCAProcessor::processSample(float audio, float eg, float noteGate) {
+    if (!std::isfinite(audio) || !std::isfinite(eg) || !std::isfinite(noteGate)) {
+        releaseResources();
+        return 0.0f;
+    }
     egDepthControl.setTargetValue(parameters.get(ParameterIds::vcaEgDepth));
     audio = inputHighPass.processSample(audio);
     audio = dcBlocker.processSample(audio);
@@ -50,6 +54,11 @@ float VCAProcessor::processSample(float audio, float eg, float noteGate) {
                                    parameters.get(ParameterIds::breathInput),
                                    parameters.get(ParameterIds::breathVca),
                                    std::pow(parameters.get(ParameterIds::volume), 2.5f), noteGate);
-    return highFreqRolloff.processSample(
+    const float output = highFreqRolloff.processSample(
         outputCoupling.processSample(tr7Buffer.processSample(bufferCoupling.processSample(audio))));
+    if (!std::isfinite(output)) {
+        releaseResources();
+        return 0.0f;
+    }
+    return output;
 }
