@@ -100,7 +100,7 @@ graph TD
   the engine at audio block boundaries. MIDI events retain their sample offsets,
   and held notes use highest-note priority.
 
-The core is in [Source](Source), and the iPlug2 wrapper/editor is in
+The core is in [CheapSynth01/Core](CheapSynth01/Core), and the iPlug2 wrapper/editor is in
 [CheapSynth01](CheapSynth01). See [MIDI control flow](docs/MIDI-realtime-control.md)
 and [host presets and state](docs/iPlug2-host-integration.md) for implementation details.
 

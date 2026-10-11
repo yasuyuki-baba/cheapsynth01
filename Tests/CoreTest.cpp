@@ -366,7 +366,7 @@ TEST_F(StateTest, LoadsAllExistingFactoryPresets) {
     for (int i = 0; i < 7; ++i)
         EXPECT_TRUE(manager.setCurrentProgram(i));
     for (const auto& file : std::filesystem::directory_iterator(
-             std::filesystem::path(CS01_SOURCE_DIR) / "Source/Resources/Presets"))
+             std::filesystem::path(CS01_SOURCE_DIR) / "CheapSynth01/Core/Resources/Presets"))
         if (file.path().extension() == ".xml")
             EXPECT_TRUE(manager.loadPresetFile(file.path()));
 }

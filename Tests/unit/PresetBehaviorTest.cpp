@@ -44,8 +44,8 @@ TEST_F(PresetBehaviorTest, EveryEmbeddedFactoryControlReloadsAndPreservesLiveInp
         SCOPED_TRACE(programs[preset].filename);
         EXPECT_FALSE(programs[preset].name.empty());
         tinyxml2::XMLDocument xml;
-        const auto file = std::filesystem::path(CS01_SOURCE_DIR) / "Source/Resources/Presets" /
-                          programs[preset].filename;
+        const auto file = std::filesystem::path(CS01_SOURCE_DIR) /
+                          "CheapSynth01/Core/Resources/Presets" / programs[preset].filename;
         ASSERT_EQ(xml.LoadFile(file.string().c_str()), tinyxml2::XML_SUCCESS);
         const auto* root = xml.FirstChildElement("Parameters");
         ASSERT_NE(root, nullptr);

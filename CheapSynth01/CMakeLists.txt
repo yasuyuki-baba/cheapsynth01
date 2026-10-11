@@ -1,3 +1,10 @@
+# Keep the framework-independent target inside the product directory. SDK
+# platform settings have already been initialized by the root CMake entry.
+add_subdirectory(Core)
+if(NOT BUILD_PLUGINS)
+    return()
+endif()
+
 # Native products share the framework-independent core.
 set(formats APP VST3 CLAP)
 if(APPLE)
