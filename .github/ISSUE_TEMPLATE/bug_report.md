@@ -24,7 +24,7 @@ assignees: ''
 <!-- If applicable, add screenshots or audio samples to help explain your problem -->
 
 ## Environment
-- OS: <!-- e.g. Windows 10, macOS 13.1, Ubuntu 22.04 -->
+- OS: <!-- Windows or macOS, including version -->
 - DAW/Host: <!-- e.g. Ableton Live 11, Logic Pro X, FL Studio 21 -->
 - Plugin Format: <!-- e.g. VST3, AU, Standalone -->
 - CheapSynth01 Version: <!-- e.g. 1.0.0 -->

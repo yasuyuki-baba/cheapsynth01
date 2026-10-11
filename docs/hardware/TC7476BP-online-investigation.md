@@ -1,3 +1,5 @@
+> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+
 # TC7476BP: recorded logic and supply limits
 
 This document preserves the part-specific findings used by the EG analysis.
@@ -63,6 +65,6 @@ network, fixed clock/J/K connections and conditional latch states. Its Tr13
 attack-drive mapping is electrically inconsistent as transcribed. The logical
 rules above do not establish a complete physical EG operating-state model.
 
-Production uses the [provisional stateful exponential EG](../software/EG-stateful-model.md).
+Production uses the [provisional stateful exponential EG](../legacy-juce/software/EG-stateful-model.md).
 These logic records do not calibrate software stage durations, curvature or
 transistor/FET operating points.

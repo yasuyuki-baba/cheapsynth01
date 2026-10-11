@@ -1,0 +1,269 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "IPLUG_DEPLOY_PLUGINS": "OFF"
+      },
+      "name": "base"
+    },
+    {
+      "name": "mac",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Xcode",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "mac-core",
+      "inherits": "mac",
+      "cacheVariables": {
+        "BUILD_PLUGINS": "OFF"
+      }
+    },
+    {
+      "name": "mac-native",
+      "inherits": "mac",
+      "cacheVariables": {
+        "BUILD_PLUGINS": "ON",
+        "IPLUG2_UNIVERSAL": "ON"
+      }
+    },
+    {
+      "name": "win",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "architecture": "x64"
+    },
+    {
+      "name": "win-core",
+      "inherits": "win",
+      "cacheVariables": {
+        "BUILD_PLUGINS": "OFF"
+      }
+    },
+    {
+      "name": "win-native",
+      "inherits": "win",
+      "cacheVariables": {
+        "BUILD_PLUGINS": "ON"
+      }
+    },
+    {
+      "name": "mac-standalone",
+      "inherits": "mac-native",
+      "cacheVariables": {
+        "STANDALONE_ONLY": "ON"
+      }
+    },
+    {
+      "name": "win-standalone",
+      "inherits": "win-native",
+      "cacheVariables": {
+        "STANDALONE_ONLY": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mac-core-debug",
+      "configurePreset": "mac-core",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "mac-core-release",
+      "configurePreset": "mac-core",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "mac-native-debug",
+      "configurePreset": "mac-native",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "mac-native-release",
+      "configurePreset": "mac-native",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "win-core-debug",
+      "configurePreset": "win-core",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "win-core-release",
+      "configurePreset": "win-core",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "win-native-debug",
+      "configurePreset": "win-native",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "win-native-release",
+      "configurePreset": "win-native",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "mac-standalone-debug",
+      "configurePreset": "mac-standalone",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "mac-standalone-release",
+      "configurePreset": "mac-standalone",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "win-standalone-debug",
+      "configurePreset": "win-standalone",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "win-standalone-release",
+      "configurePreset": "win-standalone",
+      "configuration": "Release",
+      "jobs": 2
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "mac-core-debug",
+      "configurePreset": "mac-core",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-core/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "mac-core-release",
+      "configurePreset": "mac-core",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-core/test-results-Release.xml"
+      }
+    },
+    {
+      "name": "mac-native-debug",
+      "configurePreset": "mac-native",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-native/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "mac-native-release",
+      "configurePreset": "mac-native",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-native/test-results-Release.xml"
+      }
+    },
+    {
+      "name": "win-core-debug",
+      "configurePreset": "win-core",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-core/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "win-core-release",
+      "configurePreset": "win-core",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-core/test-results-Release.xml"
+      }
+    },
+    {
+      "name": "win-native-debug",
+      "configurePreset": "win-native",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-native/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "win-native-release",
+      "configurePreset": "win-native",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-native/test-results-Release.xml"
+      }
+    },
+    {
+      "name": "mac-standalone-debug",
+      "configurePreset": "mac-standalone",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-standalone/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "mac-standalone-release",
+      "configurePreset": "mac-standalone",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-mac-standalone/test-results-Release.xml"
+      }
+    },
+    {
+      "name": "win-standalone-debug",
+      "configurePreset": "win-standalone",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-standalone/test-results-Debug.xml"
+      }
+    },
+    {
+      "name": "win-standalone-release",
+      "configurePreset": "win-standalone",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build-win-standalone/test-results-Release.xml"
+      }
+    }
+  ]
+}

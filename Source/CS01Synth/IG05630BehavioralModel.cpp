@@ -64,10 +64,10 @@ float IG05630BehavioralModel::processSample(float sample) {
     const float output = secondSection.processSample(firstOutput, g, secondDamping);
     feedbackOutput = output;
 
-    // Numerical safety: recover states and bound output; not hardware saturation.
     if (!std::isfinite(output)) {
         reset();
         return 0.0f;
     }
-    return std::clamp(output, -SafetyParameters::maximumOutput, SafetyParameters::maximumOutput);
+    return std::clamp(output, -EmpiricalParameters::maximumOutput,
+                      EmpiricalParameters::maximumOutput);
 }

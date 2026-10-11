@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include "DSP/Primitives.h"
 
 /**
  * ISoundGenerator - Interface for sound generation with MIDI note handling
@@ -18,8 +18,6 @@ class ISoundGenerator {
     virtual void changeNote(int midiNoteNumber) = 0;
     virtual void pitchWheelMoved(int newPitchWheelValue) = 0;
     virtual bool isActive() const = 0;
-    // Audio-thread contract: EG owns release duration in the whole graph.
-    virtual void setReleaseSamplesRemaining(int samples) {}
     virtual int getCurrentlyPlayingNote() const = 0;
     struct PlaybackState {
         bool held = false;
@@ -31,11 +29,11 @@ class ISoundGenerator {
         return {};
     }
     virtual void restorePlaybackState(const PlaybackState&) {}
+    virtual void setReleaseSamplesRemaining(int samples) {}
 
     // Sound generation methods
-    virtual void prepare(const juce::dsp::ProcessSpec& spec) = 0;
-    virtual void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample,
-                                 int numSamples) = 0;
+    virtual void prepare(double sampleRate) = 0;
+    virtual float renderSample() = 0;
 
     // LFO modulation - with default implementation
     virtual void setLfoValue(float value) {}

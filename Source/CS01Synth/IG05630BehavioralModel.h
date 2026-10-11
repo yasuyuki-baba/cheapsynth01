@@ -17,10 +17,6 @@ class IG05630BehavioralModel {
         // not a verified property of the hardware.
         static constexpr float maximumFeedbackGain = 1.2f;
         static constexpr float resonanceCurve = 4.0f;
-    };
-
-    // Implementation protection, not an IC transfer characteristic.
-    struct SafetyParameters {
         static constexpr float maximumOutput = 1.5f;
     };
 
