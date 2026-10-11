@@ -2,6 +2,7 @@
 #include "ProgramManager.h"
 #include "HostProgramBank.h"
 #include "DSP/MidiQueue.h"
+#include "DSP/OutputMeter.h"
 #include "UI/KeyboardInput.h"
 #include <gtest/gtest.h>
 #include <fstream>
@@ -839,6 +840,22 @@ TEST_F(EngineTest, FirstVariableLengthDenseMidiAndRouteChangesHaveNoHeapOperatio
     }
     countAllocations.store(false);
     EXPECT_TRUE(finite);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_EQ(deallocations.load(), 0);
+}
+
+TEST(OutputMeterTest, RenderAndMonitoringResetPerformNoHeapOperations) {
+    cs01::OutputMeter meter;
+    cs01::OutputMeter::Reading reading;
+    allocations.store(0);
+    deallocations.store(0);
+    countAllocations.store(true);
+    for (int i = 0; i < 48000; ++i) {
+        if (i == 12000)
+            meter.reset(96000.);
+        meter.process(i % 11 == 0 ? 1.1f : .1f, reading);
+    }
+    countAllocations.store(false);
     EXPECT_EQ(allocations.load(), 0);
     EXPECT_EQ(deallocations.load(), 0);
 }

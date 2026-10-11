@@ -84,10 +84,10 @@ portable behavior/assertion review, current XML/host-program publication,
 keyboard ownership, build/CI reports, complete source/native ZIP contracts,
 optional signing preparation and current documentation.
 
-There are 200 portable cases: 186 correctness regressions (including three
+There are 204 portable cases: 190 correctness regressions (including three
 hypothetical RC research equations) and 14 observations. Eight additional cases
 use real VST3 SDK interface types with simulated queues/streams. Three more
-exercise real iPlug2 parameter presentation, for 211 total.
+exercise real iPlug2 parameter presentation, for 215 total.
 The 272-row historical inventory has no unreviewed/partial dispositions. It records
 retained assertions, adapted contracts, observations, reasoned retirement and
 39 deferred native-runtime/UI cases. Counts do not claim one-to-one assertion
