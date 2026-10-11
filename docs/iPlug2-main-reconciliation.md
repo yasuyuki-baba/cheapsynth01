@@ -76,7 +76,7 @@ are deferred; native compilation and archive verification continue in CI.
 Additional MIDI coverage fixes negative-offset stable ordering and applies due
 offset-zero events during empty callbacks. Future events retain iPlug2 queue
 carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 126 core cases plus eight SDK-interface cases.
+restored. The current suite contains 135 core cases plus eight SDK-interface cases.
 
 Editor session guards now invalidate asynchronous replies on close, control
 hierarchy replacement and owner destruction. Rename requests resolve captured
@@ -123,7 +123,7 @@ UI verification, with the current SDK publication path described in the CSV.
 Four more EGContinuityTest cases retain the frozen reference's live attack bounds,
 release branch target after time edits with sustain zero, edited-sustain retriggers
 during and after release, and lifecycle/observation reset across sample rates.
-The current suite is 134 cases (126 core plus eight SDK-interface); test counts
+The current suite is 143 cases (135 core plus eight SDK-interface); test counts
 are not a statement of full historical assertion parity. Remaining unreviewed
 cases stay pending in the inventory.
 
@@ -148,5 +148,31 @@ separate treatment. In particular, upstream VCO audio intentionally free-runs;
 its inactive note state does not mean its continuous rendering API outputs zero.
 Engine/VCA-gate silence is a separate contract. No native UI behavior is inferred.
 
-The current suite contains 134 cases (126 core plus eight SDK-interface).
+The current suite contains 143 cases (135 core plus eight SDK-interface).
 Remaining historical cases stay unreviewed or partial as recorded in the CSV.
+
+## Preset and filter-model assertion reconciliation
+
+Nine PresetBehaviorTest cases retain factory XML/control reload, independent
+manual panel readings, finite audible sound without breath input, user-file
+round trips, session performance exclusions, selected-file identity through
+sorted insertion/rename/deletion and retention of edited sound. The seven factory
+sounds are rendered through the independent core at 44.1/48/96kHz. All 18 factory
+XML controls are perturbed before loading each embedded sound. The six manual
+sound tables retain their original .02 normalized-position tolerance; this is
+software preset provenance, not a hardware sound calibration claim.
+
+Thirteen historical ProgramManager/ProductionState/PresetSelection cases are
+recorded as fully replaced. Current XML schema and production parameter ranges
+replace JUCE binary envelopes and minimal fixture ranges; old project/binary
+compatibility remains out of scope. Selection tests use filenames and preset
+type rather than an index that changes when another file sorts ahead of it.
+
+The two existing filter-model suites were diffed against the full frozen main
+sources. Seven regressions retain their original counts, rates, stimuli and
+bounds/tolerances, including saturation, impulse decay and four-pole response.
+Three characterization cases retain their measurement loops, but are separately
+marked replaced-core-observation; output reports do not prove historical native
+performance or hardware calibration. The current 143-case suite contains 135
+core cases plus eight simulated SDK-interface cases; native runtime checks remain
+deferred. Remaining inventory rows retain their earlier pending/partial status.
