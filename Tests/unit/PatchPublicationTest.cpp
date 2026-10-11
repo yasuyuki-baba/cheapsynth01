@@ -66,13 +66,26 @@ TEST(PatchPublicationTest, WholePatchAndNoteResetSerialStayTogetherAcrossConcurr
     const auto a = patch(.2f), b = patch(.8f);
     ASSERT_TRUE(control.setPatch(a, allParameters, true));
     ASSERT_TRUE(control.tryCopyTo(audio));
-    std::atomic<bool> done{false};
+    std::atomic<bool> done{false}, checkpoint{false}, resume{false};
     std::thread writer([&] {
-        for (int i = 0; i < 20000; ++i)
+        for (int i = 0; i < 20000; ++i) {
             control.setPatch(i % 2 ? a : b, allParameters, true);
+            if (i == 0) {
+                checkpoint.store(true);
+                while (!resume.load())
+                    std::this_thread::yield();
+            }
+        }
         done.store(true);
     });
-    unsigned mixed = 0, successful = 0;
+    // A bounded reader may legitimately reject every contended attempt. Make
+    // one completed publication observable independently of scheduler timing,
+    // then retain the full simultaneous-publication stress phase.
+    const bool reached = waitFor(checkpoint);
+    const bool copied = reached && control.tryCopyTo(audio);
+    unsigned mixed = copied && (audio.snapshot() != b || audio.stateResetSerial() != 2) ? 1u : 0u;
+    unsigned successful = copied ? 1u : 0u;
+    resume.store(true);
     do {
         if (!control.tryCopyTo(audio))
             continue;
@@ -84,6 +97,8 @@ TEST(PatchPublicationTest, WholePatchAndNoteResetSerialStayTogetherAcrossConcurr
             ++mixed;
     } while (!done.load());
     writer.join();
+    EXPECT_TRUE(reached);
+    EXPECT_TRUE(copied);
     ASSERT_TRUE(control.tryCopyTo(audio));
     EXPECT_GT(successful, 0u);
     EXPECT_EQ(mixed, 0u);
