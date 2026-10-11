@@ -100,7 +100,7 @@ graph TD
   the engine at audio block boundaries. MIDI events retain their sample offsets,
   and held notes use highest-note priority.
 
-The core is in [CheapSynth01/Core](CheapSynth01/Core), and the iPlug2 wrapper/editor is in
+The core is in [CheapSynth01/core](CheapSynth01/core), and the iPlug2 wrapper/editor is in
 [CheapSynth01](CheapSynth01). See [MIDI control flow](docs/MIDI-realtime-control.md)
 and [host presets and state](docs/iPlug2-host-integration.md) for implementation details.
 
@@ -110,7 +110,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for dependencies, Windows/macOS build com
 CMake presets, standalone-only builds and device settings. The project follows
 [iPlug2OOS](https://github.com/iPlug2/iPlug2OOS), with a pinned SDK and separate core.
 
-The [test guide](Tests/README.md) describes DSP, MIDI, presets, concurrency,
+The [test guide](CheapSynth01/tests/README.md) describes DSP, MIDI, presets, concurrency,
 SDK-interface and archive checks. Core tests can run without building a plugin.
 Actual native plugin, editor and device verification is still pending for this
 migration; see [migration status](docs/iPlug2-migration-plan.md).

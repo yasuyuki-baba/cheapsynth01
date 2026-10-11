@@ -30,8 +30,7 @@ if(BUILD_PLUGINS)
 endif()
 # Create core targets after SDK platform settings (notably universal macOS
 # architectures) have been initialized, so all linked objects agree.
-add_subdirectory(CheapSynth01)
 if(BUILD_TESTING)
     enable_testing()
-    add_subdirectory(Tests)
 endif()
+add_subdirectory(CheapSynth01)

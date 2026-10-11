@@ -212,7 +212,7 @@ remains deferred.
 
 ## Verified candidate
 
-`Tests/unit/RCEnvelopeModelTest.cpp` evaluates an ideal isolated RC section:
+`CheapSynth01/tests/unit/RCEnvelopeModelTest.cpp` evaluates an ideal isolated RC section:
 
     V(t) = target + (V(0) - target) * exp(-t / tau)
     tau = R * C
@@ -441,9 +441,9 @@ replace the production EG or extend this approximation across region changes.
 
 ### Reproducible checks and boundary of the approximation
 
-`Tests/research/test_eg_decay_equations.py` preserves the algebra checks as a
+`CheapSynth01/tests/research/test_eg_decay_equations.py` preserves the algebra checks as a
 standalone Python 3 unittest suite. Run it from the repository root with
-`python3 Tests/research/test_eg_decay_equations.py -v`. It is not part of the CMake
+`python3 CheapSynth01/tests/research/test_eg_decay_equations.py -v`. It is not part of the CMake
 regression runner and has no third-party dependencies.
 
 The suite checks 72 illustrative parameter combinations for Tr11 current

@@ -1,6 +1,9 @@
 # Keep the framework-independent target inside the product directory. SDK
 # platform settings have already been initialized by the root CMake entry.
-add_subdirectory(Core)
+add_subdirectory(core)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 if(NOT BUILD_PLUGINS)
     return()
 endif()
@@ -21,8 +24,8 @@ iplug_add_plugin(CheapSynth01
         CS01AudioProcessor.h
         CS01AudioProcessorEditor.cpp
         KeyboardFocus.cpp
-        UI/PanelControls.h
-        UI/OwnedKeyboardControl.h
+        ui/PanelControls.h
+        ui/OwnedKeyboardControl.h
         resources/resource.h
     RESOURCES resources/fonts/Roboto-Regular.ttf
     FORMATS ${formats}

@@ -21,10 +21,10 @@ fi
 
 list_source_files() {
     if command -v rg >/dev/null 2>&1; then
-        rg --files -0 CheapSynth01 Tests
+        rg --files -0 CheapSynth01
     else
         # GitHub's macOS runners do not necessarily have ripgrep installed.
-        git ls-files -z -- CheapSynth01 Tests
+        git ls-files -z -- CheapSynth01
     fi
 }
 

@@ -10,9 +10,9 @@
 #include "HostProgramBank.h"
 #include <memory>
 #include "SynthEngine.h"
-#include "DSP/MidiQueue.h"
-#include "UI/KeyboardInput.h"
-#include "UI/EditorSession.h"
+#include "dsp/MidiQueue.h"
+#include "interaction/KeyboardInput.h"
+#include "interaction/EditorSession.h"
 #include "ISender.h"
 #if IPLUG_EDITOR
 #include "IControls.h"

@@ -51,7 +51,7 @@ Detailed records: [EG circuit audit](EG-model-audit.md),
 
 ## Verification performed
 
-- `python3 Tests/research/test_eg_decay_equations.py -v`: four tests passed, including
+- `python3 CheapSynth01/tests/research/test_eg_decay_equations.py -v`: four tests passed, including
   72 algebra-check combinations and explicit invalid-region examples.
 - Existing local Debug test executable, filter
   `*EG*:*Envelope*:*RCEnvelope*`: 24 tests passed from seven suites.

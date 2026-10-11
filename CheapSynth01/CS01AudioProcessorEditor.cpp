@@ -1,8 +1,8 @@
 #include "CS01AudioProcessor.h"
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
-#include "UI/PanelControls.h"
-#include "UI/OwnedKeyboardControl.h"
+#include "ui/PanelControls.h"
+#include "ui/OwnedKeyboardControl.h"
 #include "KeyboardFocus.h"
 #include "IVNumberBoxControl.h"
 #endif

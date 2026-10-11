@@ -28,7 +28,7 @@ superseded documents are available in Git history.
   audio/UI ownership and persistence
 - [Host presets and state](iPlug2-host-integration.md): native format integration,
   block-boundary patch application and XML state
-- [Active tests](../Tests/README.md): regressions, observations, research equations
+- [Active tests](../CheapSynth01/tests/README.md): regressions, observations, research equations
   and SDK-interface tests
 - [Release archives](iPlug2-release-packaging.md): distribution files, offline
   source rebuild, signing preparation and notarization

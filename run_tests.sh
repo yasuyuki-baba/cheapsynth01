@@ -22,9 +22,9 @@ if [ -n "$group" ]; then
 elif [ "$#" -eq 0 ]; then
     ctest --test-dir build-core -C Debug --output-on-failure --output-junit test-results.xml
 else
-    executable="build-core/Tests/CheapSynth01Tests"
-    if [ -f "build-core/Tests/Debug/CheapSynth01Tests.exe" ]; then
-        executable="build-core/Tests/Debug/CheapSynth01Tests.exe"
+    executable="build-core/CheapSynth01/tests/CheapSynth01Tests"
+    if [ -f "build-core/CheapSynth01/tests/Debug/CheapSynth01Tests.exe" ]; then
+        executable="build-core/CheapSynth01/tests/Debug/CheapSynth01Tests.exe"
     fi
     "$executable" "$@"
 fi
