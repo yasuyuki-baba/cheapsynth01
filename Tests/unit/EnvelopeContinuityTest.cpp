@@ -306,3 +306,127 @@ TEST(SourceContinuityTest, ExtendedReleaseSurvivesSourceSwitchPastOriginalDeadli
         EXPECT_LT(energy, 1.e-12);
     }
 }
+
+TEST(EGContinuityTest, LiveAttackEditPreservesBoundedMonotonicProgress) {
+    for (double rate : {44100., 48000., 96000.}) {
+        cs01::ParameterState state;
+        settings(state);
+        EGProcessor eg(state);
+        eg.prepareToPlay(rate, 64);
+        eg.startEnvelope();
+        advance(eg, static_cast<int>(rate * .02));
+        float previous = eg.getLastOutputForTesting();
+        ASSERT_GT(previous, 0.f);
+        state.set(Param::Attack, .5f);
+        for (int i = 0; i < 256; ++i) {
+            const float value = eg.processSample();
+            ASSERT_TRUE(std::isfinite(value));
+            EXPECT_GE(value, previous);
+            EXPECT_LE(value, 1.f);
+            EXPECT_LT(value - previous, .001f);
+            previous = value;
+        }
+        EXPECT_TRUE(eg.isActive());
+    }
+}
+
+TEST(EGContinuityTest, ReleaseTimeEditKeepsResidualBranchTargetWithZeroSustain) {
+    for (double rate : {44100., 48000., 96000.}) {
+        for (float duration : {.05f, .2f}) {
+            cs01::ParameterState state;
+            settings(state);
+            state.set(Param::Sustain, 0.f);
+            state.set(Param::Release, .5f);
+            EGProcessor eg(state);
+            eg.prepareToPlay(rate, 1);
+            eg.startEnvelope();
+            advance(eg, static_cast<int>(rate * .025));
+            const double releaseStart = eg.getLastOutputForTesting();
+            const double branchTarget = releaseStart * (1. - 1. / (1. - std::exp(-2.)));
+            eg.releaseEnvelope();
+            advance(eg, static_cast<int>(rate * .05));
+            const float initial = eg.getLastOutputForTesting();
+            ASSERT_GT(initial, 0.f);
+            state.set(Param::Release, duration);
+            EXPECT_NEAR(eg.processSample(),
+                        branchTarget + (initial - branchTarget) *
+                                           std::exp(-2. / (state.get(Param::Release) * rate)),
+                        1e-5);
+            EXPECT_TRUE(eg.isActive());
+            const int halfway = static_cast<int>(duration * rate * .5);
+            advance(eg, halfway - 1);
+            EXPECT_NEAR(eg.getLastOutputForTesting(),
+                        branchTarget + (initial - branchTarget) * std::exp(-1.), initial * .003);
+            advance(eg, static_cast<int>(duration * rate * .6));
+            EXPECT_FALSE(eg.isActive());
+            EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
+        }
+    }
+}
+
+TEST(EGContinuityTest, RetriggerRestoresEditedSustainDuringAndAfterRelease) {
+    for (double rate : {44100., 48000., 96000.}) {
+        for (bool finishRelease : {false, true}) {
+            cs01::ParameterState state;
+            settings(state);
+            state.set(Param::Decay, .3f);
+            state.set(Param::Sustain, .6f);
+            state.set(Param::Release, .5f);
+            EGProcessor eg(state);
+            eg.prepareToPlay(rate, 1);
+            eg.startEnvelope();
+            advance(eg, static_cast<int>(rate * .025));
+            eg.releaseEnvelope();
+            advance(eg, static_cast<int>(rate * .05));
+            state.set(Param::Release, .2f);
+            advance(eg, static_cast<int>(rate * .001));
+            ASSERT_TRUE(eg.isActive());
+            if (finishRelease) {
+                advance(eg, static_cast<int>(rate * .25));
+                ASSERT_FALSE(eg.isActive());
+            }
+            state.set(Param::Sustain, .8f);
+            eg.startEnvelope();
+            advance(eg, static_cast<int>(rate * .5));
+            EXPECT_TRUE(eg.isActive());
+            EXPECT_NEAR(eg.getLastOutputForTesting(), .8f, 1e-6);
+            eg.releaseEnvelope();
+            advance(eg, static_cast<int>(rate * .1));
+            const double halfway = .8 * (1. - (1. - std::exp(-1.)) / (1. - std::exp(-2.)));
+            EXPECT_NEAR(eg.getLastOutputForTesting(), halfway, .002);
+            advance(eg, static_cast<int>(rate * .12));
+            EXPECT_FALSE(eg.isActive());
+            EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
+        }
+    }
+}
+
+TEST(EGContinuityTest, LifecycleClearsObservationGateAndRepreparesAtOtherRates) {
+    for (bool duringRelease : {false, true}) {
+        cs01::ParameterState state;
+        settings(state);
+        EGProcessor eg(state);
+        eg.prepareToPlay(48000, 64);
+        eg.startEnvelope();
+        advance(eg, 64);
+        if (duringRelease) {
+            eg.releaseEnvelope();
+            advance(eg, 64);
+        }
+        ASSERT_TRUE(eg.isActive());
+        ASSERT_GT(eg.getLastOutputForTesting(), 0.f);
+        eg.releaseResources();
+        EXPECT_FALSE(eg.isActive());
+        EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
+        EXPECT_FLOAT_EQ(eg.getNoteGate(), 0.f);
+        eg.prepareToPlay(96000, 64);
+        for (int i = 0; i < 64; ++i)
+            EXPECT_FLOAT_EQ(eg.processSample(), 0.f);
+        eg.startEnvelope();
+        advance(eg, 64);
+        eg.prepareToPlay(44100, 64);
+        EXPECT_FALSE(eg.isActive());
+        EXPECT_FLOAT_EQ(eg.getLastOutputForTesting(), 0.f);
+        EXPECT_FLOAT_EQ(eg.getNoteGate(), 0.f);
+    }
+}

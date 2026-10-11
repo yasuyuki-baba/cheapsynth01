@@ -76,7 +76,7 @@ are deferred; native compilation and archive verification continue in CI.
 Additional MIDI coverage fixes negative-offset stable ordering and applies due
 offset-zero events during empty callbacks. Future events retain iPlug2 queue
 carry semantics; the legacy beyond-block clamp policy is intentionally not
-restored. The current suite contains 99 core cases plus eight SDK-interface cases.
+restored. The current suite contains 111 core cases plus eight SDK-interface cases.
 
 Editor session guards now invalidate asynchronous replies on close, control
 hierarchy replacement and owner destruction. Rename requests resolve captured
@@ -104,3 +104,25 @@ with leak detection. This is portable-core evidence; native plugin/DAW/device
 checks remain deferred. The two AuditPresetTest cases were also compared assertion
 by assertion to their existing portable replacements and recorded in the CSV.
 All other pending-case-review entries retain their previous status.
+
+## MIDI and envelope assertion reconciliation
+
+Eight MidiBehaviorTest cases now retain the independent held-note/generator
+contract, full 128-key set comparison, duplicate and unmatched releases,
+CC120/123 release/immediate-stop distinction, every mapped controller, 14-bit
+pairs, pitch-wheel endpoints, whole-patch preservation on CC121, cleared
+performance MSBs after reset, and direct normalized performance edits. Velocity
+is checked both at the generator interface and through equal nonzero real-core
+audio for all five waveforms at 44.1/48/96 kHz. Sixteen historical MIDI cases are
+recorded as replaced-core-assertions. Initialization and every-controller tests
+retain partial status because their native metadata/notification assertions
+remain outside portable-core evidence. JUCE timer/listener assumptions are
+retired; three notification/replay/teardown cases are recorded as deferred native
+UI verification, with the current SDK publication path described in the CSV.
+
+Four more EGContinuityTest cases retain the frozen reference's live attack bounds,
+release branch target after time edits with sustain zero, edited-sustain retriggers
+during and after release, and lifecycle/observation reset across sample rates.
+The current suite is 119 cases (111 core plus eight SDK-interface); test counts
+are not a statement of full historical assertion parity. Remaining unreviewed
+cases stay pending in the inventory.
