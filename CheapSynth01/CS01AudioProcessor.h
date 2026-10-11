@@ -11,6 +11,7 @@
 #include <memory>
 #include "SynthEngine.h"
 #include "DSP/MidiQueue.h"
+#include "UI/KeyboardInput.h"
 #include "ISender.h"
 #if IPLUG_EDITOR
 #include "IControls.h"
@@ -60,12 +61,16 @@ class CS01AudioProcessor final : public cs01::PluginAPI {
     uint64_t appliedStateReset = 0;
     std::atomic<bool> pendingPanelBend{false};
 #endif
+    cs01::UiNoteBridge uiNotes;
+    cs01::QwertyKeyboard qwerty;
     std::atomic<bool> monitorEnabled{false};
 #if IPLUG_EDITOR
     void layoutEditor(iplug::igraphics::IGraphics* graphics);
     void updateProgramLabel();
     void updateFilterControls();
     void reportPresetError();
+    void releaseEditorNotes();
+    void updateKeyboardInput();
     void OnParamChangeUI(int index, iplug::EParamSource source) override;
     WDL_String dialogFile, dialogPath;
 #endif

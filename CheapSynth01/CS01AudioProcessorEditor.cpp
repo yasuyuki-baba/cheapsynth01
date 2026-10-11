@@ -2,6 +2,8 @@
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
 #include "UI/PanelControls.h"
+#include "UI/OwnedKeyboardControl.h"
+#include "KeyboardFocus.h"
 #include "IVNumberBoxControl.h"
 #endif
 #if IPLUG_EDITOR
@@ -179,6 +181,8 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         IRECT(1000, 20, 1220, 64),
         [this](IControl* control) {
             const bool enabled = control->GetValue() > .5;
+            if (!enabled)
+                releaseEditorNotes();
             monitorEnabled.store(enabled);
             GetUI()->GetControlWithTag(Keyboard)->Hide(!enabled);
             GetUI()->GetControlWithTag(Scope)->Hide(!enabled);
@@ -237,28 +241,59 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
     fader(column(12, 13), Param::Sustain, "S");
     fader(column(13, 14), Param::Release, "R");
 
-    auto* keyboard = new IVKeyboardControl(IRECT(20, 420, 808, 620), 41, 72);
+    auto* keyboard = new OwnedKeyboardControl(IRECT(20, 420, 808, 620), uiNotes);
     keyboard->SetBlackToWhiteRatios(.6f, .6f);
     g->AttachControl(keyboard, Keyboard)->Hide(true);
     g->AttachControl(new IVScopeControl<1, 512>(IRECT(820, 420, 1220, 620), "Output",
                                                 style.WithColor(kFG, cyan)),
                      Scope)
         ->Hide(true);
-    g->SetQwertyMidiKeyHandlerFunc([g](const IMidiMsg& message) {
-        if (auto* keyboard = g->GetControlWithTag(Keyboard))
-            keyboard->OnMidi(message);
+    g->SetKeyHandlerFunc([this, g](const IKeyPress& key, bool up) {
+        if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
+            !keyboardHasFocus(g->GetWindow())) {
+            releaseEditorNotes();
+            return false;
+        }
+        const bool handled =
+            qwerty.handle(key.VK, up, key.C || key.A, [this](int note, int velocity) {
+                uiNotes.set(note, velocity, cs01::UiNoteBridge::PC);
+            });
+        static_cast<OwnedKeyboardControl*>(g->GetControlWithTag(Keyboard))->refresh();
+        return handled;
     });
     monitorEnabled.store(false);
     updateProgramLabel();
     updateFilterControls();
 }
 void CS01AudioProcessor::OnUIOpen() {
+    releaseEditorNotes();
     programs.refreshUserPresets();
     updateProgramLabel();
     updateFilterControls();
 }
 void CS01AudioProcessor::OnUIClose() {
+    releaseEditorNotes();
     monitorEnabled.store(false);
+}
+void CS01AudioProcessor::releaseEditorNotes() {
+    qwerty.release(
+        [this](int note, int velocity) { uiNotes.set(note, velocity, cs01::UiNoteBridge::PC); });
+    uiNotes.releaseAll();
+    if (GetUI())
+        if (auto* keyboard =
+                static_cast<cs01::ui::OwnedKeyboardControl*>(GetUI()->GetControlWithTag(Keyboard)))
+            keyboard->resetMouse();
+}
+void CS01AudioProcessor::updateKeyboardInput() {
+    auto* g = GetUI();
+    if (!g)
+        return;
+    if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
+        !cs01::ui::keyboardHasFocus(g->GetWindow()))
+        releaseEditorNotes();
+    if (auto* keyboard =
+            static_cast<cs01::ui::OwnedKeyboardControl*>(g->GetControlWithTag(Keyboard)))
+        keyboard->refresh();
 }
 void CS01AudioProcessor::updateProgramLabel() {
     if (!GetUI())
