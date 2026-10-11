@@ -2,8 +2,8 @@
 # Fetch SDKs for the pinned iPlug2 checkout. No plugin installation occurs here.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-git submodule update --init libs/iPlug2
-sdk_dir="$PWD/libs/iPlug2/Dependencies/IPlug"
+git submodule update --init iPlug2
+sdk_dir="$PWD/iPlug2/Dependencies/IPlug"
 fetch_sdk() {
     local repo="$1" revision="$2" destination="$3"
     if [ -d "$destination/.git" ]; then
@@ -33,8 +33,8 @@ fetch_sdk() {
     local component
     component=$(basename "$destination")
     for notice in README.md readme.txt; do
-        if git -C libs/iPlug2 cat-file -e "HEAD:Dependencies/IPlug/$component/$notice" 2>/dev/null; then
-            git -C libs/iPlug2 show "HEAD:Dependencies/IPlug/$component/$notice" > "$destination/$notice"
+        if git -C iPlug2 cat-file -e "HEAD:Dependencies/IPlug/$component/$notice" 2>/dev/null; then
+            git -C iPlug2 show "HEAD:Dependencies/IPlug/$component/$notice" > "$destination/$notice"
         fi
     done
 }

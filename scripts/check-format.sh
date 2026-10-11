@@ -22,8 +22,8 @@ fi
 files=()
 while IFS= read -r -d '' file; do
     files+=("$file")
-done < <(rg --files -0 Source Tests -g '*.cpp' -g '*.h' -g '!Tests/legacy-juce/**')
-files+=(config.h)
+done < <(rg --files -0 Source CheapSynth01 Tests -g '*.cpp' -g '*.h' -g '!Tests/legacy-juce/**' -g '!CheapSynth01/resources/**')
+
 
 if [[ "${#files[@]}" == 0 ]]; then
     echo "No tracked C++ files found." >&2

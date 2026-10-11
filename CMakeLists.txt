@@ -1,84 +1,38 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
+# std::filesystem is part of the preset/state core and requires macOS 10.15.
+if(CMAKE_HOST_APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS version")
+endif()
 project(CheapSynth01 VERSION 2.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# iPlug2 and all linked libraries must agree on the MSVC runtime.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 option(BUILD_TESTING "Build DSP/state regression tests" ON)
 option(BUILD_PLUGINS "Build iPlug2 desktop products (Windows/macOS)" ON)
 option(STANDALONE_ONLY "Build only the standalone desktop product" OFF)
-set(IPLUG2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/iPlug2" CACHE PATH "iPlug2 source checkout")
-include(FetchContent)
-set(tinyxml2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(tinyxml2 GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git GIT_TAG 10.0.0 GIT_SHALLOW TRUE)
-FetchContent_MakeAvailable(tinyxml2)
-set(PRESET_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/FactoryPresets.h")
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(WRITE "${PRESET_HEADER}" "#pragma once\n#include <array>\nnamespace cs01 {\nstruct FactoryPreset { const char* name; const char* filename; const char* xml; };\ninline constexpr std::array<FactoryPreset,7> factoryPresets{{\n")
-set(PRESET_NAMES Default Flute Violin Trumpet Clavinet Solo_Synth_Lead Synth_Bass)
-foreach(preset IN LISTS PRESET_NAMES)
-    set(path "${CMAKE_CURRENT_SOURCE_DIR}/Source/Resources/Presets/${preset}.xml")
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${path}")
-    file(READ "${path}" xml)
-    string(REPLACE "_" " " display "${preset}")
-    file(APPEND "${PRESET_HEADER}" "{\"${display}\",\"${preset}.xml\",R\"preset(${xml})preset\"},\n")
-endforeach()
-file(APPEND "${PRESET_HEADER}" "}};\n}\n")
-add_library(CheapSynth01Core STATIC
-    Source/SynthEngine.cpp Source/ProgramManager.cpp
-    Source/CS01Synth/ToneGenerator.cpp Source/CS01Synth/YM10150.cpp
-    Source/CS01Synth/NoiseGenerator.cpp Source/CS01Synth/EGProcessor.cpp
-    Source/CS01Synth/LFOProcessor.cpp Source/CS01Synth/MidiProcessor.cpp
-    Source/CS01Synth/OriginalVCFProcessor.cpp Source/CS01Synth/ModernVCFProcessor.cpp
-    Source/CS01Synth/VCAProcessor.cpp Source/CS01Synth/IG02600.cpp
-    Source/CS01Synth/CS01VCFCircuit.cpp Source/CS01Synth/CS01IIVCFCircuit.cpp
-    Source/CS01Synth/ExperimentalIG05630.cpp)
-set_target_properties(CheapSynth01Core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(CheapSynth01Core PUBLIC Source PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(CheapSynth01Core PRIVATE tinyxml2::tinyxml2)
-if(MSVC)
-    target_compile_options(CheapSynth01Core PRIVATE /W4)
-else()
-    target_compile_options(CheapSynth01Core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-endif()
+set(IPLUG2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/iPlug2" CACHE PATH "iPlug2 source checkout")
+option(IPLUG_DEPLOY_PLUGINS "Install products after building" OFF)
+
 if(BUILD_PLUGINS)
     if(NOT APPLE AND NOT WIN32)
         message(FATAL_ERROR "Supported desktop platforms are Windows and macOS.")
     endif()
     if(NOT EXISTS "${IPLUG2_DIR}/iPlug2.cmake")
-        message(FATAL_ERROR "Initialize iPlug2 with git submodule update --init libs/iPlug2")
+        message(FATAL_ERROR "Initialize iPlug2 with bash scripts/setup-iplug2.sh")
     endif()
     if(NOT STANDALONE_ONLY AND NOT EXISTS "${IPLUG2_DIR}/Dependencies/IPlug/VST3_SDK/pluginterfaces/vst/ivstaudioprocessor.h")
         message(FATAL_ERROR "VST3 SDK missing. Run bash scripts/setup-iplug2.sh")
     endif()
     set(IPLUG2_CXX_STANDARD 20 CACHE STRING "" FORCE)
     include("${IPLUG2_DIR}/iPlug2.cmake")
-    option(IPLUG_DEPLOY_PLUGINS "Install products after building" OFF)
     find_package(iPlug2 REQUIRED)
-    set(formats APP VST3 CLAP)
-    if(APPLE)
-        list(APPEND formats AU)
-    endif()
-    if(STANDALONE_ONLY)
-        set(formats APP)
-    elseif(NOT IPLUG2_CLAP_SUPPORTED)
-        message(FATAL_ERROR "CLAP SDK missing. Run bash scripts/setup-iplug2.sh")
-    endif()
-    iplug_add_plugin(CheapSynth01
-        SOURCES Source/CS01AudioProcessor.cpp Source/CS01AudioProcessor.h
-            Source/CS01AudioProcessorEditor.cpp resources/resource.h
-        RESOURCES resources/fonts/Roboto-Regular.ttf
-        FORMATS ${formats}
-        LINK CheapSynth01Core
-        DEFINES _USE_MATH_DEFINES)
-    if(WIN32)
-        foreach(format vst3 clap)
-            if(TARGET CheapSynth01-${format})
-                target_sources(CheapSynth01-${format} PRIVATE resources/main.rc)
-            endif()
-        endforeach()
-    endif()
+endif()
+# Create core targets after SDK platform settings (notably universal macOS
+# architectures) have been initialized, so all linked objects agree.
+add_subdirectory(Source)
+if(BUILD_PLUGINS)
+    add_subdirectory(CheapSynth01)
 endif()
 if(BUILD_TESTING)
     enable_testing()

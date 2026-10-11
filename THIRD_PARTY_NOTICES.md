@@ -1,7 +1,7 @@
 # Third-party notices
 
-- **iPlug2**: pinned Git submodule `libs/iPlug2`;
-  [zlib-like license](libs/iPlug2/LICENSE.txt). The platform resource templates
+- **iPlug2**: pinned Git submodule `iPlug2`;
+  [zlib-like license](iPlug2/LICENSE.txt). The platform resource templates
   under `resources/` are adapted from its IPlugControls example; names, IDs and
   version metadata have been changed. Original copyright: the iPlug2 developers.
 - **TinyXML2 10.0.0**: fetched by CMake;
