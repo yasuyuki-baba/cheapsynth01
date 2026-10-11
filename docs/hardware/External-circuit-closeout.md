@@ -1,12 +1,12 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # External-circuit audit closeout
 
 ## Current implementation boundary
 
-The [stateful EG policy](../legacy-juce/software/EG-stateful-model.md) describes production
+The [stateful EG policy](../DSP-design.md#envelope-and-note-gate) describes production
 stages, residual-state handling and active-stage edits. The independent VCA gate
-and free-running sources are in [note onset continuity](../legacy-juce/software/Note-onset-continuity.md).
+and free-running sources are in [note onset continuity](../DSP-design.md#envelope-and-note-gate).
 These supersede the earlier linear ADSR and intermediate k = 0.5 output shaping.
 The unchanged-DSP decisions and counts below refer to the historical audit phase.
 
@@ -46,12 +46,12 @@ sequence is not established hardware behavior.
 | Controls | Existing timing audit distinguishes software seconds/skew from hardware S-L markings | Position/resistance measurements and stage endpoint calibration |
 
 Detailed records: [EG circuit audit](EG-model-audit.md),
-[EG time-range validation](../legacy-juce/software/EG-time-range-validation.md), and
+[Envelope timing policy](../DSP-design.md#envelope-and-note-gate), and
 [low-frequency circuit audit](Low-frequency-circuit-audit.md).
 
 ## Verification performed
 
-- `python3 Tests/eg_decay_equation_check.py -v`: four tests passed, including
+- `python3 CheapSynth01/tests/research/test_eg_decay_equations.py -v`: four tests passed, including
   72 algebra-check combinations and explicit invalid-region examples.
 - Existing local Debug test executable, filter
   `*EG*:*Envelope*:*RCEnvelope*`: 24 tests passed from seven suites.

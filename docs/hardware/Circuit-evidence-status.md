@@ -1,4 +1,4 @@
-> Software links refer to the archived JUCE baseline; see [current iPlug2 documentation](../README.md) for the current product and verification scope.
+> Circuit evidence and historical measurements retain their recorded provenance. For the current software model, see [DSP design](../DSP-design.md).
 
 # Circuit evidence status
 
@@ -22,7 +22,7 @@ unknown. The source catalog provides optional provenance, not required input.
 | --- | --- | --- |
 | TC7476BP / EG logic | Earlier inspection of the manufacturer extract recorded pin assignment, active-low set/reset, reset priority and the 3–18 V recommended supply range relative to VSS. | Exact analog switching voltage, loaded logic levels and complete operating-state sequence. The Tr13 attack-drive mapping is electrically inconsistent as transcribed. |
 | EG passive branches | Storage capacitance, resistor branches, unloaded sustain Thevenin equivalent and conditional decay equations are transcribed. | Transistor/FET operating points, active-device loading and quantitative TP4 transfer. |
-| IG02610 VCF | IG02610 identification and cutoff/High–Low controls are summarized in the [Original VCF model](../legacy-juce/software/Original-VCF-behavioral-design.md). EG depth connection is in the [EG audit](EG-model-audit.md). | Internal topology, control-current-to-cutoff law, input impedance and calibrated resonance/distortion. |
+| IG02610 VCF | IG02610 identification and cutoff/High–Low controls are summarized in the [Original VCF model](../DSP-design.md#filter-models). EG depth connection is in the [EG audit](EG-model-audit.md). | Internal topology, control-current-to-cutoff law, input impedance and calibrated resonance/distortion. |
 | IG02600 VCA | IG02600 identification and audio/EG/breath path roles are retained as overview findings. The [EG audit](EG-model-audit.md) records the TP4-to-depth-to-39 kohm control branch. | Physical control-voltage-to-gain law, input combination, saturation and loading. The software note gate is an implementation policy. |
 | YM10150 | DTG identification and waveform/feet selection roles are overview findings. The [GLS audit](Glissando-circuit-audit.md) preserves its timing branch connections. | Internal generation method, hardware keyboard priority/retrigger rules and GLS threshold/divider timing. |
 | Devices and controls | Device identifiers and potentiometer markings are transcribed; the owner's manual supplies LFO/PWM rate endpoints and S–L EG labels. | Applicable low-current device parameters, slider resistance curves and hardware stage-duration calibration. |
@@ -39,12 +39,12 @@ routing, not a substitute hardware wiring diagram.
 
 ## Current software boundary
 
-Production uses a [stateful exponential EG](../legacy-juce/software/EG-stateful-model.md), provisional
+Production uses a [stateful exponential EG](../DSP-design.md#envelope-and-note-gate), provisional
 behavioral VCF/VCA models and empirical control curves. The independent
-[note gate](../legacy-juce/software/Note-onset-continuity.md), numerical recovery and regression tests
+[note gate](../DSP-design.md#envelope-and-note-gate), numerical recovery and regression tests
 establish software behavior; they do not establish physical circuit equivalence.
-The 1 ms–2 s EG range is a reference-time mapping, not a measured hardware RC
-range. Retriggers retain residual state and time edits recalculate remaining time.
+The [EG RC timing mapping](../EG-RC-timing.md) uses assumed A-taper resistance
+and software thresholds, not measured potentiometer or IC behavior. Retriggers retain residual state and time edits recalculate remaining time.
 
 The [TC7476BP logic record](TC7476BP-online-investigation.md) preserves the
 part-specific pin assignment, truth table and supply limits. Those records

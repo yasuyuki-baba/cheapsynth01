@@ -39,7 +39,7 @@ the CS01 (I) filter. RES is a two-position L/H switch, encoded as 0/1.
 ## Conversion to plugin values
 
 XML stores plain parameter values, not normalized slider positions. Use the
-current `Source/Parameters.h` definitions and `cs01::fromNormalized` mapping:
+current `CheapSynth01/core/Parameters.h` definitions and `cs01::fromNormalized` mapping:
 
 For Attack, Decay and Release, use the assumed 10% midpoint A taper:
 

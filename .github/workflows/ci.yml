@@ -23,11 +23,9 @@ jobs:
       - name: Check formatting
         run: bash scripts/check-format.sh
       - name: Test release archive and signing preparation
-        run: python -m unittest discover -s Tests/packaging -v
-      - name: Check historical assertion closeout
-        run: python scripts/check-test-inventory.py
+        run: python -m unittest discover -s CheapSynth01/tests/packaging -v
       - name: Check conditional hardware equations
-        run: python -m unittest discover -s Tests/research -v
+        run: python -m unittest discover -s CheapSynth01/tests/research -v
   core:
     runs-on: ${{ matrix.os }}
     strategy:

@@ -1,3 +1,13 @@
+# Keep the framework-independent target inside the product directory. SDK
+# platform settings have already been initialized by the root CMake entry.
+add_subdirectory(core)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+if(NOT BUILD_PLUGINS)
+    return()
+endif()
+
 # Native products share the framework-independent core.
 set(formats APP VST3 CLAP)
 if(APPLE)
@@ -9,8 +19,15 @@ elseif(NOT IPLUG2_CLAP_SUPPORTED)
     message(FATAL_ERROR "CLAP SDK missing. Run bash scripts/setup-iplug2.sh")
 endif()
 iplug_add_plugin(CheapSynth01
-    SOURCES CS01AudioProcessor.cpp CS01AudioProcessor.h
-        CS01AudioProcessorEditor.cpp KeyboardFocus.cpp resources/resource.h
+    SOURCES
+        CS01AudioProcessor.cpp
+        CS01AudioProcessor.h
+        CS01AudioProcessorEditor.cpp
+        KeyboardFocus.cpp
+        ui/PanelControls.h
+        ui/OwnedKeyboardControl.h
+        ui/EditorUtilities.h
+        resources/resource.h
     RESOURCES resources/fonts/Roboto-Regular.ttf
     FORMATS ${formats}
     LINK CheapSynth01Core
