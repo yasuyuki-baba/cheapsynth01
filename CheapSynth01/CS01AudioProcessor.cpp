@@ -3,9 +3,35 @@
 #include "IPlug_include_in_plug_src.h"
 #include "IPlugPaths.h"
 #include <limits>
+#include <cstring>
 using namespace iplug;
+namespace {
+std::filesystem::path userPresetDirectory() {
+#ifdef OS_MAC
+    WDL_String home;
+    UserHomePath(home);
+    return std::filesystem::path(home.Get()) / "Library" / "Application Support" / "CheapSynth01" /
+           "UserPresets";
+#elif defined OS_WIN
+    const char* roaming = std::getenv("APPDATA");
+    if (roaming && *roaming)
+        return cs01::utf8Path(roaming) / "CheapSynth01" / "UserPresets";
+#endif
+    return {};
+}
+std::vector<PreparedProgram> initialHostCatalogue() {
+    cs01::ParameterState parameters;
+    ProgramManager programs(parameters);
+    programs.setUserDirectory(userPresetDirectory());
+    return programs.preparePrograms();
+}
+}  // namespace
 CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info)
-    : iplug::Plugin(info, MakeConfig(cs01::parameterCount, 1)) {
+    : CS01AudioProcessor(info, initialHostCatalogue()) {}
+CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
+                                       std::vector<PreparedProgram> catalogue)
+    : iplug::Plugin(info, MakeConfig(cs01::parameterCount, static_cast<int>(catalogue.size()))),
+      hostPrograms(std::make_unique<cs01::HostProgramBank>(std::move(catalogue))) {
     for (int i = 0; i < cs01::parameterCount; ++i) {
         const auto& d = cs01::parameterDefinitions[i];
         const int flags = (i == static_cast<int>(cs01::Param::PitchBend) ||
@@ -27,20 +53,26 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info)
     GetParam(static_cast<int>(cs01::Param::LfoTarget))->InitEnum("LFO Target", 0, {"VCO", "VCF"});
     GetParam(static_cast<int>(cs01::Param::FilterType))
         ->InitEnum("Filter", 0, {"Original", "Modern"});
-    WDL_String home;
-    UserHomePath(home);
-#ifdef OS_MAC
-    programs.setUserDirectory(std::filesystem::path(home.Get()) / "Library" /
-                              "Application Support" / "CheapSynth01" / "UserPresets");
-#elif defined OS_WIN
-    const char* roaming = std::getenv("APPDATA");
-    if (roaming && *roaming)
-        programs.setUserDirectory(cs01::utf8Path(roaming) / "CheapSynth01" / "UserPresets");
-#endif
+    programs.setUserDirectory(userPresetDirectory());
     programs.setCurrentProgram(0);
     syncParameters();
-    // A single host preset; the panel manages factory/user XML presets separately.
-    MakeDefaultPreset("Default", 1);
+    // Host metadata is immutable for the lifetime of this instance. A host may
+    // cache names/count; panel saves/renames are available here after reopening.
+    for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
+        const auto& program = hostPrograms->programs()[i];
+        auto* preset = GetPreset(static_cast<int>(i));
+        preset->mInitialized = true;
+        // Cut at a UTF-8 boundary when the SDK's fixed name buffer is shorter.
+        size_t length = std::min(program.identity.name.size(), sizeof(preset->mName) - 1);
+        if (length < program.identity.name.size())
+            while (length &&
+                   (static_cast<unsigned char>(program.identity.name[length]) & 0xc0) == 0x80)
+                --length;
+        std::memcpy(preset->mName, program.identity.name.data(), length);
+        preset->mName[length] = 0;
+        const auto bytes = cs01::HostProgramBank::requestChunk(static_cast<unsigned>(i));
+        preset->mChunk.PutBytes(bytes.data(), static_cast<int>(bytes.size()));
+    }
 #if IPLUG_EDITOR
     mMakeGraphicsFunc = [this]() {
         return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS,
@@ -59,30 +91,58 @@ void CS01AudioProcessor::OnParamChange(int index) {
 #endif
 }
 void CS01AudioProcessor::syncParameters(bool notifyHost) {
+    if (notifyHost && hostPrograms) {
+        hostPrograms->cancel();
+        syncHostProgramIndex();
+    }
     for (int i = 0; i < cs01::parameterCount; ++i) {
         GetParam(i)->Set(parameters.get(static_cast<cs01::Param>(i)));
-        SendParameterValueFromDelegate(i, GetParam(i)->Value(), false);
-        if (notifyHost)
-            InformHostOfParamChange(i, GetParam(i)->GetNormalized());
     }
+    if (notifyHost) {
+        DirtyParametersFromUI();
+        InformHostOfPresetChange();
+    }
+    refreshUI.store(true, std::memory_order_release);
+}
+void CS01AudioProcessor::syncHostProgramIndex() {
+    if (!hostPrograms)
+        return;
+    const auto selected = programs.currentProgramIdentity();
+    int hostIndex = 0;
+    for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
+        const auto& identity = hostPrograms->programs()[i].identity;
+        if (identity.filename == selected.filename && identity.type == selected.type) {
+            hostIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    SetCurrentPresetIdx(hostIndex);
 }
 bool CS01AudioProcessor::SerializeState(IByteChunk& chunk) const {
-    const auto xml = programs.getStateInformation();
+    const auto selected =
+        hostPrograms ? hostPrograms->selection() : cs01::HostProgramBank::Selection{nullptr, false};
+    const auto xml = programs.getStateInformation(selected.program, selected.pending);
     chunk.PutBytes(xml.data(), static_cast<int>(xml.size()));
     return true;
 }
 int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
     if (pos < 0 || pos >= chunk.Size())
         return -1;
-    if (!programs.setStateInformation({reinterpret_cast<const char*>(chunk.GetData() + pos),
-                                       static_cast<size_t>(chunk.Size() - pos)}))
+    const std::string_view bytes{reinterpret_cast<const char*>(chunk.GetData() + pos),
+                                 static_cast<size_t>(chunk.Size() - pos)};
+    if (bytes.size() == 12 && bytes.substr(0, 4) == "CSHP") {
+        if (!hostPrograms || !hostPrograms->requestChunk(bytes))
+            return -1;
+        return chunk.Size();
+    }
+    if (!programs.setStateInformation(bytes))
         return -1;
+    if (hostPrograms)
+        hostPrograms->cancel();
+    syncHostProgramIndex();
     syncParameters();
 #if IPLUG_DSP
     pendingPanic.store(true);
-#endif
-#if IPLUG_EDITOR
-    updateProgramLabel();
 #endif
     return chunk.Size();
 }
@@ -97,6 +157,11 @@ void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
 }
 void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
+    if (hostPrograms && hostPrograms->applyPending(parameters) >= 0) {
+        // IParam is atomic. Defer all control access to OnIdle, including VST3
+        // where the generic API parameter sender is not drained by this SDK.
+        syncParameters();
+    }
     if (pendingPanic.exchange(false) || midi.takeOverflow())
         engine.panic();
     if (pendingPanelBend.exchange(false) && !midi.containsPitchBend(frames)) {
@@ -114,19 +179,43 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
             outputs[channel][i] = output;
     }
     midi.flush(frames);
-    // IParam::Set stores an atomic; host/UI notifications use iPlug2's deferred queue.
+    // Publish parameter values atomically; the idle callback refreshes controls.
     const unsigned changed = parameters.takeMidiChanges();
     for (int i = 0; i < cs01::parameterCount; ++i)
         if (changed & (1u << i)) {
             const auto value = parameters.get(static_cast<cs01::Param>(i));
             GetParam(i)->Set(value);
-            SendParameterValueFromAPI(i, value, false);
+            refreshUI.store(true, std::memory_order_release);
         }
     if (monitorEnabled.load() && NOutChansConnected() > 0)
         scope.ProcessBlock(outputs, frames, Scope, 1);
 }
 #endif
+void CS01AudioProcessor::OnRestoreState() {
+    // SDK default touches controls directly. Hosts can restore from an audio
+    // callback, so only schedule the main-thread idle update here.
+    refreshUI.store(true, std::memory_order_release);
+}
 void CS01AudioProcessor::OnIdle() {
+    if (refreshUI.exchange(false, std::memory_order_acquire)) {
+        if (hostPrograms)
+            if (const auto* selected = hostPrograms->selected())
+                programs.selectProgramIdentity(selected->identity);
+#if defined VST3_API
+        // VST3 keeps a separate controller parameter cache; changing IParam
+        // alone leaves host queries stale after a deferred preset or MIDI CC.
+        for (int i = 0; i < NParams(); ++i)
+            IPlugVST3ControllerBase::SetVST3ParamNormalized(i, GetParam(i)->GetNormalized());
+        if (NPresets() > 1)
+            IPlugVST3ControllerBase::SetVST3ParamNormalized(
+                kPresetParam, static_cast<double>(GetCurrentPresetIdx()) / (NPresets() - 1));
+#endif
+        SendCurrentParamValuesFromDelegate();
+#if IPLUG_EDITOR
+        updateProgramLabel();
+        updateFilterControls();
+#endif
+    }
 #if IPLUG_DSP
     scope.TransmitData(*this);
 #endif

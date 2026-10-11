@@ -7,6 +7,8 @@
 #endif
 #include "Parameters.h"
 #include "ProgramManager.h"
+#include "HostProgramBank.h"
+#include <memory>
 #include "SynthEngine.h"
 #include "DSP/MidiQueue.h"
 #include "ISender.h"
@@ -21,6 +23,7 @@ class CS01AudioProcessor final : public iplug::Plugin {
     int UnserializeState(const iplug::IByteChunk& chunk, int startPos) override;
     void OnParamChange(int index) override;
     void OnIdle() override;
+    void OnRestoreState() override;
 #if IPLUG_DSP
     void ProcessBlock(iplug::sample** inputs, iplug::sample** outputs, int frames) override;
     void ProcessMidiMsg(const iplug::IMidiMsg& message) override;
@@ -31,6 +34,7 @@ class CS01AudioProcessor final : public iplug::Plugin {
     void OnUIClose() override;
 #endif
    private:
+    CS01AudioProcessor(const iplug::InstanceInfo& info, std::vector<PreparedProgram> catalogue);
     enum ControlTag {
         ProgramLabel = 100,
         PresetName,
@@ -43,8 +47,11 @@ class CS01AudioProcessor final : public iplug::Plugin {
         ResonanceHighLabel
     };
     void syncParameters(bool notifyHost = false);
+    void syncHostProgramIndex();
     cs01::ParameterState parameters;
     ProgramManager programs{parameters};
+    std::unique_ptr<cs01::HostProgramBank> hostPrograms;
+    std::atomic<bool> refreshUI{false};
 #if IPLUG_DSP
     SynthEngine engine{parameters};
     cs01::MidiQueue midi;

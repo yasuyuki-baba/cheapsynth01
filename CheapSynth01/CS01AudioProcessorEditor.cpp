@@ -129,6 +129,10 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
         display()->PromptName("My Preset", [this](const char* name) {
             if (!programs.saveCurrentStateAsPreset(name))
                 reportPresetError();
+            else {
+                hostPrograms->cancel();
+                syncHostProgramIndex();
+            }
             updateProgramLabel();
         });
     });
@@ -140,6 +144,10 @@ void CS01AudioProcessor::layoutEditor(IGraphics* g) {
                 list[programs.getCurrentProgram()].name.c_str(), [this](const char* name) {
                     if (!programs.renameUserPreset(programs.getCurrentProgram(), name))
                         reportPresetError();
+                    else {
+                        hostPrograms->cancel();
+                        syncHostProgramIndex();
+                    }
                     updateProgramLabel();
                 });
         },

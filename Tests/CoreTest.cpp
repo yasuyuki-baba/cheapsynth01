@@ -1,5 +1,6 @@
 #include "SynthEngine.h"
 #include "ProgramManager.h"
+#include "HostProgramBank.h"
 #include "DSP/MidiQueue.h"
 #include <gtest/gtest.h>
 #include <fstream>
@@ -9,6 +10,7 @@
 #include <chrono>
 #include <atomic>
 #include <cstdlib>
+#include <thread>
 
 namespace {
 std::atomic<bool> countAllocations{false};
@@ -523,4 +525,183 @@ TEST_F(StateTest, RemovingSelectedFileDuringRefreshLoadsDefault) {
     manager.refreshUserPresets();
     EXPECT_EQ(manager.getCurrentProgram(), 0);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 20000);
+}
+
+TEST_F(StateTest, PreparedHostRequestsApplyOnlyAtBoundaryAndLatestWins) {
+    parameters.set(Param::Cutoff, 1234);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("host"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    parameters.set(Param::Cutoff, 5678);
+    parameters.set(Param::Volume, .31f);
+    parameters.set(Param::PitchBend, .4f);
+    parameters.set(Param::ModDepth, .6f);
+    parameters.set(Param::BreathInput, .8f);
+    ASSERT_TRUE(bank.request(1));
+    ASSERT_TRUE(bank.request(7));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 5678);
+    EXPECT_EQ(bank.selected()->identity.filename, "host.xml");
+    EXPECT_TRUE(bank.pending());
+    EXPECT_EQ(bank.applyPending(parameters), 7);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 1234);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Volume), .31f);
+    EXPECT_FLOAT_EQ(parameters.get(Param::PitchBend), .4f);
+    EXPECT_FLOAT_EQ(parameters.get(Param::ModDepth), .6f);
+    EXPECT_FLOAT_EQ(parameters.get(Param::BreathInput), .8f);
+    EXPECT_FALSE(bank.pending());
+    EXPECT_EQ(bank.applyPending(parameters), -1);
+    // Selecting the same program again must undo subsequent edits.
+    parameters.set(Param::Cutoff, 9999);
+    ASSERT_TRUE(bank.request(7));
+    EXPECT_EQ(bank.applyPending(parameters), 7);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 1234);
+}
+TEST_F(StateTest, PreparedHostSelectionUsesCachedSoundAfterFileChanges) {
+    parameters.set(Param::Cutoff, 987);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("cached"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    parameters.set(Param::Cutoff, 4567);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("cached"));
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
+    std::filesystem::remove(directory / "cached.xml");
+    ASSERT_TRUE(bank.request(7));
+    EXPECT_EQ(bank.applyPending(parameters), 7);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 987);
+    EXPECT_EQ(bank.programs().size(), 8u);
+    EXPECT_EQ(bank.selected()->identity.filename, "cached.xml");
+}
+TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) {
+    parameters.set(Param::Cutoff, 2100);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("requested"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    parameters.set(Param::Cutoff, 18000);
+    parameters.set(Param::Volume, .23f);
+    ASSERT_TRUE(bank.request(7));
+    const auto state = manager.getStateInformation(bank.selected(), bank.pending());
+    // An earlier sorting insertion must not turn the saved program number into
+    // another sound; restore matches filename and retains the requested patch.
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
+    cs01::ParameterState restored;
+    ProgramManager restoredManager(restored);
+    restoredManager.setUserDirectory(directory);
+    ASSERT_TRUE(restoredManager.setStateInformation(state));
+    EXPECT_FLOAT_EQ(restored.get(Param::Cutoff), 2100);
+    EXPECT_FLOAT_EQ(restored.get(Param::Volume), .23f);
+    EXPECT_EQ(restoredManager.getCurrentProgram(), 8);
+    EXPECT_EQ(bank.applyPending(parameters), 7);
+    parameters.set(Param::Cutoff, 3300);
+    const auto edited = manager.getStateInformation(bank.selected(), bank.pending());
+    ASSERT_TRUE(restoredManager.setStateInformation(edited));
+    EXPECT_FLOAT_EQ(restored.get(Param::Cutoff), 3300);
+}
+TEST_F(StateTest, InvalidPreparedHostSelectionLeavesEarlierRequestIntact) {
+    std::ofstream(directory / "broken.xml")
+        << "<Parameters><PARAM id=\"CUTOFF\" value=\"NaN\"/></Parameters>";
+    manager.refreshUserPresets();
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_EQ(bank.programs().size(), 8u);
+    EXPECT_FALSE(bank.programs()[7].valid);
+    ASSERT_TRUE(bank.request(2));
+    EXPECT_FALSE(bank.request(-1));
+    EXPECT_FALSE(bank.request(8));
+    EXPECT_FALSE(bank.request(7));
+    EXPECT_EQ(bank.selected()->identity.filename, "Violin.xml");
+    EXPECT_EQ(bank.applyPending(parameters), 2);
+}
+TEST_F(StateTest, HostRequestChunksValidateVersionLengthAndIndexWithoutAllocation) {
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    const auto valid = cs01::HostProgramBank::requestChunk(3);
+    auto badVersion = valid;
+    badVersion[4] = 2;
+    const auto badIndex = cs01::HostProgramBank::requestChunk(0xffffffffu);
+    auto view = [](const auto& bytes) { return std::string_view(bytes.data(), bytes.size()); };
+    ASSERT_TRUE(bank.requestChunk(view(valid)));
+    EXPECT_FALSE(bank.requestChunk(view(badVersion)));
+    EXPECT_FALSE(bank.requestChunk(view(valid).substr(0, 11)));
+    EXPECT_FALSE(bank.requestChunk(view(badIndex)));
+    allocations.store(0);
+    countAllocations.store(true);
+    bool accepted = true;
+    for (int i = 0; i < 4096; ++i) {
+        accepted &= bank.requestChunk(view(valid));
+        accepted &= bank.applyPending(parameters) == 3;
+    }
+    countAllocations.store(false);
+    EXPECT_TRUE(accepted);
+    EXPECT_EQ(allocations.load(), 0);
+}
+TEST_F(StateTest, ExplicitStateRestoreCancelsUnappliedHostSelection) {
+    const auto state = manager.getStateInformation();
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_TRUE(bank.request(4));
+    ASSERT_TRUE(manager.setStateInformation(state));
+    bank.cancel();
+    EXPECT_EQ(bank.selected(), nullptr);
+    EXPECT_FALSE(bank.pending());
+    EXPECT_EQ(bank.applyPending(parameters), -1);
+}
+TEST_F(StateTest, HostIdentityRefreshKeepsEditedSoundAndTracksSorting) {
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("zzz"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
+    ASSERT_TRUE(bank.request(7));
+    ASSERT_EQ(bank.applyPending(parameters), 7);
+    parameters.set(Param::Cutoff, 4321);
+    ASSERT_TRUE(manager.selectProgramIdentity(bank.selected()->identity));
+    EXPECT_EQ(manager.getCurrentProgram(), 8);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 4321);
+}
+
+TEST_F(StateTest, PreparedFactoryChangesMatchDirectLoadsIncludingHeldNoteAudio) {
+    const auto catalogue = manager.preparePrograms();
+    for (int index = 0; index < 7; ++index) {
+        cs01::ParameterState direct, deferred;
+        ProgramManager directManager(direct);
+        cs01::HostProgramBank bank(catalogue);
+        SynthEngine directEngine(direct), deferredEngine(deferred);
+        directEngine.prepare(48000);
+        deferredEngine.prepare(48000);
+        directEngine.handleMidi(noteOn(60));
+        deferredEngine.handleMidi(noteOn(60));
+        for (int i = 0; i < 300; ++i)
+            ASSERT_FLOAT_EQ(directEngine.renderSample(), deferredEngine.renderSample());
+        ASSERT_TRUE(directManager.setCurrentProgram(index));
+        bool requested = false;
+        std::thread host([&] { requested = bank.request(index); });
+        host.join();
+        ASSERT_TRUE(requested);
+        ASSERT_EQ(bank.applyPending(deferred), index);
+        for (int i = 0; i < cs01::parameterCount; ++i)
+            EXPECT_FLOAT_EQ(direct.get(static_cast<Param>(i)), deferred.get(static_cast<Param>(i)));
+        // Preserve held notes/source phase through a preset change, as panel
+        // selection does; do not introduce a panic on the host request path.
+        for (int i = 0; i < 500; ++i)
+            EXPECT_FLOAT_EQ(directEngine.renderSample(), deferredEngine.renderSample());
+    }
+}
+TEST_F(StateTest, HostRequestsStayIndependentOfConcurrentPanelRefreshAndOtherInstances) {
+    parameters.set(Param::Cutoff, 2100);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("user"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    cs01::ParameterState audio, otherAudio;
+    cs01::HostProgramBank otherBank(manager.preparePrograms());
+    std::atomic<bool> done{false};
+    std::thread host([&] {
+        for (int i = 0; i < 2000; ++i) {
+            bank.request(7);
+            bank.applyPending(audio);
+        }
+        done.store(true);
+    });
+    int refreshes = 0;
+    do {
+        manager.refreshUserPresets();
+        ++refreshes;
+    } while (!done.load());
+    host.join();
+    EXPECT_GT(refreshes, 0);
+    EXPECT_FLOAT_EQ(audio.get(Param::Cutoff), 2100);
+    EXPECT_EQ(bank.programs().size(), 8u);
+    EXPECT_EQ(otherBank.selected(), nullptr);
+    EXPECT_EQ(otherBank.applyPending(otherAudio), -1);
+    EXPECT_FLOAT_EQ(otherAudio.get(Param::Cutoff), 20000);
 }

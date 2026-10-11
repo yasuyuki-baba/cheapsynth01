@@ -21,9 +21,18 @@ fi
 
 files=()
 while IFS= read -r -d '' file; do
-    files+=("$file")
-done < <(rg --files -0 Source CheapSynth01 Tests -g '*.cpp' -g '*.h' -g '!Tests/legacy-juce/**' -g '!CheapSynth01/resources/**')
-
+    case "$file" in
+        Tests/legacy-juce/*|CheapSynth01/resources/*) continue ;;
+        *.cpp|*.h) files+=("$file") ;;
+    esac
+done < <(
+    if command -v rg >/dev/null 2>&1; then
+        rg --files -0 Source CheapSynth01 Tests
+    else
+        # GitHub's macOS runners do not necessarily have ripgrep installed.
+        git ls-files -z -- Source CheapSynth01 Tests
+    fi
+)
 
 if [[ "${#files[@]}" == 0 ]]; then
     echo "No tracked C++ files found." >&2

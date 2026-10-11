@@ -33,6 +33,47 @@ std::string readFile(const std::filesystem::path& path) {
     input.seekg(0, std::ios::beg);
     return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
 }
+PreparedProgram prepareXml(std::string_view xml, bool session) {
+    // Parse and validate everything before changing any live parameters.
+    if (xml.empty() || xml.size() > 1024 * 1024)
+        return {};
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(xml.data(), xml.size()) != tinyxml2::XML_SUCCESS)
+        return {};
+    const auto* root = doc.FirstChildElement("Parameters");
+    if (!root)
+        return {};
+    const auto* parent = root->FirstChildElement("PARAMETERS");
+    if (!parent)
+        parent = root;
+    PreparedProgram result;
+    auto& values = result.values;
+    std::array<bool, cs01::parameterCount> found{};
+    for (auto* item = parent->FirstChildElement("PARAM"); item;
+         item = item->NextSiblingElement("PARAM")) {
+        const char* id = item->Attribute("id");
+        float value = 0;
+        if (!id || item->QueryFloatAttribute("value", &value) != tinyxml2::XML_SUCCESS ||
+            !std::isfinite(value))
+            return {};
+        for (int i = 0; i < cs01::parameterCount; ++i) {
+            const auto& d = cs01::parameterDefinitions[i];
+            if (d.id != id)
+                continue;
+            if (found[i] || value < d.minimum || value > d.maximum)
+                return {};
+            found[i] = true;
+            values[i] = value;
+        }
+    }
+    if (std::none_of(found.begin(), found.end(), [](bool v) { return v; }))
+        return {};
+    for (int i = 0; i < cs01::parameterCount; ++i)
+        if (found[i] && !excluded(static_cast<cs01::Param>(i), session))
+            result.mask |= 1u << i;
+    result.valid = true;
+    return result;
+}
 // Exclusive temporary file in the target directory; replacement is a single
 // filesystem operation. A failed write/replace never truncates the old preset.
 bool replaceFile(const std::filesystem::path& target, std::string_view bytes) {
@@ -83,6 +124,10 @@ int ProgramManager::getCurrentProgram() const {
     std::lock_guard lock(mutex);
     return currentProgram;
 }
+Program ProgramManager::currentProgramIdentity() const {
+    std::lock_guard lock(mutex);
+    return allPresets[currentProgram];
+}
 void ProgramManager::refreshUserPresets() {
     std::lock_guard lock(mutex);
     refreshUnlocked();
@@ -129,6 +174,31 @@ bool ProgramManager::setCurrentProgram(int index) {
         currentProgram = index;
     return loaded;
 }
+std::vector<PreparedProgram> ProgramManager::preparePrograms() const {
+    std::lock_guard lock(mutex);
+    std::vector<PreparedProgram> result;
+    result.reserve(allPresets.size());
+    for (size_t i = 0; i < allPresets.size(); ++i) {
+        const auto& program = allPresets[i];
+        auto prepared =
+            program.type == PresetType::Factory
+                ? prepareXml(cs01::factoryPresets[i].xml, false)
+                : prepareXml(readFile(directory / cs01::utf8Path(program.filename)), false);
+        prepared.identity = program;
+        result.push_back(std::move(prepared));
+    }
+    return result;
+}
+bool ProgramManager::selectProgramIdentity(const Program& program) {
+    std::lock_guard lock(mutex);
+    for (size_t i = 0; i < allPresets.size(); ++i)
+        if (allPresets[i].filename == program.filename && allPresets[i].type == program.type) {
+            currentProgram = static_cast<int>(i);
+            return true;
+        }
+    currentProgram = 0;
+    return false;
+}
 bool ProgramManager::loadPresetFromXml(std::string_view xml) {
     std::lock_guard lock(mutex);
     return loadXml(xml, false);
@@ -137,45 +207,16 @@ bool ProgramManager::loadPresetFile(const std::filesystem::path& file) {
     return loadPresetFromXml(readFile(file));
 }
 bool ProgramManager::loadXml(std::string_view xml, bool session) {
-    // Parse and validate everything before changing any live parameters.
-    if (xml.empty() || xml.size() > 1024 * 1024)
+    const auto prepared = prepareXml(xml, session);
+    if (!prepared.valid)
         return false;
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(xml.data(), xml.size()) != tinyxml2::XML_SUCCESS)
-        return false;
-    const auto* root = doc.FirstChildElement("Parameters");
-    if (!root)
-        return false;
-    const auto* parent = root->FirstChildElement("PARAMETERS");
-    if (!parent)
-        parent = root;
-    std::array<float, cs01::parameterCount> values{};
-    std::array<bool, cs01::parameterCount> found{};
-    for (auto* item = parent->FirstChildElement("PARAM"); item;
-         item = item->NextSiblingElement("PARAM")) {
-        const char* id = item->Attribute("id");
-        float value = 0;
-        if (!id || item->QueryFloatAttribute("value", &value) != tinyxml2::XML_SUCCESS ||
-            !std::isfinite(value))
-            return false;
-        for (int i = 0; i < cs01::parameterCount; ++i) {
-            const auto& d = cs01::parameterDefinitions[i];
-            if (d.id != id)
-                continue;
-            if (found[i] || value < d.minimum || value > d.maximum)
-                return false;
-            found[i] = true;
-            values[i] = value;
-        }
-    }
-    if (std::none_of(found.begin(), found.end(), [](bool v) { return v; }))
-        return false;
-    for (int i = 0; i < cs01::parameterCount; ++i) {
-        const auto id = static_cast<cs01::Param>(i);
-        if (found[i] && !excluded(id, session))
-            parameters.set(id, values[i]);
-    }
+    for (int i = 0; i < cs01::parameterCount; ++i)
+        if (prepared.mask & (1u << i))
+            parameters.set(static_cast<cs01::Param>(i), prepared.values[i]);
     if (session) {
+        tinyxml2::XMLDocument doc;
+        doc.Parse(xml.data(), xml.size());
+        const auto* root = doc.FirstChildElement("Parameters");
         currentProgram = 0;
         const char* filename = root->Attribute("programFilename");
         if (filename) {
@@ -190,15 +231,25 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
     }
     return true;
 }
-std::string ProgramManager::serialize(bool session) const {
+std::string ProgramManager::serialize(bool session, const PreparedProgram* selected,
+                                      bool pending) const {
     tinyxml2::XMLDocument doc;
     auto* root = doc.NewElement("Parameters");
     doc.InsertEndChild(root);
     root->SetAttribute("schema", 1);
     if (session) {
-        root->SetAttribute("program", currentProgram);
-        root->SetAttribute("programFilename", allPresets[currentProgram].filename.c_str());
-        root->SetAttribute("programIsUser", allPresets[currentProgram].type == PresetType::User);
+        int index = currentProgram;
+        if (selected) {
+            index = 0;
+            for (size_t i = 0; i < allPresets.size(); ++i)
+                if (allPresets[i].filename == selected->identity.filename &&
+                    allPresets[i].type == selected->identity.type)
+                    index = static_cast<int>(i);
+        }
+        root->SetAttribute("program", index);
+        const auto& identity = selected ? selected->identity : allPresets[currentProgram];
+        root->SetAttribute("programFilename", identity.filename.c_str());
+        root->SetAttribute("programIsUser", identity.type == PresetType::User);
     }
     for (int i = 0; i < cs01::parameterCount; ++i) {
         const auto id = static_cast<cs01::Param>(i);
@@ -207,15 +258,19 @@ std::string ProgramManager::serialize(bool session) const {
         auto* param = doc.NewElement("PARAM");
         root->InsertEndChild(param);
         param->SetAttribute("id", cs01::definition(id).id.data());
-        param->SetAttribute("value", parameters.get(id));
+        const float value = selected && pending && (selected->mask & (1u << i))
+                                ? selected->values[i]
+                                : parameters.get(id);
+        param->SetAttribute("value", value);
     }
     tinyxml2::XMLPrinter printer;
     doc.Print(&printer);
     return printer.CStr();
 }
-std::string ProgramManager::getStateInformation() const {
+std::string ProgramManager::getStateInformation(const PreparedProgram* selected,
+                                                bool pending) const {
     std::lock_guard lock(mutex);
-    return serialize(true);
+    return serialize(true, selected, pending);
 }
 bool ProgramManager::setStateInformation(std::string_view bytes) {
     std::lock_guard lock(mutex);

@@ -21,6 +21,15 @@ See [the reconciliation ledger](iPlug2-main-reconciliation.md) and updated case
 inventory for remaining work. Native build/host/GUI gates and complete test parity
 remain open; structural completion alone does not satisfy those gates.
 
+The second batch adds immutable per-instance prepared factory/user host programs,
+lock-free request publication, block-boundary application and idle UI/cache
+refresh. Pending host selections save requested sound/identity before rendering.
+Nine additional core regressions bring the suite to 62 cases. This is partial
+phase 3 progress: arbitrary XML state publication, native wrapper instrumentation
+and legacy automation translation remain open. See [host integration scope](iPlug2-host-integration.md).
+Previous commit `6a082be` now has successful Windows/macOS native build and core CI
+evidence; its lint job lacked ripgrep, addressed with a Git enumeration fallback.
+
 ## Frozen comparison points
 
 | Source | Commit | Purpose |
