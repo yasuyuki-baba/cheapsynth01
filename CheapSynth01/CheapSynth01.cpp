@@ -1,4 +1,4 @@
-#include "CS01AudioProcessor.h"
+#include "CheapSynth01.h"
 #include "Utf8Path.h"
 #include "ParameterSetup.h"
 #include "IPlug_include_in_plug_src.h"
@@ -27,10 +27,8 @@ std::vector<PreparedProgram> initialHostCatalogue() {
     return programs.preparePrograms();
 }
 }  // namespace
-CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info)
-    : CS01AudioProcessor(info, initialHostCatalogue()) {}
-CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
-                                       std::vector<PreparedProgram> catalogue)
+CheapSynth01::CheapSynth01(const InstanceInfo& info) : CheapSynth01(info, initialHostCatalogue()) {}
+CheapSynth01::CheapSynth01(const InstanceInfo& info, std::vector<PreparedProgram> catalogue)
     : cs01::PluginAPI(info, MakeConfig(cs01::parameterCount, static_cast<int>(catalogue.size()))),
       hostPrograms(std::make_unique<cs01::HostProgramBank>(std::move(catalogue))) {
     for (int i = 0; i < cs01::parameterCount; ++i)
@@ -67,7 +65,7 @@ CS01AudioProcessor::CS01AudioProcessor(const InstanceInfo& info,
     mLayoutFunc = [this](igraphics::IGraphics* graphics) { layoutEditor(graphics); };
 #endif
 }
-void CS01AudioProcessor::OnParamChange(int index) {
+void CheapSynth01::OnParamChange(int index) {
     if (index < 0 || index >= cs01::parameterCount)
         return;
     parameters.set(static_cast<cs01::Param>(index),
@@ -78,7 +76,7 @@ void CS01AudioProcessor::OnParamChange(int index) {
         pendingPanelBend.store(true);
 #endif
 }
-void CS01AudioProcessor::syncParameters(bool notifyHost) {
+void CheapSynth01::syncParameters(bool notifyHost) {
     if (notifyHost && hostPrograms) {
         syncHostProgramIndex();
     }
@@ -92,7 +90,7 @@ void CS01AudioProcessor::syncParameters(bool notifyHost) {
     }
     refreshUI.store(true, std::memory_order_release);
 }
-void CS01AudioProcessor::syncHostProgramIndex() {
+void CheapSynth01::syncHostProgramIndex() {
     if (!hostPrograms)
         return;
     const auto selected = programs.currentProgramIdentity();
@@ -106,13 +104,13 @@ void CS01AudioProcessor::syncHostProgramIndex() {
     }
     SetCurrentPresetIdx(hostIndex);
 }
-bool CS01AudioProcessor::SerializeState(IByteChunk& chunk) const {
+bool CheapSynth01::SerializeState(IByteChunk& chunk) const {
     const auto xml =
         hostPrograms ? hostPrograms->serializeSession(programs) : programs.getStateInformation();
     chunk.PutBytes(xml.data(), static_cast<int>(xml.size()));
     return true;
 }
-int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
+int CheapSynth01::UnserializeState(const IByteChunk& chunk, int pos) {
     if (pos < 0 || pos >= chunk.Size())
         return -1;
     const std::string_view bytes{reinterpret_cast<const char*>(chunk.GetData() + pos),
@@ -129,7 +127,7 @@ int CS01AudioProcessor::UnserializeState(const IByteChunk& chunk, int pos) {
     return chunk.Size();
 }
 #if IPLUG_DSP
-void CS01AudioProcessor::OnReset() {
+void CheapSynth01::OnReset() {
     parameters.tryCopyTo(renderParameters);
     engine.prepare(GetSampleRate());
     outputMeter.reset(GetSampleRate());
@@ -142,10 +140,10 @@ void CS01AudioProcessor::OnReset() {
     SetTailSize(static_cast<int>(std::ceil(EGTiming::maximumTailSeconds() * GetSampleRate())) +
                 SynthEngine::latency);
 }
-void CS01AudioProcessor::ProcessMidiMsg(const IMidiMsg& message) {
+void CheapSynth01::ProcessMidiMsg(const IMidiMsg& message) {
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
 }
-void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
+void CheapSynth01::ProcessBlock(sample**, sample** outputs, int frames) {
     const bool programApplied = hostPrograms && hostPrograms->applyPending(parameters) >= 0;
     const bool copied = parameters.tryCopyTo(renderParameters);
     if (programApplied) {
@@ -166,7 +164,7 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
         const float bend = parameters.get(cs01::Param::PitchBend);
         renderParameters.set(cs01::Param::PitchBend, bend);
         const int value = 8192 + static_cast<int>(std::lround(bend * (bend >= 0 ? 8191 : 8192)));
-        engine.handleMidi(cs01::MidiMessage::pitchWheel(1, value));
+        engine.handleMidi(cs01::MidiMessage::pitchBend(1, value));
     }
     uiNotes.consume([this](auto message) { engine.handleUiMidi(message); });
     // Even an empty callback must apply events due at its block boundary.
@@ -205,12 +203,12 @@ void CS01AudioProcessor::ProcessBlock(sample**, sample** outputs, int frames) {
     }
 }
 #endif
-void CS01AudioProcessor::OnRestoreState() {
+void CheapSynth01::OnRestoreState() {
     // SDK default touches controls directly. Hosts can restore from an audio
     // callback, so only schedule the main-thread idle update here.
     refreshUI.store(true, std::memory_order_release);
 }
-void CS01AudioProcessor::OnIdle() {
+void CheapSynth01::OnIdle() {
 #if IPLUG_EDITOR
     updateKeyboardInput();
 #endif

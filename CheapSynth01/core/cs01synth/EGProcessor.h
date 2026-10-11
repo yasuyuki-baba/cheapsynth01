@@ -12,8 +12,8 @@ class EGProcessor {
     ~EGProcessor();
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock);
-    void releaseResources();
+    void prepare(double sampleRate);
+    void reset();
 
     float processSample();
 

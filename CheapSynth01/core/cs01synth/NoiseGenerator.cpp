@@ -26,17 +26,17 @@ float NoiseGenerator::renderContinuousSample() {
     return output;
 }
 
-// INoteHandler implementation
-void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int currentPitchWheelPosition) {
+// MIDI note handling
+void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int pitchBendValue) {
     lastNote = midiNoteNumber;
-    currentlyPlayingNote = midiNoteNumber;
-    pitchWheelValue = currentPitchWheelPosition;
+    currentNoteNumber = midiNoteNumber;
+    lastPitchBend = pitchBendValue;
     noteOn = true;
     tailOff = false;
 }
 
-void NoiseGenerator::stopNote(bool allowTailOff) {
-    if (allowTailOff) {
+void NoiseGenerator::stopNote(bool allowReleaseTail) {
+    if (allowReleaseTail) {
         // Start tail off
         tailOff = true;
 
@@ -50,30 +50,30 @@ void NoiseGenerator::stopNote(bool allowTailOff) {
         tailOff = false;
     }
 
-    currentlyPlayingNote = 0;
+    currentNoteNumber = 0;
 }
 
 void NoiseGenerator::changeNote(int midiNoteNumber) {
     lastNote = midiNoteNumber;
-    currentlyPlayingNote = midiNoteNumber;
+    currentNoteNumber = midiNoteNumber;
     // For noise, we don't need to change anything else when the note changes
 }
 
-void NoiseGenerator::pitchWheelMoved(int newPitchWheelValue) {
-    pitchWheelValue = newPitchWheelValue;
-    // For noise, pitch wheel doesn't affect the sound
+void NoiseGenerator::setPitchBend(int pitchBendValue) {
+    lastPitchBend = pitchBendValue;
+    // For noise, pitch bend doesn't affect the sound
 }
 
 bool NoiseGenerator::isActive() const {
     return noteOn || (tailOff && tailOffCounter < tailOffDuration);
 }
 
-int NoiseGenerator::getCurrentlyPlayingNote() const {
-    return currentlyPlayingNote;
+int NoiseGenerator::currentNote() const {
+    return currentNoteNumber;
 }
 
 ISoundGenerator::PlaybackState NoiseGenerator::getPlaybackState() const {
-    return {noteOn && !tailOff, lastNote, pitchWheelValue,
+    return {noteOn && !tailOff, lastNote, lastPitchBend,
             tailOff ? std::max(0, tailOffDuration - tailOffCounter) / sampleRate : 0.0};
 }
 
@@ -81,14 +81,14 @@ void NoiseGenerator::restorePlaybackState(const PlaybackState& state) {
     stopNote(false);
     if (!state.held && state.releaseSecondsRemaining <= 0.0)
         return;
-    startNote(state.note, 1.0f, state.pitchWheel);
+    startNote(state.note, 1.0f, state.pitchBend);
     if (!state.held) {
         noteOn = false;
         tailOff = true;
         tailOffCounter = 0;
         tailOffDuration =
             static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
-        currentlyPlayingNote = 0;
+        currentNoteNumber = 0;
     }
 }
 

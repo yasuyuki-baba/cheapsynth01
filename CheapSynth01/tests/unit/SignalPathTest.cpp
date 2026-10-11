@@ -60,7 +60,7 @@ std::vector<float> original(float egDepth, float eg, float modDepth, float lfo,
     state.set(Param::BreathVcf, breathDepth);
     state.set(Param::BreathInput, breath);
     OriginalVCFProcessor filter(state);
-    filter.prepareToPlay(48000, 256);
+    filter.prepare(48000);
     std::vector<float> values;
     for (int i = 0; i < 96000; ++i) {
         float y = filter.processSample(static_cast<float>(.001 * std::sin(tau * 10000 * i / 48000)),
@@ -141,7 +141,7 @@ TEST(SignalPathTest, OriginalCombinedModulationMatchesIndependentSemitoneCutoff)
         state.set(Param::BreathVcf, .7f);
         state.set(Param::Resonance, 1);
         OriginalVCFProcessor filter(state);
-        filter.prepareToPlay(rate, 256);
+        filter.prepare(rate);
         CS01VCFCircuit reference;
         reference.prepare(rate);
         reference.setResonance(.7f);
@@ -171,7 +171,7 @@ TEST(SignalPathTest, VcaBreathEndpointsAndIndependentEgDepth) {
         state.set(Param::BreathVca, depth);
         state.set(Param::BreathInput, breath);
         VCAProcessor vca(state);
-        vca.prepareToPlay(48000, 256);
+        vca.prepare(48000);
         return gain(48000, 1000, [&](float input) { return vca.processSample(input, eg); });
     };
     double bypass = measure(1, 0, 0);
@@ -224,7 +224,7 @@ TEST(SignalPathTest, VcaResponseConvergesAndMatchesIndependentCircuitTransfer) {
             state.set(Param::VcaEgDepth, 1);
             state.set(Param::BreathVca, 0);
             VCAProcessor vca(state);
-            vca.prepareToPlay(rate, 256);
+            vca.prepare(rate);
             double early = 0, late = 0, sine = 0, cosine = 0;
             for (int i = 0; i < static_cast<int>(5 * rate); ++i) {
                 double phase = tau * hz * i / rate;
@@ -340,7 +340,7 @@ TEST(SignalPathTest, Observation_OriginalFilterResponseAcrossLevelPeakAndLeakage
         state.set(Param::ModDepth, 0);
         state.set(Param::BreathVcf, 0);
         OriginalVCFProcessor filter(state);
-        filter.prepareToPlay(rate, 256);
+        filter.prepare(rate);
         double sine = 0, cosine = 0;
         int measured = 0;
         for (int i = 0; i < static_cast<int>(rate * (settle + window)); ++i) {
@@ -386,9 +386,9 @@ TEST(SignalPathTest, VcfVcaCascadeRetainsSmallSignalTransferWithinHistoricalTole
                 state.set(Param::ModDepth, 0);
                 OriginalVCFProcessor filter(state);
                 VCAProcessor alone(state), cascade(state);
-                filter.prepareToPlay(rate, 256);
-                alone.prepareToPlay(rate, 256);
-                cascade.prepareToPlay(rate, 256);
+                filter.prepare(rate);
+                alone.prepare(rate);
+                cascade.prepare(rate);
                 std::array<double, 3> sine{}, cosine{};
                 for (int i = 0; i < static_cast<int>(3 * rate); ++i) {
                     double phase = tau * hz * i / rate;
@@ -599,7 +599,7 @@ TEST(SignalPathTest, ModernImpulseAndModulationRetainStateAcrossShortPartitions)
             state.set(Param::VcfEgDepth, modulation ? .7f : 0);
             state.set(Param::ModDepth, modulation ? .6f : 0);
             ModernVCFProcessor filter(state);
-            filter.prepareToPlay(48000, 512);
+            filter.prepare(48000);
             std::vector<float> output;
             for (int offset = 0; offset < 1024;) {
                 int count = std::min(size, 1024 - offset);
@@ -632,7 +632,7 @@ TEST(SignalPathTest, VcaLiveDepthPreservesSmoothingAcrossPartitions) {
         state.set(Param::VcaEgDepth, 0);
         state.set(Param::Volume, 1);
         VCAProcessor vca(state);
-        vca.prepareToPlay(48000, 64);
+        vca.prepare(48000);
         state.set(Param::VcaEgDepth, 1);
         std::vector<float> output;
         for (int offset = 0; offset < 960;) {

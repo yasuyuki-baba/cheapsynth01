@@ -25,7 +25,7 @@ TEST(LfoRegressionTest, PeriodAmplitudeAndContinuity) {
             cs01::ParameterState state;
             state.set(Param::LfoSpeed, frequency);
             LFOProcessor lfo(state);
-            lfo.prepareToPlay(rate, 256);
+            lfo.prepare(rate);
             float previous = lfo.processSample(), minimum = 1, maximum = -1, jump = 0;
             int last = -1, periods = 0;
             double error = 0;
@@ -58,7 +58,7 @@ TEST(LfoRegressionTest, LiveFrequencyEditKeepsPhaseContinuousAndSettles) {
     cs01::ParameterState state;
     state.set(Param::LfoSpeed, .8f);
     LFOProcessor lfo(state);
-    lfo.prepareToPlay(48000, 1);
+    lfo.prepare(48000);
     float previous = 0;
     for (int i = 0; i < 7000; ++i)
         previous = lfo.processSample();
@@ -93,7 +93,7 @@ double modernGain(double rate, double frequency, float resonance, float envelope
     state.set(Param::BreathInput, breath);
     state.set(Param::BreathVcf, breathDepth);
     ModernVCFProcessor filter(state);
-    filter.prepareToPlay(rate, 256);
+    filter.prepare(rate);
     double energy = 0;
     for (int i = 0; i < 16384; ++i) {
         float input =
@@ -167,7 +167,7 @@ TEST(NoiseRegressionTest, ReleaseDeadlineAndImmediateStopAtEveryRate) {
         NoiseGenerator noise(state);
         noise.prepare(rate);
         noise.startNote(60, 1, 8192);
-        EXPECT_EQ(noise.getCurrentlyPlayingNote(), 60);
+        EXPECT_EQ(noise.currentNote(), 60);
         noise.stopNote(true);
         const auto duration = static_cast<int>(state.get(Param::Release) * rate);
         for (int i = 0; i < duration - 1; ++i)
@@ -217,7 +217,7 @@ TEST(TonePitchRegressionTest, PitchAndFeetMatchMeasuredPeriods) {
                     ToneGenerator tone(state);
                     tone.prepare(rate);
                     tone.startNote(note, 1, 8192);
-                    tone.setPitchBend(0);
+                    tone.setPitchBendSemitones(0);
                     tone.updateBlockRateParameters();
                     const double expected = 440 * std::exp2((note - 69) / 12. + feet - 2);
                     const int settle = static_cast<int>(rate * .1);
@@ -249,7 +249,7 @@ TEST(TonePitchRegressionTest, ResetReproducesFreshWaveformForAllWaveforms) {
         auto start = [](ToneGenerator& tone) {
             tone.prepare(48000);
             tone.startNote(69, 1, 8192);
-            tone.setPitchBend(0);
+            tone.setPitchBendSemitones(0);
         };
         start(a);
         start(b);
@@ -335,8 +335,8 @@ TEST(NumericalRecoveryTest, VcaResetsAllStagesAfterBadAudioEnvelopeOrGate) {
                 cs01::ParameterState state;
                 state.set(Param::VcaEgDepth, .75f);
                 VCAProcessor vca(state), reference(state);
-                vca.prepareToPlay(rate, 64);
-                reference.prepareToPlay(rate, 64);
+                vca.prepare(rate);
+                reference.prepare(rate);
                 // Exercise a populated chain, then compare recovery to a fresh chain.
                 for (int i = 0; i < 64; ++i)
                     vca.processSample(std::sin(i * .13f), .8f);
@@ -393,8 +393,8 @@ TEST(NumericalRecoveryTest, RejectedNonfiniteDepthLeavesVcaSmoothingUsable) {
     state.set(Param::VcaEgDepth, .25f);
     referenceState.set(Param::VcaEgDepth, .25f);
     VCAProcessor vca(state), reference(referenceState);
-    vca.prepareToPlay(48000, 64);
-    reference.prepareToPlay(48000, 64);
+    vca.prepare(48000);
+    reference.prepare(48000);
     for (float bad :
          {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
         state.set(Param::VcaEgDepth, bad);
@@ -452,13 +452,13 @@ TEST(NoiseRegressionTest, InitialSilenceChangedNoteAndExact49SampleRelease) {
     NoiseGenerator noise(state);
     noise.prepare(48000);
     EXPECT_FALSE(noise.isActive());
-    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 0);
+    EXPECT_EQ(noise.currentNote(), 0);
     for (int i = 0; i < 512; ++i)
         EXPECT_FLOAT_EQ(noise.renderSample(), 0);
     noise.startNote(60, 1, 8192);
     EXPECT_TRUE(noise.isActive());
     noise.changeNote(64);
-    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 64);
+    EXPECT_EQ(noise.currentNote(), 64);
     double energy = 0;
     for (int i = 0; i < 512; ++i) {
         float x = noise.renderSample();
@@ -466,7 +466,7 @@ TEST(NoiseRegressionTest, InitialSilenceChangedNoteAndExact49SampleRelease) {
     }
     EXPECT_GT(energy, 0);
     noise.stopNote(false);
-    EXPECT_EQ(noise.getCurrentlyPlayingNote(), 0);
+    EXPECT_EQ(noise.currentNote(), 0);
     EXPECT_FLOAT_EQ(noise.renderSample(), 0);
     noise.startNote(60, 1, 8192);
     noise.stopNote(true);

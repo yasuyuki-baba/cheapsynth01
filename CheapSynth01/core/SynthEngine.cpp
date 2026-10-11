@@ -9,22 +9,22 @@ void SynthEngine::prepare(double rate) {
     if (!std::isfinite(rate) || rate < 8000 || rate > 384000)
         rate = 44100.0;  // Protect host reset callbacks from invalid/uninitialized rates.
     const double internal = rate * cs01::OutputConverter::factor;
-    vco.prepareToPlay(internal, 1);
-    eg.prepareToPlay(internal, 1);
-    lfo.prepareToPlay(internal, 1);
-    original.prepareToPlay(internal, 1);
-    modern.prepareToPlay(internal, 1);
-    vca.prepareToPlay(internal, 1);
+    vco.prepare(internal);
+    eg.prepare(internal);
+    lfo.prepare(internal);
+    original.prepare(internal);
+    modern.prepare(internal);
+    vca.prepare(internal);
     midi.setSoundGenerator(vco.getSoundGenerator());
-    midi.prepareToPlay(internal, 1);
+    midi.prepare(internal);
     converter.reset();
 }
 void SynthEngine::panic() {
     noteOwnership.reset();
-    midi.releaseResources();
-    original.releaseResources();
-    modern.releaseResources();
-    vca.releaseResources();
+    midi.reset();
+    original.reset();
+    modern.reset();
+    vca.reset();
     converter.reset();
 }
 void SynthEngine::handleMidi(const cs01::MidiMessage& message) {

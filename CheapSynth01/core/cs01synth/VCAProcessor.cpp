@@ -7,7 +7,7 @@ VCAProcessor::VCAProcessor(cs01::ParameterState& parameters) : parameters(parame
 VCAProcessor::~VCAProcessor() {}
 
 //==============================================================================
-void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void VCAProcessor::prepare(double sampleRate) {
     egDepthControl.reset(sampleRate, 0.005);
     egDepthControl.setCurrentAndTargetValue(parameters.get(ParameterIds::vcaEgDepth));
     // Preserve the existing 44.1 kHz time constants; these are not hardware-calibrated.
@@ -33,7 +33,7 @@ void VCAProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     outputCoupling.reset();
 }
 
-void VCAProcessor::releaseResources() {
+void VCAProcessor::reset() {
     bufferCoupling.reset();
     tr7Buffer.reset();
     outputCoupling.reset();
@@ -44,7 +44,7 @@ void VCAProcessor::releaseResources() {
 
 float VCAProcessor::processSample(float audio, float eg, float noteGate) {
     if (!std::isfinite(audio) || !std::isfinite(eg) || !std::isfinite(noteGate)) {
-        releaseResources();
+        reset();
         return 0.0f;
     }
     egDepthControl.setTargetValue(parameters.get(ParameterIds::vcaEgDepth));
@@ -57,7 +57,7 @@ float VCAProcessor::processSample(float audio, float eg, float noteGate) {
     const float output = highFreqRolloff.processSample(
         outputCoupling.processSample(tr7Buffer.processSample(bufferCoupling.processSample(audio))));
     if (!std::isfinite(output)) {
-        releaseResources();
+        reset();
         return 0.0f;
     }
     return output;

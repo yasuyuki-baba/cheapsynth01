@@ -19,9 +19,9 @@
 #include "IControls.h"
 #endif
 
-class CS01AudioProcessor final : public cs01::PluginAPI {
+class CheapSynth01 final : public cs01::PluginAPI {
    public:
-    explicit CS01AudioProcessor(const iplug::InstanceInfo& info);
+    explicit CheapSynth01(const iplug::InstanceInfo& info);
     bool SerializeState(iplug::IByteChunk& chunk) const override;
     int UnserializeState(const iplug::IByteChunk& chunk, int startPos) override;
     void OnParamChange(int index) override;
@@ -37,7 +37,7 @@ class CS01AudioProcessor final : public cs01::PluginAPI {
     void OnUIClose() override;
 #endif
    private:
-    CS01AudioProcessor(const iplug::InstanceInfo& info, std::vector<PreparedProgram> catalogue);
+    CheapSynth01(const iplug::InstanceInfo& info, std::vector<PreparedProgram> catalogue);
     enum ControlTag {
         ProgramLabel = 100,
         PresetName,

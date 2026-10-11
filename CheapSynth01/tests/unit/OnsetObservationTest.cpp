@@ -99,10 +99,10 @@ TEST(OnsetObservationTest, Observation_StageTransientsAndOptionalCsvExport) {
         EGProcessor eg(state);
         OriginalVCFProcessor filter(state);
         VCAProcessor amp(state);
-        vco.prepareToPlay(192000, 1);
-        eg.prepareToPlay(192000, 1);
-        filter.prepareToPlay(192000, 1);
-        amp.prepareToPlay(192000, 1);
+        vco.prepare(192000);
+        eg.prepare(192000);
+        filter.prepare(192000);
+        amp.prepare(192000);
         std::ofstream csv;
         if (!directory.empty()) {
             csv.open(directory / ("iplug2-stage-wave-" + std::to_string(waveform) + ".csv"));

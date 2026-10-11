@@ -5,7 +5,7 @@ class VCOProcessor {
    public:
     explicit VCOProcessor(cs01::ParameterState& p)
         : parameters(p), tone(p), noise(p), current(&tone) {}
-    void prepareToPlay(double rate, int) {
+    void prepare(double rate) {
         tone.prepare(rate);
         noise.prepare(rate);
         current = &tone;

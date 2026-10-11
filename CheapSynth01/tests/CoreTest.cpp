@@ -171,7 +171,7 @@ TEST_F(EngineTest, ResetControllersPreservesHeldNoteAndPatch) {
     engine.handleMidi(noteOn());
     engine.handleMidi(cc(1, 100));
     engine.handleMidi(cc(2, 100));
-    engine.handleMidi(cs01::MidiMessage::pitchWheel(1, 16383));
+    engine.handleMidi(cs01::MidiMessage::pitchBend(1, 16383));
     engine.handleMidi(cc(121, 0));
     EXPECT_EQ(engine.currentNote(), 69);
     EXPECT_FLOAT_EQ(parameters.get(Param::ModDepth), 0);
@@ -458,7 +458,7 @@ TEST(EnvelopeTest, AttackDecayReleaseDurationsHoldAtAllRates) {
         p.set(Param::Release, .03f);
         EGProcessor eg(p);
         const double internal = rate * 4;
-        eg.prepareToPlay(internal, 1);
+        eg.prepare(internal);
         eg.startEnvelope();
         const int attack =
             static_cast<int>(std::ceil(static_cast<double>(p.get(Param::Attack)) * 2 * internal));

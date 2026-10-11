@@ -8,13 +8,13 @@ ModernVCFProcessor::ModernVCFProcessor(cs01::ParameterState& parameters) : param
 ModernVCFProcessor::~ModernVCFProcessor() {}
 
 //==============================================================================
-void ModernVCFProcessor::prepareToPlay(double sampleRate, int) {
+void ModernVCFProcessor::prepare(double sampleRate) {
     filter.reset();
     filter.prepare(sampleRate);
     processingSampleRate = sampleRate;
 }
 
-void ModernVCFProcessor::releaseResources() {
+void ModernVCFProcessor::reset() {
     // Reset filter
     filter.reset();
 }
