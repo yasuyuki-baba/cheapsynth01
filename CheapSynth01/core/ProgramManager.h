@@ -28,12 +28,17 @@ class ProgramManager {
     std::vector<Program> programs() const;
     int getCurrentProgram() const;
     Program currentProgramIdentity() const;
+    PreparedProgram currentPreparedProgram() const;
+    bool isCurrentProgramModified() const;
     bool setCurrentProgram(int index);
     std::vector<PreparedProgram> preparePrograms() const;
     bool selectProgramIdentity(const Program& program);
+    bool selectPreparedProgram(const PreparedProgram& program);
     bool loadPresetFromXml(std::string_view xml);
     bool loadPresetFile(const std::filesystem::path& file);
     bool saveCurrentStateAsPreset(std::string_view name);
+    bool saveCurrentUserPreset();
+    bool saveCurrentStateAsNewPreset(std::string_view name);
     static bool isValidPresetName(std::string_view name);
     bool userPresetExists(std::string_view name) const;
     bool deleteUserPreset(int index);
@@ -52,9 +57,14 @@ class ProgramManager {
                           bool pending = false) const;
     std::filesystem::path uniquePath(std::string_view name) const;
     void refreshUnlocked();
+    void setReference(const PreparedProgram& program);
     cs01::ParameterState& parameters;
     std::filesystem::path directory;
     std::vector<Program> allPresets;
+    // File references are prepared outside host state-restore/audio callbacks.
+    std::vector<PreparedProgram> references;
+    cs01::ParameterState::Values referenceValues{};
+    bool referenceKnown = false;
     int currentProgram = 0;
     mutable std::recursive_mutex mutex;
     std::function<void()> beforePatchCommit;

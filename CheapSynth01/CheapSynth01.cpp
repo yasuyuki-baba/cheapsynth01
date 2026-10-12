@@ -41,7 +41,7 @@ CheapSynth01::CheapSynth01(const InstanceInfo& info, std::vector<PreparedProgram
     parameters.tryCopyTo(renderParameters);
 #endif
     // Host metadata is immutable for the lifetime of this instance. A host may
-    // cache names/count; panel saves/renames are available here after reopening.
+    // cache names/count; additions/renames appear after recreating the instance.
     for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
         const auto& program = hostPrograms->programs()[i];
         auto* preset = GetPreset(static_cast<int>(i));
@@ -218,9 +218,12 @@ void CheapSynth01::OnIdle() {
         const auto values = parameters.snapshot();
         for (int i = 0; i < NParams(); ++i)
             GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), values[i]));
-        if (hostPrograms)
-            if (const auto* selected = hostPrograms->selected())
-                programs.selectProgramIdentity(selected->identity);
+        if (hostPrograms) {
+            const auto selection = hostPrograms->selection();
+            if (selection.program && selection.token != displayedHostProgramToken)
+                programs.selectPreparedProgram(*selection.program);
+            displayedHostProgramToken = selection.token;
+        }
 #if defined VST3_API
         // VST3 keeps a separate controller parameter cache; changing IParam
         // alone leaves host queries stale after a deferred preset or MIDI CC.
@@ -232,10 +235,14 @@ void CheapSynth01::OnIdle() {
 #endif
         SendCurrentParamValuesFromDelegate();
 #if IPLUG_EDITOR
-        updateProgramLabel();
         updateFilterControls();
 #endif
     }
+#if IPLUG_EDITOR
+    // Poll the small sound snapshot so panel edits, automation and MIDI all
+    // update the modified marker, including when no delegate refresh is needed.
+    updateProgramLabel();
+#endif
 #if IPLUG_DSP
     scope.TransmitData(*this);
     meterSender.TransmitData(*this);
