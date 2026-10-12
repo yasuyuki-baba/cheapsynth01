@@ -93,6 +93,7 @@ struct EngineTest : testing::Test {
 struct StateTest : testing::Test {
     cs01::ParameterState parameters;
     ProgramManager manager{parameters};
+    const int factoryCount = static_cast<int>(manager.programs().size());
     std::filesystem::path directory;
     void SetUp() override {
         directory = std::filesystem::temp_directory_path() /
@@ -363,8 +364,8 @@ TEST(OutputConverterTest, RejectsAboveHostNyquist) {
     }
 }
 TEST_F(StateTest, LoadsAllExistingFactoryPresets) {
-    EXPECT_EQ(manager.programs().size(), 7u);
-    for (int i = 0; i < 7; ++i)
+    EXPECT_EQ(manager.programs().size(), 39u);
+    for (int i = 0; i < factoryCount; ++i)
         EXPECT_TRUE(manager.setCurrentProgram(i));
     for (const auto& file : std::filesystem::directory_iterator(
              std::filesystem::path(CS01_SOURCE_DIR) / "CheapSynth01/core/resources/presets"))
@@ -428,13 +429,13 @@ TEST_F(StateTest, MalformedStateCannotPartiallyChangePatch) {
 TEST_F(StateTest, UserPresetRenameRetainsSelectionAndDeletionLoadsDefault) {
     parameters.set(Param::Cutoff, 321);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("Bass & Lead"));
-    ASSERT_TRUE(manager.setCurrentProgram(7));
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
     parameters.set(Param::Cutoff, 444);
-    ASSERT_TRUE(manager.renameUserPreset(7, "Renamed"));
-    EXPECT_EQ(manager.getCurrentProgram(), 7);
+    ASSERT_TRUE(manager.renameUserPreset(factoryCount, "Renamed"));
+    EXPECT_EQ(manager.getCurrentProgram(), factoryCount);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 444);
-    EXPECT_EQ(manager.programs()[7].name, "Renamed");
-    ASSERT_TRUE(manager.deleteUserPreset(7));
+    EXPECT_EQ(manager.programs()[factoryCount].name, "Renamed");
+    ASSERT_TRUE(manager.deleteUserPreset(factoryCount));
     EXPECT_EQ(manager.getCurrentProgram(), 0);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 20000);
 }
@@ -508,11 +509,11 @@ TEST(ToneTest, SquarePitchAndFeetHoldAtAllRates) {
 TEST_F(StateTest, UnicodeUserPresetsRoundTrip) {
     parameters.set(Param::Cutoff, 456);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("音色"));
-    ASSERT_TRUE(manager.setCurrentProgram(7));
-    EXPECT_EQ(manager.programs()[7].name, "音色");
-    ASSERT_TRUE(manager.renameUserPreset(7, "フルート"));
-    EXPECT_EQ(manager.programs()[7].name, "フルート");
-    ASSERT_TRUE(manager.setCurrentProgram(7));
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
+    EXPECT_EQ(manager.programs()[factoryCount].name, "音色");
+    ASSERT_TRUE(manager.renameUserPreset(factoryCount, "フルート"));
+    EXPECT_EQ(manager.programs()[factoryCount].name, "フルート");
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 456);
 }
 
@@ -528,7 +529,7 @@ TEST_F(StateTest, SavingSameNameOverwritesSoundWithoutCreatingAnotherPreset) {
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("lead"));
     parameters.set(Param::Cutoff, 500);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("lead"));
-    EXPECT_EQ(manager.programs().size(), 8u);
+    EXPECT_EQ(manager.programs().size(), static_cast<size_t>(factoryCount + 1));
     EXPECT_FALSE(std::filesystem::exists(directory / "lead (1).xml"));
     parameters.set(Param::Cutoff, 1000);
     ASSERT_TRUE(manager.loadPresetFile(directory / "lead.xml"));
@@ -537,11 +538,11 @@ TEST_F(StateTest, SavingSameNameOverwritesSoundWithoutCreatingAnotherPreset) {
 TEST_F(StateTest, RenameUsesCapturedIdentityAndCannotReplaceAnotherPreset) {
     parameters.set(Param::Cutoff, 250);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("z-target"));
-    ASSERT_TRUE(manager.setCurrentProgram(7));
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
     const auto target = manager.currentProgramIdentity();
     parameters.set(Param::Cutoff, 800);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("a-other"));
-    ASSERT_TRUE(manager.setCurrentProgram(7));
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
     const auto other = manager.currentProgramIdentity();
     ASSERT_TRUE(manager.renameUserPreset(target, "renamed"));
     EXPECT_EQ(manager.currentProgramIdentity().filename, other.filename);
@@ -562,11 +563,11 @@ TEST_F(StateTest, FailedLoadsAndWritesPreserveSelectionAndExistingFile) {
     const float cutoff = parameters.get(Param::Cutoff);
     const auto file = directory / "good.xml";
     std::ofstream(file) << "broken XML";
-    EXPECT_FALSE(manager.setCurrentProgram(7));
+    EXPECT_FALSE(manager.setCurrentProgram(factoryCount));
     EXPECT_EQ(manager.getCurrentProgram(), 1);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), cutoff);
     std::filesystem::remove(file);
-    EXPECT_FALSE(manager.setCurrentProgram(7));
+    EXPECT_FALSE(manager.setCurrentProgram(factoryCount));
     EXPECT_EQ(manager.getCurrentProgram(), 1);
     std::filesystem::create_directory(file);
     std::ofstream(file / "keep") << "preserve";
@@ -580,7 +581,7 @@ TEST_F(StateTest, FailedLoadsAndWritesPreserveSelectionAndExistingFile) {
 TEST_F(StateTest, RemovingSelectedFileDuringRefreshLoadsDefault) {
     parameters.set(Param::Cutoff, 250);
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("selected"));
-    ASSERT_TRUE(manager.setCurrentProgram(7));
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
     std::filesystem::remove(directory / "selected.xml");
     manager.refreshUserPresets();
     EXPECT_EQ(manager.getCurrentProgram(), 0);
@@ -597,11 +598,11 @@ TEST_F(StateTest, PreparedHostRequestsApplyOnlyAtBoundaryAndLatestWins) {
     parameters.set(Param::ModDepth, .6f);
     parameters.set(Param::BreathInput, .8f);
     ASSERT_TRUE(bank.request(1));
-    ASSERT_TRUE(bank.request(7));
+    ASSERT_TRUE(bank.request(factoryCount));
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 5678);
     EXPECT_EQ(bank.selected()->identity.filename, "host.xml");
     EXPECT_TRUE(bank.pending());
-    EXPECT_EQ(bank.applyPending(parameters), 7);
+    EXPECT_EQ(bank.applyPending(parameters), factoryCount);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 1234);
     EXPECT_FLOAT_EQ(parameters.get(Param::Volume), .31f);
     EXPECT_FLOAT_EQ(parameters.get(Param::PitchBend), .4f);
@@ -611,8 +612,8 @@ TEST_F(StateTest, PreparedHostRequestsApplyOnlyAtBoundaryAndLatestWins) {
     EXPECT_EQ(bank.applyPending(parameters), -1);
     // Selecting the same program again must undo subsequent edits.
     parameters.set(Param::Cutoff, 9999);
-    ASSERT_TRUE(bank.request(7));
-    EXPECT_EQ(bank.applyPending(parameters), 7);
+    ASSERT_TRUE(bank.request(factoryCount));
+    EXPECT_EQ(bank.applyPending(parameters), factoryCount);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 1234);
 }
 TEST_F(StateTest, PreparedHostSelectionUsesCachedSoundAfterFileChanges) {
@@ -623,10 +624,10 @@ TEST_F(StateTest, PreparedHostSelectionUsesCachedSoundAfterFileChanges) {
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("cached"));
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
     std::filesystem::remove(directory / "cached.xml");
-    ASSERT_TRUE(bank.request(7));
-    EXPECT_EQ(bank.applyPending(parameters), 7);
+    ASSERT_TRUE(bank.request(factoryCount));
+    EXPECT_EQ(bank.applyPending(parameters), factoryCount);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 987);
-    EXPECT_EQ(bank.programs().size(), 8u);
+    EXPECT_EQ(bank.programs().size(), static_cast<size_t>(factoryCount + 1));
     EXPECT_EQ(bank.selected()->identity.filename, "cached.xml");
 }
 TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) {
@@ -635,7 +636,7 @@ TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) 
     cs01::HostProgramBank bank(manager.preparePrograms());
     parameters.set(Param::Cutoff, 18000);
     parameters.set(Param::Volume, .23f);
-    ASSERT_TRUE(bank.request(7));
+    ASSERT_TRUE(bank.request(factoryCount));
     const auto state = bank.serializeSession(manager);
     // An earlier sorting insertion must not turn the saved program number into
     // another sound; restore matches filename and retains the requested patch.
@@ -646,8 +647,8 @@ TEST_F(StateTest, PendingHostSessionSavesRequestedIdentityAndSoundBeforeRender) 
     ASSERT_TRUE(restoredManager.setStateInformation(state));
     EXPECT_FLOAT_EQ(restored.get(Param::Cutoff), 2100);
     EXPECT_FLOAT_EQ(restored.get(Param::Volume), .23f);
-    EXPECT_EQ(restoredManager.getCurrentProgram(), 8);
-    EXPECT_EQ(bank.applyPending(parameters), 7);
+    EXPECT_EQ(restoredManager.getCurrentProgram(), factoryCount + 1);
+    EXPECT_EQ(bank.applyPending(parameters), factoryCount);
     parameters.set(Param::Cutoff, 3300);
     const auto edited = bank.serializeSession(manager);
     ASSERT_TRUE(restoredManager.setStateInformation(edited));
@@ -658,12 +659,12 @@ TEST_F(StateTest, InvalidPreparedHostSelectionLeavesEarlierRequestIntact) {
         << "<Parameters><PARAM id=\"CUTOFF\" value=\"NaN\"/></Parameters>";
     manager.refreshUserPresets();
     cs01::HostProgramBank bank(manager.preparePrograms());
-    ASSERT_EQ(bank.programs().size(), 8u);
-    EXPECT_FALSE(bank.programs()[7].valid);
+    ASSERT_EQ(bank.programs().size(), static_cast<size_t>(factoryCount + 1));
+    EXPECT_FALSE(bank.programs()[factoryCount].valid);
     ASSERT_TRUE(bank.request(2));
     EXPECT_FALSE(bank.request(-1));
-    EXPECT_FALSE(bank.request(8));
-    EXPECT_FALSE(bank.request(7));
+    EXPECT_FALSE(bank.request(factoryCount + 1));
+    EXPECT_FALSE(bank.request(factoryCount));
     EXPECT_EQ(bank.selected()->identity.filename, "Violin.xml");
     EXPECT_EQ(bank.applyPending(parameters), 2);
 }
@@ -705,17 +706,17 @@ TEST_F(StateTest, HostIdentityRefreshKeepsEditedSoundAndTracksSorting) {
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("zzz"));
     cs01::HostProgramBank bank(manager.preparePrograms());
     ASSERT_TRUE(manager.saveCurrentStateAsPreset("aaa"));
-    ASSERT_TRUE(bank.request(7));
-    ASSERT_EQ(bank.applyPending(parameters), 7);
+    ASSERT_TRUE(bank.request(factoryCount));
+    ASSERT_EQ(bank.applyPending(parameters), factoryCount);
     parameters.set(Param::Cutoff, 4321);
     ASSERT_TRUE(manager.selectProgramIdentity(bank.selected()->identity));
-    EXPECT_EQ(manager.getCurrentProgram(), 8);
+    EXPECT_EQ(manager.getCurrentProgram(), factoryCount + 1);
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 4321);
 }
 
 TEST_F(StateTest, PreparedFactoryChangesMatchDirectLoadsIncludingHeldNoteAudio) {
     const auto catalogue = manager.preparePrograms();
-    for (int index = 0; index < 7; ++index) {
+    for (int index = 0; index < factoryCount; ++index) {
         cs01::ParameterState direct, deferred;
         ProgramManager directManager(direct);
         cs01::HostProgramBank bank(catalogue);
@@ -749,7 +750,7 @@ TEST_F(StateTest, HostRequestsStayIndependentOfConcurrentPanelRefreshAndOtherIns
     std::atomic<bool> done{false};
     std::thread host([&] {
         for (int i = 0; i < 2000; ++i) {
-            bank.request(7);
+            bank.request(factoryCount);
             bank.applyPending(audio);
         }
         done.store(true);
@@ -762,7 +763,7 @@ TEST_F(StateTest, HostRequestsStayIndependentOfConcurrentPanelRefreshAndOtherIns
     host.join();
     EXPECT_GT(refreshes, 0);
     EXPECT_FLOAT_EQ(audio.get(Param::Cutoff), 2100);
-    EXPECT_EQ(bank.programs().size(), 8u);
+    EXPECT_EQ(bank.programs().size(), static_cast<size_t>(factoryCount + 1));
     EXPECT_EQ(otherBank.selected(), nullptr);
     EXPECT_EQ(otherBank.applyPending(otherAudio), -1);
     EXPECT_FLOAT_EQ(otherAudio.get(Param::Cutoff), 20000);

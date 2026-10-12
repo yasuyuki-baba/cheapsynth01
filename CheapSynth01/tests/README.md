@@ -29,9 +29,9 @@ host latency compensation still need testing on Windows/macOS.
 
 ## Current coverage
 
-The portable suite has 206 cases: 192 correctness regressions (including three
+The portable suite has 209 cases: 195 correctness regressions (including three
 research equation cases) and 14 observational cases. Native product builds add
-eight VST3 boundary cases and three parameter-presentation cases, for 217 total.
+eight VST3 boundary cases and three parameter-presentation cases, for 220 total.
 Use CTest discovery for the current count. See the
 [native validation status](../../docs/iPlug2-migration-plan.md) for remaining host,
 editor and device checks.
@@ -94,8 +94,12 @@ Upstream sources intentionally run continuously; engine/VCA-gate silence is
 separate from source note-state inactivity.
 
 `unit/PresetBehaviorTest.cpp` checks all 18 embedded factory controls against
-resource XML after perturbation, independent manual-panel readings, all 7 audible
+resource XML after perturbation, independent manual-panel readings, all 39 audible
 factory sounds, user-file/session exclusions and sorted catalogue identity.
+Percussion checks cover held-note decay and the longer open-hi-hat tail; sequence
+checks render an eight-step sixteenth-note pattern and verify retriggering and silence.
+Breath Lead checks cover audible output at zero breath and response to a live CC2
+change during a held note.
 Selection and rename preserve edited sound without reloading the preset file.
 Seven filter-model regressions and three separate observations were diffed
 against the frozen main reference; counts and numerical tolerances are retained.
