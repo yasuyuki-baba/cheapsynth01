@@ -1,4 +1,4 @@
-# Factory presets transcribed from the CS01 owner's manual
+# Factory presets
 
 Source: the supplied Japanese Yamaha CS01 owner's manual PDF
 (`d3af9c5b-8449-4b39-8f0d-d0521f2875a5.pdf`). Sound variations are on
@@ -12,7 +12,7 @@ is skewed and the examples do not give numerical values: continuous positions
 below are approximate visual readings, rounded to 0.05 or 0.1. They reproduce
 panel settings, not measured hardware frequencies, timing, or sound.
 
-## Panel readings
+## Manual panel readings
 
 All positions are fractions of travel: 0 = L/S/0, 1 = H/F/L/10 as appropriate.
 Pitch is centred and glissando is at S (off) for all six examples. All use
@@ -80,3 +80,85 @@ Tests check the compiled presets against the source XML and independent manual
 readings. Regression
 checks cover the decoded sound controls, switch settings, normalized panel
 positions, and preservation of live performance controls.
+
+## Original sounds
+
+Thirty-two additional patches are original CheapSynth01 sound designs. They are not
+transcriptions of Yamaha manual examples. They follow the original seven entries
+in the menu, keeping those factory program indices stable. All 32 play without breath input
+or modulation-wheel movement; the wheel adds the listed LFO effect.
+These are monophonic sounds, including PWM Strings.
+
+| Program | Character | Wave / Feet | Filter | Wheel effect |
+| --- | --- | --- | --- | --- |
+| Sub Bass | Sustained, rounded low bass with a short release | Triangle / 32' | I, Low RES | Pitch vibrato |
+| Acid Bass | Resonant bass with a fast envelope sweep | Sawtooth / 32' | II, RES .72 | Cutoff modulation |
+| Warm Lead | Rounded lead with a small stepped glissando | Sawtooth / 8' | I, Low RES | Pitch vibrato |
+| PWM Strings | Slowly opening and releasing string-like tone; PWM runs independently | PWM / 8' | I, Low RES | Pitch vibrato |
+| Soft Organ | Sustained square-wave tone with quick key response | Square / 8' | I, Low RES | Pitch vibrato |
+| Bright Pluck | Bright upper-register pluck with no sustain | Sawtooth / 4' | II, RES .25 | Cutoff modulation |
+| Round Mallet | Rounded upper-register percussive tone with no sustain | Triangle / 4' | I, Low RES | Pitch vibrato |
+| Noise Snare | Short filtered white-noise hit with no sustain | White noise | II, RES .20 | Cutoff modulation |
+| Square Lead | Bright sustained square lead with a fast attack | Square / 8' | I, Low RES | Pitch vibrato |
+| Pulse Lead | Nasal pulse lead with a softer decay | Pulse / 8' | I, High RES | Pitch vibrato |
+| PWM Lead | Bright animated PWM lead | PWM / 8' | II, RES .30 | Pitch vibrato |
+| Resonant Lead | Sustained resonant lead with an opening filter envelope | Sawtooth / 8' | II, RES .65 | Cutoff modulation |
+| Glide Lead | Sustained square lead with stepped glissando between notes | Square / 8' | I, Low RES | Pitch vibrato |
+| Chip Sequence | Short, bright game-like notes | Square / 4' | I, Low RES | Fast pitch modulation |
+| Bubble Sequence | Rounded short notes with a resonant filter sweep | Triangle / 4' | I, High RES | Cutoff modulation |
+| Pulse Sequence | Tight pulse notes for rhythmic patterns | Pulse / 8' | I, Low RES | Fast pitch modulation |
+| Acid Sequence | Short resonant saw notes with slight stepped glissando | Sawtooth / 16' | II, RES .78 | Cutoff modulation |
+| Synth Kick | Low triangle thump with a short filter envelope | Triangle / 32' | I, Low RES | Cutoff modulation |
+| Synth Tom | Rounded pitched hit with a longer decay | Triangle / 16' | I, High RES | Cutoff modulation |
+| Closed Hi Hat | Short bright filtered-noise hit | White noise | II, RES .45 | Cutoff modulation |
+| Open Hi Hat | Bright filtered-noise hit with a longer decay and release | White noise | II, RES .40 | Cutoff modulation |
+| Laser Zap | Short resonant downward filter sweep | Pulse / 4' | II, RES .86 | Fast cutoff modulation |
+| Space Sweep | Slow rising and falling resonant PWM texture | PWM / 8' | II, RES .80 | Slow cutoff modulation |
+| Metallic Ping | Resonant noise ping with no sustain | White noise | II, RES .90 | Fast cutoff modulation |
+| Wind Noise | Slowly swelling filtered-noise texture | White noise | II, RES .30 | Slow cutoff modulation |
+| Synth Brass | Rounded saw brass with a firm opening filter envelope | Sawtooth / 8' | I, Low RES | Pitch vibrato |
+| Reed Organ | Sustained nasal reed-like tone with a quick attack | Pulse / 8' | I, Low RES | Pitch vibrato |
+| Wood Block | Short hollow pitched knock | Triangle / 4' | I, High RES | Cutoff modulation |
+| Cowbell | Bright resonant pulse percussion, a cowbell-like approximation | Pulse / 4' | II, RES .82 | Fast cutoff modulation |
+| Bubble Drop | Rounded resonant downward filter sweep | Triangle / 8' | II, RES .90 | Cutoff modulation |
+| Dark Drone | Low, slowly swelling PWM texture with a long release | PWM / 32' | II, RES .48 | Slow cutoff modulation |
+| Breath Lead | Soft animated PWM lead with breath-controlled brightness and level | PWM / 8' | I, Low RES | Pitch vibrato |
+
+The XML files in `CheapSynth01/core/resources/presets` contain the complete plain
+parameter values. Envelope times there are RC time constants as described above.
+Loading an original sound also preserves volume and live performance controls.
+
+### Playing sequences, percussion and effects
+
+The four Sequence sounds are short, zero-sustain patches for repeated MIDI notes
+from a DAW, external sequencer or keyboard. They do not generate a pattern or sync
+an LFO to tempo. Start with sixteenth notes at 120 BPM and approximately 80 ms gates.
+Each new note retriggers the envelope while retaining its residual level.
+
+For Synth Kick, start at MIDI note 48 (about 65 Hz with 32' Feet); use lower/higher
+notes to tune the body. Synth Tom at note 48 is about 131 Hz with 16' Feet. Their
+filter envelopes shape the transient; the synth has no pitch-envelope routing.
+Hi hats and Metallic Ping use filtered white noise rather than sampled or
+multi-oscillator metallic percussion. Hold each percussion note to hear its full
+decay; early note-off uses Release. Open Hi Hat has a longer decay than Closed Hi Hat.
+
+Hold Space Sweep and Wind Noise for several seconds for their slow attacks and
+filter movement. Laser Zap sweeps the filter, not oscillator pitch. The modulation
+wheel adds the effects listed above; preset selection preserves its current value.
+
+### Brass, reeds, additional percussion and breath
+
+Synth Brass opens its filter during the attack and settles to a sustained body.
+Reed Organ uses a fixed pulse waveform for a nasal, reed-like tone. Wood Block,
+Cowbell and Bubble Drop have zero sustain: hold a note to hear the full decay,
+or send an early note-off to shorten it. Start Wood Block and Cowbell around MIDI
+note 60 and tune them with the keyboard. Cowbell uses one pulse oscillator and a
+resonant filter; it does not reproduce a two-oscillator metallic cowbell circuit.
+Bubble Drop sweeps filter frequency rather than oscillator pitch.
+
+Hold Dark Drone for at least two seconds to hear its slow rise. PWM movement runs
+independently of the modulation wheel; the wheel adds slow cutoff movement.
+Breath Lead plays at zero breath input, with PWM supplying a soft animated tone.
+It does not mix white noise into the oscillator. MIDI CC2/34 adds brightness and
+level through Breath VCF .70 and Breath VCA .40. Loading the patch preserves the
+live breath value; the keyboard controls pitch and note gating as usual.
