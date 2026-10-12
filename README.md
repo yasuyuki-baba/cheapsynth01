@@ -39,6 +39,9 @@ Development and CI target Windows and macOS. Linux and LV2 are no longer support
 
 ## Usage
 
+See [INSTALL.md](INSTALL.md) for Windows/macOS installation, unsigned-build
+instructions and DAW plugin scanning.
+
 Launch the standalone application or load the appropriate plugin on an instrument
 track in your DAW. In standalone, open Preferences to choose the audio output and
 MIDI input. Plugin formats use the DAW's device settings.
