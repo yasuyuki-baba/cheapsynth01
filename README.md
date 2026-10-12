@@ -18,7 +18,8 @@ DSP approximations where hardware characteristics remain unresolved.
   - Original VCF: two-pole behavioral model with Low/High resonance
   - Modern VCF: four-pole behavioral model with continuous resonance
 - Stateful ADSR envelope, independent VCA note gate, asymmetric pitch bend and breath control
-- Six factory sounds based on the original instrument's manual, plus an initialization patch
+- Six factory sounds based on the original instrument's manual, 32 original sounds,
+  plus an initialization patch
   ([panel settings and usage](docs/Factory-presets.md))
 - User XML presets, XML import, and DAW session state
 - Hardware-inspired panel with standard iPlug2 controls, optional on-screen keyboard,

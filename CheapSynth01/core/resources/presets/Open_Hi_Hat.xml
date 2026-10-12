@@ -1,0 +1,21 @@
+<!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
+<Parameters>
+  <PARAM id="WAVE_TYPE" value="1"/>
+  <PARAM id="FEET" value="4"/>
+  <PARAM id="PWM_SPEED" value="0.6"/>
+  <PARAM id="PITCH" value="0"/>
+  <PARAM id="GLISSANDO" value="0"/>
+  <PARAM id="CUTOFF" value="9000"/>
+  <PARAM id="RESONANCE" value="0.4"/>
+  <PARAM id="VCF_EG_DEPTH" value="0.08"/>
+  <PARAM id="VCA_EG_DEPTH" value="1"/>
+  <PARAM id="ATTACK" value="0.00396"/>
+  <PARAM id="DECAY" value="0.085"/>
+  <PARAM id="SUSTAIN" value="0"/>
+  <PARAM id="RELEASE" value="0.12"/>
+  <PARAM id="LFO_SPEED" value="12"/>
+  <PARAM id="LFO_TARGET" value="1"/>
+  <PARAM id="BREATH_VCF" value="0"/>
+  <PARAM id="BREATH_VCA" value="0"/>
+  <PARAM id="FILTER_TYPE" value="1"/>
+</Parameters>

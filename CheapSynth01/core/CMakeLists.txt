@@ -5,7 +5,16 @@ FetchContent_MakeAvailable(tinyxml2)
 set(PRESET_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/FactoryPresets.h")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(preset_entries "")
-set(PRESET_NAMES Default Flute Violin Trumpet Clavinet Solo_Synth_Lead Synth_Bass)
+# Append new sounds to preserve the original factory program indices.
+set(PRESET_NAMES
+    Default Flute Violin Trumpet Clavinet Solo_Synth_Lead Synth_Bass
+    Sub_Bass Acid_Bass Warm_Lead PWM_Strings Soft_Organ Bright_Pluck Round_Mallet Noise_Snare
+    Square_Lead Pulse_Lead PWM_Lead Resonant_Lead Glide_Lead
+    Chip_Sequence Bubble_Sequence Pulse_Sequence Acid_Sequence
+    Synth_Kick Synth_Tom Closed_Hi_Hat Open_Hi_Hat
+    Laser_Zap Space_Sweep Metallic_Ping Wind_Noise
+    Synth_Brass Reed_Organ Wood_Block Cowbell Bubble_Drop Dark_Drone Breath_Lead)
+list(LENGTH PRESET_NAMES preset_count)
 foreach(preset IN LISTS PRESET_NAMES)
     set(path "${CMAKE_CURRENT_SOURCE_DIR}/resources/presets/${preset}.xml")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${path}")
@@ -20,7 +29,7 @@ file(CONFIGURE OUTPUT "${PRESET_HEADER}" CONTENT [=[
 #include <array>
 namespace cs01 {
 struct FactoryPreset { const char* name; const char* filename; const char* xml; };
-inline constexpr std::array<FactoryPreset,7> factoryPresets{{
+inline constexpr std::array<FactoryPreset,@preset_count@> factoryPresets{{
 @preset_entries@}};
 }
 ]=] @ONLY)

@@ -37,10 +37,10 @@ const std::array performanceValues{.3f, .2f, -.5f, .4f};
 
 TEST_F(PresetBehaviorTest, EveryEmbeddedFactoryControlReloadsAndPreservesLiveInputs) {
     const auto programs = manager.programs();
-    ASSERT_EQ(programs.size(), 7u);
+    ASSERT_EQ(programs.size(), 39u);
     EXPECT_EQ(manager.getCurrentProgram(), 0);
     EXPECT_NE(programs[0].name, programs[1].name);
-    for (int preset = 0; preset < 7; ++preset) {
+    for (int preset = 0; preset < static_cast<int>(programs.size()); ++preset) {
         SCOPED_TRACE(programs[preset].filename);
         EXPECT_FALSE(programs[preset].name.empty());
         tinyxml2::XMLDocument xml;
@@ -123,8 +123,9 @@ TEST_F(PresetBehaviorTest, ManualFactorySoundsMatchIndependentPanelReadings) {
 }
 
 TEST_F(PresetBehaviorTest, EveryFactorySoundIsFiniteAndAudibleWithoutBreath) {
+    const auto programs = manager.programs();
     for (double rate : {44100., 48000., 96000.})
-        for (int preset = 0; preset < 7; ++preset) {
+        for (int preset = 0; preset < static_cast<int>(programs.size()); ++preset) {
             SCOPED_TRACE(rate);
             SCOPED_TRACE(preset);
             ASSERT_TRUE(manager.setCurrentProgram(preset));
@@ -259,7 +260,7 @@ TEST_F(PresetBehaviorTest, RenameMovesSortedSelectionWithoutReloadingEditedSound
     ASSERT_TRUE(manager.renameUserPreset(index("A.xml"), "Z"));
     EXPECT_EQ(manager.currentProgramIdentity().filename, "Z.xml");
     EXPECT_EQ(manager.getCurrentProgram(), index("Z.xml"));
-    EXPECT_EQ(manager.getCurrentProgram(), 8);
+    EXPECT_EQ(manager.getCurrentProgram(), static_cast<int>(manager.programs().size()) - 1);
     EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2500);
     ASSERT_TRUE(manager.deleteUserPreset(manager.getCurrentProgram()));
     EXPECT_FALSE(std::filesystem::exists(directory / "Z.xml"));
@@ -393,4 +394,115 @@ TEST_F(PresetBehaviorTest, ClavinetAndSynthBassRetainAudibleDecayBeyondInitialCl
             EXPECT_GT(std::sqrt(energy / (rate * .2)), .00001) << filename << " at " << rate;
         }
     }
+}
+
+TEST_F(PresetBehaviorTest, PercussionDecaysOnHeldNotesAndOpenHatLastsLonger) {
+    const auto programs = manager.programs();
+    double closedTailRatio = 0, openTailRatio = 0;
+    for (const char* filename :
+         {"Synth_Kick.xml", "Synth_Tom.xml", "Closed_Hi_Hat.xml", "Open_Hi_Hat.xml",
+          "Wood_Block.xml", "Cowbell.xml", "Bubble_Drop.xml"}) {
+        SCOPED_TRACE(filename);
+        const auto selected = std::find_if(programs.begin(), programs.end(),
+                                           [&](const auto& p) { return p.filename == filename; });
+        ASSERT_NE(selected, programs.end());
+        ASSERT_TRUE(manager.setCurrentProgram(static_cast<int>(selected - programs.begin())));
+        SynthEngine engine(state);
+        engine.prepare(48000);
+        engine.handleMidi({0x90, 48, 100});
+        double onset = 0, tail = 0, settled = 0;
+        // Keep the key held: a percussion patch must finish its own hit.
+        for (int sample = 0; sample < 72000; ++sample) {
+            const float value = engine.renderSample();
+            ASSERT_TRUE(std::isfinite(value));
+            const double power = double(value) * value;
+            if (sample >= 480 && sample < 2880)
+                onset += power;
+            if (sample >= 7680 && sample < 10080)
+                tail += power;
+            if (sample >= 69600)
+                settled += power;
+        }
+        ASSERT_GT(onset, 1e-6);
+        EXPECT_LT(settled, onset * 1e-6);
+        if (std::string_view(filename) == "Closed_Hi_Hat.xml")
+            closedTailRatio = tail / onset;
+        if (std::string_view(filename) == "Open_Hi_Hat.xml")
+            openTailRatio = tail / onset;
+    }
+    EXPECT_GT(openTailRatio, .001);
+    EXPECT_LT(closedTailRatio, openTailRatio * .1);
+}
+
+TEST_F(PresetBehaviorTest, SequenceSoundsRetriggerThroughSixteenthNotePattern) {
+    const auto programs = manager.programs();
+    for (const char* filename :
+         {"Chip_Sequence.xml", "Bubble_Sequence.xml", "Pulse_Sequence.xml", "Acid_Sequence.xml"}) {
+        SCOPED_TRACE(filename);
+        const auto selected = std::find_if(programs.begin(), programs.end(),
+                                           [&](const auto& p) { return p.filename == filename; });
+        ASSERT_NE(selected, programs.end());
+        ASSERT_TRUE(manager.setCurrentProgram(static_cast<int>(selected - programs.begin())));
+        SynthEngine engine(state);
+        engine.prepare(48000);
+        // Sixteenth notes at 120 BPM, with an 80 ms gate in each 125 ms step.
+        for (int note : {60, 67, 72, 67, 60, 64, 69, 64}) {
+            engine.handleMidi({0x90, static_cast<uint8_t>(note), 100});
+            double energy = 0;
+            for (int sample = 0; sample < 6000; ++sample) {
+                if (sample == 3840)
+                    engine.handleMidi({0x80, static_cast<uint8_t>(note), 0});
+                const float value = engine.renderSample();
+                ASSERT_TRUE(std::isfinite(value));
+                if (sample < 3840)
+                    energy += double(value) * value;
+            }
+            EXPECT_GT(energy, 1e-6);
+        }
+        double settled = 0;
+        for (int sample = 0; sample < 24000; ++sample) {
+            const float value = engine.renderSample();
+            ASSERT_TRUE(std::isfinite(value));
+            if (sample >= 23000)
+                settled += double(value) * value;
+        }
+        EXPECT_LT(settled, 1e-8);
+    }
+}
+
+TEST_F(PresetBehaviorTest, BreathLeadPlaysWithoutBreathAndRespondsToLiveBreath) {
+    const auto programs = manager.programs();
+    const auto selected = std::find_if(programs.begin(), programs.end(), [](const auto& p) {
+        return p.filename == "Breath_Lead.xml";
+    });
+    ASSERT_NE(selected, programs.end());
+    ASSERT_TRUE(manager.setCurrentProgram(static_cast<int>(selected - programs.begin())));
+    cs01::ParameterState withBreath;
+    withBreath.setPatch(state.snapshot(), (1u << cs01::parameterCount) - 1);
+    state.set(Param::BreathInput, 0);
+    withBreath.set(Param::BreathInput, 0);
+    SynthEngine dry(state), expressive(withBreath);
+    dry.prepare(48000);
+    expressive.prepare(48000);
+    dry.handleMidi({0x90, 60, 100});
+    expressive.handleMidi({0x90, 60, 100});
+    double dryEnergy = 0, breathEnergy = 0, difference = 0;
+    for (int sample = 0; sample < 24000; ++sample) {
+        // Change the live controller during a held note, not before preparation.
+        if (sample == 12000)
+            expressive.handleMidi({0xb0, 2, 127});
+        const float a = dry.renderSample(), b = expressive.renderSample();
+        ASSERT_TRUE(std::isfinite(a));
+        ASSERT_TRUE(std::isfinite(b));
+        if (sample < 12000) {
+            EXPECT_FLOAT_EQ(a, b);
+        } else {
+            dryEnergy += double(a) * a;
+            breathEnergy += double(b) * b;
+            difference += double(a - b) * (a - b);
+        }
+    }
+    EXPECT_GT(dryEnergy, 1e-6);
+    EXPECT_GT(breathEnergy, 1e-6);
+    EXPECT_GT(difference, dryEnergy * .01);
 }
