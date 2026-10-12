@@ -1,5 +1,6 @@
 #include "ProgramManager.h"
 #include "SynthEngine.h"
+#include "../../config.h"
 #include <gtest/gtest.h>
 #include <tinyxml2.h>
 #include <array>
@@ -234,6 +235,167 @@ TEST_F(PresetBehaviorTest, InsertionDeletionAndRefreshRetainSelectionAndEditedSo
     manager.refreshUserPresets();
     EXPECT_EQ(manager.currentProgramIdentity().filename, "B.xml");
     EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 3456);
+}
+
+TEST_F(PresetBehaviorTest, SaveAsCreatesNumberedCopiesAndPreservesOriginalSound) {
+    state.set(Param::Cutoff, 2345);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Lead"));
+    ASSERT_TRUE(manager.setCurrentProgram(index("Lead.xml")));
+    state.set(Param::Cutoff, 3456);
+    state.set(Param::PitchBend, .5f);
+    const auto edited = state.snapshot();
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Lead (1).xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Lead (2).xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    cs01::ParameterState restoredState;
+    ProgramManager restored(restoredState);
+    restored.setUserDirectory(directory);
+    ASSERT_TRUE(restored.setStateInformation(manager.getStateInformation()));
+    EXPECT_EQ(restored.currentProgramIdentity().filename, "Lead (2).xml");
+    EXPECT_FLOAT_EQ(restoredState.get(Param::Cutoff), 3456);
+    ASSERT_TRUE(manager.setCurrentProgram(index("Lead.xml")));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+    for (const char* filename : {"Lead (1).xml", "Lead (2).xml"}) {
+        ASSERT_TRUE(manager.setCurrentProgram(index(filename)));
+        EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 3456);
+    }
+}
+
+TEST_F(PresetBehaviorTest, SaveAsCopiesEditedFactoryPatchAndRejectsInvalidNames) {
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    state.set(Param::Cutoff, 4567);
+    const auto edited = state.snapshot();
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("My Flute"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "My Flute.xml");
+    EXPECT_EQ(manager.currentProgramIdentity().type, PresetType::User);
+    EXPECT_EQ(state.snapshot(), edited);
+    EXPECT_FALSE(manager.saveCurrentStateAsNewPreset("../invalid"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "My Flute.xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    ASSERT_TRUE(manager.setCurrentProgram(index("My Flute.xml")));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 4567);
+}
+
+TEST_F(PresetBehaviorTest, SaveAsKeepsSoundWhenSourceWasRemovedExternally) {
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Source"));
+    ASSERT_TRUE(manager.setCurrentProgram(index("Source.xml")));
+    state.set(Param::Cutoff, 5678);
+    const auto edited = state.snapshot();
+    ASSERT_TRUE(std::filesystem::remove(directory / "Source.xml"));
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Copy"));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Copy.xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    ASSERT_TRUE(manager.setCurrentProgram(index("Copy.xml")));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 5678);
+}
+
+TEST_F(PresetBehaviorTest, ModifiedMarkerTracksSoundEditsAndRevertingButIgnoresLiveInputs) {
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    const auto original = state.get(Param::Cutoff);
+    state.set(Param::Cutoff, 1234);
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    state.set(Param::Cutoff, original);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    for (size_t i = 0; i < performanceIds.size(); ++i)
+        state.set(performanceIds[i], performanceValues[i]);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    state.set(Param::BendUp, 7);
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, SaveOverwritesSelectedUserPatchAndClearsModifiedMarker) {
+    const auto factoryCount = manager.programs().size();
+    state.set(Param::Cutoff, 1234);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    state.set(Param::Cutoff, 2345);
+    const auto edited = state.snapshot();
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Lead.xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    EXPECT_EQ(manager.programs().size(), factoryCount + 1);
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    EXPECT_FALSE(manager.saveCurrentUserPreset());
+    ASSERT_TRUE(manager.setCurrentProgram(index("Lead.xml")));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, FailedSaveKeepsEditedSoundSelectionAndModifiedMarker) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    state.set(Param::Cutoff, 2345);
+    const auto edited = state.snapshot();
+    ASSERT_TRUE(std::filesystem::remove(directory / "Lead.xml"));
+    ASSERT_TRUE(std::filesystem::create_directory(directory / "Lead.xml"));
+    EXPECT_FALSE(manager.saveCurrentUserPreset());
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Lead.xml");
+    EXPECT_EQ(state.snapshot(), edited);
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, RefreshAndRenameKeepModifiedMarkerAndSaveAsClearsIt) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    state.set(Param::Cutoff, 2345);
+    manager.refreshUserPresets();
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.renameUserPreset(manager.currentProgramIdentity(), "Renamed"));
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Copy"));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    state.set(Param::Cutoff, 3456);
+    ASSERT_TRUE(manager.deleteUserPreset(manager.currentProgramIdentity()));
+    EXPECT_EQ(manager.currentProgramIdentity().type, PresetType::Factory);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, SessionRestorePreservesEditedMarkerRelativeToSavedPatch) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    const auto cleanSession = manager.getStateInformation();
+    state.set(Param::Cutoff, 2345);
+    const auto editedSession = manager.getStateInformation();
+    cs01::ParameterState restoredState;
+    ProgramManager restored(restoredState);
+    restored.setUserDirectory(directory);
+    ASSERT_TRUE(restored.setStateInformation(editedSession));
+    EXPECT_EQ(restored.currentProgramIdentity().filename, "Lead.xml");
+    EXPECT_TRUE(restored.isCurrentProgramModified());
+    ASSERT_TRUE(restored.setStateInformation(cleanSession));
+    EXPECT_FALSE(restored.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, ImportMarksCurrentSoundAsEdited) {
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    ASSERT_TRUE(manager.loadPresetFromXml(
+        "<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, SavedPatchAndSessionRecordPluginVersionAndLoadLegacyXml) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Versioned"));
+    tinyxml2::XMLDocument patch;
+    ASSERT_EQ(patch.LoadFile((directory / "Versioned.xml").string().c_str()),
+              tinyxml2::XML_SUCCESS);
+    const auto* root = patch.FirstChildElement("Parameters");
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->IntAttribute("schema"), 1);
+    EXPECT_STREQ(root->Attribute("pluginVersion"), PLUG_VERSION_STR);
+    tinyxml2::XMLDocument session;
+    ASSERT_EQ(session.Parse(manager.getStateInformation().c_str()), tinyxml2::XML_SUCCESS);
+    EXPECT_STREQ(session.FirstChildElement("Parameters")->Attribute("pluginVersion"),
+                 PLUG_VERSION_STR);
+    ASSERT_TRUE(manager.loadPresetFromXml(
+        "<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
 }
 
 TEST_F(PresetBehaviorTest, SessionIdentityTracksSortedInsertionAndKeepsSavedEdits) {

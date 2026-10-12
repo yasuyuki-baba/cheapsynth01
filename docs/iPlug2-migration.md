@@ -31,8 +31,21 @@ buttons; Original VCF exposes LOW/HIGH radio buttons with the same styling,
 while Modern VCF exposes a continuous fader. The LOW/HIGH radio buttons write
 normalized endpoints 0/1; the original filter
 continues mapping them to its modeled resonance values 0.2/0.7. The header
-contains the MEMORY preset selector, save/rename/delete and XML import. Naming
+contains the MEMORY preset selector, Save, Save As, Rename, Delete and XML import.
+Save As creates and selects a new user patch without changing the sound; existing
+names receive a numbered suffix such as `Lead (1)`. Save overwrites the selected
+user patch without asking for a name; it is disabled for factory sounds.
+The MEMORY header identifies factory sounds as read only and user patches as
+editable. A `*` after the name indicates sound settings differ from the loaded or
+saved patch; restoring the settings or saving clears it. Volume and live
+performance inputs do not count as patch edits. Naming
 uses inline text entry in the preset display; factory rename/delete are disabled.
+Saved patch and session XML includes `schema="1"` for the file format and
+`pluginVersion` for the CheapSynth01 version that wrote it. The version comes
+from the CMake project version. Legacy XML without these attributes still loads.
+Save also updates the sound cached for that user patch's existing DAW program
+number. Host names/count/order remain fixed for the plugin instance; additions,
+renames and deletions appear in the host list after recreating the instance.
 The optional 32-key keyboard and scope expand the panel to 1240×640. Corner
 resizing scales the panel. Breath input remains a MIDI/host parameter rather
 than a panel control, matching the former layout; all 24 host parameters remain.

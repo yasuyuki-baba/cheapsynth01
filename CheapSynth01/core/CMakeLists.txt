@@ -4,6 +4,12 @@ FetchContent_Declare(tinyxml2 GIT_REPOSITORY https://github.com/leethomason/tiny
 FetchContent_MakeAvailable(tinyxml2)
 set(PRESET_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/FactoryPresets.h")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/BuildVersion.h" CONTENT [=[
+#pragma once
+namespace cs01 {
+inline constexpr char pluginVersion[] = "@PROJECT_VERSION@";
+}
+]=] @ONLY)
 set(preset_entries "")
 # Append new sounds to preserve the original factory program indices.
 set(PRESET_NAMES

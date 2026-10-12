@@ -1,6 +1,7 @@
 #include "ProgramManager.h"
 #include "Utf8Path.h"
 #include "FactoryPresets.h"
+#include "BuildVersion.h"
 #include <tinyxml2.h>
 #include <array>
 #include <fstream>
@@ -76,7 +77,8 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
 }
 // Exclusive temporary file in the target directory; replacement is a single
 // filesystem operation. A failed write/replace never truncates the old preset.
-bool replaceFile(const std::filesystem::path& target, std::string_view bytes) {
+bool replaceFile(const std::filesystem::path& target, std::string_view bytes,
+                 bool overwrite = true) {
     static std::atomic<unsigned> sequence{0};
     std::filesystem::path temporary;
     FILE* file = nullptr;
@@ -99,14 +101,19 @@ bool replaceFile(const std::filesystem::path& target, std::string_view bytes) {
     std::error_code ec;
     if (written && closed) {
 #ifdef _WIN32
-        replaced = MoveFileExW(temporary.c_str(), target.c_str(),
-                               MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+        replaced =
+            MoveFileExW(temporary.c_str(), target.c_str(),
+                        (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH) != 0;
 #else
-        std::filesystem::rename(temporary, target, ec);
+        if (overwrite)
+            std::filesystem::rename(temporary, target, ec);
+        else
+            // Publish the completed file without replacing a concurrently created preset.
+            std::filesystem::create_hard_link(temporary, target, ec);
         replaced = !ec;
 #endif
     }
-    if (!replaced)
+    if (!replaced || !overwrite)
         std::filesystem::remove(temporary, ec);
     return replaced;
 }
@@ -131,6 +138,31 @@ int ProgramManager::getCurrentProgram() const {
 Program ProgramManager::currentProgramIdentity() const {
     std::lock_guard lock(mutex);
     return allPresets[currentProgram];
+}
+PreparedProgram ProgramManager::currentPreparedProgram() const {
+    std::lock_guard lock(mutex);
+    return references[currentProgram];
+}
+bool ProgramManager::isCurrentProgramModified() const {
+    std::lock_guard lock(mutex);
+    if (!referenceKnown)
+        return true;
+    const auto values = parameters.snapshot();
+    for (int i = 0; i < cs01::parameterCount; ++i) {
+        if (excluded(static_cast<cs01::Param>(i), false))
+            continue;
+        const float tolerance = 1.e-6f * std::max(1.f, std::abs(referenceValues[i]));
+        if (std::abs(values[i] - referenceValues[i]) > tolerance)
+            return true;
+    }
+    return false;
+}
+void ProgramManager::setReference(const PreparedProgram& program) {
+    referenceKnown = program.valid;
+    referenceValues = parameters.snapshot();
+    for (int i = 0; i < cs01::parameterCount; ++i)
+        if (program.mask & (1u << i))
+            referenceValues[i] = program.values[i];
 }
 void ProgramManager::refreshUserPresets() {
     std::lock_guard lock(mutex);
@@ -162,8 +194,12 @@ void ProgramManager::refreshUnlocked() {
             currentProgram = static_cast<int>(i);
             retained = true;
         }
-    if (!retained && !selected.filename.empty())
-        loadXml(cs01::factoryPresets[0].xml, false);
+    references = preparePrograms();
+    if (!retained) {
+        if (!selected.filename.empty())
+            loadXml(cs01::factoryPresets[0].xml, false);
+        setReference(references[0]);
+    }
 }
 bool ProgramManager::setCurrentProgram(int index) {
     std::lock_guard lock(mutex);
@@ -174,8 +210,13 @@ bool ProgramManager::setCurrentProgram(int index) {
         program.type == PresetType::Factory
             ? loadXml(cs01::factoryPresets[index].xml, false)
             : loadXml(readFile(directory / cs01::utf8Path(program.filename)), false);
-    if (loaded)
+    if (loaded) {
         currentProgram = index;
+        // Use the actual loaded values, including fields omitted by older files.
+        referenceValues = parameters.snapshot();
+        referenceKnown = true;
+        references[index] = {program, referenceValues, (1u << cs01::parameterCount) - 1, true};
+    }
     return loaded;
 }
 std::vector<PreparedProgram> ProgramManager::preparePrograms() const {
@@ -198,10 +239,19 @@ bool ProgramManager::selectProgramIdentity(const Program& program) {
     for (size_t i = 0; i < allPresets.size(); ++i)
         if (allPresets[i].filename == program.filename && allPresets[i].type == program.type) {
             currentProgram = static_cast<int>(i);
+            setReference(references[i]);
             return true;
         }
     currentProgram = 0;
+    referenceKnown = false;
     return false;
+}
+bool ProgramManager::selectPreparedProgram(const PreparedProgram& program) {
+    std::lock_guard lock(mutex);
+    const bool found = selectProgramIdentity(program.identity);
+    // Hosts load their immutable cached patch, which may differ from today's file.
+    setReference(program);
+    return found;
 }
 bool ProgramManager::loadPresetFromXml(std::string_view xml) {
     std::lock_guard lock(mutex);
@@ -224,15 +274,21 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
         const auto* root = doc.FirstChildElement("Parameters");
         currentProgram = 0;
         const char* filename = root->Attribute("programFilename");
+        bool matched = !filename;
         if (filename) {
             const auto type =
                 root->BoolAttribute("programIsUser") ? PresetType::User : PresetType::Factory;
             for (size_t i = 0; i < allPresets.size(); ++i)
-                if (allPresets[i].filename == filename && allPresets[i].type == type)
+                if (allPresets[i].filename == filename && allPresets[i].type == type) {
                     currentProgram = static_cast<int>(i);
+                    matched = true;
+                }
         } else
             currentProgram = std::clamp(root->IntAttribute("program", 0), 0,
                                         static_cast<int>(allPresets.size()) - 1);
+        setReference(references[currentProgram]);
+        if (!matched)
+            referenceKnown = false;
     }
     return true;
 }
@@ -243,6 +299,7 @@ std::string ProgramManager::serialize(bool session, const PreparedProgram* selec
     auto* root = doc.NewElement("Parameters");
     doc.InsertEndChild(root);
     root->SetAttribute("schema", 1);
+    root->SetAttribute("pluginVersion", cs01::pluginVersion);
     if (session) {
         int index = currentProgram;
         if (selected) {
@@ -321,9 +378,47 @@ bool ProgramManager::saveCurrentStateAsPreset(std::string_view name) {
     if (ec)
         return false;
     const auto path = directory / cs01::utf8Path(std::string(name) + ".xml");
-    if (!replaceFile(path, serialize(false)))
+    const auto xml = serialize(false);
+    if (!replaceFile(path, xml))
         return false;
     refreshUnlocked();
+    const auto& selected = allPresets[currentProgram];
+    if (selected.type == PresetType::User && selected.filename == pathText(path.filename()))
+        setReference(prepareXml(xml, false));
+    return true;
+}
+bool ProgramManager::saveCurrentUserPreset() {
+    std::lock_guard lock(mutex);
+    const auto& selected = allPresets[currentProgram];
+    if (directory.empty() || selected.type != PresetType::User)
+        return false;
+    const auto xml = serialize(false);
+    if (!replaceFile(directory / cs01::utf8Path(selected.filename), xml))
+        return false;
+    const auto saved = prepareXml(xml, false);
+    setReference(saved);
+    references[currentProgram] = saved;
+    references[currentProgram].identity = selected;
+    return true;
+}
+bool ProgramManager::saveCurrentStateAsNewPreset(std::string_view name) {
+    std::lock_guard lock(mutex);
+    if (directory.empty() || !isValidPresetName(name))
+        return false;
+    std::error_code ec;
+    std::filesystem::create_directories(directory, ec);
+    if (ec)
+        return false;
+    const auto path = uniquePath(name);
+    const auto xml = serialize(false);
+    if (path.empty() || !replaceFile(path, xml, false))
+        return false;
+    // Refresh around the new identity so even an externally removed source
+    // cannot trigger a default-patch reload. Live controls stay untouched.
+    allPresets[currentProgram] = {pathText(path.stem()), pathText(path.filename()),
+                                  PresetType::User};
+    refreshUnlocked();
+    setReference(prepareXml(xml, false));
     return true;
 }
 bool ProgramManager::userPresetExists(std::string_view name) const {

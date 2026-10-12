@@ -48,7 +48,9 @@ class CheapSynth01 final : public cs01::PluginAPI {
         RenamePreset,
         DeletePreset,
         ResonanceHighLabel,
-        OutputMeter
+        OutputMeter,
+        SavePreset,
+        ProgramTypeLabel
     };
     void syncParameters(bool notifyHost = false);
     void syncHostProgramIndex();
@@ -56,6 +58,7 @@ class CheapSynth01 final : public cs01::PluginAPI {
     ProgramManager programs{parameters};
     std::unique_ptr<cs01::HostProgramBank> hostPrograms;
     std::atomic<bool> refreshUI{false};
+    uint64_t displayedHostProgramToken = 0;
 #if IPLUG_DSP
     cs01::ParameterState renderParameters;
     SynthEngine engine{renderParameters};

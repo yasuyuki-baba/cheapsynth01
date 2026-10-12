@@ -714,6 +714,112 @@ TEST_F(StateTest, HostIdentityRefreshKeepsEditedSoundAndTracksSorting) {
     EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 4321);
 }
 
+TEST_F(StateTest, ModifiedMarkerUsesActualCachedHostPatchAfterUserFileOverwrite) {
+    parameters.set(Param::Cutoff, 1234);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("cached"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    parameters.set(Param::Cutoff, 2345);
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    ASSERT_TRUE(bank.request(factoryCount));
+    ASSERT_EQ(bank.applyPending(parameters), factoryCount);
+    ASSERT_TRUE(manager.selectPreparedProgram(*bank.selected()));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    parameters.set(Param::Cutoff, 3456);
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    parameters.set(Param::Cutoff, 1234);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+}
+
+TEST_F(StateTest, SavedUserCacheUpdateRetainsHostIndexAndLoadsSavedSoundAndSession) {
+    parameters.set(Param::Cutoff, 1234);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_TRUE(bank.request(factoryCount));
+    const auto* previous = bank.selected();
+    // Sorting changes in the panel must not move the existing host slot.
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("AAA"));
+    EXPECT_EQ(manager.getCurrentProgram(), factoryCount + 1);
+    parameters.set(Param::Cutoff, 2345);
+    parameters.set(Param::Volume, .3f);
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    ASSERT_TRUE(bank.updateUserProgram(manager.currentPreparedProgram()));
+    EXPECT_FALSE(bank.pending());
+    EXPECT_EQ(bank.applyPending(parameters), -1);
+    EXPECT_FLOAT_EQ(previous->values[static_cast<int>(Param::Cutoff)], 1234);
+    ASSERT_EQ(bank.programs().size(), static_cast<size_t>(factoryCount + 1));
+    EXPECT_EQ(bank.programs()[factoryCount].identity.filename, "Lead.xml");
+    parameters.set(Param::Cutoff, 3456);
+    ASSERT_TRUE(bank.request(factoryCount));
+    cs01::ParameterState restored;
+    ProgramManager restoredManager(restored);
+    restoredManager.setUserDirectory(directory);
+    ASSERT_TRUE(restoredManager.setStateInformation(bank.serializeSession(manager)));
+    EXPECT_FLOAT_EQ(restored.get(Param::Cutoff), 2345);
+    EXPECT_FLOAT_EQ(restored.get(Param::Volume), .3f);
+    allocations.store(0);
+    countAllocations.store(true);
+    const int applied = bank.applyPending(parameters);
+    countAllocations.store(false);
+    EXPECT_EQ(applied, factoryCount);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 2345);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Volume), .3f);
+    ASSERT_TRUE(manager.selectPreparedProgram(*bank.selected()));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+    // Re-selecting the same slot resets edits using the saved revision again.
+    parameters.set(Param::Cutoff, 4567);
+    ASSERT_TRUE(bank.request(factoryCount));
+    ASSERT_EQ(bank.applyPending(parameters), factoryCount);
+    EXPECT_FLOAT_EQ(parameters.get(Param::Cutoff), 2345);
+    auto invalid = manager.currentPreparedProgram();
+    invalid.identity.type = PresetType::Factory;
+    EXPECT_FALSE(bank.updateUserProgram(invalid));
+    invalid = manager.currentPreparedProgram();
+    invalid.identity.filename = "New.xml";
+    EXPECT_FALSE(bank.updateUserProgram(invalid));
+    EXPECT_EQ(bank.programs().size(), static_cast<size_t>(factoryCount + 1));
+}
+
+TEST_F(StateTest, HostCachePublicationNeverTearsConcurrentAudioPatches) {
+    parameters.set(Param::Cutoff, 1000);
+    parameters.set(Param::WaveType, 0);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Lead"));
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    auto revision = manager.currentPreparedProgram();
+    cs01::ParameterState audio;
+    std::atomic<bool> started{false}, done{false}, coherent{true};
+    std::thread render([&] {
+        started.store(true);
+        do {
+            bank.request(factoryCount);
+            if (bank.applyPending(audio) >= 0) {
+                const auto values = audio.snapshot();
+                const int generation = int(values[static_cast<int>(Param::Cutoff)]) - 1000;
+                if (values[static_cast<int>(Param::WaveType)] != generation % 5)
+                    coherent.store(false);
+            }
+        } while (!done.load());
+    });
+    while (!started.load())
+        std::this_thread::yield();
+    bool published = true;
+    for (int i = 1; i <= 500; ++i) {
+        revision.values[static_cast<int>(Param::Cutoff)] = float(1000 + i);
+        revision.values[static_cast<int>(Param::WaveType)] = float(i % 5);
+        published &= bank.updateUserProgram(revision);
+    }
+    done.store(true);
+    render.join();
+    EXPECT_TRUE(published);
+    EXPECT_TRUE(coherent.load());
+    ASSERT_TRUE(bank.request(factoryCount));
+    ASSERT_EQ(bank.applyPending(audio), factoryCount);
+    EXPECT_FLOAT_EQ(audio.get(Param::Cutoff), 1500);
+    EXPECT_FLOAT_EQ(audio.get(Param::WaveType), 0);
+}
+
 TEST_F(StateTest, PreparedFactoryChangesMatchDirectLoadsIncludingHeldNoteAudio) {
     const auto catalogue = manager.preparePrograms();
     for (int index = 0; index < factoryCount; ++index) {

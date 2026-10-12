@@ -109,7 +109,9 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     // Original 1240x400 panel: header at y=20, common sound columns at y=82.
     g->AttachControl(new BrandMark(IRECT(20, 16, 205, 64)));
     g->AttachControl(new IPanelControl(IRECT(226, 20, 786, 64), background));
-    label(IRECT(265, 20, 525, 35), "MEMORY", 10);
+    g->AttachControl(
+        new ITextControl(IRECT(265, 20, 525, 35), "MEMORY / FACTORY / READ ONLY", text(10)),
+        ProgramTypeLabel);
     auto display = [this]() {
         return static_cast<PresetDisplay*>(GetUI()->GetControlWithTag(ProgramLabel));
     };
@@ -138,31 +140,34 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
             updateFilterControls();
         }
     });
-    button(IRECT(596, 36, 646, 59), "Save", [this, display](IControl*) {
-        display()->PromptName("My Preset", editorSession.wrap([this](const char* name) {
-            const std::string requestedName(name);
-            auto save = editorSession.wrap([this, requestedName](EMsgBoxResult result) {
-                if (result != EMsgBoxResult::kYES)
-                    return;
-                if (!programs.saveCurrentStateAsPreset(requestedName))
-                    reportPresetError();
-                else {
-                    hostPrograms->cancel();
-                    syncHostProgramIndex();
-                }
-                updateProgramLabel();
-            });
-            if (programs.userPresetExists(requestedName)) {
-                const auto message = "Replace the user preset \"" + requestedName + "\"?";
-                GetUI()->ShowMessageBox(message.c_str(), "Replace preset", EMsgBoxType::kMB_YESNO,
-                                        save);
-            } else {
-                save(EMsgBoxResult::kYES);
-            }
-        }));
-    });
     button(
-        IRECT(651, 36, 711, 59), "Rename",
+        IRECT(559, 36, 603, 59), "Save",
+        [this](IControl*) {
+            if (!programs.saveCurrentUserPreset())
+                reportPresetError();
+            else {
+                hostPrograms->cancel();
+                hostPrograms->updateUserProgram(programs.currentPreparedProgram());
+                syncHostProgramIndex();
+            }
+            updateProgramLabel();
+        },
+        SavePreset)
+        ->SetTooltip("Overwrite the current user patch. Use Save As for factory sounds.");
+    button(IRECT(608, 36, 674, 59), "Save As", [this, display](IControl*) {
+        const auto selected = programs.currentProgramIdentity();
+        display()->PromptName(selected.name.c_str(), editorSession.wrap([this](const char* name) {
+            if (!programs.saveCurrentStateAsNewPreset(name))
+                reportPresetError();
+            else {
+                hostPrograms->cancel();
+                syncHostProgramIndex();
+            }
+            updateProgramLabel();
+        }));
+    })->SetTooltip("Save a new user patch. Existing names get a numbered suffix.");
+    button(
+        IRECT(679, 36, 729, 59), "Rename",
         [this, display](IControl*) {
             const auto target = programs.currentProgramIdentity();
             display()->PromptName(target.name.c_str(),
@@ -178,7 +183,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
         },
         RenamePreset);
     button(
-        IRECT(716, 36, 776, 59), "Delete",
+        IRECT(734, 36, 780, 59), "Delete",
         [this](IControl*) {
             const auto target = programs.currentProgramIdentity();
             const auto message = "Delete the user preset \"" + target.name + "\"?";
@@ -344,14 +349,22 @@ void CheapSynth01::updateProgramLabel() {
     if (!GetUI())
         return;
     auto* label = static_cast<ITextControl*>(GetUI()->GetControlWithTag(ProgramLabel));
-    const auto list = programs.programs();
+    const auto selected = programs.currentProgramIdentity();
+    const bool user = selected.type == PresetType::User;
+    const auto name = selected.name + (programs.isCurrentProgramModified() ? " *" : "");
     if (label) {
-        label->SetStr(
-            list[std::clamp(programs.getCurrentProgram(), 0, static_cast<int>(list.size()) - 1)]
-                .name.c_str());
-        label->SetDirty(false);
+        if (name != label->GetStr()) {
+            label->SetStr(name.c_str());
+            label->SetDirty(false);
+        }
     }
-    const bool user = list[programs.getCurrentProgram()].type == PresetType::User;
+    auto* typeLabel = static_cast<ITextControl*>(GetUI()->GetControlWithTag(ProgramTypeLabel));
+    const std::string typeText = user ? "MEMORY / USER / EDITABLE" : "MEMORY / FACTORY / READ ONLY";
+    if (typeText != typeLabel->GetStr()) {
+        typeLabel->SetStr(typeText.c_str());
+        typeLabel->SetDirty(false);
+    }
+    GetUI()->GetControlWithTag(SavePreset)->SetDisabled(!user);
     GetUI()->GetControlWithTag(RenamePreset)->SetDisabled(!user);
     GetUI()->GetControlWithTag(DeletePreset)->SetDisabled(!user);
 }
