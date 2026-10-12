@@ -18,10 +18,10 @@ DSP approximations where hardware characteristics remain unresolved.
   - Original VCF: two-pole behavioral model with Low/High resonance
   - Modern VCF: four-pole behavioral model with continuous resonance
 - Stateful ADSR envelope, independent VCA note gate, asymmetric pitch bend and breath control
-- Six factory sounds transcribed from the CS01 owner's manual, plus an initialization patch
+- Six factory sounds based on the original instrument's manual, plus an initialization patch
   ([panel settings and usage](docs/Factory-presets.md))
 - User XML presets, XML import, and DAW session state
-- CS01-inspired panel with standard iPlug2 controls, optional on-screen keyboard,
+- Hardware-inspired panel with standard iPlug2 controls, optional on-screen keyboard,
   PC-keyboard playing and output scope
 - Standalone audio/MIDI device preferences
 - Four-times internal processing with a linear-phase FIR output converter
@@ -59,7 +59,7 @@ standalone settings, presets, session behavior and troubleshooting. See also the
 
 The framework-independent `SynthEngine` owns the sound generators, MIDI processor,
 EG, LFO, both filters and VCA. The iPlug2 wrapper handles host callbacks, parameters,
-state and the editor; it does not use JUCE's AudioProcessorGraph.
+state and the editor.
 
 The engine selects one filter and one LFO destination within a fixed processing
 order. Tone/noise generation, modulation, filtering and amplification run at four
@@ -142,17 +142,17 @@ See the [0.4.0 release notes](docs/release-notes-0.4.0.md) for changes and upgra
 considerations.
 
 CheapSynth01 0.4.0 uses each format's native parameter IDs and current XML state.
-Loading JUCE-era DAW projects, automation or binary state is outside the migration
+Loading DAW projects, automation or binary state from earlier versions is outside the migration
 scope. Plugin identities and the macOS bundle ID remain unchanged. XML presets can
 still be imported and exported.
 
 The FIR converter's high-frequency response and phase differ from the previous
-JUCE IIR converter, so identical audio output is not promised. See the
+IIR converter, so identical audio output is not promised. See the
 [migration notes](docs/iPlug2-migration.md) for the current architecture and scope.
 
 ## License
 
-The project source remains GPLv3; see [LICENSE](LICENSE). Removing JUCE does not
-change the license of existing project contributions. iPlug2 is zlib-like,
+The project source remains GPLv3; see [LICENSE](LICENSE). Existing project
+contributions retain their license. iPlug2 is zlib-like,
 TinyXML2 is zlib, and the bundled Roboto font is Apache-2.0. See
 [third-party notices](THIRD_PARTY_NOTICES.md) for dependency licenses and notices.
