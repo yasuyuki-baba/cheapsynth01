@@ -87,7 +87,9 @@ the filter state settles through a short transition.
 Click the preset name or its downward arrow under **MEMORY** to open the full
 preset list. **Factory** (Default and 38 named sounds) and **User** headings
 group the names in one menu. A checkmark identifies the current preset; an empty
-User section shows **No presets**.
+User section shows **No presets**. The list uses the operating system's native
+menu: Windows splits longer lists into columns; macOS scrolls long lists within
+the available screen space. All sound names remain directly selectable.
 Select a name or use `<` / `>` to move through the list. The named sounds and
 manual panel settings are listed in [factory presets](Factory-presets.md).
 

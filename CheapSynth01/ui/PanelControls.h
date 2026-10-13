@@ -244,6 +244,9 @@ class PresetDisplay final : public ITextControl {
     }
     void OnMouseDown(float, float, const IMouseMod&) override {
         menu.Clear();
+        // Windows lays out the flat catalogue in columns; macOS supplies its
+        // native scrolling menu. Keep every sound directly selectable.
+        menu.SetNItemsPerColumn(14);
         snapshot = programs();
         const auto selected = current();
         for (const auto type : {PresetType::Factory, PresetType::User}) {
