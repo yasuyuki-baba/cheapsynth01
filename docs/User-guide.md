@@ -90,6 +90,9 @@ group the names in one menu. A checkmark identifies the current preset; an empty
 User section shows **No presets**. The list uses the operating system's native
 menu: Windows splits longer lists into columns; macOS scrolls long lists within
 the available screen space. All sound names remain directly selectable.
+Each patch name shows its saved category in brackets, for example
+**Acid Bass [Bass]** or **Dark Drone [Texture]**. User presets with a category
+show it in the same way; presets without a category show just their name.
 Select a name or use `<` / `>` to move through the list. The named sounds and
 manual panel settings are listed in [factory presets](Factory-presets.md).
 
@@ -129,6 +132,44 @@ controls. See [host presets and state](iPlug2-host-integration.md).
 | DAW session save/restore | Stored and restored | Stored and restored | Omitted; current values retained | Not stored; restoration clears held notes |
 
 Breath sensitivity is a sound control; Breath Input is a live performance value.
+Saved XML uses `schema="1"`; XML without a schema remains supported as legacy
+format. Unsupported or malformed schema values are rejected before changing any
+state. Missing saved controls restore their initialization defaults rather than
+values from the previous sound. In particular, legacy factory presets restore
+bend ranges to 12 semitones up and 0 down. Preset loading still retains Volume,
+Oversampling and live performance values; session restoration retains only live
+performance values and defaults missing Volume and Oversampling to 0.7 and 4x.
+
+XML supports optional `id`, `author`, `category` and `description` attributes on
+`Parameters`, plus a `TAGS` element containing one `TAG` text element per tag.
+For example (omitted sound controls restore their defaults):
+
+```xml
+<Parameters schema="1" id="example-patch" author="Your name"
+            category="Bass" description="Use the modulation wheel for vibrato.">
+  <TAGS>
+    <TAG>Warm</TAG>
+    <TAG>PWM</TAG>
+  </TAGS>
+  <PARAM id="CUTOFF" value="1200"/>
+</Parameters>
+```
+
+Metadata can be edited in the XML file and loaded through **Import XML**. It is
+preserved in saved presets and DAW sessions. Missing metadata is empty; empty tag
+elements are ignored, and tag text/order is otherwise preserved. Categories and
+tags are free text; they do not change the sound.
+
+Every new user preset receives a UUID v4 ID. **Save As** copies the descriptive
+metadata and assigns a new ID; overwrite and rename retain the existing ID.
+Legacy user files without an ID receive one on their first save. Factory XML
+contains fixed IDs, which must remain unchanged when a factory file is renamed.
+Session restoration looks up a unique ID before the filename, so renaming a
+file retains its identity. IDs are opaque strings, not paths. If duplicate IDs
+exist (for example after copying a file outside the app), a matching filename is
+required; an ambiguous ID never selects an arbitrary copy. Old sessions without
+IDs still use filenames or the legacy program index.
+
 MIDI Program Change messages are ignored. Current XML presets remain supported,
 but JUCE-era DAW projects, automation and binary state are outside the migration
 scope. See [migration notes](iPlug2-migration.md).

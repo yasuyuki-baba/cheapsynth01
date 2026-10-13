@@ -1,5 +1,11 @@
 <!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.metallic_ping" category="Percussion">
+  <TAGS>
+    <TAG>Noise</TAG>
+    <TAG>Metallic</TAG>
+    <TAG>Resonant</TAG>
+    <TAG>Short</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="1"/>
   <PARAM id="FEET" value="4"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

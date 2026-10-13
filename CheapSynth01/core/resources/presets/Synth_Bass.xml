@@ -1,5 +1,10 @@
 <!-- CS01 owner's manual, printed page 33. Approximate panel positions; see docs/software/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.synth_bass" category="Bass">
+  <TAGS>
+    <TAG>Pulse</TAG>
+    <TAG>Pluck</TAG>
+    <TAG>Resonant</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="3"/>
   <PARAM id="FEET" value="0"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

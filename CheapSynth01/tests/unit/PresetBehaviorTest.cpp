@@ -1,5 +1,6 @@
 #include "ProgramManager.h"
 #include "SynthEngine.h"
+#include "HostProgramBank.h"
 #include "../../config.h"
 #include <gtest/gtest.h>
 #include <tinyxml2.h>
@@ -7,6 +8,7 @@
 #include <chrono>
 #include <fstream>
 #include <cmath>
+#include <set>
 
 namespace {
 using cs01::Param;
@@ -50,6 +52,7 @@ TEST_F(PresetBehaviorTest, EveryEmbeddedFactoryControlReloadsAndPreservesLiveInp
         ASSERT_EQ(xml.LoadFile(file.string().c_str()), tinyxml2::XML_SUCCESS);
         const auto* root = xml.FirstChildElement("Parameters");
         ASSERT_NE(root, nullptr);
+        EXPECT_EQ(programs[preset].category, root->Attribute("category"));
         std::array<float, cs01::parameterCount> expected{};
         unsigned mask = 0;
         int children = 0;
@@ -396,6 +399,240 @@ TEST_F(PresetBehaviorTest, SavedPatchAndSessionRecordPluginVersionAndLoadLegacyX
     ASSERT_TRUE(manager.loadPresetFromXml(
         "<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
     EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+}
+
+TEST_F(PresetBehaviorTest, UnsupportedOrMalformedSchemaLeavesPatchAndSelectionUntouched) {
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    state.set(Param::Cutoff, 1234);
+    const auto before = state.snapshot();
+    const auto reset = state.stateResetSerial();
+    const auto selected = manager.getCurrentProgram();
+    for (const char* schema : {"0", "2", "-1", "", "invalid", "1junk", "1.0"}) {
+        SCOPED_TRACE(schema);
+        const auto xml = std::string("<Parameters schema=\"") + schema +
+                         "\" program=\"0\"><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>";
+        EXPECT_FALSE(manager.loadPresetFromXml(xml));
+        EXPECT_FALSE(manager.setStateInformation(xml));
+        EXPECT_EQ(state.snapshot(), before);
+        EXPECT_EQ(state.stateResetSerial(), reset);
+        EXPECT_EQ(manager.getCurrentProgram(), selected);
+    }
+}
+
+TEST_F(PresetBehaviorTest, IncompleteXmlRestoresDefaultsIndependentOfPreviousPatch) {
+    // Both legacy layouts and current schema XML have deterministic missing values.
+    for (const char* xml :
+         {"<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>",
+          "<Parameters><PARAMETERS><PARAM id=\"CUTOFF\" value=\"2345\"/>"
+          "</PARAMETERS></Parameters>",
+          "<Parameters schema=\"1\"><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"}) {
+        SCOPED_TRACE(xml);
+        for (bool session : {false, true}) {
+            for (bool maximum : {false, true}) {
+                for (int i = 0; i < cs01::parameterCount; ++i) {
+                    const auto& d = cs01::parameterDefinitions[i];
+                    state.set(static_cast<Param>(i), maximum ? d.maximum : d.minimum);
+                }
+                const auto before = state.snapshot();
+                ASSERT_TRUE(session ? manager.setStateInformation(xml)
+                                    : manager.loadPresetFromXml(xml));
+                for (int i = 0; i < cs01::parameterCount; ++i) {
+                    const auto id = static_cast<Param>(i);
+                    const auto& d = cs01::parameterDefinitions[i];
+                    const bool retained =
+                        d.transient ||
+                        (!session && (id == Param::Volume || id == Param::Oversampling));
+                    const float expected = retained              ? before[i]
+                                           : id == Param::Cutoff ? 2345.f
+                                                                 : d.initial;
+                    EXPECT_FLOAT_EQ(state.get(id), expected) << d.id;
+                }
+            }
+        }
+    }
+}
+
+TEST_F(PresetBehaviorTest, LegacyFactoryPresetResetsMissingBendRanges) {
+    for (int preset = 0; preset < static_cast<int>(manager.programs().size()); ++preset) {
+        SCOPED_TRACE(preset);
+        state.set(Param::BendUp, 3);
+        state.set(Param::BendDown, 7);
+        ASSERT_TRUE(manager.setCurrentProgram(preset));
+        EXPECT_FLOAT_EQ(state.get(Param::BendUp), cs01::definition(Param::BendUp).initial);
+        EXPECT_FLOAT_EQ(state.get(Param::BendDown), cs01::definition(Param::BendDown).initial);
+    }
+}
+
+TEST_F(PresetBehaviorTest, MetadataAndTagsSurviveFileAndSessionRoundTrips) {
+    const char* xml =
+        "<Parameters schema=\"1\" id=\"imported-patch\" author=\"作者 &amp; Co.\" "
+        "category=\"Bass\" description=\"Warm &lt;bass&gt; &quot;lead&quot;&#10;Use wheel.\">"
+        "<TAGS><TAG>暖かい</TAG><TAG>PWM, slow</TAG><TAG>A &amp; B</TAG></TAGS>"
+        "<PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>";
+    ASSERT_TRUE(manager.loadPresetFromXml(xml));
+    auto expected = manager.currentPresetMetadata();
+    EXPECT_EQ(expected.id, "imported-patch");
+    EXPECT_EQ(expected.author, "作者 & Co.");
+    EXPECT_EQ(expected.category, "Bass");
+    EXPECT_EQ(expected.description, "Warm <bass> \"lead\"\nUse wheel.");
+    EXPECT_EQ(expected.tags, (std::vector<std::string>{"暖かい", "PWM, slow", "A & B"}));
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Metadata"));
+    EXPECT_EQ(manager.programs()[index("Metadata.xml")].category, "Bass");
+    EXPECT_EQ(manager.currentProgramIdentity().category, "Bass");
+    expected.id = manager.currentPresetMetadata().id;
+    EXPECT_NE(expected.id, "imported-patch");
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    ASSERT_TRUE(manager.loadPresetFile(directory / "Metadata.xml"));
+    EXPECT_EQ(manager.currentPresetMetadata(), expected);
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+    ASSERT_TRUE(manager.setCurrentProgram(index("Metadata.xml")));
+    const auto session = manager.getStateInformation();
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    ASSERT_TRUE(manager.setStateInformation(session));
+    EXPECT_EQ(manager.currentPresetMetadata(), expected);
+    EXPECT_FALSE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, LegacyXmlClearsMetadataAndInvalidXmlKeepsIt) {
+    ASSERT_TRUE(manager.loadPresetFromXml(
+        "<Parameters id=\"test\" author=\"Author\" category=\"Bass\" description=\"Hint\">"
+        "<TAGS><TAG>Warm</TAG></TAGS><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
+    const auto before = manager.currentPresetMetadata();
+    EXPECT_FALSE(manager.loadPresetFromXml(
+        "<Parameters schema=\"2\" author=\"Other\"><PARAM id=\"CUTOFF\" value=\"3456\"/>"
+        "</Parameters>"));
+    EXPECT_FALSE(manager.setStateInformation("<Parameters author=\"Other\">"));
+    EXPECT_EQ(manager.currentPresetMetadata(), before);
+    ASSERT_TRUE(
+        manager.loadPresetFromXml("<Parameters><PARAMETERS><PARAM id=\"CUTOFF\" value=\"3456\"/>"
+                                  "</PARAMETERS></Parameters>"));
+    EXPECT_EQ(manager.currentPresetMetadata(), PresetMetadata{});
+}
+
+TEST_F(PresetBehaviorTest, SaveOverwriteAndRenameKeepIdWhileSaveAsCreatesNewIds) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Original"));
+    const auto originalId = manager.currentPresetMetadata().id;
+    ASSERT_EQ(originalId.size(), 36u);
+    EXPECT_EQ(originalId[14], '4');
+    EXPECT_NE(std::string_view("89ab").find(originalId[19]), std::string_view::npos);
+    for (size_t i = 0; i < originalId.size(); ++i)
+        if (i == 8 || i == 13 || i == 18 || i == 23)
+            EXPECT_EQ(originalId[i], '-');
+        else
+            EXPECT_NE(std::string_view("0123456789abcdef").find(originalId[i]),
+                      std::string_view::npos);
+    state.set(Param::Cutoff, 1234);
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    EXPECT_EQ(manager.currentPresetMetadata().id, originalId);
+    ASSERT_TRUE(manager.renameUserPreset(manager.currentProgramIdentity(), "Renamed"));
+    EXPECT_EQ(manager.currentPresetMetadata().id, originalId);
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("Renamed"));
+    EXPECT_EQ(manager.currentPresetMetadata().id, originalId);
+    std::set<std::string> ids{originalId};
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Copy"));
+        EXPECT_TRUE(ids.insert(manager.currentPresetMetadata().id).second);
+        EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 1234);
+    }
+    ASSERT_TRUE(manager.setCurrentProgram(index("Renamed.xml")));
+    EXPECT_EQ(manager.currentPresetMetadata().id, originalId);
+}
+
+TEST_F(PresetBehaviorTest, LegacyUserFileGetsIdOnFirstSaveAndFailedSaveKeepsMetadata) {
+    std::ofstream(directory / "Legacy.xml")
+        << "<Parameters author=\"Legacy author\"><PARAM id=\"CUTOFF\" value=\"2345\"/>"
+           "</Parameters>";
+    manager.refreshUserPresets();
+    ASSERT_TRUE(manager.setCurrentProgram(index("Legacy.xml")));
+    EXPECT_TRUE(manager.currentPresetMetadata().id.empty());
+    ASSERT_TRUE(manager.saveCurrentUserPreset());
+    const auto before = manager.currentPresetMetadata();
+    EXPECT_FALSE(before.id.empty());
+    EXPECT_EQ(before.author, "Legacy author");
+    std::filesystem::remove(directory / "Legacy.xml");
+    std::filesystem::create_directory(directory / "Legacy.xml");
+    EXPECT_FALSE(manager.saveCurrentUserPreset());
+    EXPECT_FALSE(manager.saveCurrentStateAsNewPreset("../Invalid"));
+    EXPECT_EQ(manager.currentPresetMetadata(), before);
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Legacy.xml");
+}
+
+TEST_F(PresetBehaviorTest, SessionAndRefreshFindRenamedPresetById) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Original"));
+    const auto originalId = manager.currentPresetMetadata().id;
+    state.set(Param::Cutoff, 1234);
+    const auto editedSession = manager.getStateInformation();
+    std::filesystem::rename(directory / "Original.xml", directory / "Renamed.xml");
+    manager.refreshUserPresets();
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Renamed.xml");
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 1234);
+    EXPECT_EQ(manager.currentPresetMetadata().id, originalId);
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Original"));
+    EXPECT_NE(manager.currentPresetMetadata().id, originalId);
+    cs01::ParameterState restoredState;
+    ProgramManager restored(restoredState);
+    restored.setUserDirectory(directory);
+    ASSERT_TRUE(restored.setStateInformation(editedSession));
+    EXPECT_EQ(restored.currentProgramIdentity().filename, "Renamed.xml");
+    EXPECT_EQ(restored.currentPresetMetadata().id, originalId);
+    EXPECT_FLOAT_EQ(restoredState.get(Param::Cutoff), 1234);
+    EXPECT_TRUE(restored.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, DuplicateIdsUseFilenameAndDoNotSelectAnArbitraryCopy) {
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Original"));
+    const auto session = manager.getStateInformation();
+    std::filesystem::copy_file(directory / "Original.xml", directory / "Copy.xml");
+    manager.refreshUserPresets();
+    ASSERT_TRUE(manager.setStateInformation(session));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Original.xml");
+    std::filesystem::rename(directory / "Original.xml", directory / "Renamed.xml");
+    cs01::ParameterState restoredState;
+    ProgramManager restored(restoredState);
+    restored.setUserDirectory(directory);
+    ASSERT_TRUE(restored.setStateInformation(session));
+    EXPECT_EQ(restored.getCurrentProgram(), 0);
+    EXPECT_TRUE(restored.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, PendingHostSessionKeepsCachedMetadataAfterRename) {
+    ASSERT_TRUE(manager.loadPresetFromXml(
+        "<Parameters author=\"Author\" category=\"Bass\"><TAGS><TAG>Warm</TAG></TAGS>"
+        "<PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
+    ASSERT_TRUE(manager.saveCurrentStateAsNewPreset("Host"));
+    const auto expected = manager.currentPresetMetadata();
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    const auto hostIndex = manager.getCurrentProgram();
+    ASSERT_TRUE(manager.setCurrentProgram(0));
+    ASSERT_TRUE(bank.request(hostIndex));
+    const auto session = bank.serializeSession(manager);
+    ASSERT_TRUE(manager.renameUserPreset(index("Host.xml"), "Renamed"));
+    ASSERT_TRUE(manager.setStateInformation(session));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Renamed.xml");
+    EXPECT_EQ(manager.currentPresetMetadata(), expected);
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+    ASSERT_EQ(bank.applyPending(state), hostIndex);
+    ASSERT_TRUE(manager.selectPreparedProgram(*bank.selected()));
+    EXPECT_EQ(manager.currentProgramIdentity().filename, "Renamed.xml");
+    EXPECT_EQ(manager.currentPresetMetadata(), expected);
+}
+
+TEST_F(PresetBehaviorTest, EveryFactoryPresetHasAUniqueStableId) {
+    std::set<std::string> ids;
+    for (const auto& program : manager.preparePrograms()) {
+        SCOPED_TRACE(program.identity.filename);
+        EXPECT_TRUE(program.valid);
+        EXPECT_FALSE(program.metadata.id.empty());
+        EXPECT_TRUE(ids.insert(program.metadata.id).second);
+    }
+    const auto legacySession = manager.getStateInformation();
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(legacySession.c_str()), tinyxml2::XML_SUCCESS);
+    doc.FirstChildElement("Parameters")->DeleteAttribute("id");
+    tinyxml2::XMLPrinter printer;
+    doc.Print(&printer);
+    ASSERT_TRUE(manager.setStateInformation(printer.CStr()));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
 }
 
 TEST_F(PresetBehaviorTest, SessionIdentityTracksSortedInsertionAndKeepsSavedEdits) {

@@ -1,5 +1,10 @@
 <!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.warm_lead" category="Lead">
+  <TAGS>
+    <TAG>Saw</TAG>
+    <TAG>Warm</TAG>
+    <TAG>Glissando</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="1"/>
   <PARAM id="FEET" value="2"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

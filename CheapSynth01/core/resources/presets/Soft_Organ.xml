@@ -1,5 +1,10 @@
 <!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.soft_organ" category="Keys">
+  <TAGS>
+    <TAG>Square</TAG>
+    <TAG>Soft</TAG>
+    <TAG>Sustained</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="2"/>
   <PARAM id="FEET" value="2"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

@@ -1,4 +1,8 @@
-<Parameters>
+<Parameters id="cs01.factory.default" category="Init">
+  <TAGS>
+    <TAG>Saw</TAG>
+    <TAG>Sustained</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="1"/>
   <PARAM id="FEET" value="2"/>
   <PARAM id="PWM_SPEED" value="2.0"/>

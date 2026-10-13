@@ -1,5 +1,11 @@
 <!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.bubble_sequence" category="Sequence">
+  <TAGS>
+    <TAG>Triangle</TAG>
+    <TAG>Resonant</TAG>
+    <TAG>Sweep</TAG>
+    <TAG>Short</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="0"/>
   <PARAM id="FEET" value="3"/>
   <PARAM id="PWM_SPEED" value="0.6"/>
