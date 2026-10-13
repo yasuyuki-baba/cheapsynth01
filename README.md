@@ -63,10 +63,11 @@ EG, LFO, both filters and VCA. The iPlug2 wrapper handles host callbacks, parame
 state and the editor.
 
 The engine selects one filter and one LFO destination within a fixed processing
-order. Tone/noise generation, modulation, filtering and amplification run at four
-times the host sample rate. A linear-phase FIR converter produces the host-rate
-output, with 16 host samples of reported latency. Mono synthesis is duplicated to
-stereo at the output.
+order. Tone/noise generation, modulation, filtering and amplification use the
+selected oversampling factor: OFF (1x), 2x, 4x (default), 8x or 16x. Playback and
+export share this setting. A linear-phase FIR converter produces the host-rate
+output; OFF bypasses filtering. Every setting retains 16 host samples of reported
+latency. Mono synthesis is duplicated to stereo at the output.
 
 ```mermaid
 graph TD
@@ -85,7 +86,7 @@ graph TD
     Target -. Pitch .-> VCO
     Target -. Cutoff .-> Original
     Target -. Cutoff .-> Modern
-    VCA --> FIR[4x FIR output converter]
+    VCA --> FIR[Selectable FIR output converter]
     FIR --> Output[Stereo audio output]
 ```
 

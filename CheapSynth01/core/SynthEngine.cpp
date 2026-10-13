@@ -8,7 +8,13 @@ void SynthEngine::prepare(double rate) {
     noteOwnership.reset();
     if (!std::isfinite(rate) || rate < 8000 || rate > 384000)
         rate = 44100.0;  // Protect host reset callbacks from invalid/uninitialized rates.
-    const double internal = rate * cs01::OutputConverter::factor;
+    hostSampleRate = rate;
+    oversamplingStages = static_cast<int>(parameters.get(cs01::Param::Oversampling));
+    converter.setStages(oversamplingStages);
+    lastOutput = transitionStart = 0;
+    transitionRemaining = 0;
+    transitionLength = std::max(32, static_cast<int>(rate * .005));
+    const double internal = rate * converter.getFactor();
     vco.prepare(internal);
     eg.prepare(internal);
     lfo.prepare(internal);
@@ -26,6 +32,8 @@ void SynthEngine::panic() {
     modern.reset();
     vca.reset();
     converter.reset();
+    lastOutput = transitionStart = 0;
+    transitionRemaining = 0;
 }
 void SynthEngine::handleMidi(const cs01::MidiMessage& message) {
     noteOwnership.process(message, false, [this](auto event) { applyMidi(event); });
@@ -34,19 +42,37 @@ void SynthEngine::handleUiMidi(const cs01::MidiMessage& message) {
     noteOwnership.process(message, true, [this](auto event) { applyMidi(event); });
 }
 void SynthEngine::applyMidi(const cs01::MidiMessage& message) {
+    updateOversampling();
     vco.applyPendingGeneratorChange();
     midi.setSoundGenerator(vco.getSoundGenerator());
     midi.handleMidiEvent(message);
     if (message.isAllSoundOff())
         panic();
 }
+void SynthEngine::updateOversampling() {
+    const int requested = static_cast<int>(parameters.get(cs01::Param::Oversampling));
+    if (requested == oversamplingStages)
+        return;
+    oversamplingStages = requested;
+    converter.setStages(requested);
+    const double internal = hostSampleRate * converter.getFactor();
+    vco.setSampleRate(internal);
+    eg.setSampleRate(internal);
+    lfo.setSampleRate(internal);
+    original.prepare(internal);
+    modern.prepare(internal);
+    vca.prepare(internal);
+    transitionStart = lastOutput;
+    transitionRemaining = transitionLength;
+}
 float SynthEngine::renderSample() {
+    updateOversampling();
     vco.getSoundGenerator()->setReleaseSamplesRemaining(
         static_cast<int>(eg.getReleaseSamplesRemaining()));
     vco.applyPendingGeneratorChange();
     midi.setSoundGenerator(vco.getSoundGenerator());
     float output = 0;
-    for (int i = 0; i < cs01::OutputConverter::factor; ++i) {
+    for (int i = 0; i < converter.getFactor(); ++i) {
         const float modulation = lfo.processSample();
         const bool pitchTarget = parameters.get(ParameterIds::lfoTarget) == 0;
         const float envelope = eg.processSample();
@@ -58,9 +84,14 @@ float SynthEngine::renderSample() {
         else
             audio = modern.processSample(audio, envelope, pitchTarget ? 0 : modulation);
         converter.push(vca.processSample(audio, envelope, eg.getNoteGate()));
-        // Sample the internal clock at multiples of four. FIR delay is exactly 16 frames.
+        // Sample at the first internal tick; all factors have the same 16-frame delay.
         if (i == 0)
             output = converter.output();
     }
+    if (transitionRemaining > 0) {
+        const float mix = 1.f - static_cast<float>(--transitionRemaining) / transitionLength;
+        output = transitionStart + (output - transitionStart) * mix;
+    }
+    lastOutput = output;
     return output;
 }

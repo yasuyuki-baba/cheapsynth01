@@ -21,7 +21,8 @@ std::string pathText(const std::filesystem::path& path) {
     return {reinterpret_cast<const char*>(utf8.data()), utf8.size()};
 }
 bool excluded(cs01::Param id, bool session) {
-    return cs01::definition(id).transient || (!session && id == cs01::Param::Volume);
+    return cs01::definition(id).transient ||
+           (!session && (id == cs01::Param::Volume || id == cs01::Param::Oversampling));
 }
 std::string readFile(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary);
@@ -72,6 +73,11 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
     for (int i = 0; i < cs01::parameterCount; ++i)
         if (found[i] && !excluded(static_cast<cs01::Param>(i), session))
             result.mask |= 1u << i;
+    if (session && !found[static_cast<int>(cs01::Param::Oversampling)]) {
+        const int index = static_cast<int>(cs01::Param::Oversampling);
+        result.values[index] = cs01::definition(cs01::Param::Oversampling).initial;
+        result.mask |= 1u << index;
+    }
     result.valid = true;
     return result;
 }

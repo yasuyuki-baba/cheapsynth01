@@ -71,8 +71,16 @@ Depths and levels use normalized values from 0 to 1.
 
 Envelope times are RC time constants. Retriggering from a residual level can
 shorten attack; changing a running stage's time changes its remaining duration
-without resetting its level. The engine runs internally at four times the host
-sample rate, and its output converter adds 16 host samples of reported latency.
+without resetting its level.
+
+Use **OVERSAMPLING** at the bottom right of the panel to select **OFF (1x), 2x,
+4x, 8x or 16x**. The default is **4x**. The same selection applies to playback
+and export, so exporting does not automatically change the sound. Higher factors
+can reduce aliasing but use more CPU. The selection is saved with the project
+and does not change when loading or saving a sound preset. Older projects without
+this setting restore at 4x. All factors, including OFF, retain 16 host samples
+of reported latency. Changing factors preserves held notes and envelope timing;
+the filter state settles through a short transition.
 
 ## Factory and User Presets
 

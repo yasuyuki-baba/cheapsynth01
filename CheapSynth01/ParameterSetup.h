@@ -34,6 +34,9 @@ inline void initializeHostParameter(iplug::IParam& parameter, Param id) {
         case Param::LfoTarget:
             parameter.InitEnum("LFO Target", 0, {"VCO", "VCF"}, flags, group);
             return;
+        case Param::Oversampling:
+            parameter.InitEnum("Oversampling", 2, {"OFF", "2x", "4x", "8x", "16x"}, flags, group);
+            return;
         case Param::FilterType:
             parameter.InitEnum("Filter", 0, {"Original", "Modern"}, flags, group);
             return;

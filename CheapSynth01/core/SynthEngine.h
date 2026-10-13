@@ -27,6 +27,11 @@ class SynthEngine {
     static constexpr int latency = cs01::OutputConverter::latency;
 
    private:
+    void updateOversampling();
+    double hostSampleRate = 44100;
+    int oversamplingStages = 2;
+    float lastOutput = 0, transitionStart = 0;
+    int transitionRemaining = 0, transitionLength = 1;
     void applyMidi(const cs01::MidiMessage& event);
     cs01::NoteOwnership noteOwnership;
     cs01::ParameterState& parameters;

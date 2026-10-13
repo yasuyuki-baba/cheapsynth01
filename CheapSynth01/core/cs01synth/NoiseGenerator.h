@@ -18,6 +18,7 @@ class NoiseGenerator : public ISoundGenerator {
 
     // ISoundGenerator implementation - sound generation methods
     void prepare(double sampleRate) override;
+    void setSampleRate(double rate);
     void reset() {
         noiseFilter.reset();
         stopNote(false);

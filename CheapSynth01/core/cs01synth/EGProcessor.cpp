@@ -15,6 +15,17 @@ void EGProcessor::prepare(double sampleRate) {
     updateADSR();
 }
 
+void EGProcessor::setSampleRate(double rate) {
+    const double ratio = rate / envelopeSampleRate;
+    remainingSamples = static_cast<int64_t>(std::ceil(remainingSamples * ratio));
+    noteGateRemainingSamples = static_cast<int64_t>(std::ceil(noteGateRemainingSamples * ratio));
+    envelopeSampleRate = rate;
+    if (stageReferenceSeconds > 0)
+        stageCoefficient = -std::expm1(-1.0 / (stageReferenceSeconds * rate));
+    if (noteGateRemainingSamples > 0)
+        noteGateIncrement = (noteGateTarget - noteGateLevel) / noteGateRemainingSamples;
+}
+
 void EGProcessor::reset() {
     stopEnvelopeImmediately();
 }

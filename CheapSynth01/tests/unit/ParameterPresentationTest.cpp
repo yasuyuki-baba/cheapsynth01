@@ -49,7 +49,7 @@ TEST(ParameterPresentationTest, GroupsIncludeEnumsAndPreservePerformanceFlags) {
         "VCO", "VCO",         "VCO",         "VCO",         "VCO",         "VCF",
         "VCF", "VCF",         "VCA",         "EG",          "EG",          "EG",
         "EG",  "LFO",         "LFO",         "Performance", "Performance", "VCF",
-        "VCA", "Performance", "Performance", "VCA",         "Performance", "VCF"};
+        "VCA", "Performance", "Performance", "VCA",         "Performance", "VCF", "Quality"};
     for (int i = 0; i < cs01::parameterCount; ++i) {
         iplug::IParam parameter;
         cs01::initializeHostParameter(parameter, static_cast<cs01::Param>(i));
@@ -70,5 +70,19 @@ TEST(ParameterPresentationTest, EnvelopeHostTaperMatchesCoreAtEveryPanelPosition
             EXPECT_NEAR(cs01::toNormalized(id, float(seconds)), position, 1e-6);
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, seconds)), position, 1e-6);
         }
+    }
+}
+
+TEST(ParameterPresentationTest, OversamplingLabelsAndDefaultMatchPanelChoices) {
+    iplug::IParam parameter;
+    cs01::initializeHostParameter(parameter, cs01::Param::Oversampling);
+    EXPECT_DOUBLE_EQ(parameter.GetDefault(), 2);
+    const std::array labels{"OFF", "2x", "4x", "8x", "16x"};
+    for (int stage = 0; stage < static_cast<int>(labels.size()); ++stage) {
+        parameter.Set(stage);
+        WDL_String displayed;
+        parameter.GetDisplay(displayed);
+        EXPECT_STREQ(displayed.Get(), labels[stage]);
+        EXPECT_DOUBLE_EQ(parameter.StringToValue(labels[stage]), stage);
     }
 }
