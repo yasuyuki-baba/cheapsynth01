@@ -24,7 +24,9 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     g->LoadFont("Roboto-Regular", ROBOTO_FN);
     g->AttachControl(new HardwarePanel());
     g->AttachTextEntryControl();
-    g->AttachPopupMenuControl();
+    // Use platform menus: the SDK's in-editor popup positions an oversized
+    // list above the editor bounds, hiding the first factory sounds.
+    // Native menus also support the preset menu's Windows column breaks.
     g->EnableMouseOver(true);
     g->EnableTooltips(true);
     g->SetScaleConstraints(.75f, 2.f);
