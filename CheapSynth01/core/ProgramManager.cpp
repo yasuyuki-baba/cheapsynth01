@@ -9,6 +9,7 @@
 #include <limits>
 #include <cstdio>
 #include <chrono>
+#include <random>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -16,6 +17,29 @@
 #include <windows.h>
 #endif
 namespace {
+constexpr const char* currentSchema = "1";
+std::string newPresetId() {
+    // UUID v4; generated only when saving a new user file, outside audio paths.
+    std::array<unsigned char, 16> bytes;
+    try {
+        std::random_device random;
+        for (auto& byte : bytes)
+            byte = static_cast<unsigned char>(random());
+    } catch (const std::exception&) {
+        return {};
+    }
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    constexpr char hex[] = "0123456789abcdef";
+    std::string result;
+    for (size_t i = 0; i < bytes.size(); ++i) {
+        if (i == 4 || i == 6 || i == 8 || i == 10)
+            result += '-';
+        result += hex[bytes[i] >> 4];
+        result += hex[bytes[i] & 0x0f];
+    }
+    return result;
+}
 std::string pathText(const std::filesystem::path& path) {
     const auto utf8 = path.u8string();
     return {reinterpret_cast<const char*>(utf8.data()), utf8.size()};
@@ -45,10 +69,28 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
     const auto* root = doc.FirstChildElement("Parameters");
     if (!root)
         return {};
+    // A missing schema denotes legacy XML. Explicit versions must be supported;
+    // do not silently interpret a future format using today's parameter rules.
+    const char* schema = root->Attribute("schema");
+    if (schema && std::string_view(schema) != currentSchema)
+        return {};
     const auto* parent = root->FirstChildElement("PARAMETERS");
     if (!parent)
         parent = root;
     PreparedProgram result;
+    auto attribute = [root](const char* name) {
+        const char* text = root->Attribute(name);
+        return std::string(text ? text : "");
+    };
+    result.metadata.id = attribute("id");
+    result.metadata.author = attribute("author");
+    result.metadata.category = attribute("category");
+    result.metadata.description = attribute("description");
+    if (const auto* tags = root->FirstChildElement("TAGS"))
+        for (const auto* tag = tags->FirstChildElement("TAG"); tag;
+             tag = tag->NextSiblingElement("TAG"))
+            if (const char* text = tag->GetText(); text && *text)
+                result.metadata.tags.emplace_back(text);
     auto& values = result.values;
     std::array<bool, cs01::parameterCount> found{};
     for (auto* item = parent->FirstChildElement("PARAM"); item;
@@ -70,14 +112,14 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
     }
     if (std::none_of(found.begin(), found.end(), [](bool v) { return v; }))
         return {};
+    // Missing saved controls use initialization defaults, never the previous
+    // patch. This also supplies bend ranges absent from legacy factory XML.
     for (int i = 0; i < cs01::parameterCount; ++i)
-        if (found[i] && !excluded(static_cast<cs01::Param>(i), session))
+        if (!excluded(static_cast<cs01::Param>(i), session)) {
+            if (!found[i])
+                values[i] = cs01::parameterDefinitions[i].initial;
             result.mask |= 1u << i;
-    if (session && !found[static_cast<int>(cs01::Param::Oversampling)]) {
-        const int index = static_cast<int>(cs01::Param::Oversampling);
-        result.values[index] = cs01::definition(cs01::Param::Oversampling).initial;
-        result.mask |= 1u << index;
-    }
+        }
     result.valid = true;
     return result;
 }
@@ -135,7 +177,10 @@ void ProgramManager::setBeforePatchCommit(std::function<void()> callback) {
 }
 std::vector<Program> ProgramManager::programs() const {
     std::lock_guard lock(mutex);
-    return allPresets;
+    auto result = allPresets;
+    for (size_t i = 0; i < result.size(); ++i)
+        result[i].category = references[i].metadata.category;
+    return result;
 }
 int ProgramManager::getCurrentProgram() const {
     std::lock_guard lock(mutex);
@@ -143,15 +188,24 @@ int ProgramManager::getCurrentProgram() const {
 }
 Program ProgramManager::currentProgramIdentity() const {
     std::lock_guard lock(mutex);
-    return allPresets[currentProgram];
+    auto result = allPresets[currentProgram];
+    result.category = references[currentProgram].metadata.category;
+    return result;
 }
 PreparedProgram ProgramManager::currentPreparedProgram() const {
     std::lock_guard lock(mutex);
     return references[currentProgram];
 }
+PresetMetadata ProgramManager::currentPresetMetadata() const {
+    std::lock_guard lock(mutex);
+    return metadata;
+}
 bool ProgramManager::isCurrentProgramModified() const {
     std::lock_guard lock(mutex);
-    if (!referenceKnown)
+    if (!referenceKnown || metadata.author != referenceMetadata.author ||
+        metadata.category != referenceMetadata.category ||
+        metadata.description != referenceMetadata.description ||
+        metadata.tags != referenceMetadata.tags)
         return true;
     const auto values = parameters.snapshot();
     for (int i = 0; i < cs01::parameterCount; ++i) {
@@ -165,6 +219,7 @@ bool ProgramManager::isCurrentProgramModified() const {
 }
 void ProgramManager::setReference(const PreparedProgram& program) {
     referenceKnown = program.valid;
+    referenceMetadata = program.metadata;
     referenceValues = parameters.snapshot();
     for (int i = 0; i < cs01::parameterCount; ++i)
         if (program.mask & (1u << i))
@@ -176,6 +231,8 @@ void ProgramManager::refreshUserPresets() {
 }
 void ProgramManager::refreshUnlocked() {
     const Program selected = allPresets.empty() ? Program{} : allPresets[currentProgram];
+    const auto selectedId =
+        references.empty() ? std::string{} : references[currentProgram].metadata.id;
     allPresets.clear();
     for (const auto& preset : cs01::factoryPresets)
         allPresets.push_back({preset.name, preset.filename, PresetType::Factory});
@@ -193,17 +250,15 @@ void ProgramManager::refreshUnlocked() {
                   [](const auto& a, const auto& b) { return a.name < b.name; });
         allPresets.insert(allPresets.end(), user.begin(), user.end());
     }
-    currentProgram = 0;
-    bool retained = false;
-    for (size_t i = 0; i < allPresets.size(); ++i)
-        if (allPresets[i].filename == selected.filename && allPresets[i].type == selected.type) {
-            currentProgram = static_cast<int>(i);
-            retained = true;
-        }
     references = preparePrograms();
+    const int retainedIndex = findProgram(selected, selectedId);
+    const bool retained = retainedIndex >= 0;
+    currentProgram = retained ? retainedIndex : 0;
     if (!retained) {
         if (!selected.filename.empty())
             loadXml(cs01::factoryPresets[0].xml, false);
+        else
+            metadata = references[0].metadata;
         setReference(references[0]);
     }
 }
@@ -221,7 +276,9 @@ bool ProgramManager::setCurrentProgram(int index) {
         // Use the actual loaded values, including fields omitted by older files.
         referenceValues = parameters.snapshot();
         referenceKnown = true;
-        references[index] = {program, referenceValues, (1u << cs01::parameterCount) - 1, true};
+        references[index] = {program, referenceValues, (1u << cs01::parameterCount) - 1, true,
+                             metadata};
+        referenceMetadata = metadata;
     }
     return loaded;
 }
@@ -240,21 +297,45 @@ std::vector<PreparedProgram> ProgramManager::preparePrograms() const {
     }
     return result;
 }
+int ProgramManager::findProgram(const Program& program, std::string_view id) const {
+    int match = -1;
+    if (!id.empty()) {
+        for (size_t i = 0; i < references.size(); ++i)
+            if (allPresets[i].type == program.type && references[i].metadata.id == id) {
+                if (match >= 0) {
+                    match = -1;  // Duplicated IDs require a matching filename.
+                    break;
+                }
+                match = static_cast<int>(i);
+            }
+        if (match >= 0)
+            return match;
+    }
+    for (size_t i = 0; i < allPresets.size(); ++i)
+        if (allPresets[i].filename == program.filename && allPresets[i].type == program.type &&
+            (id.empty() || references[i].metadata.id.empty() || references[i].metadata.id == id))
+            return static_cast<int>(i);
+    return -1;
+}
 bool ProgramManager::selectProgramIdentity(const Program& program) {
     std::lock_guard lock(mutex);
-    for (size_t i = 0; i < allPresets.size(); ++i)
-        if (allPresets[i].filename == program.filename && allPresets[i].type == program.type) {
-            currentProgram = static_cast<int>(i);
-            setReference(references[i]);
-            return true;
-        }
+    const int index = findProgram(program, {});
+    if (index >= 0) {
+        currentProgram = index;
+        metadata = references[index].metadata;
+        setReference(references[index]);
+        return true;
+    }
     currentProgram = 0;
     referenceKnown = false;
     return false;
 }
 bool ProgramManager::selectPreparedProgram(const PreparedProgram& program) {
     std::lock_guard lock(mutex);
-    const bool found = selectProgramIdentity(program.identity);
+    const int index = findProgram(program.identity, program.metadata.id);
+    const bool found = index >= 0;
+    currentProgram = found ? index : 0;
+    metadata = program.metadata;
     // Hosts load their immutable cached patch, which may differ from today's file.
     setReference(program);
     return found;
@@ -274,6 +355,7 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
         beforePatchCommit();
     if (!parameters.setPatch(prepared.values, prepared.mask, session))
         return false;
+    metadata = prepared.metadata;
     if (session) {
         tinyxml2::XMLDocument doc;
         doc.Parse(xml.data(), xml.size());
@@ -284,11 +366,11 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
         if (filename) {
             const auto type =
                 root->BoolAttribute("programIsUser") ? PresetType::User : PresetType::Factory;
-            for (size_t i = 0; i < allPresets.size(); ++i)
-                if (allPresets[i].filename == filename && allPresets[i].type == type) {
-                    currentProgram = static_cast<int>(i);
-                    matched = true;
-                }
+            const int index = findProgram({{}, filename, type}, metadata.id);
+            if (index >= 0) {
+                currentProgram = index;
+                matched = true;
+            }
         } else
             currentProgram = std::clamp(root->IntAttribute("program", 0), 0,
                                         static_cast<int>(allPresets.size()) - 1);
@@ -298,22 +380,39 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
     }
     return true;
 }
-std::string ProgramManager::serialize(bool session, const PreparedProgram* selected,
-                                      bool pending) const {
+std::string ProgramManager::serialize(bool session, const PreparedProgram* selected, bool pending,
+                                      const PresetMetadata* savedMetadata) const {
     const auto values = parameters.snapshot();
     tinyxml2::XMLDocument doc;
     auto* root = doc.NewElement("Parameters");
     doc.InsertEndChild(root);
-    root->SetAttribute("schema", 1);
+    root->SetAttribute("schema", currentSchema);
     root->SetAttribute("pluginVersion", cs01::pluginVersion);
+    const auto& saved = savedMetadata ? *savedMetadata : selected ? selected->metadata : metadata;
+    if (!saved.id.empty())
+        root->SetAttribute("id", saved.id.c_str());
+    if (!saved.author.empty())
+        root->SetAttribute("author", saved.author.c_str());
+    if (!saved.category.empty())
+        root->SetAttribute("category", saved.category.c_str());
+    if (!saved.description.empty())
+        root->SetAttribute("description", saved.description.c_str());
+    if (!saved.tags.empty()) {
+        auto* tags = doc.NewElement("TAGS");
+        root->InsertEndChild(tags);
+        for (const auto& text : saved.tags) {
+            auto* tag = doc.NewElement("TAG");
+            tag->SetText(text.c_str());
+            tags->InsertEndChild(tag);
+        }
+    }
     if (session) {
         int index = currentProgram;
         if (selected) {
             index = 0;
-            for (size_t i = 0; i < allPresets.size(); ++i)
-                if (allPresets[i].filename == selected->identity.filename &&
-                    allPresets[i].type == selected->identity.type)
-                    index = static_cast<int>(i);
+            const int match = findProgram(selected->identity, selected->metadata.id);
+            if (match >= 0)
+                index = match;
         }
         root->SetAttribute("program", index);
         const auto& identity = selected ? selected->identity : allPresets[currentProgram];
@@ -384,13 +483,21 @@ bool ProgramManager::saveCurrentStateAsPreset(std::string_view name) {
     if (ec)
         return false;
     const auto path = directory / cs01::utf8Path(std::string(name) + ".xml");
-    const auto xml = serialize(false);
+    auto savedMetadata = metadata;
+    savedMetadata.id = prepareXml(readFile(path), false).metadata.id;
+    if (savedMetadata.id.empty())
+        savedMetadata.id = newPresetId();
+    if (savedMetadata.id.empty())
+        return false;
+    const auto xml = serialize(false, nullptr, false, &savedMetadata);
     if (!replaceFile(path, xml))
         return false;
     refreshUnlocked();
     const auto& selected = allPresets[currentProgram];
-    if (selected.type == PresetType::User && selected.filename == pathText(path.filename()))
+    if (selected.type == PresetType::User && selected.filename == pathText(path.filename())) {
+        metadata = savedMetadata;
         setReference(prepareXml(xml, false));
+    }
     return true;
 }
 bool ProgramManager::saveCurrentUserPreset() {
@@ -398,10 +505,17 @@ bool ProgramManager::saveCurrentUserPreset() {
     const auto& selected = allPresets[currentProgram];
     if (directory.empty() || selected.type != PresetType::User)
         return false;
-    const auto xml = serialize(false);
+    auto savedMetadata = metadata;
+    savedMetadata.id = references[currentProgram].metadata.id;
+    if (savedMetadata.id.empty())
+        savedMetadata.id = newPresetId();
+    if (savedMetadata.id.empty())
+        return false;
+    const auto xml = serialize(false, nullptr, false, &savedMetadata);
     if (!replaceFile(directory / cs01::utf8Path(selected.filename), xml))
         return false;
     const auto saved = prepareXml(xml, false);
+    metadata = saved.metadata;
     setReference(saved);
     references[currentProgram] = saved;
     references[currentProgram].identity = selected;
@@ -416,13 +530,22 @@ bool ProgramManager::saveCurrentStateAsNewPreset(std::string_view name) {
     if (ec)
         return false;
     const auto path = uniquePath(name);
-    const auto xml = serialize(false);
+    if (path.empty())
+        return false;
+    auto savedMetadata = metadata;
+    savedMetadata.id = newPresetId();
+    if (savedMetadata.id.empty())
+        return false;
+    const auto xml = serialize(false, nullptr, false, &savedMetadata);
     if (path.empty() || !replaceFile(path, xml, false))
         return false;
     // Refresh around the new identity so even an externally removed source
     // cannot trigger a default-patch reload. Live controls stay untouched.
     allPresets[currentProgram] = {pathText(path.stem()), pathText(path.filename()),
                                   PresetType::User};
+    metadata = savedMetadata;
+    references[currentProgram] = prepareXml(xml, false);
+    references[currentProgram].identity = allPresets[currentProgram];
     refreshUnlocked();
     setReference(prepareXml(xml, false));
     return true;

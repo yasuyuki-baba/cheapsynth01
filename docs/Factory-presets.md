@@ -81,6 +81,40 @@ readings. Regression
 checks cover the decoded sound controls, switch settings, normalized panel
 positions, and preservation of live performance controls.
 
+## Categories and tags
+
+All 39 factory XML files include a category and tags. Categories describe the
+main musical role; tags describe waveform, character, articulation or performance
+controls. The metadata uses consistent English labels for searching and sharing.
+
+| Category | Count | Examples |
+| --- | --- | --- |
+| Init | 1 | Default |
+| Bass | 3 | Synth Bass, Sub Bass, Acid Bass |
+| Lead | 8 | Solo Synth Lead, Warm Lead, Breath Lead |
+| Keys | 4 | Clavinet, Soft Organ, Bright Pluck, Reed Organ |
+| Strings | 2 | Violin, PWM Strings |
+| Brass | 2 | Trumpet, Synth Brass |
+| Wind | 1 | Flute |
+| Sequence | 4 | Chip Sequence, Bubble Sequence, Pulse Sequence, Acid Sequence |
+| Percussion | 9 | Round Mallet, Synth Kick, Noise Snare, Metallic Ping |
+| FX | 2 | Laser Zap, Bubble Drop |
+| Texture | 3 | Space Sweep, Wind Noise, Dark Drone |
+
+Waveform tags are `Triangle`, `Saw`, `Square`, `Pulse`, `PWM` and `Noise`.
+Other tags include `Warm`, `Bright`, `Soft`, `Dark`, `Resonant`, `Sustained`,
+`Short`, `Pluck`, `Slow Attack`, `Long Release`, `Sweep`, `Glissando` and
+`Breath`. Percussion tags also identify the instrument or articulation, such as
+`Kick`, `Snare`, `Hi-Hat`, `Closed` and `Open`.
+
+For example, Acid Bass is categorized as `Bass` with `Saw`, `Resonant` and
+`Sweep` tags; Dark Drone is a `Texture` with `PWM`, `Dark`, `Drone`,
+`Slow Attack` and `Long Release` tags. `Breath` denotes breath sensitivity,
+while `Glissando` denotes stepped glissando. Sequence categorization describes
+patches suitable for externally sequenced notes, rather than an internal
+sequencer. These labels follow the sound descriptions below and the manual
+panel readings above. Metadata is carried into user copies made with Save As.
+
 ## Original sounds
 
 Thirty-two additional patches are original CheapSynth01 sound designs. They are not

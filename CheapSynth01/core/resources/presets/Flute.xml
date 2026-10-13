@@ -1,5 +1,11 @@
 <!-- CS01 owner's manual, printed page 28. Approximate panel positions; see docs/software/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.flute" category="Wind">
+  <TAGS>
+    <TAG>Triangle</TAG>
+    <TAG>Soft</TAG>
+    <TAG>Sustained</TAG>
+    <TAG>Breath</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="0"/>
   <PARAM id="FEET" value="2"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

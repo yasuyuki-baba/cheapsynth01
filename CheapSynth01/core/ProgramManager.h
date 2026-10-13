@@ -11,12 +11,20 @@ enum class PresetType { Factory, User };
 struct Program {
     std::string name, filename;
     PresetType type = PresetType::Factory;
+    // Saved-patch category for the selection menu; not part of the identity.
+    std::string category{};
+};
+struct PresetMetadata {
+    std::string id, author, category, description;
+    std::vector<std::string> tags;
+    bool operator==(const PresetMetadata&) const = default;
 };
 struct PreparedProgram {
     Program identity;
     std::array<float, cs01::parameterCount> values{};
     unsigned mask = 0;
     bool valid = false;
+    PresetMetadata metadata;
 };
 class ProgramManager {
    public:
@@ -29,6 +37,7 @@ class ProgramManager {
     int getCurrentProgram() const;
     Program currentProgramIdentity() const;
     PreparedProgram currentPreparedProgram() const;
+    PresetMetadata currentPresetMetadata() const;
     bool isCurrentProgramModified() const;
     bool setCurrentProgram(int index);
     std::vector<PreparedProgram> preparePrograms() const;
@@ -54,7 +63,8 @@ class ProgramManager {
    private:
     bool loadXml(std::string_view xml, bool session);
     std::string serialize(bool session, const PreparedProgram* selected = nullptr,
-                          bool pending = false) const;
+                          bool pending = false, const PresetMetadata* metadata = nullptr) const;
+    int findProgram(const Program& identity, std::string_view id) const;
     std::filesystem::path uniquePath(std::string_view name) const;
     void refreshUnlocked();
     void setReference(const PreparedProgram& program);
@@ -65,6 +75,7 @@ class ProgramManager {
     std::vector<PreparedProgram> references;
     cs01::ParameterState::Values referenceValues{};
     bool referenceKnown = false;
+    PresetMetadata metadata, referenceMetadata;
     int currentProgram = 0;
     mutable std::recursive_mutex mutex;
     std::function<void()> beforePatchCommit;

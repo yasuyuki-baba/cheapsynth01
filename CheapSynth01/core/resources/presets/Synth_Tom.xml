@@ -1,5 +1,10 @@
 <!-- Original CheapSynth01 sound design; see docs/Factory-presets.md. -->
-<Parameters>
+<Parameters id="cs01.factory.synth_tom" category="Percussion">
+  <TAGS>
+    <TAG>Triangle</TAG>
+    <TAG>Tom</TAG>
+    <TAG>Resonant</TAG>
+  </TAGS>
   <PARAM id="WAVE_TYPE" value="0"/>
   <PARAM id="FEET" value="1"/>
   <PARAM id="PWM_SPEED" value="0.6"/>

@@ -230,7 +230,7 @@ class PresetDisplay final : public ITextControl {
           current(std::move(current)),
           select(std::move(select)) {
         SetIgnoreMouse(false);
-        SetTooltip("Click to choose from all Factory and User presets.");
+        SetTooltip("Click to choose from Factory and User presets with their categories.");
     }
     void Draw(IGraphics& g) override {
         g.FillRect(COLOR_BLACK, mRECT);
@@ -260,7 +260,10 @@ class PresetDisplay final : public ITextControl {
                 hasPresets = true;
                 const bool checked =
                     program.type == selected.type && program.filename == selected.filename;
-                menu.AddItem(new IPopupMenu::Item(program.name.c_str(),
+                const auto label = program.category.empty()
+                                       ? program.name
+                                       : program.name + " [" + program.category + "]";
+                menu.AddItem(new IPopupMenu::Item(label.c_str(),
                                                   checked ? IPopupMenu::Item::kChecked
                                                           : IPopupMenu::Item::kNoFlags,
                                                   static_cast<int>(i)));
