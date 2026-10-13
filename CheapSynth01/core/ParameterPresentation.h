@@ -38,6 +38,8 @@ constexpr const char* parameterGroup(Param parameter) {
         case Param::BreathVca:
         case Param::Volume:
             return "VCA";
+        case Param::Oversampling:
+            return "Quality";
         case Param::Attack:
         case Param::Decay:
         case Param::Sustain:

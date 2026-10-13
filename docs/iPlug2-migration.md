@@ -61,10 +61,13 @@ expression. Live release timing is owned by the EG even across source switches. 
 filters, oscillators, smoothing and random generator are replaced by independent
 primitives. Noise uses a deterministic xorshift generator reset during prepare.
 
-The output converter is a 129-tap Blackman-windowed linear-phase FIR at 4x, with
-cutoff at 90% of host Nyquist. Its delay is `(129-1)/2/4 = 16` host samples,
-reported by the plugin. Its magnitude response and phase differ from JUCE's
-polyphase IIR; bit-identical audio and equal high-frequency response are not
+The default output converter is a 129-tap Blackman-windowed linear-phase FIR
+at 4x, with cutoff at 90% of host Nyquist. Oversampling is selectable from
+OFF (1x), 2x, 4x, 8x and 16x, shared by playback and export. At 2x/8x/16x the
+FIR has 65/257/513 taps; OFF uses a plain 16-sample delay. All settings retain
+16 host samples of latency, reported by the plugin. Quality is session state
+and is excluded from sound presets; legacy sessions restore at 4x. Its magnitude
+response and phase differ from JUCE's polyphase IIR; bit-identical audio and equal high-frequency response are not
 claimed. No fixed envelope offset is added: all stages share the internal clock.
 
 ## State and identifiers

@@ -33,6 +33,7 @@ class ToneGenerator : public ISoundGenerator {
 
     // Audio processing methods
     void prepare(double sampleRate) override;
+    void setSampleRate(double rate);
     void updateBlockRateParameters();
     void reset();
     float renderSample() override;

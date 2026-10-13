@@ -8,6 +8,13 @@ void NoiseGenerator::prepare(double rate) {
     randomState = 0x6d2b79f5u;
     reset();
 }
+void NoiseGenerator::setSampleRate(double rate) {
+    tailOffDuration = static_cast<int>(
+        std::lround(std::max(0, tailOffDuration - tailOffCounter) * rate / sampleRate));
+    tailOffCounter = 0;
+    sampleRate = rate;
+    noiseFilter.firstOrderLowPass(rate, std::min(12000.0, rate * .45));
+}
 float NoiseGenerator::renderSample() {
     if (!isActive())
         return 0;

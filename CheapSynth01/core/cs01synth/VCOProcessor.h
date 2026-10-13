@@ -11,6 +11,10 @@ class VCOProcessor {
         current = &tone;
         applyPendingGeneratorChange();
     }
+    void setSampleRate(double rate) {
+        tone.setSampleRate(rate);
+        noise.setSampleRate(rate);
+    }
     void applyPendingGeneratorChange() {
         ISoundGenerator* next =
             parameters.get(ParameterIds::feet) == 4 ? static_cast<ISoundGenerator*>(&noise) : &tone;

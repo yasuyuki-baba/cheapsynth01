@@ -36,6 +36,7 @@ enum class Param : int {
     Volume,
     BreathInput,
     FilterType,
+    Oversampling,
     Count
 };
 inline constexpr bool isEnvelopeTime(Param id) {
@@ -75,7 +76,8 @@ inline constexpr std::array<ParameterDefinition, parameterCount> parameterDefini
      {"PITCH_BEND_DOWN_RANGE", "Bend Down", "st", 0, 12, 1, 1, 0, true},
      {"VOLUME", "Volume", "", 0, 1, .001f, 1, .7f},
      {"BREATH_INPUT", "Breath", "", 0, 1, .001f, 1, 0, false, true},
-     {"FILTER_TYPE", "Filter", "", 0, 1, 1, 1, 0, true}}};
+     {"FILTER_TYPE", "Filter", "", 0, 1, 1, 1, 0, true},
+     {"OVERSAMPLING", "Oversampling", "", 0, 4, 1, 1, 2, true}}};
 inline const ParameterDefinition& definition(Param id) {
     return parameterDefinitions[static_cast<std::size_t>(id)];
 }

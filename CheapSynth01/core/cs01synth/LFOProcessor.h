@@ -13,6 +13,9 @@ class LFOProcessor {
 
     //==============================================================================
     void prepare(double sampleRate);
+    void setSampleRate(double rate) {
+        lfo.setSampleRate(rate);
+    }
     void reset();
 
     float processSample();

@@ -43,6 +43,14 @@ class Oscillator {
         sampleRate = rate;
         reset();
     }
+    void setSampleRate(double rate) {
+        remaining = static_cast<int>(std::lround(remaining * rate / sampleRate));
+        sampleRate = rate;
+        if (remaining > 0)
+            step = (target - frequency) / remaining;
+        else
+            frequency = target;
+    }
     void initialise(std::function<double(double)> f) {
         waveform = std::move(f);
     }
@@ -118,25 +126,40 @@ class Biquad {
     }
     float b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0, z1 = 0, z2 = 0;
 };
-// Linear-phase Blackman-window FIR. 129 taps at 4x => exactly 16 host samples.
-// Feed four samples per output, beginning at internal sample zero.
+// Linear-phase Blackman FIR with a fixed 16-host-sample delay at every factor.
+// Coefficients are built at construction, never in the audio callback. OFF uses
+// only a matching delay, without filtering. The default 4x path retains its FIR.
 class OutputConverter {
    public:
     static constexpr int factor = 4, taps = 129, latency = 16;
+    static constexpr int maxStages = 4, maxTaps = 2 * latency * (1 << maxStages) + 1;
     OutputConverter() {
-        double sum = 0;
-        for (int i = 0; i < taps; ++i) {
-            const int n = i - (taps - 1) / 2;
-            constexpr double fc = .1125;  // 90% of host Nyquist at the internal rate.
-            const double sinc =
-                n == 0 ? 2 * fc : std::sin(2 * std::numbers::pi * fc * n) / (std::numbers::pi * n);
-            const double w = .42 - .5 * std::cos(2 * std::numbers::pi * i / (taps - 1)) +
-                             .08 * std::cos(4 * std::numbers::pi * i / (taps - 1));
-            coefficients[i] = sinc * w;
-            sum += coefficients[i];
+        for (int stage = 1; stage <= maxStages; ++stage) {
+            const int count = 2 * latency * (1 << stage) + 1;
+            const double fc = .45 / (1 << stage);
+            double sum = 0;
+            for (int i = 0; i < count; ++i) {
+                const int n = i - (count - 1) / 2;
+                const double sinc =
+                    n == 0 ? 2 * fc
+                           : std::sin(2 * std::numbers::pi * fc * n) / (std::numbers::pi * n);
+                const double w = .42 - .5 * std::cos(2 * std::numbers::pi * i / (count - 1)) +
+                                 .08 * std::cos(4 * std::numbers::pi * i / (count - 1));
+                coefficients[stage][i] = sinc * w;
+                sum += coefficients[stage][i];
+            }
+            for (auto& c : coefficients[stage])
+                c /= sum;
         }
-        for (auto& c : coefficients)
-            c /= sum;
+        coefficients[0][latency] = 1;
+    }
+    void setStages(int value) {
+        stages = std::clamp(value, 0, maxStages);
+        activeTaps = stages == 0 ? latency + 1 : 2 * latency * getFactor() + 1;
+        reset();
+    }
+    int getFactor() const {
+        return 1 << stages;
     }
     void reset() {
         history.fill(0);
@@ -144,22 +167,24 @@ class OutputConverter {
     }
     void push(float sample) {
         history[cursor] = sample;
-        cursor = (cursor + 1) % taps;
+        cursor = (cursor + 1) % activeTaps;
     }
     float output() const {
+        if (stages == 0)
+            return history[cursor];
         double result = 0;
-        int index = (cursor + taps - 1) % taps;
-        for (int i = 0; i < taps; ++i) {
-            result += coefficients[i] * history[index];
-            index = (index + taps - 1) % taps;
+        int index = (cursor + activeTaps - 1) % activeTaps;
+        for (int i = 0; i < activeTaps; ++i) {
+            result += coefficients[stages][i] * history[index];
+            index = (index + activeTaps - 1) % activeTaps;
         }
         return static_cast<float>(result);
     }
 
    private:
-    std::array<double, taps> coefficients{};
-    std::array<float, taps> history{};
-    int cursor = 0;
+    std::array<std::array<double, maxTaps>, maxStages + 1> coefficients{};
+    std::array<float, maxTaps> history{};
+    int cursor = 0, stages = 2, activeTaps = taps;
 };
 struct EnvelopeSettings {
     float attack = .1f, decay = .1f, sustain = .8f, release = .1f;
