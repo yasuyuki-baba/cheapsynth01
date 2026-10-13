@@ -888,7 +888,7 @@ TEST_F(StateTest, OversamplingIsSessionStateAndDoesNotFollowSoundPresets) {
     EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 2);
 }
 
-TEST(EngineTest, OversamplingChangesHaveNoHeapOperations) {
+TEST(OversamplingEngineTest, OversamplingChangesHaveNoHeapOperations) {
     cs01::ParameterState parameters;
     SynthEngine engine(parameters);
     engine.prepare(48000);

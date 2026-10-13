@@ -36,7 +36,7 @@ TEST(OutputConverterTest, EveryFactorHasFixedLatencyUnityGainAndAliasRejection) 
     }
 }
 
-TEST(EngineTest, OversamplingSwitchPreservesHeldNotesForBothSourcesAndFilters) {
+TEST(OversamplingEngineTest, OversamplingSwitchPreservesHeldNotesForBothSourcesAndFilters) {
     for (double rate : {8000., 44100., 48000., 96000., 192000., 384000.}) {
         for (int source : {2, 4}) {
             for (int filter : {0, 1}) {
@@ -98,7 +98,7 @@ TEST(EGContinuityTest, OversamplingRateChangePreservesReleaseLevelAndRemainingTi
     }
 }
 
-TEST(EngineTest, AllOversamplingFactorsProduceIdenticalAudioAcrossBlockPartitions) {
+TEST(OversamplingEngineTest, AllOversamplingFactorsProduceIdenticalAudioAcrossBlockPartitions) {
     for (int stage = 0; stage <= 4; ++stage) {
         std::vector<float> reference;
         for (int blockSize : {1, 7, 64, 511}) {

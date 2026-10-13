@@ -46,10 +46,32 @@ TEST(ParameterPresentationTest, EveryHostParameterKeepsCoreNormalizedAutomation)
 
 TEST(ParameterPresentationTest, GroupsIncludeEnumsAndPreservePerformanceFlags) {
     const std::array<const char*, cs01::parameterCount> expected{
-        "VCO", "VCO",         "VCO",         "VCO",         "VCO",         "VCF",
-        "VCF", "VCF",         "VCA",         "EG",          "EG",          "EG",
-        "EG",  "LFO",         "LFO",         "Performance", "Performance", "VCF",
-        "VCA", "Performance", "Performance", "VCA",         "Performance", "VCF", "Quality"};
+        "VCO",
+        "VCO",
+        "VCO",
+        "VCO",
+        "VCO",
+        "VCF",
+        "VCF",
+        "VCF",
+        "VCA",
+        "EG",
+        "EG",
+        "EG",
+        "EG",
+        "LFO",
+        "LFO",
+        "Performance",
+        "Performance",
+        "VCF",
+        "VCA",
+        "Performance",
+        "Performance",
+        "VCA",
+        "Performance",
+        "VCF",
+        "Quality",
+    };
     for (int i = 0; i < cs01::parameterCount; ++i) {
         iplug::IParam parameter;
         cs01::initializeHostParameter(parameter, static_cast<cs01::Param>(i));
