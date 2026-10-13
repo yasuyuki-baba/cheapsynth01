@@ -45,34 +45,12 @@ TEST(ParameterPresentationTest, EveryHostParameterKeepsCoreNormalizedAutomation)
 }
 
 TEST(ParameterPresentationTest, GroupsIncludeEnumsAndPreservePerformanceFlags) {
-    const std::array<const char*, cs01::parameterCount> expected{
-        "VCO",
-        "VCO",
-        "VCO",
-        "VCO",
-        "VCO",
-        "VCF",
-        "VCF",
-        "VCF",
-        "VCA",
-        "EG",
-        "EG",
-        "EG",
-        "EG",
-        "LFO",
-        "LFO",
-        "Performance",
-        "Performance",
-        "VCF",
-        "VCA",
-        "Performance",
-        "Performance",
-        "VCA",
-        "Performance",
-        "VCF",
-        "Quality",
-    };
-    for (int i = 0; i < cs01::parameterCount; ++i) {
+    const std::array<const char*, static_cast<int>(cs01::Param::Oversampling)> expected{
+        "VCO", "VCO",         "VCO",         "VCO",         "VCO",         "VCF",
+        "VCF", "VCF",         "VCA",         "EG",          "EG",          "EG",
+        "EG",  "LFO",         "LFO",         "Performance", "Performance", "VCF",
+        "VCA", "Performance", "Performance", "VCA",         "Performance", "VCF"};
+    for (int i = 0; i < static_cast<int>(expected.size()); ++i) {
         iplug::IParam parameter;
         cs01::initializeHostParameter(parameter, static_cast<cs01::Param>(i));
         EXPECT_STREQ(parameter.GetGroup(), expected[i]);
@@ -99,6 +77,8 @@ TEST(ParameterPresentationTest, OversamplingLabelsAndDefaultMatchPanelChoices) {
     iplug::IParam parameter;
     cs01::initializeHostParameter(parameter, cs01::Param::Oversampling);
     EXPECT_DOUBLE_EQ(parameter.GetDefault(), 2);
+    EXPECT_STREQ(parameter.GetGroup(), "Quality");
+    EXPECT_TRUE(parameter.GetCanAutomate());
     const std::array labels{"OFF", "2x", "4x", "8x", "16x"};
     for (int stage = 0; stage < static_cast<int>(labels.size()); ++stage) {
         parameter.Set(stage);
