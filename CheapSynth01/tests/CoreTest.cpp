@@ -860,3 +860,47 @@ TEST(OutputMeterTest, RenderAndMonitoringResetPerformNoHeapOperations) {
     EXPECT_EQ(allocations.load(), 0);
     EXPECT_EQ(deallocations.load(), 0);
 }
+
+TEST_F(StateTest, OversamplingIsSessionStateAndDoesNotFollowSoundPresets) {
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 2);
+    parameters.set(Param::Oversampling, 4);
+    const auto session = manager.getStateInformation();
+    ASSERT_TRUE(manager.saveCurrentStateAsPreset("quality"));
+    parameters.set(Param::Oversampling, 0);
+    ASSERT_TRUE(manager.setCurrentProgram(factoryCount));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 0);
+    ASSERT_TRUE(manager.setCurrentProgram(1));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 0);
+    // Even imported preset XML with an explicit quality value cannot override it.
+    const auto imported = directory / "import.xml";
+    {
+        std::ofstream file(imported);
+        file << "<Parameters><PARAM id=\"CUTOFF\" value=\"1000\"/>"
+                "<PARAM id=\"OVERSAMPLING\" value=\"3\"/></Parameters>";
+    }
+    ASSERT_TRUE(manager.loadPresetFile(imported));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 0);
+    ASSERT_TRUE(manager.setStateInformation(session));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 4);
+    // Legacy sessions used a fixed 4x engine.
+    ASSERT_TRUE(manager.setStateInformation(
+        "<Parameters><PARAM id=\"CUTOFF\" value=\"1200\"/></Parameters>"));
+    EXPECT_FLOAT_EQ(parameters.get(Param::Oversampling), 2);
+}
+
+TEST(EngineTest, OversamplingChangesHaveNoHeapOperations) {
+    cs01::ParameterState parameters;
+    SynthEngine engine(parameters);
+    engine.prepare(48000);
+    engine.handleMidi(noteOn(60));
+    allocations.store(0);
+    deallocations.store(0);
+    countAllocations.store(true);
+    for (int i = 0; i < 50; ++i) {
+        parameters.set(Param::Oversampling, i % 5);
+        engine.renderSample();
+    }
+    countAllocations.store(false);
+    EXPECT_EQ(allocations.load(), 0);
+    EXPECT_EQ(deallocations.load(), 0);
+}

@@ -13,6 +13,7 @@ class EGProcessor {
 
     //==============================================================================
     void prepare(double sampleRate);
+    void setSampleRate(double rate);
     void reset();
 
     float processSample();

@@ -16,6 +16,7 @@ add_executable(CheapSynth01Tests
     unit/MidiBehaviorTest.cpp
     unit/EditorSessionTest.cpp
     unit/KeyboardInputTest.cpp
+    unit/OversamplingTest.cpp
     unit/OutputMeterTest.cpp
     unit/DspRegressionTest.cpp
     unit/PluginIdentityTest.cpp

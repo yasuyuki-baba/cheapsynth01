@@ -35,7 +35,7 @@ establish internal transfer characteristics.
 
 - Sample-rate handling, numerical precision, block partitioning, MIDI event
   positions, and release-state preservation can be verified as software properties.
-- Global 4x oversampling mitigates digital aliasing; it does not model custom IC internals.
+- Global selectable oversampling (4x by default) mitigates digital aliasing; it does not model custom IC internals.
 - Regression success does not guarantee that uncalibrated values match hardware.
 - Missing internal specifications do not invalidate established external wiring,
   component values, or manufacturer operating instructions. Retain that evidence.

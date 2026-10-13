@@ -278,6 +278,15 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     fader(column(12, 13), Param::Sustain, "S");
     fader(column(13, 14), Param::Release, "R");
 
+    label(IRECT(820, 382, 955, 399), "OVERSAMPLING", 10);
+    auto* oversampling =
+        new IVTabSwitchControl(IRECT(960, 382, 1220, 399), index(Param::Oversampling),
+                               {"OFF", "2x", "4x", "8x", "16x"}, "", choiceStyle);
+    oversampling->SetTooltip(
+        "Oversampling for both playback and export. Higher factors use more CPU. "
+        "Default: 4x. Saved with the project; unchanged by sound presets.");
+    g->AttachControl(oversampling);
+
     auto* keyboard = new OwnedKeyboardControl(IRECT(20, 420, 808, 620), uiNotes);
     keyboard->SetBlackToWhiteRatios(.6f, .6f);
     g->AttachControl(keyboard, Keyboard)->Hide(true);

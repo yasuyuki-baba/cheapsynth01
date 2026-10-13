@@ -13,6 +13,17 @@ void ToneGenerator::prepare(double rate) {
     reset();
 }
 
+void ToneGenerator::setSampleRate(double rate) {
+    const double ratio = rate / sampleRate;
+    samplesPerStep = std::max(1, static_cast<int>(std::lround(samplesPerStep * ratio)));
+    stepCounter = static_cast<int>(std::lround(stepCounter * ratio));
+    tailOffDuration =
+        static_cast<int>(std::lround(std::max(0, tailOffDuration - tailOffCounter) * ratio));
+    tailOffCounter = 0;
+    sampleRate = internalSampleRate = static_cast<float>(rate);
+    pwmLfo.setSampleRate(rate);
+}
+
 // MIDI note handling
 void ToneGenerator::startNote(int midiNoteNumber, float velocity, int pitchBendValue) {
     lastNote = midiNoteNumber;
