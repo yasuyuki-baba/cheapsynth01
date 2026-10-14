@@ -326,6 +326,9 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     updateFilterControls();
 }
 void CheapSynth01::OnUIOpen() {
+    // An idle refresh may have been consumed while the editor was closed.
+    // The SDK base resends every current parameter to the new controls.
+    cs01::PluginAPI::OnUIOpen();
     releaseEditorNotes();
     programs.refreshUserPresets();
     updateProgramLabel();
