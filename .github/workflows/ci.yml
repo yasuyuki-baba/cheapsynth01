@@ -26,7 +26,7 @@ jobs:
         run: python -m unittest discover -s CheapSynth01/tests/packaging -v
       - name: Check conditional hardware equations
         run: python -m unittest discover -s CheapSynth01/tests/research -v
-  native:
+  build-test:
     needs: lint
     strategy:
       fail-fast: false
@@ -81,7 +81,7 @@ jobs:
           if-no-files-found: error
           retention-days: 5
   source-package:
-    needs: native
+    needs: build-test
     if: github.ref_type == 'tag'
     runs-on: macos-latest
     defaults:
@@ -113,7 +113,7 @@ jobs:
           if-no-files-found: error
           retention-days: 5
   create-release:
-    needs: [lint, native, source-package]
+    needs: [lint, build-test, source-package]
     if: github.ref_type == 'tag'
     runs-on: macos-latest
     permissions:
