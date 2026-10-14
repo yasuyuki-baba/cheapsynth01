@@ -441,12 +441,12 @@ TEST_F(PresetBehaviorTest, LegacyUserPatchLoadsShortEnvelopeAndMissingBendValues
 
 TEST_F(PresetBehaviorTest, LegacyCompatibilityDoesNotAcceptOtherMalformedValues) {
     const auto before = state.snapshot();
-    for (const char* xml : {
-             "<Parameters schema=\"1\"><PARAM id=\"ATTACK\" value=\"0.001\"/></Parameters>",
-             "<Parameters schema=\"1\"><PARAM id=\"PITCH_BEND_UP_RANGE\"/></Parameters>",
-             "<Parameters><PARAM id=\"CUTOFF\"/></Parameters>",
-             "<Parameters><PARAM id=\"PITCH_BEND_UP_RANGE\" value=\"bad\"/></Parameters>",
-             "<Parameters><PARAM id=\"ATTACK\" value=\"-1\"/></Parameters>"}) {
+    for (const char* xml :
+         {"<Parameters schema=\"1\"><PARAM id=\"ATTACK\" value=\"0.001\"/></Parameters>",
+          "<Parameters schema=\"1\"><PARAM id=\"PITCH_BEND_UP_RANGE\"/></Parameters>",
+          "<Parameters><PARAM id=\"CUTOFF\"/></Parameters>",
+          "<Parameters><PARAM id=\"PITCH_BEND_UP_RANGE\" value=\"bad\"/></Parameters>",
+          "<Parameters><PARAM id=\"ATTACK\" value=\"-1\"/></Parameters>"}) {
         SCOPED_TRACE(xml);
         EXPECT_FALSE(manager.loadPresetFromXml(xml));
         EXPECT_EQ(state.snapshot(), before);
