@@ -81,7 +81,7 @@ jobs:
           if-no-files-found: error
           retention-days: 5
   source-package:
-    needs: lint
+    needs: native
     if: github.ref_type == 'tag'
     runs-on: macos-latest
     defaults:
