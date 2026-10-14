@@ -45,9 +45,9 @@ jobs:
         run: bash scripts/setup-iplug2.sh
       - name: Configure
         run: cmake -S . -B build-native -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} -DBUILD_PLUGINS=ON -DBUILD_TESTING=ON -DIPLUG_DEPLOY_PLUGINS=OFF
-      - name: Build native products and core tests
+      - name: Build
         run: cmake --build build-native --config ${{ matrix.configuration }} --parallel 2
-      - name: Test core and native boundaries
+      - name: Test
         run: |
           if ! ctest --test-dir build-native -C ${{ matrix.configuration }} --output-on-failure --output-junit test-results.xml > build-native/test-output.log 2>&1; then
             python scripts/summarize-test-failures.py build-native/test-results.xml
