@@ -96,6 +96,12 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
     for (auto* item = parent->FirstChildElement("PARAM"); item;
          item = item->NextSiblingElement("PARAM")) {
         const char* id = item->Attribute("id");
+        // Older user XML sometimes wrote empty bend-range elements. Treat only
+        // these schema-less placeholders as missing, so defaults apply below.
+        if (!schema && id && !item->Attribute("value") &&
+            (std::string_view(id) == "PITCH_BEND_UP_RANGE" ||
+             std::string_view(id) == "PITCH_BEND_DOWN_RANGE"))
+            continue;
         float value = 0;
         if (!id || item->QueryFloatAttribute("value", &value) != tinyxml2::XML_SUCCESS ||
             !std::isfinite(value))
@@ -104,6 +110,11 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
             const auto& d = cs01::parameterDefinitions[i];
             if (d.id != id)
                 continue;
+            // Legacy envelopes allowed shorter times than the circuit model.
+            // Import them at the current minimum; keep schema 1 validation strict.
+            if (!schema && cs01::isEnvelopeTime(static_cast<cs01::Param>(i)) &&
+                value >= 0 && value < d.minimum)
+                value = d.minimum;
             if (found[i] || value < d.minimum || value > d.maximum)
                 return {};
             found[i] = true;

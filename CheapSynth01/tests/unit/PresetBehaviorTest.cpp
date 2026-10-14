@@ -419,6 +419,40 @@ TEST_F(PresetBehaviorTest, UnsupportedOrMalformedSchemaLeavesPatchAndSelectionUn
     }
 }
 
+TEST_F(PresetBehaviorTest, LegacyUserPatchLoadsShortEnvelopeAndMissingBendValues) {
+    const auto file = directory / "Legacy.xml";
+    {
+        std::ofstream output(file);
+        output << "<Parameters><PARAM id=\"CUTOFF\" value=\"1713\"/>"
+                  "<PARAM id=\"ATTACK\" value=\"0.001\"/>"
+                  "<PARAM id=\"RELEASE\" value=\"0.003\"/>"
+                  "<PARAM id=\"PITCH_BEND_UP_RANGE\"/>"
+                  "<PARAM id=\"PITCH_BEND_DOWN_RANGE\"/></Parameters>";
+    }
+    manager.refreshUserPresets();
+    ASSERT_GE(index("Legacy.xml"), 0);
+    ASSERT_TRUE(manager.setCurrentProgram(index("Legacy.xml")));
+    EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 1713);
+    EXPECT_FLOAT_EQ(state.get(Param::Attack), cs01::definition(Param::Attack).minimum);
+    EXPECT_FLOAT_EQ(state.get(Param::Release), cs01::definition(Param::Release).minimum);
+    EXPECT_FLOAT_EQ(state.get(Param::BendUp), cs01::definition(Param::BendUp).initial);
+    EXPECT_FLOAT_EQ(state.get(Param::BendDown), cs01::definition(Param::BendDown).initial);
+}
+
+TEST_F(PresetBehaviorTest, LegacyCompatibilityDoesNotAcceptOtherMalformedValues) {
+    const auto before = state.snapshot();
+    for (const char* xml : {
+             "<Parameters schema=\"1\"><PARAM id=\"ATTACK\" value=\"0.001\"/></Parameters>",
+             "<Parameters schema=\"1\"><PARAM id=\"PITCH_BEND_UP_RANGE\"/></Parameters>",
+             "<Parameters><PARAM id=\"CUTOFF\"/></Parameters>",
+             "<Parameters><PARAM id=\"PITCH_BEND_UP_RANGE\" value=\"bad\"/></Parameters>",
+             "<Parameters><PARAM id=\"ATTACK\" value=\"-1\"/></Parameters>"}) {
+        SCOPED_TRACE(xml);
+        EXPECT_FALSE(manager.loadPresetFromXml(xml));
+        EXPECT_EQ(state.snapshot(), before);
+    }
+}
+
 TEST_F(PresetBehaviorTest, IncompleteXmlRestoresDefaultsIndependentOfPreviousPatch) {
     // Both legacy layouts and current schema XML have deterministic missing values.
     for (const char* xml :
