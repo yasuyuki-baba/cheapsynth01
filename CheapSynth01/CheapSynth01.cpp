@@ -71,6 +71,10 @@ void CheapSynth01::OnParamChange(int index) {
     parameters.set(static_cast<cs01::Param>(index),
                    static_cast<float>(cs01::fromHostValue(static_cast<cs01::Param>(index),
                                                           GetParam(index)->Value())));
+    // Host automation can arrive on the audio thread. Schedule the same UI
+    // refresh as preset restores; the pinned VST3 timer does not drain the
+    // SDK's parameter-to-editor queue for non-distributed plugins.
+    refreshUI.store(true, std::memory_order_release);
 #if IPLUG_DSP
     if (index == static_cast<int>(cs01::Param::PitchBend))
         pendingPanelBend.store(true);
@@ -85,6 +89,9 @@ void CheapSynth01::syncParameters(bool notifyHost) {
         GetParam(i)->Set(cs01::toHostValue(static_cast<cs01::Param>(i), values[i]));
     }
     if (notifyHost) {
+        // Panel preset/import actions already run on the UI thread. Update the
+        // controls before returning from the action instead of waiting for idle.
+        SendCurrentParamValuesFromDelegate();
         DirtyParametersFromUI();
         InformHostOfPresetChange();
     }
