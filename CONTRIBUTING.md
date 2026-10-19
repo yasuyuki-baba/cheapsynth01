@@ -3,7 +3,7 @@
 CheapSynth01 uses C++20 and iPlug2. The audio engine is a separate static library;
 it can be developed and tested without building a plugin.
 
-## Core tests (Windows/macOS)
+## Core tests (Windows/macOS/Linux)
 
 Requires CMake 3.25+, a C++20 compiler, and Git. CMake fetches the pinned TinyXML2
 10.0.0 and Google Test 1.14.0 dependencies on first configuration.
@@ -34,6 +34,83 @@ Products go into `build-native/out`. Installation is disabled by default; set
 
 Supported products are APP, VST3 and CLAP on both platforms, plus AUv2 on macOS.
 Development and CI testing target Windows and macOS.
+
+## Linux (experimental)
+
+The Linux presets use Ninja and default to Release. Core-only builds do not need
+iPlug2 or a display:
+
+```sh
+cmake --preset linux-core
+cmake --build --preset linux-core
+ctest --preset linux-core
+```
+
+Native products require an X11-capable iPlug2 checkout. The pinned submodule does
+not provide this backend. The currently tested baseline is upstream PR #1336,
+commit `03d3c1af13d3456b09df1e94800dc48546f3aaef`, with the included
+`patches/iplug2-linux-pr1336.patch`. The patch fixes APP resource compilation and
+GIO linkage, resize clipping, programmatic APP resizing, and `OnIdle()` access
+to partially constructed/destroyed editors. It serializes idle callbacks with
+the PR's existing graphics mutex; it does not move callbacks to the main thread.
+Do not apply it to another iPlug2 revision without reviewing the differences.
+The regular `scripts/setup-iplug2.sh` still initializes the pinned Windows/macOS
+submodule, not this external Linux checkout.
+
+For Ubuntu 24.04, install the native development prerequisites:
+
+```sh
+sudo apt-get install build-essential cmake ninja-build git curl pkg-config python3 \
+  libfreetype-dev libfontconfig-dev libx11-dev libxi-dev libxext-dev \
+  libxrender-dev libxrandr-dev libxfixes-dev libxcursor-dev libgl-dev \
+  libgtk-3-dev libasound2-dev libjack-jackd2-dev libpulse-dev xvfb xauth
+```
+
+From the CheapSynth01 repository root, in bash:
+
+```sh
+git clone --no-checkout https://github.com/iPlug2/iPlug2.git ../iPlug2-linux
+git -C ../iPlug2-linux fetch origin pull/1336/head
+git -C ../iPlug2-linux checkout --detach 03d3c1af13d3456b09df1e94800dc48546f3aaef
+git -C ../iPlug2-linux apply "$PWD/patches/iplug2-linux-pr1336.patch"
+pushd ../iPlug2-linux/Dependencies/IPlug
+bash download-vst3-sdk.sh
+bash download-clap-sdks.sh
+popd
+cmake --preset linux-native -DIPLUG2_DIR="$(realpath ../iPlug2-linux)"
+cmake --build --preset linux-native
+ctest --preset linux-native
+```
+
+Products are written to `build-linux-native/out`, with deployment disabled. The
+`linux-standalone` configure/build/test presets build APP only; pass the same
+external `IPLUG2_DIR` when configuring them. `Xvfb` and `xauth` enable the X11
+keyboard-focus regression test; without `xvfb-run` that test is not registered.
+GTK3 is an iPlug2/SWELL dependency; the synth does not call GTK directly.
+
+Launch `build-linux-native/out/CheapSynth01` in an X11 desktop session for audio
+and MIDI device setup. Adding `--no-io` disables audio/MIDI device I/O and is
+useful for GUI-only smoke tests; it does not verify audio output. Keep the
+accompanying resources directory with the executable/plugin products. User
+presets use `$XDG_DATA_HOME/CheapSynth01/UserPresets`, falling back to
+`~/.local/share/CheapSynth01/UserPresets` if `XDG_DATA_HOME` is unset, empty or
+relative.
+
+Local validation used Ubuntu 24.04 ARM64, GCC 13.3, Xvfb and Mesa llvmpipe:
+APP/VST3/CLAP builds, APP drawing, preset switching, fader changes, keyboard
+expansion/collapse, PC-key highlighting, XML Save As, and normal exit/reopen.
+The native suite has 255 CTest entries (including the Xvfb focus test); three
+existing `SignalPathTest` numeric-reference comparisons fail on this setup:
+
+- `BehavioralModelsMatchFrozenArithmeticIncludingSafetyExactly`
+- `OriginalCombinedModulationMatchesIndependentSemitoneCutoff`
+- `ModernWrapperMatchesFrozenCircuitArithmeticAndReset`
+
+All three also fail on the unmodified CheapSynth01 commit
+`8517b92aca28dccdd6aa3cc8ef7db12185403c5e` in the same ARM64 Release environment.
+Do not suppress these failures or treat the suite as fully passing. Real audio
+devices, DAW-hosted VST3/CLAP, x86_64, HiDPI and native Wayland have not been
+validated. Linux packages are not produced by the release workflow yet.
 
 ## Standalone audio and MIDI settings
 

@@ -31,6 +31,24 @@ include(GoogleTest)
 gtest_discover_tests(CheapSynth01Tests DISCOVERY_TIMEOUT 30)
 set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/TestLabels.cmake")
 
+if(BUILD_PLUGINS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(X11 REQUIRED)
+    find_program(XVFB_RUN_EXECUTABLE xvfb-run)
+    if(XVFB_RUN_EXECUTABLE)
+        add_executable(CheapSynth01KeyboardFocusTests
+            unit/KeyboardFocusTest.cpp
+            ../KeyboardFocus.cpp)
+        target_include_directories(CheapSynth01KeyboardFocusTests PRIVATE "${PROJECT_SOURCE_DIR}/CheapSynth01")
+        target_link_libraries(CheapSynth01KeyboardFocusTests PRIVATE GTest::gtest_main X11::X11)
+        add_test(NAME CheapSynth01.KeyboardFocus
+            COMMAND "${XVFB_RUN_EXECUTABLE}" -a $<TARGET_FILE:CheapSynth01KeyboardFocusTests>)
+        set_tests_properties(CheapSynth01.KeyboardFocus PROPERTIES
+            TIMEOUT 30 LABELS "regression;integration;linux;keyboard-focus")
+    else()
+        message(STATUS "xvfb-run not found; Linux keyboard focus test is unavailable")
+    endif()
+endif()
+
 # Exercise the real SDK interface types, without linking a plugin or opening an
 # editor/device. Native-product CI prepares these headers. Core-only builds can
 # opt in explicitly when auditing the pinned SDK.
@@ -53,6 +71,9 @@ if(BUILD_VST3_BOUNDARY_TESTS)
         "${IPLUG2_DIR}/IPlug" "${IPLUG2_DIR}/WDL")
     # Match SDK product compilation: Windows headers must not replace std::min/max.
     target_compile_definitions(CheapSynth01ParameterPresentationTests PRIVATE NOMINMAX _USE_MATH_DEFINES)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_compile_options(CheapSynth01ParameterPresentationTests PRIVATE -fsigned-char)
+    endif()
     target_link_libraries(CheapSynth01ParameterPresentationTests PRIVATE GTest::gtest_main)
     gtest_discover_tests(CheapSynth01ParameterPresentationTests DISCOVERY_TIMEOUT 30
         PROPERTIES LABELS "regression;integration;parameter-presentation")

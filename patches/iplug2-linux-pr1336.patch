@@ -1,0 +1,137 @@
+diff --git a/IGraphics/IGraphicsEditorDelegate.cpp b/IGraphics/IGraphicsEditorDelegate.cpp
+index 543a5afe1..2d409a2fd 100644
+--- a/IGraphics/IGraphicsEditorDelegate.cpp
++++ b/IGraphics/IGraphicsEditorDelegate.cpp
+@@ -73,35 +73,8 @@ void IGEditorDelegate::OnParentWindowResize(int width, int height)
+   IPLUG_GFX_LOCK;
+   if (auto* pGraphics = GetUI())
+   {
+-    if (pGraphics->GetResizingInProcess())
+-    {
+-      pGraphics->CancelDragResize();
+-    }
+-
+-    const float platScale = pGraphics->GetPlatformWindowScale();
+-    const int physW = static_cast<int>(width / platScale);
+-    const int physH = static_cast<int>(height / platScale);
+-    pGraphics->OnBeginHostResize(physW, physH);
+-
+-    if (pGraphics->GetResizerMode() == EUIResizerMode::Scale)
+-    {
+-      // Scale mode: keep logical dimensions, adjust draw scale.
+-      // Use min so the entire UI fits within the window. If the host
+-      // doesn't constrain to the design aspect ratio, this letterboxes
+-      // rather than clipping the top/bottom or sides.
+-      const int logW = pGraphics->Width();
+-      const int logH = pGraphics->Height();
+-      const float scaleX = static_cast<float>(physW) / logW;
+-      const float scaleY = static_cast<float>(physH) / logH;
+-      const float newScale = std::min(scaleX, scaleY);
+-      pGraphics->Resize(logW, logH, newScale, false);
+-    }
+-    else
+-    {
+-      pGraphics->Resize(physW, physH, 1.0f, false);
+-    }
+-
+-    pGraphics->OnEndHostResize();
++    const auto scale = pGraphics->GetPlatformWindowScale();
++    pGraphics->Resize(static_cast<int>(width / scale), static_cast<int>(height / scale), 1.0f, false);
+   }
+ }
+ 
+diff --git a/IGraphics/Platforms/IGraphicsLinux.cpp b/IGraphics/Platforms/IGraphicsLinux.cpp
+index 3440a7555..c4df2468f 100644
+--- a/IGraphics/Platforms/IGraphicsLinux.cpp
++++ b/IGraphics/Platforms/IGraphicsLinux.cpp
+@@ -1559,23 +1559,9 @@ void IGraphicsLinux::ProcessX11Events()
+         // avoid a resize oscillation.
+         mInConfigureNotify = true;
+ 
+-        if (GetResizerMode() == EUIResizerMode::Scale)
+-        {
+-          // Scale mode: keep logical dimensions, adjust drawScale
+-          const int logW = Width();
+-          const int logH = Height();
+-          const float scaleX = static_cast<float>(physW) / (logW * ss);
+-          const float scaleY = static_cast<float>(physH) / (logH * ss);
+-          const float newScale = std::max(scaleX, scaleY);
+-          Resize(logW, logH, newScale, false);
+-        }
+-        else
+-        {
+-          // Size mode: physical pixels to logical
+-          const int w = static_cast<int>(physW / ss);
+-          const int h = static_cast<int>(physH / ss);
+-          Resize(w, h, 1.0f, false);
+-        }
++        const int width = static_cast<int>(physW / ss);
++        const int height = static_cast<int>(physH / ss);
++        Resize(width, height, 1.0f, false);
+ 
+         mInConfigureNotify = false;
+         break;
+diff --git a/IPlug/APP/IPlugAPP.cpp b/IPlug/APP/IPlugAPP.cpp
+index 92377b0dd..26d020fb2 100644
+--- a/IPlug/APP/IPlugAPP.cpp
++++ b/IPlug/APP/IPlugAPP.cpp
+@@ -43,7 +43,7 @@ bool IPlugAPP::EditorResize(int viewWidth, int viewHeight)
+   
+   if (viewWidth != GetEditorWidth() || viewHeight != GetEditorHeight())
+   {
+-    #if defined OS_MAC || defined NO_IGRAPHICS 
++    #if defined OS_MAC || defined OS_LINUX || defined NO_IGRAPHICS
+     RECT rcClient, rcWindow;
+     POINT ptDiff;
+     
+@@ -58,6 +58,9 @@ bool IPlugAPP::EditorResize(int viewWidth, int viewHeight)
+     #ifdef OS_WIN
+     flags = SWP_NOMOVE;
+     float ss = GetScaleForHWND(gHWND);
++    #elif defined OS_LINUX
++    flags = SWP_NOMOVE | SWP_NOZORDER;
++    float ss = 1.f;
+     #else
+     float ss = 1.f;
+     #endif
+diff --git a/IPlug/APP/IPlugAPP_main.cpp b/IPlug/APP/IPlugAPP_main.cpp
+index e34932cbe..74030ef8d 100644
+--- a/IPlug/APP/IPlugAPP_main.cpp
++++ b/IPlug/APP/IPlugAPP_main.cpp
+@@ -603,6 +603,9 @@ INT_PTR SWELLAppMain(int msg, INT_PTR parm1, INT_PTR parm2)
+ #define SWELL_DLG_FLAGS_AUTOGEN SWELL_DLG_WS_FLIPPED|SWELL_DLG_WS_RESIZABLE
+ #endif
+ #include "swell-dlggen.h"
++#ifndef SWELL_DLG_WS_DEFAULT_SCALING
++#define SWELL_DLG_WS_DEFAULT_SCALING 0
++#endif
+ #include "resources/main.rc_mac_dlg"
+ #include "swell-menugen.h"
+ #include "resources/main.rc_mac_menu"
+diff --git a/IPlug/IPlugAPIBase.cpp b/IPlug/IPlugAPIBase.cpp
+index 8500f39ea..4eae2511b 100644
+--- a/IPlug/IPlugAPIBase.cpp
++++ b/IPlug/IPlugAPIBase.cpp
+@@ -144,6 +144,9 @@ void IPlugAPIBase::SendParameterValueFromAPI(int paramIdx, double value, bool no
+ 
+ void IPlugAPIBase::OnTimer(Timer& t)
+ {
++#if defined OS_LINUX && IPLUG_EDITOR && !defined NO_IGRAPHICS
++  std::lock_guard<std::recursive_mutex> gfxLock(GfxMutex());
++#endif
+ // VST3 ********************************************************************************
+ #if defined VST3P_API || defined VST3_API
+   while (mMidiMsgsFromProcessor.ElementsAvailable())
+diff --git a/Scripts/cmake/APP.cmake b/Scripts/cmake/APP.cmake
+index d0c95a364..ac7574c2b 100644
+--- a/Scripts/cmake/APP.cmake
++++ b/Scripts/cmake/APP.cmake
+@@ -129,7 +129,7 @@ if(NOT TARGET iPlug2::APP)
+     target_sources(iPlug2::APP INTERFACE ${IPLUG2_SWELL_SRC})
+ 
+     find_package(PkgConfig REQUIRED)
+-    pkg_check_modules(GDK3 REQUIRED gdk-3.0)
++    pkg_check_modules(GDK3 REQUIRED gdk-3.0 gio-2.0)
+     pkg_check_modules(FREETYPE REQUIRED freetype2)
+     pkg_check_modules(ALSA REQUIRED alsa)
+     pkg_check_modules(JACK REQUIRED jack)
