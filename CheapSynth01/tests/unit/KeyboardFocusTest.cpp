@@ -3,7 +3,7 @@
 #include <X11/Xlib.h>
 
 class KeyboardFocusTest : public ::testing::Test {
-protected:
+   protected:
     void SetUp() override {
         display = XOpenDisplay(nullptr);
         ASSERT_NE(display, nullptr);

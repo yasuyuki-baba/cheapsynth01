@@ -24,8 +24,8 @@ bool keyboardHasFocus(void* view) {
     const auto focus = GetFocus();
     return focus == editor || (focus && IsChild(editor, focus));
 #elif defined(__linux__)
-    static std::unique_ptr<Display, decltype(&XCloseDisplay)> display{
-        XOpenDisplay(nullptr), XCloseDisplay};
+    static std::unique_ptr<Display, decltype(&XCloseDisplay)> display{XOpenDisplay(nullptr),
+                                                                      XCloseDisplay};
     if (!display)
         return false;
     const auto editor = reinterpret_cast<Window>(view);
