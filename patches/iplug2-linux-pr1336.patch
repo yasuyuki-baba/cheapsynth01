@@ -94,11 +94,251 @@ index 92377b0dd..26d020fb2 100644
      #else
      float ss = 1.f;
      #endif
+diff --git a/IPlug/APP/IPlugAPP_host.cpp b/IPlug/APP/IPlugAPP_host.cpp
+index 42d6afde5..525c0ab60 100644
+--- a/IPlug/APP/IPlugAPP_host.cpp
++++ b/IPlug/APP/IPlugAPP_host.cpp
+@@ -18,6 +18,10 @@
+ #ifdef OS_LINUX
+ #include <alsa/asoundlib.h>
+ #include <gdk/gdkx.h>  // GDK_WINDOW_XID
++#include <cerrno>
++#include <cstdio>
++#include <cstring>
++#include <filesystem>
+ #endif
+ 
+ #include "IPlugLogger.h"
+@@ -65,7 +69,15 @@ bool IPlugAPPHost::Init()
+   if (!InitState())
+     return false;
+   
++#ifdef OS_LINUX
++  if (!TryToChangeAudioDriverType())
++  {
++    fprintf(stderr, "Could not initialize audio driver %u\n", mState.mAudioDriverType);
++    return false;
++  }
++#else
+   TryToChangeAudioDriverType(); // will init RTAudio with an API type based on gState->mAudioDriverType
++#endif
+   ProbeAudioIO(); // find out what audio IO devs are available and put their IDs in the global variables gAudioInputDevs / gAudioOutputDevs
+   InitMidi(); // creates RTMidiIn and RTMidiOut objects
+   ProbeMidiIO(); // find out what midi IO devs are available and put their names in the global variables gMidiInputDevs / gMidiOutputDevs
+@@ -142,12 +154,44 @@ bool IPlugAPPHost::InitState()
+ #elif defined OS_LINUX
+   const char* xdgConfig = getenv("XDG_CONFIG_HOME");
+   const char* home = getenv("HOME");
+-  if (xdgConfig && xdgConfig[0])
+-    mINIPath.SetFormatted(MAX_PATH_LEN, "%s/%s/", xdgConfig, BUNDLE_NAME);
+-  else if (home && home[0])
+-    mINIPath.SetFormatted(MAX_PATH_LEN, "%s/.config/%s/", home, BUNDLE_NAME);
++  std::filesystem::path directory;
++  if (xdgConfig && xdgConfig[0] == '/')
++    directory = std::filesystem::path(xdgConfig) / BUNDLE_NAME;
++  else if (home && home[0] == '/')
++    directory = std::filesystem::path(home) / ".config" / BUNDLE_NAME;
+   else
++  {
++    fprintf(stderr, "Cannot resolve settings directory: an absolute XDG_CONFIG_HOME or HOME is required\n");
+     return false;
++  }
++
++  // mkdir preserves private permissions on every newly created ancestor.
++  std::filesystem::path current;
++  for (const auto& part : directory)
++  {
++    current /= part;
++    if (mkdir(current.c_str(), S_IRWXU) != 0)
++    {
++      int error = errno;
++      struct stat info;
++      if (error == EEXIST)
++      {
++        if (stat(current.c_str(), &info) == 0)
++        {
++          if (S_ISDIR(info.st_mode))
++            continue;
++          error = ENOTDIR;
++        }
++        else
++          error = errno;
++      }
++      fprintf(stderr, "Cannot create settings directory '%s' at '%s': %s\n",
++              directory.c_str(), current.c_str(), strerror(error));
++      return false;
++    }
++  }
++  mINIPath.Set(directory.c_str());
++  mINIPath.Append("/");
+ #endif
+ 
+   struct stat st;
+@@ -186,7 +230,7 @@ bool IPlugAPPHost::InitState()
+     }
+ 
+     // if settings file doesn't exist, populate with default values, otherwise overwrite
+-    UpdateINI();
++    return UpdateINI();
+   }
+   else // folder doesn't exist - make folder and make file
+   {
+@@ -194,14 +238,14 @@ bool IPlugAPPHost::InitState()
+     // folder doesn't exist - make folder and make file
+     CreateDirectory(mINIPath.Get(), NULL);
+     mINIPath.Append("settings.ini");
+-    UpdateINI(); // will write file if doesn't exist
++    return UpdateINI(); // will write file if doesn't exist
+ #elif defined(OS_MAC) || defined(OS_LINUX)
+     int result_code = mkdir(mINIPath.Get(), S_IRWXU);
+ 
+     if (!result_code)
+     {
+       mINIPath.Append("settings.ini");
+-      UpdateINI(); // will write file if doesn't exist
++      return UpdateINI(); // will write file if doesn't exist
+     }
+     else
+     {
+@@ -213,42 +257,59 @@ bool IPlugAPPHost::InitState()
+   return true;
+ }
+ 
+-void IPlugAPPHost::UpdateINI()
++bool IPlugAPPHost::UpdateINI()
+ {
+   char buf[STRBUFSZ]; // temp buffer for writing integers to profile strings
+   const char* ini = mINIPath.Get();
++  bool success = true;
++  auto write = [&](const char* section, const char* key, const char* value) {
++    if (!success)
++      return;
++    if (!WritePrivateProfileString(section, key, value, ini))
++    {
++#ifdef OS_LINUX
++      const int error = errno;
++      fprintf(stderr, "Cannot save settings '%s' [%s] %s: %s\n",
++              ini, section, key, strerror(error ? error : EIO));
++#else
++      fprintf(stderr, "Cannot save settings '%s' [%s] %s\n", ini, section, key);
++#endif
++      success = false;
++    }
++  };
+ 
+   sprintf(buf, "%u", mState.mAudioDriverType);
+-  WritePrivateProfileString("audio", "driver", buf, ini);
++  write("audio", "driver", buf);
+ 
+-  WritePrivateProfileString("audio", "indev", mState.mAudioInDev.Get(), ini);
+-  WritePrivateProfileString("audio", "outdev", mState.mAudioOutDev.Get(), ini);
++  write("audio", "indev", mState.mAudioInDev.Get());
++  write("audio", "outdev", mState.mAudioOutDev.Get());
+ 
+   sprintf(buf, "%u", mState.mAudioInChanL);
+-  WritePrivateProfileString("audio", "in1", buf, ini);
++  write("audio", "in1", buf);
+   sprintf(buf, "%u", mState.mAudioInChanR);
+-  WritePrivateProfileString("audio", "in2", buf, ini);
++  write("audio", "in2", buf);
+   sprintf(buf, "%u", mState.mAudioOutChanL);
+-  WritePrivateProfileString("audio", "out1", buf, ini);
++  write("audio", "out1", buf);
+   sprintf(buf, "%u", mState.mAudioOutChanR);
+-  WritePrivateProfileString("audio", "out2", buf, ini);
++  write("audio", "out2", buf);
+   //sprintf(buf, "%u", mState.mAudioInIsMono);
+   //WritePrivateProfileString("audio", "monoinput", buf, ini);
+ 
+   WDL_String str;
+   str.SetFormatted(32, "%i", mState.mBufferSize);
+-  WritePrivateProfileString("audio", "buffer", str.Get(), ini);
++  write("audio", "buffer", str.Get());
+ 
+   str.SetFormatted(32, "%i", mState.mAudioSR);
+-  WritePrivateProfileString("audio", "sr", str.Get(), ini);
++  write("audio", "sr", str.Get());
+ 
+-  WritePrivateProfileString("midi", "indev", mState.mMidiInDev.Get(), ini);
+-  WritePrivateProfileString("midi", "outdev", mState.mMidiOutDev.Get(), ini);
++  write("midi", "indev", mState.mMidiInDev.Get());
++  write("midi", "outdev", mState.mMidiOutDev.Get());
+ 
+   sprintf(buf, "%u", mState.mMidiInChan);
+-  WritePrivateProfileString("midi", "inchan", buf, ini);
++  write("midi", "inchan", buf);
+   sprintf(buf, "%u", mState.mMidiOutChan);
+-  WritePrivateProfileString("midi", "outchan", buf, ini);
++  write("midi", "outchan", buf);
++  return success;
+ }
+ 
+ std::string IPlugAPPHost::GetAudioDeviceName(uint32_t deviceID) const
+@@ -269,6 +330,13 @@ std::string IPlugAPPHost::GetAudioDeviceName(uint32_t deviceID) const
+ 
+ std::optional<uint32_t> IPlugAPPHost::GetAudioDeviceID(const char* deviceNameToTest) const
+ {
++#ifdef OS_LINUX
++  if (!mDAC)
++  {
++    fprintf(stderr, "Cannot look up audio device '%s': audio driver is not initialized\n", deviceNameToTest);
++    return std::nullopt;
++  }
++#endif
+   auto deviceIDs = mDAC->getDeviceIds();
+ 
+   for (auto deviceID : deviceIDs)
+@@ -470,6 +538,14 @@ bool IPlugAPPHost::TryToChangeAudio()
+   if (mNoIO || IsScreenshotMode())
+     return true;
+ 
++#ifdef OS_LINUX
++  if (!mDAC)
++  {
++    fprintf(stderr, "Cannot initialize audio: audio driver is not initialized\n");
++    return false;
++  }
++#endif
++
+ #if defined OS_WIN
+   // ASIO has one device, use the output for the input ID
+   auto inputID = GetAudioDeviceID(mState.mAudioDriverType == kDeviceASIO ? mState.mAudioOutDev.Get() : mState.mAudioInDev.Get());
+@@ -860,4 +936,3 @@ void IPlugAPPHost::ErrorCallback(RtAudioErrorType type, const std::string &error
+ {
+   std::cerr << "\nerrorCallback: " << errorText << "\n\n";
+ }
+-
+diff --git a/IPlug/APP/IPlugAPP_host.h b/IPlug/APP/IPlugAPP_host.h
+index 460baa7ef..e18362e8d 100644
+--- a/IPlug/APP/IPlugAPP_host.h
++++ b/IPlug/APP/IPlugAPP_host.h
+@@ -198,7 +198,7 @@ public:
+ 
+   bool Init();
+   bool InitState();
+-  void UpdateINI();
++  bool UpdateINI();
+   
+   /** Returns the name of the audio device with a given RTAudio device ID
+    * @param deviceID The ID RTAudio has given the audio device
 diff --git a/IPlug/APP/IPlugAPP_main.cpp b/IPlug/APP/IPlugAPP_main.cpp
-index e34932cbe..74030ef8d 100644
+index e34932cbe..9eb98cb5b 100644
 --- a/IPlug/APP/IPlugAPP_main.cpp
 +++ b/IPlug/APP/IPlugAPP_main.cpp
-@@ -603,6 +603,9 @@ INT_PTR SWELLAppMain(int msg, INT_PTR parm1, INT_PTR parm2)
+@@ -563,7 +563,11 @@ int main(int argc, char** argv)
+   if (gNoIO)
+     pAppHost->SetNoIO(true);
+ 
+-  pAppHost->Init();
++  if (!pAppHost->Init())
++  {
++    fprintf(stderr, "Standalone initialization failed; audio and editor startup cancelled\n");
++    return 1;
++  }
+   pAppHost->TryToChangeAudio();
+ 
+   HMENU menu = LoadMenu(NULL, MAKEINTRESOURCE(IDR_MENU1));
+@@ -603,6 +607,9 @@ INT_PTR SWELLAppMain(int msg, INT_PTR parm1, INT_PTR parm2)
  #define SWELL_DLG_FLAGS_AUTOGEN SWELL_DLG_WS_FLIPPED|SWELL_DLG_WS_RESIZABLE
  #endif
  #include "swell-dlggen.h"
@@ -135,3 +375,135 @@ index d0c95a364..ac7574c2b 100644
      pkg_check_modules(FREETYPE REQUIRED freetype2)
      pkg_check_modules(ALSA REQUIRED alsa)
      pkg_check_modules(JACK REQUIRED jack)
+diff --git a/WDL/swell/swell-ini.cpp b/WDL/swell/swell-ini.cpp
+index 78513ad92..a3df77359 100644
+--- a/WDL/swell/swell-ini.cpp
++++ b/WDL/swell/swell-ini.cpp
+@@ -39,6 +39,7 @@
+ #include <sys/stat.h>
+ #include <sys/file.h>
+ #include <sys/types.h>
++#include <errno.h>
+ 
+ struct iniFileContext
+ {
+@@ -245,9 +246,9 @@ static iniFileContext *GetFileContext(const char *name)
+   return ctx;
+ }
+ 
+-static void WriteBackFile(iniFileContext *ctx)
++static BOOL WriteBackFile(iniFileContext *ctx)
+ {
+-  if (!ctx||!ctx->m_curfn) return;
++  if (!ctx||!ctx->m_curfn) { errno=EINVAL; return FALSE; }
+   char newfn[1024];
+ 
+   const char *curfn = ctx->m_curfn;
+@@ -260,6 +261,13 @@ static void WriteBackFile(iniFileContext *ctx)
+     if (needfree) curfn = needfree;
+   }
+ 
++  if (strlen(curfn) >= sizeof(newfn)-8)
++  {
++    free(needfree);
++    ctx->m_curfn_sz=-1;
++    errno=ENAMETOOLONG;
++    return FALSE;
++  }
+   lstrcpyn_safe(newfn,curfn,sizeof(newfn)-8);
+   {
+     char *p=newfn;
+@@ -279,11 +287,24 @@ static void WriteBackFile(iniFileContext *ctx)
+   FILE *fp = WDL_fopenA(newfn,"w");
+   if (!fp)
+   {
++    const int error=errno;
+     free(needfree);
+-    return;
++    ctx->m_curfn_sz=-1;
++    errno=error;
++    return FALSE;
+   }
+   
+-  flock(fileno(fp),LOCK_EX);
++  if (flock(fileno(fp),LOCK_EX))
++  {
++    const int error=errno;
++    fclose(fp);
++    unlink(newfn);
++    free(needfree);
++    ctx->m_curfn_sz=-1;
++    errno=error;
++    return FALSE;
++  }
++  errno=0;
+   
+   int x;
+   for (x = 0; ; x ++)
+@@ -304,19 +325,23 @@ static void WriteBackFile(iniFileContext *ctx)
+     fprintf(fp,"\n");
+   }  
+   
+-  fflush(fp);
+-  flock(fileno(fp),LOCK_UN);
+-  fclose(fp);
++  int error=ferror(fp) ? (errno ? errno : EIO) : 0;
++  if (fflush(fp) && !error) error=errno ? errno : EIO;
++  if (fclose(fp) && !error) error=errno ? errno : EIO;
+ 
+-  if (!rename(newfn,curfn))
++  if (!error && rename(newfn,curfn)) error=errno;
++  if (!error)
+   {
+     ctx->m_curfn_time = getfileupdtimesize(curfn,&ctx->m_curfn_sz);
+   }
+   else
+   {
+-    // error updating, hmm how to handle this?
++    unlink(newfn);
++    ctx->m_curfn_sz=-1;
+   }
+   free(needfree);
++  if (error) { errno=error; return FALSE; }
++  return TRUE;
+ }
+ 
+ BOOL WritePrivateProfileSection(const char *appname, const char *strings, const char *fn)
+@@ -353,9 +378,7 @@ BOOL WritePrivateProfileSection(const char *appname, const char *strings, const
+       strings += strlen(strings)+1;
+     }
+   }
+-  WriteBackFile(ctx);
+-  
+-  return TRUE;
++  return WriteBackFile(ctx);
+ }
+ 
+ 
+@@ -373,7 +396,7 @@ BOOL WritePrivateProfileString(const char *appname, const char *keyname, const c
+     if (ctx->m_sections.Get(appname))
+     {
+       ctx->m_sections.Delete(appname);
+-      WriteBackFile(ctx);
++      return WriteBackFile(ctx);
+     }
+   }
+   else 
+@@ -384,7 +407,7 @@ BOOL WritePrivateProfileString(const char *appname, const char *keyname, const c
+       if (cursec && cursec->Get(keyname))
+       {
+         cursec->Delete(keyname);
+-        WriteBackFile(ctx);
++        return WriteBackFile(ctx);
+       }
+     }
+     else
+@@ -398,7 +421,7 @@ BOOL WritePrivateProfileString(const char *appname, const char *keyname, const c
+           ctx->m_sections.Insert(appname,cursec);
+         }
+         cursec->Insert(keyname,strdup(val));
+-        WriteBackFile(ctx);
++        return WriteBackFile(ctx);
+       }
+     }
+ 

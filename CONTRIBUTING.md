@@ -50,8 +50,9 @@ Native products require an X11-capable iPlug2 checkout. The pinned submodule doe
 not provide this backend. The currently tested baseline is upstream PR #1336,
 commit `03d3c1af13d3456b09df1e94800dc48546f3aaef`, with the included
 `patches/iplug2-linux-pr1336.patch`. The patch fixes APP resource compilation and
-GIO linkage, resize clipping, programmatic APP resizing, and `OnIdle()` access
-to partially constructed/destroyed editors. It serializes idle callbacks with
+GIO linkage, resize clipping, programmatic APP resizing, Linux first-run settings
+creation/error handling, and `OnIdle()` access to partially constructed/destroyed
+editors. It serializes idle callbacks with
 the PR's existing graphics mutex; it does not move callbacks to the main thread.
 Do not apply it to another iPlug2 revision without reviewing the differences.
 The regular `scripts/setup-iplug2.sh` still initializes the pinned Windows/macOS
@@ -85,13 +86,22 @@ ctest --preset linux-native
 Products are written to `build-linux-native/out`, with deployment disabled. The
 `linux-standalone` configure/build/test presets build APP only; pass the same
 external `IPLUG2_DIR` when configuring them. `Xvfb` and `xauth` enable the X11
-keyboard-focus regression test; without `xvfb-run` that test is not registered.
+keyboard-focus and standalone-startup regression tests; without `xvfb-run` those
+tests are not registered. The startup test builds and launches the actual APP.
 GTK3 is an iPlug2/SWELL dependency; the synth does not call GTK directly.
 
 Launch `build-linux-native/out/CheapSynth01` in an X11 desktop session for audio
 and MIDI device setup. Adding `--no-io` disables audio/MIDI device I/O and is
 useful for GUI-only smoke tests; it does not verify audio output. Keep the
 accompanying resources directory with the executable/plugin products. User
+audio/MIDI settings use `$XDG_CONFIG_HOME/cheapsynth01/settings.ini`, falling back
+to `$HOME/.config/cheapsynth01/settings.ini` if `XDG_CONFIG_HOME` is unset, empty
+or relative. Missing ancestors are created with private permissions (0700,
+subject to the process umask); existing directory permissions are preserved.
+An absolute configuration base is required. Directory or settings-write failures
+are reported to stderr and terminate startup with exit code 1, before audio or
+editor initialization. Audio-device selection failures after successful host
+initialization retain the SDK's existing settings-recovery behavior. User
 presets use `$XDG_DATA_HOME/CheapSynth01/UserPresets`, falling back to
 `~/.local/share/CheapSynth01/UserPresets` if `XDG_DATA_HOME` is unset, empty or
 relative.
@@ -108,9 +118,57 @@ existing `SignalPathTest` numeric-reference comparisons fail on this setup:
 
 All three also fail on the unmodified CheapSynth01 commit
 `8517b92aca28dccdd6aa3cc8ef7db12185403c5e` in the same ARM64 Release environment.
-Do not suppress these failures or treat the suite as fully passing. Real audio
-devices, DAW-hosted VST3/CLAP, x86_64, HiDPI and native Wayland have not been
-validated. Linux packages are not produced by the release workflow yet.
+Do not suppress these failures or treat that ARM64 suite as fully passing.
+That run did not validate real audio devices, DAW-hosted VST3/CLAP, x86_64, HiDPI
+or native Wayland. Linux packages are not produced by the release workflow yet.
+
+Additional validation on 2026-10-20 used commit `4aa40d0`, Ubuntu 24.04.4 x86_64
+under WSL2/WSLg, GCC 13.3 and Release builds with the patched iPlug2 baseline above.
+The VST3 SDK was `v3.8.0_build_66`; CLAP SDK and helpers used the revisions pinned
+in `scripts/setup-iplug2.sh`. Mixing older CLAP headers with current helpers caused
+compile errors; using the matching pinned revisions resolved them.
+
+- Core suite: all 241 CTest entries passed.
+- Native suite: all 255 entries passed, including the Xvfb keyboard-focus test,
+  parameter presentation and VST3 SDK boundary cases. The three ARM64 numerical
+  failures listed above did not reproduce in this x86_64 environment.
+- APP, VST3 and CLAP built successfully, with no missing shared libraries.
+  WSLg window creation was checked. Automated Xvfb smoke checks verified nonblank
+  drawing, next-preset display changes, keyboard expansion/collapse (400/640
+  pixels), PC-key press/release highlighting and normal exit/reopen, both with
+  `--no-io` and with device I/O enabled.
+- APP audio was captured from a dedicated PulseAudio null sink through the ALSA
+  default device at 44.1 kHz, with a 512-frame application buffer. PC-key notes
+  produced a captured peak of approximately 0.0662, with no nonfinite samples.
+  This verifies the software audio path, not physical playback or latency.
+- The actual VST3 binary loaded and exposed its factory/class metadata.
+  A minimal local CLAP host loaded the actual binary, activated stereo processing
+  at 48 kHz/256 frames, and verified initial silence, finite identical left/right
+  output after MIDI note-on (peak approximately 0.2030), and silence after note-off.
+  These are smoke checks, not DAW-hosted plugin/editor validation.
+
+The initial validation also reproduced SIGSEGV (exit 139) when the configuration
+parent did not exist: settings initialization failed, but APP startup continued
+with no audio driver. The compatibility patch now fixes this by creating missing
+ancestors, checking initialization, and rejecting uninitialized audio-device
+access. Its SWELL INI writer propagates open, buffered-write, close and rename
+errors instead of reporting successful saves; failed writes leave existing
+settings intact and invalidate the in-memory cache.
+
+The fix was verified with 16 executable-level Xvfb startup cases, registered as
+one additional CTest entry (256 total native entries). They cover absent parents,
+private/new versus preserved/existing permissions, unset/empty/relative XDG
+paths, unavailable configuration bases, reopen/settings restoration, directory
+and file-write failures, and invalid audio drivers. Successful startup cases use
+`--no-io`; failure cases also exercise ordinary device-enabled startup. The
+existing keyboard-focus test still passes. APP/VST3/CLAP builds and patch
+application against the exact SDK baseline were also checked. Apply the updated
+patch to the clean baseline, not over an older version of the patch.
+
+WSL2 also lacked `/dev/snd/seq`; APP logged ALSA
+sequencer initialization errors but continued running with PC-keyboard audio.
+Physical audio/MIDI devices, real DAW hosting, HiDPI and native Wayland remain
+unverified.
 
 ## Standalone audio and MIDI settings
 

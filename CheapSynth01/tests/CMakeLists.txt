@@ -44,8 +44,18 @@ if(BUILD_PLUGINS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
             COMMAND "${XVFB_RUN_EXECUTABLE}" -a $<TARGET_FILE:CheapSynth01KeyboardFocusTests>)
         set_tests_properties(CheapSynth01.KeyboardFocus PROPERTIES
             TIMEOUT 30 LABELS "regression;integration;linux;keyboard-focus")
+        add_executable(CheapSynth01LinuxStartupTests unit/LinuxStartupTest.cpp)
+        target_link_libraries(CheapSynth01LinuxStartupTests PRIVATE GTest::gtest_main X11::X11)
+        target_compile_definitions(CheapSynth01LinuxStartupTests PRIVATE
+            CS01_APP_PATH="$<TARGET_FILE:CheapSynth01-app>")
+        add_dependencies(CheapSynth01LinuxStartupTests CheapSynth01-app)
+        add_test(NAME CheapSynth01.LinuxStartup
+            COMMAND "${XVFB_RUN_EXECUTABLE}" -a -s "-screen 0 1600x900x24"
+                $<TARGET_FILE:CheapSynth01LinuxStartupTests>)
+        set_tests_properties(CheapSynth01.LinuxStartup PROPERTIES
+            TIMEOUT 180 LABELS "regression;integration;linux;startup")
     else()
-        message(STATUS "xvfb-run not found; Linux keyboard focus test is unavailable")
+        message(STATUS "xvfb-run not found; Linux keyboard focus and startup tests are unavailable")
     endif()
 endif()
 
