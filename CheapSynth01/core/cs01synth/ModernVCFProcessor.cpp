@@ -12,6 +12,8 @@ void ModernVCFProcessor::prepare(double sampleRate) {
     filter.reset();
     filter.prepare(sampleRate);
     processingSampleRate = sampleRate;
+    egDepthControl.reset(sampleRate, .005);
+    egDepthControl.setCurrentAndTargetValue(parameters.get(ParameterIds::vcfEgDepth));
 }
 
 void ModernVCFProcessor::reset() {
@@ -20,7 +22,8 @@ void ModernVCFProcessor::reset() {
 }
 
 float ModernVCFProcessor::processSample(float audio, float eg, float lfo) {
-    const float depth = parameters.get(ParameterIds::vcfEgDepth);
+    egDepthControl.setTargetValue(parameters.get(ParameterIds::vcfEgDepth));
+    const float depth = egDepthControl.getNextValue();
     const float base = calculateCutoffFrequency(parameters.get(ParameterIds::cutoff));
     const float semitones =
         eg * depth * 36.f +

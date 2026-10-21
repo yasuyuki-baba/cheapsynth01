@@ -35,7 +35,7 @@ TEST(ParameterPresentationTest, EveryHostParameterKeepsCoreNormalizedAutomation)
             const double core = d.integer ? std::round(plain) : plain;
             const double expected =
                 cs01::isEnvelopeTime(id)
-                    ? EGTiming::position(core)
+                    ? EGTiming::position(core, cs01::minimumEnvelopeTau(id))
                     : std::pow((core - d.minimum) / (double(d.maximum) - d.minimum),
                                double(d.skew));
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, core)), expected, 1.e-6);
@@ -66,7 +66,8 @@ TEST(ParameterPresentationTest, EnvelopeHostTaperMatchesCoreAtEveryPanelPosition
         for (int i = 0; i <= 1000; ++i) {
             const double position = i / 1000.;
             const double seconds = cs01::fromHostValue(id, parameter.FromNormalized(position));
-            EXPECT_NEAR(seconds, EGTiming::timeConstant(position), 1e-6);
+            EXPECT_NEAR(seconds, EGTiming::timeConstant(position, cs01::minimumEnvelopeTau(id)),
+                        1e-6);
             EXPECT_NEAR(cs01::toNormalized(id, float(seconds)), position, 1e-6);
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, seconds)), position, 1e-6);
         }

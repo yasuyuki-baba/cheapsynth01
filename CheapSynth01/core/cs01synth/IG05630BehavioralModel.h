@@ -11,6 +11,8 @@ class IG05630BehavioralModel {
         static constexpr float secondSectionQ = 1.3065630f;
         // Provisional normalized saturation and resonance ranges. Not calibrated.
         static constexpr float inputDrive = 2.0f;
+        static constexpr float negativeKneeThreshold = 0.2f;
+        static constexpr float negativeClipAmount = 0.35f;
         static constexpr float feedbackDrive = 1.0f;
         // Provisional feedback map kept below the model's self-oscillation
         // threshold. Non-oscillating behavior is a conservative hypothesis,

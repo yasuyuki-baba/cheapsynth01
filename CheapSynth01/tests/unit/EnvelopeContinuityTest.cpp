@@ -586,6 +586,8 @@ TEST(EGTimingTest, AssumedATaperMatchesCircuitAndRoundTrips) {
     EXPECT_NEAR(EGTiming::timeConstant(0), .00396, 1e-12);
     EXPECT_NEAR(EGTiming::timeConstant(.5), .44396, 1e-12);
     EXPECT_NEAR(EGTiming::timeConstant(1), 4.40396, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(0, EGTiming::minimumDecayTau), .00858, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(1, EGTiming::minimumDecayTau), 4.40396, 1e-12);
     for (auto id : {Param::Attack, Param::Decay, Param::Release})
         for (int i = 0; i <= 1000; ++i) {
             const float position = i / 1000.f;

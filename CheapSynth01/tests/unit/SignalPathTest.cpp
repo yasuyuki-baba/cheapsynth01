@@ -653,3 +653,57 @@ TEST(SignalPathTest, VcaLiveDepthPreservesSmoothingAcrossPartitions) {
         }
     }
 }
+
+TEST(SignalPathTest, ModernFilterLiveDepthPreservesSmoothingAcrossPartitions) {
+    auto render = [](int size) {
+        cs01::ParameterState state;
+        state.set(Param::Cutoff, 500);
+        state.set(Param::VcfEgDepth, 0);
+        ModernVCFProcessor filter(state);
+        filter.prepare(48000);
+        state.set(Param::VcfEgDepth, 1);
+        std::vector<float> output;
+        for (int offset = 0; offset < 960;) {
+            int count = std::min(size, 960 - offset);
+            for (int i = 0; i < count; ++i) {
+                const int t = offset + i;
+                output.push_back(filter.processSample(
+                    static_cast<float>(.1 * std::sin(tau * 1500 * t / 48000.)), 1.f, 0.f));
+            }
+            offset += count;
+        }
+        return output;
+    };
+    auto reference = render(1);
+    EXPECT_GT(power(reference), 0);
+    for (int size : {7, 64}) {
+        auto actual = render(size);
+        for (size_t i = 0; i < actual.size(); ++i) {
+            ASSERT_TRUE(std::isfinite(actual[i]));
+            ASSERT_NEAR(actual[i], reference[i], 1e-7);
+        }
+    }
+}
+
+TEST(SignalPathTest, BothFilterModelsGenerateEvenHarmonicsUnderDrivenInput) {
+    constexpr double rate = 48000.0;
+    constexpr double hz = 500.0;
+    IG02610BehavioralModel original;
+    IG05630BehavioralModel modern;
+    original.prepare(rate);
+    modern.prepare(rate);
+    modern.setCutoffFrequency(4000.0f);
+    modern.setResonance(0.4f);
+    std::vector<float> origOut, modOut;
+    for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
+        const float x = static_cast<float>(0.6 * std::sin(tau * hz * i / rate));
+        const float yOrig = original.processSample(x, 4000.0f, 0.4f);
+        const float yMod = modern.processSample(x);
+        if (i >= static_cast<int>(rate)) {
+            origOut.push_back(yOrig);
+            modOut.push_back(yMod);
+        }
+    }
+    EXPECT_GT(amplitude(origOut, rate, 2 * hz), 1e-3);
+    EXPECT_GT(amplitude(modOut, rate, 2 * hz), 1e-3);
+}

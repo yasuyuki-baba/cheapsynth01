@@ -8,10 +8,11 @@ Assume a generic A taper with 10% of the 2 MΩ resistance at half travel:
 
 ```
 Rpot(p) = 2e6 * (81^p - 1) / 80
-tau(p) = (1800 + Rpot(p)) * 2.2e-6
+tau(p) = minTau + (maxTau - minTau) * (81^p - 1) / 80
 ```
 
-The endpoints are 3.96 ms and 4.40396 s, and the midpoint is 443.96 ms.
+For Attack and Release, `minTau = 1800 * 2.2e-6 = 3.96 ms`, `maxTau = 4.40396 s`, and the midpoint is `443.96 ms`.
+For Decay, `minTau = 3900 * 2.2e-6 = 8.58 ms` (~79 ms settling to -80 dB) to account for additional effective series/feedback impedance in the Tr11/Tr12 sustain-reference discharge branch and prevent zero-sustain patches from choking at the bottom of the slider.
 This is an assumption requested for this implementation, not a measurement of
 the CS01 potentiometers or the EG IC. It uses the series resistance and capacitor
 from the circuit audit; IC thresholds and internal current paths remain uncalibrated.

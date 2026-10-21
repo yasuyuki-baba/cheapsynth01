@@ -399,3 +399,22 @@ TEST(VcoBehaviorTest, ExplicitLfoOffsetsMovePitchAndReturnToCenter) {
         }
     }
 }
+
+TEST(VcoBehaviorTest, NarrowPulseWaveformHasOneEighthDutyCycleAndEvenHarmonics) {
+    EXPECT_FLOAT_EQ(PulseWaveformStrategy::defaultPulseWidth, .125f);
+    PulseWaveformStrategy pulse;
+    cs01::Oscillator pwm;
+    float previous = 0.f;
+    int positive = 0;
+    constexpr int samples = 48000;
+    constexpr float dt = 100.f / samples;
+    for (int i = 0; i < samples; ++i) {
+        const float phase = std::fmod(i * dt, 1.f);
+        const float master = phase < .5f ? 1.f : -1.f;
+        const float y = pulse.generate(master, phase, dt, samples, previous, pwm);
+        ASSERT_TRUE(std::isfinite(y));
+        if (y > 0.f)
+            ++positive;
+    }
+    EXPECT_NEAR(static_cast<double>(positive) / samples, .125, .005);
+}

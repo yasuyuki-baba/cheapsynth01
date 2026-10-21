@@ -12,6 +12,9 @@ struct MidiMessage {
     bool isController() const {
         return (status & 0xf0) == 0xb0;
     }
+    bool isChannelPressure() const {
+        return (status & 0xf0) == 0xd0;
+    }
     bool isPitchBend() const {
         return (status & 0xf0) == 0xe0;
     }
@@ -39,9 +42,16 @@ struct MidiMessage {
     int getControllerValue() const {
         return data2 & 127;
     }
+    int getChannelPressureValue() const {
+        return data1 & 127;
+    }
     static MidiMessage pitchBend(int channel, int value) {
         return {static_cast<uint8_t>(0xe0 | ((channel - 1) & 15)),
                 static_cast<uint8_t>(value & 127), static_cast<uint8_t>((value >> 7) & 127)};
+    }
+    static MidiMessage channelPressure(int channel, int value) {
+        return {static_cast<uint8_t>(0xd0 | ((channel - 1) & 15)),
+                static_cast<uint8_t>(value & 127), 0};
     }
 };
 }  // namespace cs01

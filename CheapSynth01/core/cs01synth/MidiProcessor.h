@@ -61,6 +61,16 @@ class MidiProcessor {
         Decay,
         LfoSpeed,
         Release,
+        VcaEgDepth,
+        WaveType,
+        Feet,
+        Pitch,
+        VcfEgDepth,
+        PwmSpeed,
+        LfoTarget,
+        BreathVcf,
+        BreathVca,
+        FilterType,
         Count
     };
     cs01::ParameterState& parameters;
@@ -70,6 +80,7 @@ class MidiProcessor {
     void handleNoteOn(const cs01::MidiMessage& midiMessage);
     void handleNoteOff(const cs01::MidiMessage& midiMessage);
     void handlePitchBend(const cs01::MidiMessage& midiMessage);
+    void handleChannelPressure(const cs01::MidiMessage& midiMessage);
     void handleControllerMessage(const cs01::MidiMessage& midiMessage);
 
     // 14bit CC parameter update methods

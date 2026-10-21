@@ -213,10 +213,14 @@ TEST_F(MidiBehaviorTest, ResetControllersPreservesWholePatchAndClearsPerformance
 }
 
 TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs) {
-    const std::array ids{Param::ModDepth, Param::BreathInput, Param::Volume, Param::Glissando,
-                         Param::Sustain,  Param::Resonance,   Param::Attack, Param::Cutoff,
-                         Param::Decay,    Param::LfoSpeed,    Param::Release};
-    const std::array msbs{1, 2, 7, 5, 70, 71, 73, 74, 75, 76, 79};
+    const std::array ids{Param::ModDepth,   Param::BreathInput, Param::Volume,    Param::Glissando,
+                         Param::Sustain,    Param::Resonance,   Param::Attack,    Param::Cutoff,
+                         Param::Decay,      Param::LfoSpeed,    Param::Release,   Param::Release,
+                         Param::VcaEgDepth, Param::WaveType,    Param::Feet,      Param::Pitch,
+                         Param::VcfEgDepth, Param::PwmSpeed,    Param::LfoTarget, Param::BreathVcf,
+                         Param::BreathVca,  Param::FilterType};
+    const std::array msbs{1,  2, 7,  5,  70, 71, 73, 74, 75, 76, 79,
+                          72, 9, 14, 15, 16, 82, 85, 88, 89, 90, 91};
     const std::array lsbs{33, 34, 39, 37};
     for (size_t i = 0; i < ids.size(); ++i) {
         for (int value : {0, 64, 127}) {
@@ -226,9 +230,13 @@ TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs)
             float normalized = i < lsbs.size() ? value * 128 / 16383.f : value / 127.f;
             const auto& d = cs01::definition(ids[i]);
             const auto expected = [&](float n) {
-                return cs01::isEnvelopeTime(ids[i])
-                           ? float(.00396 + 4.4 * (std::pow(81., double(n)) - 1) / 80.)
-                           : d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
+                if (cs01::isEnvelopeTime(ids[i])) {
+                    const double minTau = cs01::minimumEnvelopeTau(ids[i]);
+                    const double span = EGTiming::maximumTau - minTau;
+                    return float(minTau + span * (std::pow(81., double(n)) - 1) / 80.);
+                }
+                const float raw = d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
+                return d.integer ? std::round(raw) : raw;
             };
             EXPECT_FLOAT_EQ(state.get(ids[i]), expected(normalized));
             if (i < lsbs.size()) {
@@ -237,6 +245,12 @@ TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs)
             }
         }
     }
+    for (int pressure : {0, 32, 64, 127}) {
+        midi.handleMidiEvent(cs01::MidiMessage::channelPressure(1, pressure));
+        EXPECT_FLOAT_EQ(state.get(Param::BreathInput), pressure / 127.f);
+    }
+    midi.handleMidiEvent(cc(121, 0));
+    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), 0.f);
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
     for (int pitchBendValue : {0, 4096, 8192, 12000, 16383}) {
