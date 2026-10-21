@@ -33,28 +33,38 @@ float YM10150::shapeOutput(float value) const {
     return std::tanh(value * 1.2f);
 }
 
-YM10150::YM10150() {
-    // Initialize waveform strategy mapping directly
-    strategies[Waveform::Triangle] = std::make_unique<TriangleWaveformStrategy>();
-    strategies[Waveform::Sawtooth] = std::make_unique<SawtoothWaveformStrategy>();
-    strategies[Waveform::Square] = std::make_unique<SquareWaveformStrategy>();
-    strategies[Waveform::Pulse] = std::make_unique<PulseWaveformStrategy>();
-    strategies[Waveform::Pwm] = std::make_unique<PWMWaveformStrategy>();
+YM10150::YM10150() = default;
 
-    // Set default strategy
-    selected = strategies[Waveform::Sawtooth].get();
+IWaveformStrategy* YM10150::strategyFor(Waveform waveform) noexcept {
+    switch (waveform) {
+        case Waveform::Triangle:
+            return &triangle;
+        case Waveform::Sawtooth:
+            return &sawtooth;
+        case Waveform::Square:
+            return &square;
+        case Waveform::Pulse:
+            return &pulse;
+        case Waveform::Pwm:
+            return &pwm;
+    }
+    return &sawtooth;
 }
 
 void YM10150::selectWaveform(Waveform waveform) {
-    if (previous != waveform)
-        selected->reset();
-    selected = strategies[waveform].get();
+    if (previous == waveform)
+        return;
+    selected->reset();
+    selected = strategyFor(waveform);
     previous = waveform;
 }
 void YM10150::reset() {
     previousSample = 0.0f;
-    for (auto& entry : strategies)
-        entry.second->reset();
+    triangle.reset();
+    sawtooth.reset();
+    square.reset();
+    pulse.reset();
+    pwm.reset();
 }
 float YM10150::generateWaveform(float masterSquare, float phase, float increment, float sampleRate,
                                 cs01::Oscillator& pwmLfo) {

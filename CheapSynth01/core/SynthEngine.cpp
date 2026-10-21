@@ -71,15 +71,16 @@ float SynthEngine::renderSample() {
         static_cast<int>(eg.getReleaseSamplesRemaining()));
     vco.applyPendingGeneratorChange();
     midi.setSoundGenerator(vco.getSoundGenerator());
+    const bool pitchTarget = parameters.get(ParameterIds::lfoTarget) == 0;
+    const bool originalFilter = parameters.get(ParameterIds::filterType) == 0;
     float output = 0;
     for (int i = 0; i < converter.getFactor(); ++i) {
         const float modulation = lfo.processSample();
-        const bool pitchTarget = parameters.get(ParameterIds::lfoTarget) == 0;
         const float envelope = eg.processSample();
         vco.getSoundGenerator()->setReleaseSamplesRemaining(
-            static_cast<int>(eg.getReleaseSamplesRemaining()));
+            static_cast<int>(eg.currentReleaseSamplesRemaining()));
         float audio = vco.processSample(pitchTarget ? modulation : 0);
-        if (parameters.get(ParameterIds::filterType) == 0)
+        if (originalFilter)
             audio = original.processSample(audio, envelope, pitchTarget ? 0 : modulation);
         else
             audio = modern.processSample(audio, envelope, pitchTarget ? 0 : modulation);
