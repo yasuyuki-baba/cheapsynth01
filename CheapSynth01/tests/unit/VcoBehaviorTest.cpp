@@ -418,3 +418,23 @@ TEST(VcoBehaviorTest, NarrowPulseWaveformHasOneEighthDutyCycleAndEvenHarmonics) 
     }
     EXPECT_NEAR(static_cast<double>(positive) / samples, .125, .005);
 }
+
+TEST(VcoBehaviorTest, NoiseStopNoteImmediatelyClearsHeldFlagLikeTone) {
+    cs01::ParameterState state;
+    state.set(Param::Release, .1f);
+    ToneGenerator tone(state);
+    NoiseGenerator noise(state);
+    tone.prepare(48000);
+    noise.prepare(48000);
+    tone.startNote(60, 1.f, 8192);
+    noise.startNote(60, 1.f, 8192);
+    tone.stopNote(true);
+    noise.stopNote(true);
+    EXPECT_EQ(noise.isActive(), tone.isActive());
+    EXPECT_FALSE(noise.getPlaybackState().held);
+    EXPECT_EQ(noise.getPlaybackState().held, tone.getPlaybackState().held);
+    noise.setReleaseSamplesRemaining(0);
+    tone.setReleaseSamplesRemaining(0);
+    EXPECT_FALSE(noise.isActive());
+    EXPECT_FALSE(tone.isActive());
+}
