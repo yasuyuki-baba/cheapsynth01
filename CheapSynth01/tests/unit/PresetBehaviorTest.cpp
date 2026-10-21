@@ -378,9 +378,24 @@ TEST_F(PresetBehaviorTest, SessionRestorePreservesEditedMarkerRelativeToSavedPat
 
 TEST_F(PresetBehaviorTest, ImportMarksCurrentSoundAsEdited) {
     ASSERT_TRUE(manager.setCurrentProgram(0));
+    const auto identicalXml = manager.getStateInformation();
+    ASSERT_TRUE(manager.loadPresetFromXml(identicalXml));
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.setCurrentProgram(0));
     ASSERT_TRUE(manager.loadPresetFromXml(
         "<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
     EXPECT_TRUE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, HostProgramSelectionWithoutAudioCallbackUpdatesParametersCleanly) {
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_TRUE(bank.request(1));
+    EXPECT_EQ(bank.applyPending(state), 1);
+    const auto selection = bank.selection();
+    ASSERT_NE(selection.program, nullptr);
+    EXPECT_FALSE(selection.pending);
+    EXPECT_TRUE(manager.selectPreparedProgram(*selection.program));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
 }
 
 TEST_F(PresetBehaviorTest, SavedPatchAndSessionRecordPluginVersionAndLoadLegacyXml) {

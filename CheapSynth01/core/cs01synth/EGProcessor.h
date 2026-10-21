@@ -31,6 +31,9 @@ class EGProcessor {
     }
     int64_t getReleaseSamplesRemaining() {
         updateADSR();
+        return currentReleaseSamplesRemaining();
+    }
+    int64_t currentReleaseSamplesRemaining() const {
         return stage == Stage::release ? remainingSamples : 0;
     }
 

@@ -31,8 +31,11 @@ bool restoreVst3State(Steinberg::IBStream* stream, Restore restore, bool& bypass
         return false;
     std::string_view payload(bytes);
     bool savedBypass = false;
-    // Native iPlug2 VST3 state appends a little-endian four-byte bypass value.
-    if (payload.size() >= 4) {
+    // Native iPlug2 VST3 state appends a little-endian four-byte bypass value
+    // to XML state chunks. Do not strip the index from 12-byte CSHP chunks.
+    const bool isHostProgramChunk =
+        payload.size() == 12 && payload.substr(0, 8) == std::string_view("CSHP\1\0\0\0", 8);
+    if (!isHostProgramChunk && payload.size() >= 4) {
         const auto tail = payload.substr(payload.size() - 4);
         if (tail == std::string_view("\0\0\0\0", 4) || tail == std::string_view("\1\0\0\0", 4)) {
             savedBypass = tail.front() != 0;

@@ -69,6 +69,7 @@ class CheapSynth01 final : public cs01::PluginAPI {
     iplug::ISender<1, 64, std::pair<float, float>> meterSender;
     uint64_t appliedStateReset = 0;
     std::atomic<bool> pendingPanelBend{false};
+    std::atomic<bool> bypassedSinceLastBlock{false};
 #endif
     cs01::UiNoteBridge uiNotes;
     cs01::QwertyKeyboard qwerty;
@@ -78,6 +79,7 @@ class CheapSynth01 final : public cs01::PluginAPI {
     void updateProgramLabel();
     void updateFilterControls();
     void reportPresetError();
+    void releasePcNotes();
     void releaseEditorNotes();
     void updateKeyboardInput();
     void OnParamChangeUI(int index, iplug::EParamSource source) override;
