@@ -43,6 +43,8 @@ void NoiseGenerator::startNote(int midiNoteNumber, float velocity, int pitchBend
 }
 
 void NoiseGenerator::stopNote(bool allowReleaseTail) {
+    // Match ToneGenerator: the key is up as soon as stopNote is called.
+    noteOn = false;
     if (allowReleaseTail) {
         // Start tail off
         tailOff = true;
@@ -53,7 +55,6 @@ void NoiseGenerator::stopNote(bool allowReleaseTail) {
         tailOffCounter = 0;
     } else {
         // Stop immediately
-        noteOn = false;
         tailOff = false;
     }
 
@@ -80,7 +81,7 @@ int NoiseGenerator::currentNote() const {
 }
 
 ISoundGenerator::PlaybackState NoiseGenerator::getPlaybackState() const {
-    return {noteOn && !tailOff, lastNote, lastPitchBend,
+    return {noteOn, lastNote, lastPitchBend,
             tailOff ? std::max(0, tailOffDuration - tailOffCounter) / sampleRate : 0.0};
 }
 

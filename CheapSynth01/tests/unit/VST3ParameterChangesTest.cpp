@@ -1,5 +1,6 @@
 #include "VST3ParameterChanges.h"
 #include "VST3State.h"
+#include "HostProgramBank.h"
 #include <gtest/gtest.h>
 #include <array>
 #include <limits>
@@ -247,4 +248,20 @@ TEST(VST3BoundaryTest, RawXmlShortAndEmptyStreamsHaveDefinedResults) {
         bypass));
     EXPECT_FALSE(called);
     EXPECT_TRUE(bypass);
+}
+TEST(VST3BoundaryTest, HostProgramChunksForIndexZeroAndOneAreNotTruncatedAsBypassTrailers) {
+    for (unsigned index : {0u, 1u, 2u}) {
+        const auto chunk = cs01::HostProgramBank::requestChunk(index);
+        Stream stream;
+        stream.bytes.assign(chunk.data(), chunk.size());
+        bool bypass = true;
+        EXPECT_TRUE(cs01::restoreVst3State(
+            &stream,
+            [&](std::string_view payload) {
+                EXPECT_EQ(payload.size(), 12u);
+                return payload == std::string_view(chunk.data(), chunk.size());
+            },
+            bypass));
+        EXPECT_FALSE(bypass);
+    }
 }

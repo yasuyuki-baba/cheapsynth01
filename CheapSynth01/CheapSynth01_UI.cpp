@@ -215,6 +215,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
                     return;
                 if (programs.loadPresetFile(cs01::utf8Path(file.Get()))) {
                     syncParameters(true);
+                    updateProgramLabel();
                     updateFilterControls();
                 } else
                     reportPresetError();
@@ -311,7 +312,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     g->SetKeyHandlerFunc([this, g](const IKeyPress& key, bool up) {
         if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
             !keyboardHasFocus(g->GetWindow())) {
-            releaseEditorNotes();
+            releasePcNotes();
             return false;
         }
         const bool handled =
@@ -339,9 +340,12 @@ void CheapSynth01::OnUIClose() {
     releaseEditorNotes();
     monitorEnabled.store(false);
 }
-void CheapSynth01::releaseEditorNotes() {
+void CheapSynth01::releasePcNotes() {
     qwerty.release(
         [this](int note, int velocity) { uiNotes.set(note, velocity, cs01::UiNoteBridge::PC); });
+}
+void CheapSynth01::releaseEditorNotes() {
+    releasePcNotes();
     uiNotes.releaseAll();
     if (GetUI())
         if (auto* keyboard =
@@ -350,11 +354,10 @@ void CheapSynth01::releaseEditorNotes() {
 }
 void CheapSynth01::updateKeyboardInput() {
     auto* g = GetUI();
-    if (!g)
+    if (!g || !monitorEnabled.load())
         return;
-    if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
-        !cs01::ui::keyboardHasFocus(g->GetWindow()))
-        releaseEditorNotes();
+    if (g->GetControlInTextEntry() || !cs01::ui::keyboardHasFocus(g->GetWindow()))
+        releasePcNotes();
     if (auto* keyboard =
             static_cast<cs01::ui::OwnedKeyboardControl*>(g->GetControlWithTag(Keyboard)))
         keyboard->refresh();

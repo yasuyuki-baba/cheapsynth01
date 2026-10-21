@@ -355,7 +355,12 @@ bool ProgramManager::selectPreparedProgram(const PreparedProgram& program) {
 }
 bool ProgramManager::loadPresetFromXml(std::string_view xml) {
     std::lock_guard lock(mutex);
-    return loadXml(xml, false);
+    const bool ok = loadXml(xml, false);
+    if (ok) {
+        std::scoped_lock lock(programMutex);
+        referenceKnown = false;
+    }
+    return ok;
 }
 bool ProgramManager::loadPresetFile(const std::filesystem::path& file) {
     return loadPresetFromXml(readFile(file));
