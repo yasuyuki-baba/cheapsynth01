@@ -19,8 +19,6 @@ class IWaveformStrategy {
      * @param phase Current phase (0.0f to 1.0f)
      * @param phaseIncrement Phase increment per sample
      * @param sampleRate Current sample rate
-     * @param leakyIntegratorState Reference to integrator state (for triangle wave)
-     * @param dcBlockerState Reference to DC blocker state (for triangle wave)
      * @param previousSample Reference to previous sample state (for filtering)
      * @param pwmLfo Reference to PWM LFO (for PWM wave)
      * @return Generated waveform sample

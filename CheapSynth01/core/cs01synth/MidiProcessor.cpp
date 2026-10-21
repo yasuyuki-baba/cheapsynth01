@@ -4,8 +4,6 @@
 #include "cs01synth/ISoundGenerator.h"
 #include "Parameters.h"
 
-#include <typeinfo>
-
 MidiProcessor::MidiProcessor(cs01::ParameterState& p) : parameters(p) {}
 MidiProcessor::~MidiProcessor() = default;
 void MidiProcessor::updateParameter(Control control, float normalizedValue) {
@@ -187,56 +185,36 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
         updateVolumeParameter();
     }
     // 7bit CC processing
-    else if (controller == 9) {  // CC #9: VCA EG Depth
-        float floatValue = value / 127.0f;
-        updateParameter(Control::VcaEgDepth, floatValue);
-    } else if (controller == 14) {  // CC #14: VCO Wave Type
-        float floatValue = value / 127.0f;
-        updateParameter(Control::WaveType, floatValue);
-    } else if (controller == 15) {  // CC #15: VCO Feet
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Feet, floatValue);
-    } else if (controller == 16) {  // CC #16: Fine Pitch
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Pitch, floatValue);
-    } else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Sustain, floatValue);
-    } else if (controller == 71) {  // CC #71: Filter Resonance
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Resonance, floatValue);
-    } else if (controller == 72 || controller == 79) {  // CC #72 / #79: Release Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Release, floatValue);
-    } else if (controller == 73) {  // CC #73: Attack Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Attack, floatValue);
-    } else if (controller == 74) {  // CC #74: Filter Cutoff
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Cutoff, floatValue);
-    } else if (controller == 75) {  // CC #75: Decay Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Decay, floatValue);
-    } else if (controller == 76) {  // CC #76: LFO Speed (Vibrato Rate)
-        float floatValue = value / 127.0f;
-        updateParameter(Control::LfoSpeed, floatValue);
-    } else if (controller == 82) {  // CC #82: VCF EG Depth
-        float floatValue = value / 127.0f;
-        updateParameter(Control::VcfEgDepth, floatValue);
-    } else if (controller == 85) {  // CC #85: PWM Speed
-        float floatValue = value / 127.0f;
-        updateParameter(Control::PwmSpeed, floatValue);
-    } else if (controller == 88) {  // CC #88: LFO Target
-        float floatValue = value / 127.0f;
-        updateParameter(Control::LfoTarget, floatValue);
-    } else if (controller == 89) {  // CC #89: Breath VCF Depth
-        float floatValue = value / 127.0f;
-        updateParameter(Control::BreathVcf, floatValue);
-    } else if (controller == 90) {  // CC #90: Breath VCA Depth
-        float floatValue = value / 127.0f;
-        updateParameter(Control::BreathVca, floatValue);
-    } else if (controller == 91) {  // CC #91: Filter Type
-        float floatValue = value / 127.0f;
-        updateParameter(Control::FilterType, floatValue);
+    else {
+        struct SevenBitCcMapping {
+            int cc;
+            Control control;
+        };
+        constexpr std::array<SevenBitCcMapping, 18> kSevenBitMappings{{
+            {9, Control::VcaEgDepth},
+            {14, Control::WaveType},
+            {15, Control::Feet},
+            {16, Control::Pitch},
+            {70, Control::Sustain},
+            {71, Control::Resonance},
+            {72, Control::Release},
+            {73, Control::Attack},
+            {74, Control::Cutoff},
+            {75, Control::Decay},
+            {76, Control::LfoSpeed},
+            {79, Control::Release},
+            {82, Control::VcfEgDepth},
+            {85, Control::PwmSpeed},
+            {88, Control::LfoTarget},
+            {89, Control::BreathVcf},
+            {90, Control::BreathVca},
+            {91, Control::FilterType},
+        }};
+        for (const auto& mapping : kSevenBitMappings) {
+            if (mapping.cc == controller) {
+                updateParameter(mapping.control, value / 127.0f);
+                break;
+            }
+        }
     }
 }

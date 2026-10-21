@@ -24,9 +24,6 @@ class CS01VCFCircuit {
     // Process a block of samples (more efficient)
     void processBlock(float* samples, int numSamples);
 
-    // Process a block of samples with multiple channels
-    void processBlock(float** channelData, int numChannels, int numSamples);
-
     // Process a block with per-sample cutoff modulation
     void processBlock(float* samples, int numSamples, const float* cutoffModulation,
                       float baseResonance);

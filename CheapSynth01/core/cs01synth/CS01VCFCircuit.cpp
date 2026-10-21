@@ -60,19 +60,6 @@ void CS01VCFCircuit::processBlock(float* samples, int numSamples) {
     }
 }
 
-void CS01VCFCircuit::processBlock(float** channelData, int numChannels, int numSamples) {
-    // Process each channel separately
-    // Note: For true stereo processing, we would need separate state variables per channel
-    for (int ch = 0; ch < numChannels; ++ch) {
-        float* channelSamples = channelData[ch];
-
-        // Process this channel's samples
-        for (int i = 0; i < numSamples; ++i) {
-            channelSamples[i] = processSample(ch, channelSamples[i]);
-        }
-    }
-}
-
 void CS01VCFCircuit::processBlock(float* samples, int numSamples, const float* cutoffModulation,
                                   float baseResonance) {
     const float originalCutoff = cutoff;
