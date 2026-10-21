@@ -56,7 +56,12 @@ float BeforeIG05630::processSample(float sample) {
     // This is an explicit-delay TPT cascade, not a ZDF solution of an IC loop.
     const float feedback =
         resonanceFeedbackGain * std::tanh(feedbackOutput * EmpiricalParameters::feedbackDrive);
-    const float integratorInput = std::tanh((sample - feedback) * EmpiricalParameters::inputDrive) /
+    const float driven = sample - feedback;
+    const float excessNegative =
+        std::min(0.0f, driven + EmpiricalParameters::negativeKneeThreshold);
+    const float asymmetricDriven =
+        driven - excessNegative * EmpiricalParameters::negativeClipAmount;
+    const float integratorInput = std::tanh(asymmetricDriven * EmpiricalParameters::inputDrive) /
                                   EmpiricalParameters::inputDrive;
 
     const float firstOutput = firstSection.processSample(integratorInput, g, firstDamping);

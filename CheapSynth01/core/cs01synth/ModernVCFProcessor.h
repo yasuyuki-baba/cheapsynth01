@@ -30,6 +30,7 @@ class ModernVCFProcessor : public IFilter {
     //==============================================================================
     cs01::ParameterState& parameters;
     CS01IIVCFCircuit filter;
+    cs01::LinearRamp egDepthControl;
     double processingSampleRate = 44100.0;
 
     // Cutoff frequency calculation function

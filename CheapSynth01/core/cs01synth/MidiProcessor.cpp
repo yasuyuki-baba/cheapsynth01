@@ -10,10 +10,14 @@ MidiProcessor::MidiProcessor(cs01::ParameterState& p) : parameters(p) {}
 MidiProcessor::~MidiProcessor() = default;
 void MidiProcessor::updateParameter(Control control, float normalizedValue) {
     constexpr std::array ids{
-        ParameterIds::pitchBend, ParameterIds::modDepth,  ParameterIds::breathInput,
-        ParameterIds::volume,    ParameterIds::glissando, ParameterIds::sustain,
-        ParameterIds::resonance, ParameterIds::attack,    ParameterIds::cutoff,
-        ParameterIds::decay,     ParameterIds::lfoSpeed,  ParameterIds::release};
+        ParameterIds::pitchBend,  ParameterIds::modDepth,   ParameterIds::breathInput,
+        ParameterIds::volume,     ParameterIds::glissando,  ParameterIds::sustain,
+        ParameterIds::resonance,  ParameterIds::attack,     ParameterIds::cutoff,
+        ParameterIds::decay,      ParameterIds::lfoSpeed,   ParameterIds::release,
+        ParameterIds::vcaEgDepth, ParameterIds::waveType,   ParameterIds::feet,
+        ParameterIds::pitch,      ParameterIds::vcfEgDepth, ParameterIds::pwmSpeed,
+        ParameterIds::lfoTarget,  ParameterIds::breathVcf,  ParameterIds::breathVca,
+        ParameterIds::filterType};
     parameters.setNormalized(ids[static_cast<size_t>(control)], normalizedValue, true);
 }
 
@@ -45,6 +49,8 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
         handleNoteOff(midiMessage);
     } else if (midiMessage.isPitchBend()) {
         handlePitchBend(midiMessage);
+    } else if (midiMessage.isChannelPressure()) {
+        handleChannelPressure(midiMessage);
     } else if (midiMessage.isController()) {
         handleControllerMessage(midiMessage);
     }
@@ -105,6 +111,13 @@ void MidiProcessor::handlePitchBend(const cs01::MidiMessage& midiMessage) {
     const float displacement = static_cast<float>(lastPitchBend - 8192);
     const float position = displacement / (displacement >= 0.0f ? 8191.0f : 8192.0f);
     updateParameter(Control::PitchBend, cs01::toNormalized(ParameterIds::pitchBend, position));
+}
+
+void MidiProcessor::handleChannelPressure(const cs01::MidiMessage& midiMessage) {
+    const int value = midiMessage.getChannelPressureValue();
+    breathMSB = value;
+    breathLSB = 0;
+    updateParameter(Control::Breath, value / 127.0f);
 }
 
 void MidiProcessor::updateModulationParameter() {
@@ -174,12 +187,27 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
         updateVolumeParameter();
     }
     // 7bit CC processing
-    else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
+    else if (controller == 9) {  // CC #9: VCA EG Depth
+        float floatValue = value / 127.0f;
+        updateParameter(Control::VcaEgDepth, floatValue);
+    } else if (controller == 14) {  // CC #14: VCO Wave Type
+        float floatValue = value / 127.0f;
+        updateParameter(Control::WaveType, floatValue);
+    } else if (controller == 15) {  // CC #15: VCO Feet
+        float floatValue = value / 127.0f;
+        updateParameter(Control::Feet, floatValue);
+    } else if (controller == 16) {  // CC #16: Fine Pitch
+        float floatValue = value / 127.0f;
+        updateParameter(Control::Pitch, floatValue);
+    } else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
         float floatValue = value / 127.0f;
         updateParameter(Control::Sustain, floatValue);
     } else if (controller == 71) {  // CC #71: Filter Resonance
         float floatValue = value / 127.0f;
         updateParameter(Control::Resonance, floatValue);
+    } else if (controller == 72 || controller == 79) {  // CC #72 / #79: Release Time
+        float floatValue = value / 127.0f;
+        updateParameter(Control::Release, floatValue);
     } else if (controller == 73) {  // CC #73: Attack Time
         float floatValue = value / 127.0f;
         updateParameter(Control::Attack, floatValue);
@@ -192,8 +220,23 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
     } else if (controller == 76) {  // CC #76: LFO Speed (Vibrato Rate)
         float floatValue = value / 127.0f;
         updateParameter(Control::LfoSpeed, floatValue);
-    } else if (controller == 79) {  // CC #79: Release Time
+    } else if (controller == 82) {  // CC #82: VCF EG Depth
         float floatValue = value / 127.0f;
-        updateParameter(Control::Release, floatValue);
+        updateParameter(Control::VcfEgDepth, floatValue);
+    } else if (controller == 85) {  // CC #85: PWM Speed
+        float floatValue = value / 127.0f;
+        updateParameter(Control::PwmSpeed, floatValue);
+    } else if (controller == 88) {  // CC #88: LFO Target
+        float floatValue = value / 127.0f;
+        updateParameter(Control::LfoTarget, floatValue);
+    } else if (controller == 89) {  // CC #89: Breath VCF Depth
+        float floatValue = value / 127.0f;
+        updateParameter(Control::BreathVcf, floatValue);
+    } else if (controller == 90) {  // CC #90: Breath VCA Depth
+        float floatValue = value / 127.0f;
+        updateParameter(Control::BreathVca, floatValue);
+    } else if (controller == 91) {  // CC #91: Filter Type
+        float floatValue = value / 127.0f;
+        updateParameter(Control::FilterType, floatValue);
     }
 }

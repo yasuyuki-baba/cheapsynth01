@@ -111,9 +111,11 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
             if (d.id != id)
                 continue;
             // Legacy envelopes allowed shorter times than the circuit model.
-            // Import them at the current minimum; keep schema 1 validation strict.
-            if (!schema && cs01::isEnvelopeTime(static_cast<cs01::Param>(i)) && value >= 0 &&
-                value < d.minimum)
+            // Also clamp schema-1 Decay values saved at the old 3.96 ms floor up to
+            // minimumDecayTau.
+            if (cs01::isEnvelopeTime(static_cast<cs01::Param>(i)) && value < d.minimum &&
+                ((!schema && value >= 0) || (static_cast<cs01::Param>(i) == cs01::Param::Decay &&
+                                             value >= static_cast<float>(EGTiming::minimumTau))))
                 value = d.minimum;
             if (found[i] || value < d.minimum || value > d.maximum)
                 return {};

@@ -24,7 +24,7 @@ MIDI/envelope state, filters, VCA and converter state.
 [VCOProcessor](../CheapSynth01/core/cs01synth/VCOProcessor.h) selects tone or white noise.
 [ToneGenerator](../CheapSynth01/core/cs01synth/ToneGenerator.cpp) and
 [waveform strategies](../CheapSynth01/core/cs01synth/WaveformStrategies.h) implement
-Triangle, Sawtooth, Square, Pulse and PWM, with bandlimiting where implemented
+Triangle, Sawtooth, Square, Pulse (12.5% narrow duty cycle) and PWM, with bandlimiting where implemented
 by the strategy. The model includes an octave selector, pitch bend, fine pitch,
 PWM and discrete glissando. Noise uses a deterministic xorshift generator.
 Changing tone/noise source transfers note/playback state; EG retains ownership
@@ -35,7 +35,8 @@ internal circuitry.
 
 [Parameters.h](../CheapSynth01/core/Parameters.h) defines stable host IDs, ranges, defaults
 and skew mappings. Current ranges include LFO 0.8–21 Hz, PWM 0.6–12 Hz,
-glissando 0–0.208 seconds per semitone, and attack/decay/release RC time constants 3.96 ms–4.40396 s.
+glissando 0–0.208 seconds per semitone, attack/release RC time constants 3.96 ms–4.40396 s,
+and decay RC time constants 8.58 ms–4.40396 s (including an empirical floor for Tr11/Tr12 sustain-branch loading).
 Manual panel marks do not establish exact electrical taper or envelope seconds;
 these mappings remain provisional. Factory panel readings and their conversion
 are documented in [factory presets](Factory-presets.md).
@@ -65,18 +66,18 @@ unresolved transistor details separately.
 ## Filter models
 
 Original VCF wraps [IG02610BehavioralModel](../CheapSynth01/core/cs01synth/IG02610BehavioralModel.h),
-a two-integrator state-variable lowpass with nonlinear limiting at the input and
-feedback. LOW/HIGH controls map to modeled resonance values 0.2/0.7. The external
+a two-integrator state-variable lowpass with asymmetric nonlinear limiting at the input
+and symmetric limiting in the resonant feedback. LOW/HIGH controls map to modeled resonance values 0.2/0.7. The external
 service material identifies IG02610 and its cutoff/resonance controls; it does
 not establish the modeled internal topology, nonlinear placement or calibration.
 
 Modern VCF wraps [IG05630BehavioralModel](../CheapSynth01/core/cs01synth/IG05630BehavioralModel.cpp),
-two cascaded TPT second-order lowpass sections with bounded nonlinear feedback.
+two cascaded TPT second-order lowpass sections with asymmetric input limiting and bounded nonlinear feedback.
 The resonance feedback uses a fourth-power mapping with a conservative maximum
 to avoid modeled self-oscillation. The CS-01II drawing identifies IG05630, but
 its internal topology and physical resonance behavior are unresolved.
 
-Both wrappers apply parameter/modulation routing and shared empirical coupling
+Both wrappers smooth VCF EG depth over 5 ms and apply parameter/modulation routing and shared empirical coupling
 stages. The filter models are product sound choices. Related PS-series evidence
 and secondary reverse-engineering interpretations are catalogued in
 [the source catalog](hardware/Source-catalog.md); related parts do not establish

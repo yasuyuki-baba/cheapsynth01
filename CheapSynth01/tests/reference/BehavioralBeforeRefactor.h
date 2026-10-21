@@ -29,6 +29,8 @@ class BeforeIG02610 {
         // Provisional normalized drives; neither is calibrated to an IC.
         static constexpr float feedbackDrive = 1.0f;
         static constexpr float integratorInputDrive = 2.0f;
+        static constexpr float negativeKneeThreshold = 0.2f;
+        static constexpr float negativeClipAmount = 0.35f;
         static constexpr float maximumOutput = 1.5f;
     };
 
@@ -54,9 +56,14 @@ class BeforeIG02610 {
         // limiting around the summing/integrator input and resonant feedback.
         // These placements do not claim to reproduce the IC's internal circuit.
         const double feedback = damping * std::tanh(ic2eq * EmpiricalParameters::feedbackDrive);
-        const double integratorInput = std::tanh((static_cast<double>(input) - feedback) *
-                                                 EmpiricalParameters::integratorInputDrive) /
-                                       EmpiricalParameters::integratorInputDrive;
+        const double driven = static_cast<double>(input) - feedback;
+        const double excessNegative =
+            std::min(0.0, driven + static_cast<double>(EmpiricalParameters::negativeKneeThreshold));
+        const double asymmetricDriven =
+            driven - excessNegative * static_cast<double>(EmpiricalParameters::negativeClipAmount);
+        const double integratorInput =
+            std::tanh(asymmetricDriven * EmpiricalParameters::integratorInputDrive) /
+            EmpiricalParameters::integratorInputDrive;
         const double v1 = (ic1eq + g * (integratorInput - ic2eq)) / (1.0 + g * (g + damping));
         const double v2 = ic2eq + g * v1;
         ic1eq = 2.0 * v1 - ic1eq;
@@ -84,6 +91,8 @@ class BeforeIG05630 {
         static constexpr float secondSectionQ = 1.3065630f;
         // Provisional normalized saturation and resonance ranges. Not calibrated.
         static constexpr float inputDrive = 2.0f;
+        static constexpr float negativeKneeThreshold = 0.2f;
+        static constexpr float negativeClipAmount = 0.35f;
         static constexpr float feedbackDrive = 1.0f;
         // Provisional feedback map kept below the model's self-oscillation
         // threshold. Non-oscillating behavior is a conservative hypothesis,
