@@ -1,7 +1,7 @@
 # Regression tests
 
 The active Google Test suite exercises the framework-independent C++ core.
-Supported test environments are Windows and macOS; no JUCE or audio device is required.
+Portable tests run on Windows, macOS and Linux; no JUCE or audio device is required.
 
 ```sh
 cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DBUILD_TESTING=ON
@@ -63,6 +63,26 @@ references. Four NumericalRecoveryTest regressions cover VCA/filter nonfinite
 input recovery, modulation fallback and usable smoothing after rejected controls.
 MidiQueue cases guard stable clamping, future-event carry and empty
 callback boundary processing. Native callback behavior requires verification in actual products.
+
+## Linux standalone startup
+
+Linux native builds with `xvfb-run` register `CheapSynth01.LinuxStartup` with
+the `startup`, `linux`, `integration` and `regression` labels.
+`unit/LinuxStartupTest.cpp` launches the actual APP in isolated temporary HOME
+and XDG directories. Its 16 cases check first-run ancestor creation and private
+permissions, existing permissions, configuration-path fallback, settings
+restoration after reopening, explicit failure exits, INI write/flush/rename
+errors and invalid audio-driver handling. Successful startup/close cases use
+`--no-io`; error cases also exercise startup without that flag. No physical
+audio/MIDI device is needed. Permission-denial cases require an unprivileged
+user and are explicitly skipped when running as root.
+
+This is one CTest entry wrapping 16 Google Test cases; it complements the
+separate Xvfb keyboard-focus entry. Both require the patched experimental SDK
+described in [the Linux build guide](../../CONTRIBUTING.md#linux-experimental).
+They do not verify DAW hosting, physical device I/O or general editor interaction.
+
+## Archive checks
 
 Archive contract tests run independently, without loading a product:
 
