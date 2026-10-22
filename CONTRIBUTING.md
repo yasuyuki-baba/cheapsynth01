@@ -47,13 +47,14 @@ ctest --preset linux-core
 ```
 
 Native products require an X11-capable iPlug2 checkout. The pinned submodule does
-not provide this backend. The currently tested baseline is upstream PR #1336,
+not provide this backend. The patch baseline is upstream PR #1336,
 commit `03d3c1af13d3456b09df1e94800dc48546f3aaef`, with the included
-`patches/iplug2-linux-pr1336.patch`. The patch fixes APP resource compilation and
-GIO linkage, resize clipping, programmatic APP resizing, Linux first-run settings
-creation/error handling, and `OnIdle()` access to partially constructed/destroyed
-editors. It serializes idle callbacks with
-the PR's existing graphics mutex; it does not move callbacks to the main thread.
+`patches/iplug2-linux-pr1336.patch`. The patch reproduces the tracked tree of
+`yasuyuki-baba/iPlug2` commit `d12749072ec94ef6f1bdcb803daa119579d0696e`
+(`fix/linux-pr1336-app-build`), including its merged upstream changes. It includes
+APP build and startup fixes, editor resizing, idle/host lifecycle synchronization,
+clipboard and dialog handling, resource isolation, path validation, and Linux
+regression tests. It supersedes the earlier APP-focused compatibility patch.
 Do not apply it to another iPlug2 revision without reviewing the differences.
 The regular `scripts/setup-iplug2.sh` still initializes the pinned Windows/macOS
 submodule, not this external Linux checkout.
@@ -82,6 +83,19 @@ cmake --preset linux-native -DIPLUG2_DIR="$(realpath ../iPlug2-linux)"
 cmake --build --preset linux-native
 ctest --preset linux-native
 ```
+
+If using an existing checkout of `yasuyuki-baba/iPlug2` at
+`d12749072ec94ef6f1bdcb803daa119579d0696e`, skip patch application and pass that
+checkout as `IPLUG2_DIR` instead. For example, with the sibling local checkout:
+
+```sh
+cmake --preset linux-native -DIPLUG2_DIR="$(realpath ../iPlug2)"
+cmake --build --preset linux-native
+ctest --preset linux-native
+```
+
+The external checkout still needs the VST3 and matching CLAP SDKs described above.
+The Windows/macOS submodule and `scripts/setup-iplug2.sh` are unchanged.
 
 Products are written to `build-linux-native/out`, with deployment disabled. The
 `linux-standalone` configure/build/test presets build APP only; pass the same
@@ -169,6 +183,24 @@ WSL2 also lacked `/dev/snd/seq`; APP logged ALSA
 sequencer initialization errors but continued running with PC-keyboard audio.
 Physical audio/MIDI devices, real DAW hosting, HiDPI and native Wayland remain
 unverified.
+
+Validation on 2026-10-22 with iPlug2 commit `d12749072` used Ubuntu 24.04.4
+x86_64 and a Release build. Applying the regenerated patch to the baseline
+reproduced that commit's complete tracked Git tree exactly. APP, VST3 and CLAP
+built successfully against the local SDK checkout, and all 256 native CTest
+entries passed, including the Xvfb startup and keyboard-focus regressions.
+The iPlug2 Linux regression suite also passed all 56 entries, covering APP,
+VST3/CLAP host lifecycle and failure paths, dialogs, clipboard, timers, SDK
+detection, and COPY/SYMLINK deployment with resource isolation.
+
+Additional smoke tests loaded the actual CheapSynth01 VST3 and CLAP products
+into iPlug2's minimal test hosts: all eight VST3 modes and eleven CLAP modes
+passed. The temporary host probes only adjusted editor-size detection for the
+400-pixel-high synth UI and the VST3 gesture position to its LFO speed fader.
+Checks included rendering, repeated editor open/close, native close/reopen,
+VST3 parameter gestures, host-loop switching, callback fallbacks, and injected
+initialization failures. These are Xvfb/software-rendering checks, not real DAW
+validation. This run did not repeat audio capture or physical device testing.
 
 ## Standalone audio and MIDI settings
 
