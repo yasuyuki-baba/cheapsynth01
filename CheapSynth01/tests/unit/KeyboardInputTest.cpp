@@ -181,8 +181,9 @@ TEST(KeyboardInputTest, ProducerChangesOverlapAudioConsumeAndAudioOnlyResets) {
 TEST(KeyboardInputTest, ReleasingPcNotesLeavesMouseNoteActive) {
     cs01::QwertyKeyboard qwerty;
     cs01::UiNoteBridge bridge;
-    qwerty.handle('A', false, false,
-                  [&](int note, int velocity) { bridge.set(note, velocity, cs01::UiNoteBridge::PC); });
+    qwerty.handle('A', false, false, [&](int note, int velocity) {
+        bridge.set(note, velocity, cs01::UiNoteBridge::PC);
+    });
     bridge.set(48, 100, cs01::UiNoteBridge::Mouse);
     bridge.set(60, 90, cs01::UiNoteBridge::Mouse);
     qwerty.release(
