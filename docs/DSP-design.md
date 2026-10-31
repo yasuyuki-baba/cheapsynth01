@@ -114,7 +114,11 @@ numeric baselines captured at ff9245a for both raw IC models: DC, RMS, fundament
 second/third projections and selected folded bins. A 12 kHz cutoff, one-second
 settling period and one-second integer-Hz measurement window define the stimulus.
 The baseline covers driven 500 Hz at 44.1/48/96 kHz and 100 Hz small-signal plus
-5/10 kHz driven inputs at 48 kHz, with 0.05% relative / 1e-9 absolute tolerances.
+5/10 kHz driven inputs at 48 kHz, with 0.05% relative / 1e-8 absolute tolerances.
+The absolute floor (-160 dBFS amplitude) accommodates platform math differences
+in the raw models' float samples; the known Windows/macOS folded-bin difference
+is about 1.74e-9. The tolerance still rejects loss or a 10% change of that
+1.58e-7 component and a 0.1% change of a normal-level component.
 Do not regenerate these constants merely to make a DSP edit pass: intentional
 sound changes need an explained baseline revision and before/after measurements.
 
