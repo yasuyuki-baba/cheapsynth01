@@ -50,11 +50,15 @@ Native products require an X11-capable iPlug2 checkout. The pinned submodule doe
 not provide this backend. The patch baseline is upstream PR #1336,
 commit `03d3c1af13d3456b09df1e94800dc48546f3aaef`, with the included
 `patches/iplug2-linux-pr1336.patch`. The patch reproduces the tracked tree of
-`yasuyuki-baba/iPlug2` commit `d12749072ec94ef6f1bdcb803daa119579d0696e`
+`yasuyuki-baba/iPlug2` commit `dad63b32c0eb9bfee1a01b79404bac2e550795f3`
 (`fix/linux-pr1336-app-build`), including its merged upstream changes. It includes
 APP build and startup fixes, editor resizing, idle/host lifecycle synchronization,
 clipboard and dialog handling, resource isolation, path validation, and Linux
-regression tests. It supersedes the earlier APP-focused compatibility patch.
+regression tests. The latest update keeps APP and REAPER UI dispatch on the owning
+main loop, defers callback-triggered teardown, adds scaled pointer coordinates and
+XIM UTF-8/Compose input, and validates X11 parents through XCB. It also requires
+explicit Linux OSC polling and rejects unsupported Linux WebView configurations.
+It supersedes the earlier APP-focused compatibility patch.
 Do not apply it to another iPlug2 revision without reviewing the differences.
 The regular `scripts/setup-iplug2.sh` still initializes the pinned Windows/macOS
 submodule, not this external Linux checkout.
@@ -63,7 +67,7 @@ For Ubuntu 24.04, install the native development prerequisites:
 
 ```sh
 sudo apt-get install build-essential cmake ninja-build git curl pkg-config python3 \
-  libfreetype-dev libfontconfig-dev libx11-dev libxi-dev libxext-dev \
+  libfreetype-dev libfontconfig-dev libx11-dev libx11-xcb-dev libxcb1-dev libxi-dev libxext-dev \
   libxrender-dev libxrandr-dev libxfixes-dev libxcursor-dev libgl-dev \
   libgtk-3-dev libasound2-dev libjack-jackd2-dev libpulse-dev xvfb xauth
 ```
@@ -85,7 +89,7 @@ ctest --preset linux-native
 ```
 
 If using an existing checkout of `yasuyuki-baba/iPlug2` at
-`d12749072ec94ef6f1bdcb803daa119579d0696e`, skip patch application and pass that
+`dad63b32c0eb9bfee1a01b79404bac2e550795f3`, skip patch application and pass that
 checkout as `IPLUG2_DIR` instead. For example, with the sibling local checkout:
 
 ```sh
@@ -201,6 +205,25 @@ Checks included rendering, repeated editor open/close, native close/reopen,
 VST3 parameter gestures, host-loop switching, callback fallbacks, and injected
 initialization failures. These are Xvfb/software-rendering checks, not real DAW
 validation. This run did not repeat audio capture or physical device testing.
+
+Validation on 2026-10-31 updated the patch to iPlug2 commit `dad63b32`.
+Applying it with `git apply --index` to a clean baseline checkout reproduced the
+target commit's complete tracked Git tree exactly. Native validation used an
+isolated patched checkout on Ubuntu 24.04.5 ARM64 with GCC 13.3 and Release builds.
+APP, VST3 and CLAP built successfully; 278 of 281 CheapSynth01 CTest entries passed,
+including the Xvfb startup and keyboard-focus tests. Three strict DSP arithmetic
+comparisons in `SignalPathTest` failed and reproduced with `BUILD_PLUGINS=OFF`,
+without any iPlug2 dependency; they are not caused by this SDK patch update.
+
+All 50 selected iPlug2 Linux regressions passed, covering APP UI-thread dispatch
+and callback teardown, VST3 lifecycle, REAPER embedding, scaled coordinates,
+XIM/Compose input, XCB parent validation, dialogs, clipboard, timers, OSC polling
+and WebView configuration rejection. The full SDK test build is blocked by the
+upstream `Tests/Linux/WebView/FailedEditor.h` reference to `iplug::MakeConfig`;
+CLAP host regressions depending on that fixture were excluded, and deployment
+fixtures were not rerun. The patch retains the upstream tree without local fixes
+for this test-only build error. Real DAW, live IME and physical device validation
+remain pending.
 
 ## Standalone audio and MIDI settings
 
