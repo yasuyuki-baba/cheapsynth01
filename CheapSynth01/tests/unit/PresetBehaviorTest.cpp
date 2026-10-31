@@ -468,6 +468,61 @@ TEST_F(PresetBehaviorTest, LegacyCompatibilityDoesNotAcceptOtherMalformedValues)
     }
 }
 
+TEST_F(PresetBehaviorTest, OldDecayFilesAndSessionsClampOnlyBelowNewFloorAndRoundTrip) {
+    for (const char* schema : {"", " schema=\"1\""})
+        for (const char* seconds : {"0.00396", "0.006", "0.008579", "0.00858", "0.1", "4.40396"}) {
+            SCOPED_TRACE(schema);
+            SCOPED_TRACE(seconds);
+            const float expected = std::max(std::stof(seconds), .00858f);
+            const auto xml = std::string("<Parameters") + schema + "><PARAM id=\"DECAY\" value=\"" +
+                             seconds + "\"/><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>";
+            std::filesystem::create_directories(directory);
+            const auto file = directory / "OldDecay.xml";
+            {
+                std::ofstream output(file);
+                ASSERT_TRUE(output.is_open());
+                output << xml;
+            }
+            ASSERT_TRUE(manager.loadPresetFile(file));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+            EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+            ASSERT_TRUE(manager.saveCurrentStateAsPreset("MigratedDecay"));
+            state.set(Param::Decay, 1);
+            ASSERT_TRUE(manager.loadPresetFile(directory / "MigratedDecay.xml"));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+
+            ASSERT_TRUE(manager.setStateInformation(xml));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+            const auto snapshot = state.snapshot();
+            const auto saved = manager.getStateInformation();
+            cs01::ParameterState restoredState;
+            ProgramManager restored(restoredState);
+            restored.setUserDirectory(directory);
+            ASSERT_TRUE(restored.setStateInformation(saved));
+            EXPECT_EQ(restoredState.snapshot(), snapshot);
+            ASSERT_TRUE(manager.setStateInformation(restored.getStateInformation()));
+            EXPECT_EQ(state.snapshot(), snapshot);
+        }
+}
+
+TEST_F(PresetBehaviorTest, SchemaOneDecayMigrationRejectsInvalidValuesAtomically) {
+    state.set(Param::Decay, .1f);
+    const auto snapshot = state.snapshot();
+    const auto serial = state.stateResetSerial();
+    const auto selected = manager.currentProgramIdentity();
+    for (const char* seconds : {"-1", "0", "0.003959", "4.404", "nan", "inf", "bad"}) {
+        SCOPED_TRACE(seconds);
+        const auto xml =
+            std::string("<Parameters schema=\"1\"><PARAM id=\"CUTOFF\" value=\"2345\"/>") +
+            "<PARAM id=\"DECAY\" value=\"" + seconds + "\"/></Parameters>";
+        EXPECT_FALSE(manager.loadPresetFromXml(xml));
+        EXPECT_FALSE(manager.setStateInformation(xml));
+        EXPECT_EQ(state.snapshot(), snapshot);
+        EXPECT_EQ(state.stateResetSerial(), serial);
+        EXPECT_EQ(manager.currentProgramIdentity().filename, selected.filename);
+    }
+}
+
 TEST_F(PresetBehaviorTest, IncompleteXmlRestoresDefaultsIndependentOfPreviousPatch) {
     // Both legacy layouts and current schema XML have deterministic missing values.
     for (const char* xml :

@@ -28,8 +28,21 @@ covers the maximum release, approximately 40.56 s, plus output latency.
 The six manual factory presets use their documented panel positions. Clavinet's Decay
 position 0.2 gives tau ≈81.4 ms (settling ≈750 ms); Synth Bass's position 0.3
 gives tau ≈154.5 ms (settling ≈1.42 s). Default uses 100 ms tau values.
-XML envelope values represent tau in seconds. Values outside the parameter
-range are clamped. Normalized automation uses the same A-taper mapping.
+XML envelope values represent tau in seconds. Schema-less legacy XML accepts
+nonnegative envelope values below today's floor and clamps them to the floor.
+Schema-1 Decay values from the old 3.96 ms floor up to 8.58 ms are also clamped;
+other out-of-range values are rejected without changing the patch. Re-saving
+records the migrated physical value, and subsequent restores retain it.
+Normalized automation uses the same A-taper mapping.
+
+The Decay floor change intentionally changes the time at a saved normalized
+position; XML migration cannot preserve a DAW's separate automation lane.
+Relative to the old mapping, the increase is
+`4.62 ms * (1 - (81^p - 1) / 80)`: 4.62 ms at zero, 4.158 ms at the midpoint
+(443.96 ms becomes 448.118 ms), and zero at full travel. Physical XML values at
+or above 8.58 ms remain unchanged. There is no versioned legacy automation mode.
+Core and actual IParam conversion tests guard these differences; opening a saved
+project and exercising automation in a real DAW remains a native validation task.
 
 Verification covers analytical branch durations at five internal sample rates,
 midpoint/endpoints and inverse mapping, live edits/retriggers, independent note

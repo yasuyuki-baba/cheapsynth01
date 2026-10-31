@@ -28,10 +28,9 @@ host latency compensation still need testing on Windows/macOS.
 
 ## Current coverage
 
-The portable suite has 209 cases: 195 correctness regressions (including three
-research equation cases) and 14 observational cases. Native product builds add
-eight VST3 boundary cases and three parameter-presentation cases, for 220 total.
-Use CTest discovery for the current count. See the
+Use CTest discovery for the current case count. Native product builds additionally
+exercise VST3 boundary and parameter-presentation cases against SDK types.
+See the
 [native validation status](../../docs/iPlug2-migration-plan.md) for remaining host,
 editor and device checks.
 
@@ -77,6 +76,12 @@ loading, DAW/device and interactive UI verification are deferred.
 recording generator, a std::set oracle for all 128 keys and actual core audio for
 velocity invariance across all waveforms. It covers every controller's production
 range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
+Mixed CC2/34 and Channel Pressure cases cover both event orders, source release,
+LSB-only updates and CC121 cache clearing. CC64 tests cover the 63/64 threshold,
+pedal-retained highest-note priority, repeated keys, return to physically held
+keys, CC123 under sustain and CC121/CC120/prepare cleanup.
+All 128 values of the Wave Type, Feet, LFO Target and Filter Type CCs guard
+choice reachability and quantization boundaries.
 Additional EG continuity regressions retain live attack bounds, residual release
 targets after edits, sustain retrigger behavior and lifecycle observation reset.
 Native listener/thread/teardown behavior requires actual iPlug2 runtime checks.
@@ -110,6 +115,24 @@ connected routes, source/release/glissando timelines, MIDI boundaries/overflow,
 breath endpoints and concurrent choice publication. Core allocation probes now
 count C++ allocations and frees on first/variable/dense queue+engine+UI-bridge
 processing; they do not intercept arbitrary SDK malloc or locks.
+
+VCF depth assertions exercise the shared production cutoff ramp's duration,
+linear slope in both directions, mid-ramp retargeting and preparation at host and
+oversampled rates. Fixed spectrum constants are separate from the amended
+`BehavioralBeforeRefactor` arithmetic oracle; see the stimulus, tolerances and
+baseline-update policy in [DSP design](../../docs/DSP-design.md).
+Known-signal controls validate DC/RMS/harmonic measurements. The extended
+observation prints raw-filter folded-bin probes, not total alias power.
+Queue/engine tests compare pedal-retained audio against physically held audio,
+then compare pedal-off/CC121 at an in-block offset against an ordinary Note Off,
+including both filter models, tone/noise and 44.1/48/96 kHz. Mixed breath inputs
+also preserve actual VCF/VCA audio routes.
+
+Old Decay XML files and host-session payloads cover schema-less and schema-1
+values, migration to 8.58 ms, unchanged in-range values, re-save/reload and
+atomic rejection of invalid data. Core and native IParam assertions quantify
+the normalized automation mapping shift. These simulated host boundaries are
+not a substitute for reopening projects and testing pedal input in an actual DAW.
 
 `unit/ToneMeasurementTest.cpp` retains known-signal controls and production/strategy
 spectrum/onset measurements. `unit/OnsetObservationTest.cpp` always renders and
