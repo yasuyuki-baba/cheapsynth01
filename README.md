@@ -31,14 +31,17 @@ DSP approximations where hardware characteristics remain unresolved.
 
 ## Supported Platforms and Formats
 
-| Product | Windows | macOS |
-| --- | --- | --- |
-| Standalone application | Yes | Yes |
-| VST3 | Yes | Yes |
-| CLAP | Yes | Yes |
-| AUv2 | — | Yes |
+| Product | Windows | macOS | Linux (experimental) |
+| --- | --- | --- | --- |
+| Standalone application | Yes | Yes | Yes |
+| VST3 | Yes | Yes | Build verified |
+| CLAP | Yes | Yes | Build verified |
+| AUv2 | — | Yes | No |
 
-Development and CI target Windows and macOS. Linux and LV2 are not supported.
+Linux requires X11, NanoVG/GL3 and an experimental iPlug2 checkout with the included
+compatibility patch; the pinned submodule does not support Linux. See
+[Linux build instructions and validation limits](CONTRIBUTING.md#linux-experimental).
+CI and release packages still target Windows and macOS. LV2 is not supported.
 
 ## Usage
 
