@@ -9,11 +9,6 @@ Close your DAW and CheapSynth01 before copying or replacing any products. Instal
 only the plugin formats your DAW supports. Copy each complete bundle or file,
 including its original name and contents.
 
-Before upgrading from a JUCE-era version (0.3.x or earlier), back up your DAW
-projects and keep the previous plugin build. Version 0.4.0 does not support the
-old DAW session state or automation; see the
-[release notes](docs/release-notes-0.4.0.md#compatibility).
-
 ## macOS
 
 In Finder, choose **Go > Go to Folder…** and enter the destination below. `~`
@@ -104,8 +99,8 @@ may need different compatible builds. For AUv2 discovery problems, logging out
 and back in can refresh macOS's Audio Unit registration before another scan.
 Check the DAW's scan or validation log for the specific failure.
 
-Native installation and host validation for the iPlug2 migration are still
-pending; see [migration status](docs/iPlug2-migration-plan.md#remaining-runtime-checks).
+Native installation and host validation are still
+pending; see [native validation status](docs/iPlug2-migration-plan.md#remaining-runtime-checks).
 For controls, audio/MIDI settings and presets, see the
 [user guide](docs/User-guide.md).
 

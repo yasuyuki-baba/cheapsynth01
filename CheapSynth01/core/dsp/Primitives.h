@@ -6,7 +6,6 @@
 #include <functional>
 #include <numbers>
 namespace cs01 {
-// Independent DSP primitives; no JUCE implementation code is used.
 class LinearRamp {
    public:
     void reset(double rate, double seconds) {

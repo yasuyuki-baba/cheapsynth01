@@ -52,8 +52,8 @@ or menu commands:
 perl iPlug2/WDL/swell/swell_resgen.pl CheapSynth01/resources/main.rc
 ```
 
-Read [the migration notes](docs/iPlug2-migration.md) before comparing sound or
-opening an existing project. Keep runtime DSP free of allocations and GUI/file
+Read [the architecture notes](docs/iPlug2-migration.md) for implementation details.
+Keep runtime DSP free of allocations and GUI/file
 operations. The engine processes mono internally and duplicates its final output
 for stereo. Parameter indices in `CheapSynth01/core/Parameters.h` are permanent host IDs;
 append future parameters, do not reorder existing ones.
@@ -108,8 +108,7 @@ Keep iPlug2-dependent code outside `CheapSynth01/core/`, including IGraphics con
 and editor-lifetime logic shared with the tests; it must not include iPlug2
 headers. `CheapSynth01/core/resources/presets/` belongs to the core preset catalogue, while
 `CheapSynth01/resources/` contains product and platform resources. Active tests
-live in `CheapSynth01/tests/`. Historical implementations and documents are available in Git
-history; they are not maintained in the working tree.
+live in `CheapSynth01/tests/`.
 
 With CMake 3.25+, use the platform presets, for example:
 
