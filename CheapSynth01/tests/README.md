@@ -80,8 +80,9 @@ Mixed CC2/34 and Channel Pressure cases cover both event orders, source release,
 LSB-only updates and CC121 cache clearing. CC64 tests cover the 63/64 threshold,
 pedal-retained highest-note priority, repeated keys, return to physically held
 keys, CC123 under sustain and CC121/CC120/prepare cleanup.
-All 128 values of the Wave Type, Feet, LFO Target and Filter Type CCs guard
-choice reachability and quantization boundaries.
+All 128 values of each removed panel CC guard unchanged patch/performance state
+and absence of MIDI parameter publication. Direct MIDI mappings are limited to
+performance inputs; UI/host automation retains all sound-design parameters.
 Additional EG continuity regressions retain live attack bounds, residual release
 targets after edits, sustain retrigger behavior and lifecycle observation reset.
 Native listener/thread/teardown behavior requires actual iPlug2 runtime checks.
@@ -127,6 +128,8 @@ Queue/engine tests compare pedal-retained audio against physically held audio,
 then compare pedal-off/CC121 at an in-block offset against an ordinary Note Off,
 including both filter models, tone/noise and 44.1/48/96 kHz. Mixed breath inputs
 also preserve actual VCF/VCA audio routes.
+Removed panel CCs at in-block offsets leave rendered audio identical to a
+reference without those messages, including both filter models and tone/noise.
 
 Old Decay XML files and host-session payloads cover schema-less and schema-1
 values, migration to 8.58 ms, unchanged in-range values, re-save/reload and

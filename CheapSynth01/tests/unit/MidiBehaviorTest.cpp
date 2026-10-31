@@ -6,7 +6,6 @@
 #include <array>
 #include <cmath>
 #include <set>
-#include <tuple>
 
 namespace {
 using cs01::Param;
@@ -214,36 +213,22 @@ TEST_F(MidiBehaviorTest, ResetControllersPreservesWholePatchAndClearsPerformance
 }
 
 TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs) {
-    const std::array ids{Param::ModDepth,   Param::BreathInput, Param::Volume,    Param::Glissando,
-                         Param::Sustain,    Param::Resonance,   Param::Attack,    Param::Cutoff,
-                         Param::Decay,      Param::LfoSpeed,    Param::Release,   Param::Release,
-                         Param::VcaEgDepth, Param::WaveType,    Param::Feet,      Param::Pitch,
-                         Param::VcfEgDepth, Param::PwmSpeed,    Param::LfoTarget, Param::BreathVcf,
-                         Param::BreathVca,  Param::FilterType};
-    const std::array msbs{1,  2, 7,  5,  70, 71, 73, 74, 75, 76, 79,
-                          72, 9, 14, 15, 16, 82, 85, 88, 89, 90, 91};
+    const std::array ids{Param::ModDepth, Param::BreathInput, Param::Volume, Param::Glissando};
+    const std::array msbs{1, 2, 7, 5};
     const std::array lsbs{33, 34, 39, 37};
     for (size_t i = 0; i < ids.size(); ++i) {
         for (int value : {0, 64, 127}) {
-            if (i < lsbs.size())
-                midi.handleMidiEvent(cc(lsbs[i], 0));
+            midi.handleMidiEvent(cc(lsbs[i], 0));
             midi.handleMidiEvent(cc(msbs[i], value));
-            float normalized = i < lsbs.size() ? value * 128 / 16383.f : value / 127.f;
+            const float normalized = value * 128 / 16383.f;
             const auto& d = cs01::definition(ids[i]);
             const auto expected = [&](float n) {
-                if (cs01::isEnvelopeTime(ids[i])) {
-                    const double minTau = cs01::minimumEnvelopeTau(ids[i]);
-                    const double span = EGTiming::maximumTau - minTau;
-                    return float(minTau + span * (std::pow(81., double(n)) - 1) / 80.);
-                }
                 const float raw = d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
-                return d.integer ? std::round(raw) : raw;
+                return raw;
             };
             EXPECT_FLOAT_EQ(state.get(ids[i]), expected(normalized));
-            if (i < lsbs.size()) {
-                midi.handleMidiEvent(cc(lsbs[i], 127));
-                EXPECT_FLOAT_EQ(state.get(ids[i]), expected((value * 128 + 127) / 16383.f));
-            }
+            midi.handleMidiEvent(cc(lsbs[i], 127));
+            EXPECT_FLOAT_EQ(state.get(ids[i]), expected((value * 128 + 127) / 16383.f));
         }
     }
     midi.handleMidiEvent(cc(121, 0));
@@ -301,20 +286,37 @@ TEST_F(MidiBehaviorTest, BreathSourcesComposeByMaximumIndependentOfEventOrder) {
                 }
 }
 
-TEST_F(MidiBehaviorTest, DiscreteControllersReachEveryChoiceAndBoundary) {
-    for (const auto& [number, id, maximum] :
-         {std::tuple{14, Param::WaveType, 4}, std::tuple{15, Param::Feet, 4},
-          std::tuple{88, Param::LfoTarget, 1}, std::tuple{91, Param::FilterType, 1}}) {
-        SCOPED_TRACE(number);
-        std::set<int> reached;
-        for (int value = 0; value <= 127; ++value) {
-            midi.handleMidiEvent(cc(number, value));
-            const int expected = static_cast<int>(std::round(maximum * (value / 127.f)));
-            EXPECT_FLOAT_EQ(state.get(id), expected);
-            reached.insert(expected);
+TEST_F(MidiBehaviorTest, RemovedPanelControllersPreservePatchAndPerformanceState) {
+    RecordingGenerator generator;
+    midi.setSoundGenerator(&generator);
+    midi.handleMidiEvent(on(60));
+    midi.handleMidiEvent(on(72));
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(off(72));
+    for (float position : {.25f, .75f}) {
+        for (int i = 0; i < cs01::parameterCount; ++i)
+            state.setNormalized(static_cast<Param>(i), position);
+        const auto before = state.snapshot();
+        const auto notes = midi.getActiveNotes();
+        state.takeMidiChanges();
+        const int starts = generator.starts, stops = generator.stops, changes = generator.changes;
+        for (int number : {9, 14, 15, 16, 70, 71, 72, 73, 74, 75, 76, 79, 82, 85, 88, 89, 90, 91}) {
+            SCOPED_TRACE(number);
+            for (int value = 0; value <= 127; ++value) {
+                midi.handleMidiEvent(cc(number, value));
+                EXPECT_EQ(state.snapshot(), before);
+                EXPECT_EQ(state.takeMidiChanges(), 0u);
+                EXPECT_EQ(midi.getActiveNotes(), notes);
+                EXPECT_EQ(generator.starts, starts);
+                EXPECT_EQ(generator.stops, stops);
+                EXPECT_EQ(generator.changes, changes);
+            }
         }
-        EXPECT_EQ(reached.size(), static_cast<size_t>(maximum + 1));
     }
+    midi.handleMidiEvent(cc(64, 0));
+    EXPECT_EQ(midi.currentNote(), 60);
+    midi.handleMidiEvent(off(60));
+    EXPECT_TRUE(midi.getActiveNotes().none());
 }
 
 TEST_F(MidiBehaviorTest, SustainPedalThresholdRetainsGateAndReturnsToHeldHighestNote) {

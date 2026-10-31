@@ -1,10 +1,15 @@
 # MIDI realtime control flow
 
-`MidiProcessor` owns a fixed 128-key bitset and selects the highest held note.
-The first held key starts EG; additional keys change pitch without retriggering.
+`MidiProcessor` owns fixed 128-key bitsets for held and pedal-retained active notes
+and selects the highest active note. The first active key starts EG; additional
+keys change pitch without retriggering.
 Duplicate note-ons coalesce, unmatched releases are ignored and velocity is
 passed through but does not alter synthesized amplitude. MIDI channels address
 one shared voice, not separate per-channel voices.
+
+Only performance inputs have direct MIDI mappings; sound-design controls use the
+UI and host automation, with external knobs mapped by the DAW. Unsupported CCs
+are ignored without parameter publication.
 
 Every mapped MIDI parameter is written synchronously into audio-owned
 `cs01::ParameterState` using production normalization/snapping/skew. A fixed
@@ -22,9 +27,10 @@ use a separate per-note atomic desired-state bridge with PC/mouse ownership, so
 a burst cannot lose a note-off by overflowing an event queue. UI cleanup releases
 only UI-owned notes; CC120/123 clear shared UI/external voice ownership.
 
-CC120 clears notes, EG and filter/VCA/converter history immediately. CC123 uses
-normal release. CC121 centers bend and resets modulation/breath pair caches while
-preserving held keys, volume and patch. Session saves capture current MIDI edits
+CC120 clears notes, pedal state, EG and filter/VCA/converter history immediately.
+CC123 releases held keys but retains active notes while the pedal is down.
+CC121 centers bend, resets modulation/breath/pressure caches and lifts the pedal
+while preserving physically held keys, volume and patch. Session saves capture current MIDI edits
 without waiting for an editor/notification callback. Whole XML patches are
 validated off audio and copied coherently at boundaries; their note-reset serial
 is captured with the patch. Live scalar edits remain separate.
