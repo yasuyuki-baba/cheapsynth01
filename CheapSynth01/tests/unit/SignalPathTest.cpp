@@ -756,6 +756,10 @@ namespace {
 struct FilterSpectrum {
     double dc, rms, h1, h2, h3;
 };
+double filterSpectrumTolerance(double expected) {
+    // Raw model samples are float; bins near -160 dBFS are below a stable cross-platform floor.
+    return std::max(1e-8, std::abs(expected) * 5e-4);
+}
 FilterSpectrum measureFilterSpectrum(const std::vector<float>& output, double rate, double hz) {
     double dc = 0;
     for (double value : output)
@@ -848,7 +852,7 @@ TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
                                                  baseline.inputLevel, baseline.resonance);
         const auto measured = measureFilterSpectrum(output, baseline.rate, baseline.hz);
         const auto check = [](double actual, double expected) {
-            EXPECT_NEAR(actual, expected, std::max(1e-9, std::abs(expected) * 5e-4));
+            EXPECT_NEAR(actual, expected, filterSpectrumTolerance(expected));
         };
         check(measured.dc, baseline.spectrum.dc);
         check(measured.rms, baseline.spectrum.rms);
@@ -860,6 +864,16 @@ TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
         check(amplitude(output, baseline.rate, std::min(wrapped, baseline.rate - wrapped)),
               baseline.probe);
     }
+}
+
+TEST(SignalPathTest, FilterSpectrumToleranceAllowsFloatNoiseButRejectsLostAliasComponent) {
+    constexpr double baseline = 1.57799e-7;
+    constexpr double windowsMeasurement = 1.5605581065933193e-7;
+    EXPECT_LE(std::abs(windowsMeasurement - baseline), filterSpectrumTolerance(baseline));
+    EXPECT_GT(baseline, filterSpectrumTolerance(baseline));
+    EXPECT_GT(baseline * .1, filterSpectrumTolerance(baseline));
+    EXPECT_DOUBLE_EQ(filterSpectrumTolerance(.4), .4 * 5e-4);
+    EXPECT_GT(.4 * .001, filterSpectrumTolerance(.4));
 }
 
 TEST(SignalPathTest, Observation_FilterSpectrumAndFoldedBins) {
