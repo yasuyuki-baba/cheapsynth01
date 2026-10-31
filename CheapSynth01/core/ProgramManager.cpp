@@ -418,8 +418,8 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
                 matched = true;
             }
         } else
-            currentProgram = std::clamp(selection.programIndex, 0,
-                                        static_cast<int>(allPresets.size()) - 1);
+            currentProgram =
+                std::clamp(selection.programIndex, 0, static_cast<int>(allPresets.size()) - 1);
         setReference(references[currentProgram]);
         if (!matched)
             referenceKnown = false;
