@@ -42,6 +42,9 @@ enum class Param : int {
 inline constexpr bool isEnvelopeTime(Param id) {
     return id == Param::Attack || id == Param::Decay || id == Param::Release;
 }
+inline constexpr double minimumEnvelopeTau(Param id) {
+    return id == Param::Decay ? EGTiming::minimumDecayTau : EGTiming::minimumTau;
+}
 constexpr int parameterCount = static_cast<int>(Param::Count);
 struct ParameterDefinition {
     std::string_view id, name, unit;
@@ -61,8 +64,8 @@ inline constexpr std::array<ParameterDefinition, parameterCount> parameterDefini
      {"VCA_EG_DEPTH", "VCA EG Depth", "", 0, 1, .001f, 1, 1},
      {"ATTACK", "Attack", "s", float(EGTiming::minimumTau), float(EGTiming::maximumTau), .000001f,
       1, .1f},
-     {"DECAY", "Decay", "s", float(EGTiming::minimumTau), float(EGTiming::maximumTau), .000001f, 1,
-      .1f},
+     {"DECAY", "Decay", "s", float(EGTiming::minimumDecayTau), float(EGTiming::maximumTau),
+      .000001f, 1, .1f},
      {"SUSTAIN", "Sustain", "", 0, 1, .001f, 1, .8f},
      {"RELEASE", "Release", "s", float(EGTiming::minimumTau), float(EGTiming::maximumTau), .000001f,
       1, .1f},
@@ -83,7 +86,7 @@ inline const ParameterDefinition& definition(Param id) {
 }
 inline float fromNormalized(Param id, float value) {
     if (isEnvelopeTime(id))
-        return static_cast<float>(EGTiming::timeConstant(value));
+        return static_cast<float>(EGTiming::timeConstant(value, minimumEnvelopeTau(id)));
     const auto& d = definition(id);
     float result =
         d.minimum + (d.maximum - d.minimum) * std::pow(std::clamp(value, 0.f, 1.f), 1.f / d.skew);
@@ -93,7 +96,7 @@ inline float fromNormalized(Param id, float value) {
 }
 inline float toNormalized(Param id, float value) {
     if (isEnvelopeTime(id))
-        return static_cast<float>(EGTiming::position(value));
+        return static_cast<float>(EGTiming::position(value, minimumEnvelopeTau(id)));
     const auto& d = definition(id);
     return std::pow(std::clamp((value - d.minimum) / (d.maximum - d.minimum), 0.f, 1.f), d.skew);
 }

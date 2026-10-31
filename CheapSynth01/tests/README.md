@@ -1,7 +1,7 @@
 # Regression tests
 
 The active Google Test suite exercises the framework-independent C++ core.
-Portable tests run on Windows, macOS and Linux; no JUCE or audio device is required.
+Portable tests run on Windows, macOS and Linux; no audio device is required.
 
 ```sh
 cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DBUILD_TESTING=ON
@@ -21,18 +21,16 @@ Coverage includes MIDI note priority, controller reset and panic, 14-bit CCs,
 source switching during held/releasing notes, event offsets and block partition
 independence, re-preparation, sample-rate/filter/waveform safety, allocation-free
 core rendering, FIR delay/gain/rejection, XML factory/user/session state and
-truncated XML rejection. The two independent filter model suites retain
-their original numerical assertions.
+truncated XML rejection. Two independent filter model suites check numerical behavior.
 
 Native editor interaction, DAW automation, plugin scanning, AU validation and
 host latency compensation still need testing on Windows/macOS.
 
 ## Current coverage
 
-The portable suite has 209 cases: 195 correctness regressions (including three
-research equation cases) and 14 observational cases. Native product builds add
-eight VST3 boundary cases and three parameter-presentation cases, for 220 total.
-Use CTest discovery for the current count. See the
+Use CTest discovery for the current case count. Native product builds additionally
+exercise VST3 boundary and parameter-presentation cases against SDK types.
+See the
 [native validation status](../../docs/iPlug2-migration-plan.md) for remaining host,
 editor and device checks.
 
@@ -40,8 +38,6 @@ editor and device checks.
 free-running source continuity and release/source switching. Preset assertions
 cover same-name overwrite, failed replacement and missing-selected-file fallback.
 `unit/PluginIdentityTest.cpp` guards plugin IDs and parameter index order.
-Compatibility with old JUCE DAW projects, automation and binary state is outside
-scope; XML presets remain supported.
 
 Host-selection core assertions cover latest-valid requests, repeated selection,
 cached user sound, malformed request chunks, pending-session identity, held-note
@@ -96,10 +92,17 @@ opt-in signing command preparation.
 Native compilation and source-archive offline rebuild run in CI. Actual plugin
 loading, DAW/device and interactive UI verification are deferred.
 
-`unit/MidiBehaviorTest.cpp` replaces historical MIDI assertions with an independent
+`unit/MidiBehaviorTest.cpp` uses an independent
 recording generator, a std::set oracle for all 128 keys and actual core audio for
 velocity invariance across all waveforms. It covers every controller's production
 range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
+Mixed CC2/34 and Channel Pressure cases cover both event orders, source release,
+LSB-only updates and CC121 cache clearing. CC64 tests cover the 63/64 threshold,
+pedal-retained highest-note priority, repeated keys, return to physically held
+keys, CC123 under sustain and CC121/CC120/prepare cleanup.
+All 128 values of each removed panel CC guard unchanged patch/performance state
+and absence of MIDI parameter publication. Direct MIDI mappings are limited to
+performance inputs; UI/host automation retains all sound-design parameters.
 Additional EG continuity regressions retain live attack bounds, residual release
 targets after edits, sustain retrigger behavior and lifecycle observation reset.
 Native listener/thread/teardown behavior requires actual iPlug2 runtime checks.
@@ -121,8 +124,7 @@ checks render an eight-step sixteenth-note pattern and verify retriggering and s
 Breath Lead checks cover audible output at zero breath and response to a live CC2
 change during a held note.
 Selection and rename preserve edited sound without reloading the preset file.
-Seven filter-model regressions and three separate observations were diffed
-against the frozen main reference; counts and numerical tolerances are retained.
+Seven filter-model regressions check numerical behavior, with three separate observations.
 Observations characterize this build and are not native-host performance gates.
 
 ## Signal-path and timeline checks
@@ -135,11 +137,31 @@ breath endpoints and concurrent choice publication. Core allocation probes now
 count C++ allocations and frees on first/variable/dense queue+engine+UI-bridge
 processing; they do not intercept arbitrary SDK malloc or locks.
 
+VCF depth assertions exercise the shared production cutoff ramp's duration,
+linear slope in both directions, mid-ramp retargeting and preparation at host and
+oversampled rates. Fixed spectrum constants are separate from the amended
+`BehavioralBeforeRefactor` arithmetic oracle; see the stimulus, tolerances and
+baseline-update policy in [DSP design](../../docs/DSP-design.md).
+Known-signal controls validate DC/RMS/harmonic measurements. The extended
+observation prints raw-filter folded-bin probes, not total alias power.
+Queue/engine tests compare pedal-retained audio against physically held audio,
+then compare pedal-off/CC121 at an in-block offset against an ordinary Note Off,
+including both filter models, tone/noise and 44.1/48/96 kHz. Mixed breath inputs
+also preserve actual VCF/VCA audio routes.
+Removed panel CCs at in-block offsets leave rendered audio identical to a
+reference without those messages, including both filter models and tone/noise.
+
+Old Decay XML files and host-session payloads cover schema-less and schema-1
+values, migration to 8.58 ms, unchanged in-range values, re-save/reload and
+atomic rejection of invalid data. Core and native IParam assertions quantify
+the normalized automation mapping shift. These simulated host boundaries are
+not a substitute for reopening projects and testing pedal input in an actual DAW.
+
 `unit/ToneMeasurementTest.cpp` retains known-signal controls and production/strategy
 spectrum/onset measurements. `unit/OnsetObservationTest.cpp` always renders and
 checks repeated notes/stage transients. Set `CHEAPSYNTH_ONSET_OUTPUT` to an output
 directory to export five mono PCM24 WAVs (48kHz) and five stage CSVs; filenames
-start with `iplug2-` so old comparison exports remain separate. For example:
+start with `iplug2-`. For example:
 
 ```sh
 CHEAPSYNTH_ONSET_OUTPUT=/tmp/cheapsynth-onsets ./run_tests.sh --gtest_filter='OnsetObservationTest.*'

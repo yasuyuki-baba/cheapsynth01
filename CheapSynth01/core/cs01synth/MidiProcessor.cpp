@@ -4,16 +4,12 @@
 #include "cs01synth/ISoundGenerator.h"
 #include "Parameters.h"
 
-#include <typeinfo>
-
 MidiProcessor::MidiProcessor(cs01::ParameterState& p) : parameters(p) {}
 MidiProcessor::~MidiProcessor() = default;
 void MidiProcessor::updateParameter(Control control, float normalizedValue) {
-    constexpr std::array ids{
-        ParameterIds::pitchBend, ParameterIds::modDepth,  ParameterIds::breathInput,
-        ParameterIds::volume,    ParameterIds::glissando, ParameterIds::sustain,
-        ParameterIds::resonance, ParameterIds::attack,    ParameterIds::cutoff,
-        ParameterIds::decay,     ParameterIds::lfoSpeed,  ParameterIds::release};
+    constexpr std::array ids{ParameterIds::pitchBend, ParameterIds::modDepth,
+                             ParameterIds::breathInput, ParameterIds::volume,
+                             ParameterIds::glissando};
     parameters.setNormalized(ids[static_cast<size_t>(control)], normalizedValue, true);
 }
 
@@ -22,6 +18,8 @@ void MidiProcessor::prepare(double) {
 }
 void MidiProcessor::reset() {
     activeNotes.reset();
+    heldNotes.reset();
+    sustainPedalDown = false;
     if (soundGenerator != nullptr)
         soundGenerator->stopNote(false);
     if (egProcessor != nullptr)
@@ -32,19 +30,17 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
     if (midiMessage.isAllSoundOff()) {
         reset();
     } else if (midiMessage.isAllNotesOff()) {
-        if (activeNotes.any()) {
-            activeNotes.reset();
-            if (soundGenerator != nullptr)
-                soundGenerator->stopNote(true);
-            if (egProcessor != nullptr)
-                egProcessor->releaseEnvelope();
-        }
+        heldNotes.reset();
+        if (!sustainPedalDown)
+            releaseUnheldNotes();
     } else if (midiMessage.isNoteOn()) {
         handleNoteOn(midiMessage);
     } else if (midiMessage.isNoteOff()) {
         handleNoteOff(midiMessage);
     } else if (midiMessage.isPitchBend()) {
         handlePitchBend(midiMessage);
+    } else if (midiMessage.isChannelPressure()) {
+        handleChannelPressure(midiMessage);
     } else if (midiMessage.isController()) {
         handleControllerMessage(midiMessage);
     }
@@ -53,6 +49,7 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
 
 void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
     bool wasEmpty = activeNotes.none();
+    heldNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
     activeNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
 
     int highestNote = currentNote();
@@ -74,23 +71,33 @@ void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
 
 void MidiProcessor::handleNoteOff(const cs01::MidiMessage& midiMessage) {
     // An unmatched key release must not restart an already running release.
-    if (!activeNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
+    if (!heldNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
         return;
-    activeNotes.reset(static_cast<size_t>(midiMessage.getNoteNumber()));
+    heldNotes.reset(static_cast<size_t>(midiMessage.getNoteNumber()));
+    if (!sustainPedalDown)
+        releaseUnheldNotes();
+}
 
-    if (soundGenerator != nullptr) {
-        if (activeNotes.none()) {
-            // Always set allowReleaseTail = true to make sound fade gradually
+void MidiProcessor::setSustainPedal(bool down) {
+    if (sustainPedalDown == down)
+        return;
+    sustainPedalDown = down;
+    if (!down)
+        releaseUnheldNotes();
+}
+
+void MidiProcessor::releaseUnheldNotes() {
+    const auto previous = activeNotes;
+    activeNotes &= heldNotes;
+    if (activeNotes == previous)
+        return;
+    if (activeNotes.none()) {
+        if (soundGenerator != nullptr)
             soundGenerator->stopNote(true);
-
-            // Start EG release only when all notes are off
-            if (egProcessor != nullptr) {
-                egProcessor->releaseEnvelope();
-            }
-        } else {
-            int highestNote = currentNote();
-            soundGenerator->changeNote(highestNote);
-        }
+        if (egProcessor != nullptr)
+            egProcessor->releaseEnvelope();
+    } else if (soundGenerator != nullptr) {
+        soundGenerator->changeNote(currentNote());
     }
 }
 
@@ -107,6 +114,11 @@ void MidiProcessor::handlePitchBend(const cs01::MidiMessage& midiMessage) {
     updateParameter(Control::PitchBend, cs01::toNormalized(ParameterIds::pitchBend, position));
 }
 
+void MidiProcessor::handleChannelPressure(const cs01::MidiMessage& midiMessage) {
+    channelPressure = midiMessage.getChannelPressureValue();
+    updateBreathParameter();
+}
+
 void MidiProcessor::updateModulationParameter() {
     int value14bit = (modulationMSB << 7) | modulationLSB;
     float normalizedValue = value14bit / 16383.0f;
@@ -116,7 +128,7 @@ void MidiProcessor::updateModulationParameter() {
 void MidiProcessor::updateBreathParameter() {
     int value14bit = (breathMSB << 7) | breathLSB;
     float normalizedValue = value14bit / 16383.0f;
-    updateParameter(Control::Breath, normalizedValue);
+    updateParameter(Control::Breath, std::max(normalizedValue, channelPressure / 127.f));
 }
 
 void MidiProcessor::updateVolumeParameter() {
@@ -139,9 +151,15 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
         // Reset performance controls, not the patch, volume or held keys.
         modulationMSB = modulationLSB = 0;
         breathMSB = breathLSB = 0;
+        channelPressure = 0;
         updateModulationParameter();
         updateBreathParameter();
         handlePitchBend(cs01::MidiMessage::pitchBend(midiMessage.getChannel(), 8192));
+        setSustainPedal(false);
+        return;
+    }
+    if (controller == 64) {
+        setSustainPedal(value >= 64);
         return;
     }
 
@@ -172,28 +190,5 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
     } else if (controller == 39) {  // CC #39: Volume LSB
         volumeLSB = value;
         updateVolumeParameter();
-    }
-    // 7bit CC processing
-    else if (controller == 70) {  // CC #70: Sustain Level (Sound Variation)
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Sustain, floatValue);
-    } else if (controller == 71) {  // CC #71: Filter Resonance
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Resonance, floatValue);
-    } else if (controller == 73) {  // CC #73: Attack Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Attack, floatValue);
-    } else if (controller == 74) {  // CC #74: Filter Cutoff
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Cutoff, floatValue);
-    } else if (controller == 75) {  // CC #75: Decay Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Decay, floatValue);
-    } else if (controller == 76) {  // CC #76: LFO Speed (Vibrato Rate)
-        float floatValue = value / 127.0f;
-        updateParameter(Control::LfoSpeed, floatValue);
-    } else if (controller == 79) {  // CC #79: Release Time
-        float floatValue = value / 127.0f;
-        updateParameter(Control::Release, floatValue);
     }
 }

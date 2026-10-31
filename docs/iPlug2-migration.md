@@ -1,17 +1,17 @@
-# JUCE to iPlug2 migration
+# iPlug2 architecture
 
 ## Architecture
 
 `CheapSynth01Core` uses standard C++20 and TinyXML2. `SynthEngine` owns the
-oscillator, envelope, MIDI state, both filters, VCA and output converter. The
-former JUCE graph is replaced by explicit LFO/EG → VCO → selected VCF → VCA
+oscillator, envelope, MIDI state, both filters, VCA and output converter.
+Audio follows explicit LFO/EG → VCO → selected VCF → VCA
 processing at four times the host rate. MIDI is applied before the corresponding
 host frame. No runtime graph mutation or GUI notification is required for
 routing/source changes. Core parameters use lock-free atomics; MIDI parameter changes are published atomically; the iPlug2 idle callback refreshes
 controls and the VST3 controller cache outside audio rendering.
 
 `CheapSynth01` is an iPlug2 plugin; the editor uses IGraphics. The panel
-restores the former 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
+uses a 1240×400 layout: BREATH/VOLUME, CONTROL, LFO, VCO, VCF, VCA
 and EG, with common sound-control columns and cyan accents. Parameter controls
 use iPlug2's standard IVSliderControl, IVKnobControl, IVRadioButtonControl,
 IVTabSwitchControl and IVNumberBoxControl rather than custom pointer handling.
@@ -30,7 +30,7 @@ Tooltips describe the interactions. Waveform, feet and LFO target use radio
 buttons; Original VCF exposes LOW/HIGH radio buttons with the same styling,
 while Modern VCF exposes a continuous fader. The LOW/HIGH radio buttons write
 normalized endpoints 0/1; the original filter
-continues mapping them to its modeled resonance values 0.2/0.7. The header
+maps them to its modeled resonance values 0.2/0.7. The header
 contains the MEMORY preset selector, Save, Save As, Rename, Delete and XML import.
 Save As creates and selects a new user patch without changing the sound; existing
 names receive a numbered suffix such as `Lead (1)`. Save overwrites the selected
@@ -42,23 +42,21 @@ performance inputs do not count as patch edits. Naming
 uses inline text entry in the preset display; factory rename/delete are disabled.
 Saved patch and session XML includes `schema="1"` for the file format and
 `pluginVersion` for the CheapSynth01 version that wrote it. The version comes
-from the CMake project version. Legacy XML without these attributes still loads.
+from the CMake project version. XML without these attributes also loads.
 Save also updates the sound cached for that user patch's existing DAW program
 number. Host names/count/order remain fixed for the plugin instance; additions,
 renames and deletions appear in the host list after recreating the instance.
 The optional 32-key keyboard and scope expand the panel to 1240×640. Corner
-resizing scales the panel. Breath input remains a MIDI/host parameter rather
-than a panel control, matching the former layout; all 24 host parameters remain.
+resizing scales the panel. Breath input is a MIDI/host parameter rather
+than a panel control; there are 24 host parameters.
 
-## Audio differences
+## Audio processing
 
-The waveform strategies and nonlinear filter equations,
-modulation spans, glissando and note-priority rules are retained. Newer main's
-residual EG branch targets/progress and independent VCA note gate are now ported.
+The EG tracks residual branch targets/progress independently of the VCA note gate.
 The selected tone/noise source runs continuously upstream; the non-EG VCA
-contribution follows the note gate, while EG-controlled gain retains its original
-expression. Live release timing is owned by the EG even across source switches. JUCE's auxiliary
-filters, oscillators, smoothing and random generator are replaced by independent
+contribution follows the note gate. Live release timing is owned by the EG even
+across source switches.
+Auxiliary filters, oscillators, smoothing and random generation use independent
 primitives. Noise uses a deterministic xorshift generator reset during prepare.
 
 The default output converter is a 129-tap Blackman-windowed linear-phase FIR
@@ -66,17 +64,15 @@ at 4x, with cutoff at 90% of host Nyquist. Oversampling is selectable from
 OFF (1x), 2x, 4x, 8x and 16x, shared by playback and export. At 2x/8x/16x the
 FIR has 65/257/513 taps; OFF uses a plain 16-sample delay. All settings retain
 16 host samples of latency, reported by the plugin. Quality is session state
-and is excluded from sound presets; legacy sessions restore at 4x. Its magnitude
-response and phase differ from JUCE's polyphase IIR; bit-identical audio and equal high-frequency response are not
-claimed. No fixed envelope offset is added: all stages share the internal clock.
+and is excluded from sound presets; sessions without this setting restore at 4x.
+No fixed envelope offset is added: all stages share the internal clock.
 
 ## State and identifiers
 
-- Parameter XML IDs remain stable. Attack, Decay and Release now store RC time
+- Attack, Decay and Release store RC time
   constants using the assumed A-taper mapping described in [EG RC timing](EG-RC-timing.md).
-  Old timing values are not automatically converted.
-- All seven existing factory XML files are embedded at build time.
-- User XML files are read from the former folders: macOS
+- Factory XML files are embedded at build time.
+- User XML files are read from these folders: macOS
   `~/Library/Application Support/CheapSynth01/UserPresets`, Windows
   `%APPDATA%/CheapSynth01/UserPresets`.
 - Preset loading preserves volume, pitch bend, modulation and breath input.
@@ -84,14 +80,12 @@ claimed. No fixed envelope offset is added: all stages share the internal clock.
   performance controls. Notes are not serialized.
 - The state reader accepts current XML payloads. It validates
   the entire XML before committing parameter updates.
-- Plugin identifiers are retained: AU `aumu/CS01/BABA`, CLAP
+- Plugin identifiers are: AU `aumu/CS01/BABA`, CLAP
   `com.yasuyukibaba.cheapsynth01`, and macOS bundle ID
-  `org.github.yasuyukibaba.cheapsynth01`. VST3 explicitly retains JUCE's component
+  `org.github.yasuyukibaba.cheapsynth01`. VST3 uses component
   UID `ABCDEF019182FAEB4241424143533031` and controller UID
   `ABCDEF011234ABCD4241424143533031` (SDK byte order follows the platform).
-  Plugin identities stay unchanged as agreed. Parameter IDs use iPlug2's native
-  scheme. JUCE-era projects, automation and binary state are outside scope;
-  legacy ID adapters and host migration fixtures are no longer required.
+  Parameter IDs use iPlug2's native scheme.
 - Products, development and CI testing target Windows/macOS. Linux is excluded
   from the supported environments and there is no LV2 target.
 
@@ -102,21 +96,14 @@ XML/host-program publication, keyboard ownership and source/native ZIP contracts
 There are 206 portable CTest cases, eight VST3 boundary cases and three iPlug2
 parameter-presentation cases. Fifteen Python packaging/signing tests and four
 conditional hardware equation tests run separately. Counts describe current
-coverage and do not establish equivalent sound or old-project compatibility.
+coverage and do not establish native runtime readiness.
 
-Frozen model arithmetic exposed a resonance precision difference: the original
-model now subtracts damping endpoints as double, retaining the former formula's
-precision. Exact model/wrapper references, independent VCA transfer equations,
+Exact model/wrapper references, independent VCA transfer equations,
 live EG/source/route timelines, full waveform/pitch/Feet ranges, breath controls,
 MIDI boundaries and no-heap portable paths are checked. The active regression
-references test current model arithmetic; they do not maintain the removed JUCE
-graph or IIR converter.
+references test current model arithmetic.
 
-Historical migration verification results are recorded in
-[PR #40](https://github.com/yasuyuki-baba/cheapsynth01/pull/40); those results apply
-to its tested revision. Native compilation and
-ZIP verification do not load a plugin. Fifteen Python archive/signing contract
-checks and four conditional hardware equation checks run separately.
+Native compilation and ZIP verification do not load a plugin.
 
 Real plugin/DAW/editor/device checks, validators that instantiate products,
 host latency compensation and standalone preferences/device persistence remain
@@ -129,5 +116,5 @@ See [native validation status](iPlug2-migration-plan.md),
 [DSP design](DSP-design.md), [host integration](iPlug2-host-integration.md)
 and [release preparation](iPlug2-release-packaging.md).
 
-The repository remains GPLv3. iPlug2's permissive license removes JUCE as a
-dependency; it does not authorize relicensing existing contributions.
+The repository remains GPLv3. iPlug2's permissive license does not authorize
+relicensing existing contributions.

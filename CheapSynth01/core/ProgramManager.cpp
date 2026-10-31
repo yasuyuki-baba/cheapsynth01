@@ -59,7 +59,14 @@ std::string readFile(const std::filesystem::path& path) {
     input.seekg(0, std::ios::beg);
     return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
 }
-PreparedProgram prepareXml(std::string_view xml, bool session) {
+struct SessionSelection {
+    bool hasFilename = false;
+    std::string filename{};
+    PresetType type = PresetType::Factory;
+    int programIndex = 0;
+};
+PreparedProgram prepareXml(std::string_view xml, bool session,
+                           SessionSelection* sessionSelection = nullptr) {
     // Parse and validate everything before changing any live parameters.
     if (xml.empty() || xml.size() > 1024 * 1024)
         return {};
@@ -91,6 +98,17 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
              tag = tag->NextSiblingElement("TAG"))
             if (const char* text = tag->GetText(); text && *text)
                 result.metadata.tags.emplace_back(text);
+    if (sessionSelection) {
+        if (const char* filename = root->Attribute("programFilename")) {
+            sessionSelection->hasFilename = true;
+            sessionSelection->filename = filename;
+            sessionSelection->type =
+                root->BoolAttribute("programIsUser") ? PresetType::User : PresetType::Factory;
+        } else {
+            sessionSelection->hasFilename = false;
+            sessionSelection->programIndex = root->IntAttribute("program", 0);
+        }
+    }
     auto& values = result.values;
     std::array<bool, cs01::parameterCount> found{};
     for (auto* item = parent->FirstChildElement("PARAM"); item;
@@ -111,9 +129,11 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
             if (d.id != id)
                 continue;
             // Legacy envelopes allowed shorter times than the circuit model.
-            // Import them at the current minimum; keep schema 1 validation strict.
-            if (!schema && cs01::isEnvelopeTime(static_cast<cs01::Param>(i)) && value >= 0 &&
-                value < d.minimum)
+            // Also clamp schema-1 Decay values saved at the old 3.96 ms floor up to
+            // minimumDecayTau.
+            if (cs01::isEnvelopeTime(static_cast<cs01::Param>(i)) && value < d.minimum &&
+                ((!schema && value >= 0) || (static_cast<cs01::Param>(i) == cs01::Param::Decay &&
+                                             value >= static_cast<float>(EGTiming::minimumTau))))
                 value = d.minimum;
             if (found[i] || value < d.minimum || value > d.maximum)
                 return {};
@@ -133,6 +153,18 @@ PreparedProgram prepareXml(std::string_view xml, bool session) {
         }
     result.valid = true;
     return result;
+}
+const auto& preparedFactoryPresets() {
+    static const auto presets = [] {
+        std::array<PreparedProgram, cs01::factoryPresets.size()> result;
+        for (size_t i = 0; i < cs01::factoryPresets.size(); ++i) {
+            const auto& preset = cs01::factoryPresets[i];
+            result[i] = prepareXml(preset.xml, false);
+            result[i].identity = {preset.name, preset.filename, PresetType::Factory};
+        }
+        return result;
+    }();
+    return presets;
 }
 // Exclusive temporary file in the target directory; replacement is a single
 // filesystem operation. A failed write/replace never truncates the old preset.
@@ -295,10 +327,15 @@ bool ProgramManager::setCurrentProgram(int index) {
 }
 std::vector<PreparedProgram> ProgramManager::preparePrograms() const {
     std::lock_guard lock(mutex);
+    const auto& factory = preparedFactoryPresets();
     std::vector<PreparedProgram> result;
     result.reserve(allPresets.size());
     for (size_t i = 0; i < allPresets.size(); ++i) {
         const auto& program = allPresets[i];
+        if (program.type == PresetType::Factory && i < factory.size()) {
+            result.push_back(factory[i]);
+            continue;
+        }
         auto prepared =
             program.type == PresetType::Factory
                 ? prepareXml(cs01::factoryPresets[i].xml, false)
@@ -353,13 +390,17 @@ bool ProgramManager::selectPreparedProgram(const PreparedProgram& program) {
 }
 bool ProgramManager::loadPresetFromXml(std::string_view xml) {
     std::lock_guard lock(mutex);
-    return loadXml(xml, false);
+    if (!loadXml(xml, false))
+        return false;
+    referenceKnown = false;
+    return true;
 }
 bool ProgramManager::loadPresetFile(const std::filesystem::path& file) {
     return loadPresetFromXml(readFile(file));
 }
 bool ProgramManager::loadXml(std::string_view xml, bool session) {
-    const auto prepared = prepareXml(xml, session);
+    SessionSelection selection;
+    const auto prepared = prepareXml(xml, session, session ? &selection : nullptr);
     if (!prepared.valid)
         return false;
     if (beforePatchCommit)
@@ -368,23 +409,17 @@ bool ProgramManager::loadXml(std::string_view xml, bool session) {
         return false;
     metadata = prepared.metadata;
     if (session) {
-        tinyxml2::XMLDocument doc;
-        doc.Parse(xml.data(), xml.size());
-        const auto* root = doc.FirstChildElement("Parameters");
         currentProgram = 0;
-        const char* filename = root->Attribute("programFilename");
-        bool matched = !filename;
-        if (filename) {
-            const auto type =
-                root->BoolAttribute("programIsUser") ? PresetType::User : PresetType::Factory;
-            const int index = findProgram({{}, filename, type}, metadata.id);
+        bool matched = !selection.hasFilename;
+        if (selection.hasFilename) {
+            const int index = findProgram({{}, selection.filename, selection.type}, metadata.id);
             if (index >= 0) {
                 currentProgram = index;
                 matched = true;
             }
         } else
-            currentProgram = std::clamp(root->IntAttribute("program", 0), 0,
-                                        static_cast<int>(allPresets.size()) - 1);
+            currentProgram =
+                std::clamp(selection.programIndex, 0, static_cast<int>(allPresets.size()) - 1);
         setReference(references[currentProgram]);
         if (!matched)
             referenceKnown = false;
@@ -555,10 +590,11 @@ bool ProgramManager::saveCurrentStateAsNewPreset(std::string_view name) {
     allPresets[currentProgram] = {pathText(path.stem()), pathText(path.filename()),
                                   PresetType::User};
     metadata = savedMetadata;
-    references[currentProgram] = prepareXml(xml, false);
+    const auto saved = prepareXml(xml, false);
+    references[currentProgram] = saved;
     references[currentProgram].identity = allPresets[currentProgram];
     refreshUnlocked();
-    setReference(prepareXml(xml, false));
+    setReference(saved);
     return true;
 }
 bool ProgramManager::userPresetExists(std::string_view name) const {

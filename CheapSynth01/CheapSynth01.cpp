@@ -109,14 +109,27 @@ void CheapSynth01::syncHostProgramIndex() {
     if (!hostPrograms)
         return;
     const auto selected = programs.currentProgramIdentity();
+    const auto selectedId = programs.currentPreparedProgram().metadata.id;
     int hostIndex = 0;
+    bool found = false;
     for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
-        const auto& identity = hostPrograms->programs()[i].identity;
-        if (identity.filename == selected.filename && identity.type == selected.type) {
+        const auto& program = hostPrograms->programs()[i];
+        if (program.identity.filename == selected.filename &&
+            program.identity.type == selected.type) {
             hostIndex = static_cast<int>(i);
+            found = true;
             break;
         }
     }
+    // Host names are fixed per instance; a renamed user sound keeps its id.
+    if (!found && selected.type == PresetType::User && !selectedId.empty())
+        for (size_t i = 0; i < hostPrograms->programs().size(); ++i) {
+            const auto& program = hostPrograms->programs()[i];
+            if (program.identity.type == PresetType::User && program.metadata.id == selectedId) {
+                hostIndex = static_cast<int>(i);
+                break;
+            }
+        }
     SetCurrentPresetIdx(hostIndex);
 }
 bool CheapSynth01::SerializeState(IByteChunk& chunk) const {
@@ -148,6 +161,7 @@ void CheapSynth01::OnReset() {
     outputMeter.reset(GetSampleRate());
     meteringWasEnabled = false;
     midi.clear();
+    bypassedSinceLastBlock.store(false, std::memory_order_relaxed);
     uiNotes.resetAudio();
     uiNotes.publishExternal(engine.externalNotes());
     appliedStateReset = renderParameters.stateResetSerial();
@@ -156,6 +170,10 @@ void CheapSynth01::OnReset() {
                 SynthEngine::latency);
 }
 void CheapSynth01::ProcessMidiMsg(const IMidiMsg& message) {
+    if (GetBypassed()) {
+        bypassedSinceLastBlock.store(true, std::memory_order_relaxed);
+        return;
+    }
     midi.add(message.mOffset, {message.mStatus, message.mData1, message.mData2});
 }
 void CheapSynth01::ProcessBlock(sample**, sample** outputs, int frames) {
@@ -173,7 +191,10 @@ void CheapSynth01::ProcessBlock(sample**, sample** outputs, int frames) {
     const bool restored = resetSerial != appliedStateReset;
     appliedStateReset = resetSerial;
     const bool overflowed = midi.takeOverflow();
-    if (restored || overflowed)
+    const bool unbypassed = bypassedSinceLastBlock.exchange(false, std::memory_order_relaxed);
+    if (unbypassed)
+        midi.clear();
+    if (restored || overflowed || unbypassed)
         engine.panic();
     if (pendingPanelBend.exchange(false) && !midi.containsPitchBend(frames)) {
         const float bend = parameters.get(cs01::Param::PitchBend);
@@ -228,6 +249,8 @@ void CheapSynth01::OnIdle() {
     updateKeyboardInput();
 #endif
     if (refreshUI.exchange(false, std::memory_order_acquire)) {
+        if (hostPrograms)
+            hostPrograms->applyPending(parameters);
         // Control/API values can be updated during rendering; use one completed
         // patch for both the editor and the separate VST3 controller cache.
         const auto values = parameters.snapshot();

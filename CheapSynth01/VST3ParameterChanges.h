@@ -6,7 +6,7 @@
 
 namespace cs01 {
 // Constants checked against the pinned iPlug2 wrapper by PluginAPI.h. All
-// public IDs are the SDK's standard indices, without JUCE hashes or aliases.
+// public IDs are the SDK's standard indices.
 inline constexpr Steinberg::Vst::ParamID vstBypassParam = 65536;
 inline constexpr Steinberg::Vst::ParamID vstProgramParam = 65537;
 inline constexpr Steinberg::Vst::ParamID vstMidiParamStart = 65538;

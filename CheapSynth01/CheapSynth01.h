@@ -1,6 +1,6 @@
 #pragma once
 #include "PluginAPI.h"
-// iPlug2 generates a format-specific bundle ID; retain JUCE's shared macOS ID.
+// iPlug2 generates a format-specific bundle ID; use a shared macOS ID.
 #ifdef OS_MAC
 #undef BUNDLE_ID
 #define BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01"
@@ -69,6 +69,7 @@ class CheapSynth01 final : public cs01::PluginAPI {
     iplug::ISender<1, 64, std::pair<float, float>> meterSender;
     uint64_t appliedStateReset = 0;
     std::atomic<bool> pendingPanelBend{false};
+    std::atomic<bool> bypassedSinceLastBlock{false};
 #endif
     cs01::UiNoteBridge uiNotes;
     cs01::QwertyKeyboard qwerty;
@@ -78,6 +79,7 @@ class CheapSynth01 final : public cs01::PluginAPI {
     void updateProgramLabel();
     void updateFilterControls();
     void reportPresetError();
+    void releasePcNotes();
     void releaseEditorNotes();
     void updateKeyboardInput();
     void OnParamChangeUI(int index, iplug::EParamSource source) override;

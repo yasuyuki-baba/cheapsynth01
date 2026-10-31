@@ -42,27 +42,13 @@ class MidiProcessor {
         return soundGenerator;
     }
 
-    // Audio-thread inspection only; one bit per held MIDI key.
+    // Audio-thread inspection only; includes notes retained by the sustain pedal.
     const std::bitset<128>& getActiveNotes() const {
         return activeNotes;
     }
 
    private:
-    enum class Control {
-        PitchBend,
-        Modulation,
-        Breath,
-        Volume,
-        Glissando,
-        Sustain,
-        Resonance,
-        Attack,
-        Cutoff,
-        Decay,
-        LfoSpeed,
-        Release,
-        Count
-    };
+    enum class Control { PitchBend, Modulation, Breath, Volume, Glissando, Count };
     cs01::ParameterState& parameters;
     void updateParameter(Control control, float normalizedValue);
 
@@ -70,7 +56,10 @@ class MidiProcessor {
     void handleNoteOn(const cs01::MidiMessage& midiMessage);
     void handleNoteOff(const cs01::MidiMessage& midiMessage);
     void handlePitchBend(const cs01::MidiMessage& midiMessage);
+    void handleChannelPressure(const cs01::MidiMessage& midiMessage);
     void handleControllerMessage(const cs01::MidiMessage& midiMessage);
+    void setSustainPedal(bool down);
+    void releaseUnheldNotes();
 
     // 14bit CC parameter update methods
     void updateModulationParameter();
@@ -83,7 +72,10 @@ class MidiProcessor {
 
     // For monophonic sound management
     std::bitset<128> activeNotes;
+    std::bitset<128> heldNotes;
+    bool sustainPedalDown = false;
     int lastPitchBend = 8192;  // Center value
+    int channelPressure = 0;
 
     // 14bit CC values storage
     int modulationMSB = 0, modulationLSB = 0;  // CC #1/#33

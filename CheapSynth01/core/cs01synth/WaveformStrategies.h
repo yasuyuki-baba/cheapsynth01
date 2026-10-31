@@ -123,15 +123,17 @@ class SquareWaveformStrategy : public IWaveformStrategy {
 };
 
 /**
- * PulseWaveformStrategy - Generates pulse wave with 25% duty cycle
+ * PulseWaveformStrategy - Generates narrow pulse wave with 12.5% (1/8) duty cycle
  */
 class PulseWaveformStrategy : public IWaveformStrategy {
    public:
+    static constexpr float defaultPulseWidth = 0.125f;
+
     float generate(float masterSquare, float phase, float phaseIncrement, float sampleRate,
                    float& previousSample, cs01::Oscillator& pwmLfo) override {
-        // Generate pulse from master timing with ~25% duty cycle
+        // Generate pulse from master timing with 12.5% (1/8 counter state) duty cycle
         float t = phase;
-        float pulseWidth = 0.25f;
+        float pulseWidth = defaultPulseWidth;
         float value = (t < pulseWidth) ? 1.0f : -1.0f;
 
         // Apply poly_blep anti-aliasing

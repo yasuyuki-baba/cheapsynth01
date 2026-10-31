@@ -215,6 +215,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
                     return;
                 if (programs.loadPresetFile(cs01::utf8Path(file.Get()))) {
                     syncParameters(true);
+                    updateProgramLabel();
                     updateFilterControls();
                 } else
                     reportPresetError();
@@ -311,7 +312,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     g->SetKeyHandlerFunc([this, g](const IKeyPress& key, bool up) {
         if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
             !keyboardHasFocus(g->GetWindow())) {
-            releaseEditorNotes();
+            releasePcNotes();
             return false;
         }
         const bool handled =
@@ -339,9 +340,12 @@ void CheapSynth01::OnUIClose() {
     releaseEditorNotes();
     monitorEnabled.store(false);
 }
-void CheapSynth01::releaseEditorNotes() {
+void CheapSynth01::releasePcNotes() {
     qwerty.release(
         [this](int note, int velocity) { uiNotes.set(note, velocity, cs01::UiNoteBridge::PC); });
+}
+void CheapSynth01::releaseEditorNotes() {
+    releasePcNotes();
     uiNotes.releaseAll();
     if (GetUI())
         if (auto* keyboard =
@@ -350,11 +354,10 @@ void CheapSynth01::releaseEditorNotes() {
 }
 void CheapSynth01::updateKeyboardInput() {
     auto* g = GetUI();
-    if (!g)
+    if (!g || !monitorEnabled.load())
         return;
-    if (!monitorEnabled.load() || g->GetControlInTextEntry() ||
-        !cs01::ui::keyboardHasFocus(g->GetWindow()))
-        releaseEditorNotes();
+    if (g->GetControlInTextEntry() || !cs01::ui::keyboardHasFocus(g->GetWindow()))
+        releasePcNotes();
     if (auto* keyboard =
             static_cast<cs01::ui::OwnedKeyboardControl*>(g->GetControlWithTag(Keyboard)))
         keyboard->refresh();
@@ -366,29 +369,32 @@ void CheapSynth01::updateProgramLabel() {
     const auto selected = programs.currentProgramIdentity();
     const bool user = selected.type == PresetType::User;
     const auto name = selected.name + (programs.isCurrentProgramModified() ? " *" : "");
-    if (label) {
-        if (name != label->GetStr()) {
-            label->SetStr(name.c_str());
-            label->SetDirty(false);
-        }
-    }
-    auto* typeLabel = static_cast<ITextControl*>(GetUI()->GetControlWithTag(ProgramTypeLabel));
-    const std::string typeText = user ? "MEMORY / USER / EDITABLE" : "MEMORY / FACTORY / READ ONLY";
-    if (typeText != typeLabel->GetStr()) {
-        typeLabel->SetStr(typeText.c_str());
-        typeLabel->SetDirty(false);
-    }
-    GetUI()->GetControlWithTag(SavePreset)->SetDisabled(!user);
-    GetUI()->GetControlWithTag(RenamePreset)->SetDisabled(!user);
-    GetUI()->GetControlWithTag(DeletePreset)->SetDisabled(!user);
+    if (label)
+        label->SetStr(name.c_str());
+    if (auto* typeLabel = static_cast<ITextControl*>(GetUI()->GetControlWithTag(ProgramTypeLabel)))
+        typeLabel->SetStr(user ? "MEMORY / USER / EDITABLE" : "MEMORY / FACTORY / READ ONLY");
+    for (int tag : {SavePreset, RenamePreset, DeletePreset})
+        if (auto* control = GetUI()->GetControlWithTag(tag);
+            control && control->IsDisabled() != !user)
+            control->SetDisabled(!user);
 }
 void CheapSynth01::updateFilterControls() {
     if (!GetUI())
         return;
     const bool modern = GetParam(index(cs01::Param::FilterType))->Int() != 0;
-    GetUI()->GetControlWithTag(Resonance)->Hide(!modern);
-    GetUI()->GetControlWithTag(ResonanceHigh)->Hide(modern);
-    GetUI()->GetControlWithTag(ResonanceHighLabel)->Hide(modern);
+    auto* resonance = GetUI()->GetControlWithTag(Resonance);
+    auto* resonanceHigh = GetUI()->GetControlWithTag(ResonanceHigh);
+    auto* resonanceHighLabel = GetUI()->GetControlWithTag(ResonanceHighLabel);
+    if (resonance && resonance->IsHidden() == !modern && resonanceHigh &&
+        resonanceHigh->IsHidden() == modern && resonanceHighLabel &&
+        resonanceHighLabel->IsHidden() == modern)
+        return;
+    if (resonance)
+        resonance->Hide(!modern);
+    if (resonanceHigh)
+        resonanceHigh->Hide(modern);
+    if (resonanceHighLabel)
+        resonanceHighLabel->Hide(modern);
     // The two controls overlap and have different bounds. Repaint the background
     // and the complete panel after swapping them so the previous view is erased.
     GetUI()->SetAllControlsDirty();

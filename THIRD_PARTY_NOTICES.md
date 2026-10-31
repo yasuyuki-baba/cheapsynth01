@@ -13,7 +13,3 @@
 - **Plugin SDKs and iPlug2 dependencies**: follow the individual licenses in the
   fetched VST3/CLAP SDKs and iPlug2 dependency tree. They are independent of the
   project's GPLv3 license.
-
-No JUCE framework code is linked into the iPlug2 products. The active numerical
-regression fixtures under `CheapSynth01/tests/reference/` are framework-independent
-project code used only by tests.

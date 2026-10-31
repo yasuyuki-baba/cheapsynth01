@@ -71,10 +71,7 @@ zero-frame callbacks, concurrent state/automation and restoration with/without U
 
 ## Native parameter and state APIs
 
-JUCE-era project, automation and binary-state compatibility is outside scope.
-Plugin identities remain unchanged, but all formats use their standard iPlug2
-parameter IDs. No legacy ID adapter, hash
-manifest, migration aliases or old-session fixture gate is maintained.
+All formats use their standard iPlug2 parameter IDs.
 
 `PluginAPI.h` inherits metadata, parameter queries, edit notifications, MIDI
 assignment and program metadata directly from iPlug2. Its input-queue filter
@@ -85,7 +82,5 @@ last-point processing semantics.
 
 The VST3 state entry reads the complete bounded stream, including final short
 reads, separates iPlug2's four-byte bypass trailer and restores the XML payload.
-The default SDK entry previously sought past the trailer because our XML reader
-consumed the whole chunk. New-version state round trips, automation and host
-program selection in actual native hosts remain validation gates. JUCE binary
-XML, private tails and VST2 envelopes are not supported.
+State round trips, automation and host program selection in actual native hosts
+remain validation gates.

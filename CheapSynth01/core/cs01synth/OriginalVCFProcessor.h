@@ -3,10 +3,8 @@
 #include "dsp/Primitives.h"
 
 #include "cs01synth/CS01VCFCircuit.h"  // Include the CS01VCFCircuit filter
-#include "cs01synth/IFilter.h"         // Updated interface
+#include "cs01synth/IFilter.h"
 #include "Parameters.h"
-
-#include <atomic>
 
 //==============================================================================
 class OriginalVCFProcessor : public IFilter {
@@ -21,29 +19,9 @@ class OriginalVCFProcessor : public IFilter {
 
     float processSample(float audio, float eg, float lfo);
 
-    //==============================================================================
-    // Implementation of IFilter interface
-    ResonanceMode getResonanceMode() const override {
-        return ResonanceMode::Toggle;
-    }
-
    private:
     //==============================================================================
-    cs01::ParameterState& parameters;
     CS01VCFCircuit filter;  // Using CS01VCFCircuit instead of StateVariableTPTFilter
-    cs01::LinearRamp egDepthControl;
-
-    // Cutoff frequency calculation function
-    float calculateCutoffFrequency(float cutoffParam) {
-        // Range covering the entire audible spectrum
-        const float minFreq = 20.0f;     // Minimum cutoff frequency
-        const float maxFreq = 20000.0f;  // Maximum cutoff frequency
-
-        // Verify input range (actual frequency value)
-        float cutoffFreq = std::clamp(cutoffParam, minFreq, maxFreq);
-
-        return cutoffFreq;
-    }
 
     // Resonance calculation function
     float calculateResonance(float resonanceParam) {

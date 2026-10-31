@@ -213,30 +213,31 @@ TEST_F(MidiBehaviorTest, ResetControllersPreservesWholePatchAndClearsPerformance
 }
 
 TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs) {
-    const std::array ids{Param::ModDepth, Param::BreathInput, Param::Volume, Param::Glissando,
-                         Param::Sustain,  Param::Resonance,   Param::Attack, Param::Cutoff,
-                         Param::Decay,    Param::LfoSpeed,    Param::Release};
-    const std::array msbs{1, 2, 7, 5, 70, 71, 73, 74, 75, 76, 79};
+    const std::array ids{Param::ModDepth, Param::BreathInput, Param::Volume, Param::Glissando};
+    const std::array msbs{1, 2, 7, 5};
     const std::array lsbs{33, 34, 39, 37};
     for (size_t i = 0; i < ids.size(); ++i) {
         for (int value : {0, 64, 127}) {
-            if (i < lsbs.size())
-                midi.handleMidiEvent(cc(lsbs[i], 0));
+            midi.handleMidiEvent(cc(lsbs[i], 0));
             midi.handleMidiEvent(cc(msbs[i], value));
-            float normalized = i < lsbs.size() ? value * 128 / 16383.f : value / 127.f;
+            const float normalized = value * 128 / 16383.f;
             const auto& d = cs01::definition(ids[i]);
             const auto expected = [&](float n) {
-                return cs01::isEnvelopeTime(ids[i])
-                           ? float(.00396 + 4.4 * (std::pow(81., double(n)) - 1) / 80.)
-                           : d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
+                const float raw = d.minimum + (d.maximum - d.minimum) * std::pow(n, 1.f / d.skew);
+                return raw;
             };
             EXPECT_FLOAT_EQ(state.get(ids[i]), expected(normalized));
-            if (i < lsbs.size()) {
-                midi.handleMidiEvent(cc(lsbs[i], 127));
-                EXPECT_FLOAT_EQ(state.get(ids[i]), expected((value * 128 + 127) / 16383.f));
-            }
+            midi.handleMidiEvent(cc(lsbs[i], 127));
+            EXPECT_FLOAT_EQ(state.get(ids[i]), expected((value * 128 + 127) / 16383.f));
         }
     }
+    midi.handleMidiEvent(cc(121, 0));
+    for (int pressure : {0, 32, 64, 127}) {
+        midi.handleMidiEvent(cs01::MidiMessage::channelPressure(1, pressure));
+        EXPECT_FLOAT_EQ(state.get(Param::BreathInput), pressure / 127.f);
+    }
+    midi.handleMidiEvent(cc(121, 0));
+    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), 0.f);
     RecordingGenerator generator;
     midi.setSoundGenerator(&generator);
     for (int pitchBendValue : {0, 4096, 8192, 12000, 16383}) {
@@ -250,6 +251,199 @@ TEST_F(MidiBehaviorTest, EveryControllerUsesProductionRangesAndFourteenBitPairs)
     const auto& d = cs01::definition(Param::Glissando);
     EXPECT_NEAR(state.get(Param::Glissando),
                 d.maximum * std::pow((64 * 128 + 3) / 16383.f, 1.f / d.skew), 1e-6);
+}
+
+TEST_F(MidiBehaviorTest, BreathSourcesComposeByMaximumIndependentOfEventOrder) {
+    for (int msb : {0, 20, 100, 127})
+        for (int lsb : {0, 64, 127})
+            for (int pressure : {0, 20, 64, 127})
+                for (bool pressureFirst : {false, true}) {
+                    SCOPED_TRACE(msb);
+                    SCOPED_TRACE(lsb);
+                    SCOPED_TRACE(pressure);
+                    SCOPED_TRACE(pressureFirst);
+                    midi.handleMidiEvent(cc(121, 0));
+                    const auto aftertouch = cs01::MidiMessage::channelPressure(1, pressure);
+                    if (pressureFirst)
+                        midi.handleMidiEvent(aftertouch);
+                    midi.handleMidiEvent(cc(2, msb));
+                    midi.handleMidiEvent(cc(34, lsb));
+                    if (!pressureFirst)
+                        midi.handleMidiEvent(aftertouch);
+                    const float breath = (msb * 128 + lsb) / 16383.f;
+                    EXPECT_FLOAT_EQ(state.get(Param::BreathInput),
+                                    std::max(breath, pressure / 127.f));
+                    midi.handleMidiEvent(cs01::MidiMessage::channelPressure(1, 0));
+                    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), breath);
+                    midi.handleMidiEvent(aftertouch);
+                    midi.handleMidiEvent(cc(2, 0));
+                    midi.handleMidiEvent(cc(34, 0));
+                    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), pressure / 127.f);
+                    midi.handleMidiEvent(cc(121, 0));
+                    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), 0.f);
+                    midi.handleMidiEvent(cc(34, 1));
+                    EXPECT_FLOAT_EQ(state.get(Param::BreathInput), 1 / 16383.f);
+                }
+}
+
+TEST_F(MidiBehaviorTest, RemovedPanelControllersPreservePatchAndPerformanceState) {
+    RecordingGenerator generator;
+    midi.setSoundGenerator(&generator);
+    midi.handleMidiEvent(on(60));
+    midi.handleMidiEvent(on(72));
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(off(72));
+    for (float position : {.25f, .75f}) {
+        for (int i = 0; i < cs01::parameterCount; ++i)
+            state.setNormalized(static_cast<Param>(i), position);
+        const auto before = state.snapshot();
+        const auto notes = midi.getActiveNotes();
+        state.takeMidiChanges();
+        const int starts = generator.starts, stops = generator.stops, changes = generator.changes;
+        for (int number : {9, 14, 15, 16, 70, 71, 72, 73, 74, 75, 76, 79, 82, 85, 88, 89, 90, 91}) {
+            SCOPED_TRACE(number);
+            for (int value = 0; value <= 127; ++value) {
+                midi.handleMidiEvent(cc(number, value));
+                EXPECT_EQ(state.snapshot(), before);
+                EXPECT_EQ(state.takeMidiChanges(), 0u);
+                EXPECT_EQ(midi.getActiveNotes(), notes);
+                EXPECT_EQ(generator.starts, starts);
+                EXPECT_EQ(generator.stops, stops);
+                EXPECT_EQ(generator.changes, changes);
+            }
+        }
+    }
+    midi.handleMidiEvent(cc(64, 0));
+    EXPECT_EQ(midi.currentNote(), 60);
+    midi.handleMidiEvent(off(60));
+    EXPECT_TRUE(midi.getActiveNotes().none());
+}
+
+TEST_F(MidiBehaviorTest, SustainPedalThresholdRetainsGateAndReturnsToHeldHighestNote) {
+    RecordingGenerator generator;
+    EGProcessor eg(state);
+    eg.prepare(48000);
+    midi.setSoundGenerator(&generator);
+    midi.setEGProcessor(&eg);
+    midi.handleMidiEvent(on(60));
+    for (int i = 0; i < 64; ++i)
+        eg.processSample();
+    midi.handleMidiEvent(cc(64, 63));
+    midi.handleMidiEvent(off(60));
+    EXPECT_EQ(generator.stops, 1);
+    EXPECT_GT(eg.currentReleaseSamplesRemaining(), 0);
+
+    for (int down : {64, 127}) {
+        SCOPED_TRACE(down);
+        midi.handleMidiEvent(on(60));
+        for (int i = 0; i < 64; ++i)
+            eg.processSample();
+        midi.handleMidiEvent(on(72));
+        midi.handleMidiEvent(cc(64, down));
+        midi.handleMidiEvent(off(72));
+        const int stops = generator.stops;
+        const int starts = generator.starts;
+        EXPECT_EQ(midi.currentNote(), 72);
+        EXPECT_EQ(generator.note, 72);
+        EXPECT_FLOAT_EQ(eg.getNoteGate(), 1);
+        midi.handleMidiEvent(off(72));
+        midi.handleMidiEvent(on(67));
+        EXPECT_EQ(generator.starts, starts);
+        EXPECT_EQ(generator.note, 72);
+        midi.handleMidiEvent(cc(64, 63));
+        EXPECT_EQ(midi.currentNote(), 67);
+        EXPECT_EQ(generator.note, 67);
+        EXPECT_EQ(generator.stops, stops);
+        EXPECT_FLOAT_EQ(eg.getNoteGate(), 1);
+        midi.handleMidiEvent(off(67));
+        EXPECT_EQ(generator.note, 60);
+        midi.handleMidiEvent(off(60));
+        EXPECT_EQ(generator.stops, stops + 1);
+        EXPECT_TRUE(generator.lastTail);
+        EXPECT_GT(eg.currentReleaseSamplesRemaining(), 0);
+        midi.handleMidiEvent(cc(64, 0));
+        EXPECT_EQ(generator.stops, stops + 1);
+    }
+}
+
+TEST_F(MidiBehaviorTest, SustainRepeatedKeyAndAllNotesOffReleaseOnlyWhenPedalLifts) {
+    RecordingGenerator generator;
+    EGProcessor eg(state);
+    eg.prepare(48000);
+    midi.setSoundGenerator(&generator);
+    midi.setEGProcessor(&eg);
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(on(72));
+    for (int i = 0; i < 64; ++i)
+        eg.processSample();
+    midi.handleMidiEvent(off(72));
+    midi.handleMidiEvent(on(72));
+    midi.handleMidiEvent(cc(64, 0));
+    EXPECT_EQ(generator.stops, 0);
+    EXPECT_EQ(midi.currentNote(), 72);
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(cc(123, 0));
+    midi.handleMidiEvent(cc(123, 0));
+    EXPECT_EQ(generator.stops, 0);
+    EXPECT_FLOAT_EQ(eg.getNoteGate(), 1);
+    midi.handleMidiEvent(cc(64, 0));
+    EXPECT_EQ(generator.stops, 1);
+    EXPECT_TRUE(generator.lastTail);
+    EXPECT_TRUE(midi.getActiveNotes().none());
+    EXPECT_GT(eg.currentReleaseSamplesRemaining(), 0);
+    midi.handleMidiEvent(cc(64, 0));
+    midi.handleMidiEvent(off(72));
+    EXPECT_EQ(generator.stops, 1);
+}
+
+TEST_F(MidiBehaviorTest, ResetControllersReleasesSustainedNotesButPreservesHeldKeys) {
+    RecordingGenerator generator;
+    midi.setSoundGenerator(&generator);
+    midi.handleMidiEvent(on(60));
+    midi.handleMidiEvent(on(72));
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(off(72));
+    midi.handleMidiEvent(cc(2, 100));
+    midi.handleMidiEvent(cs01::MidiMessage::channelPressure(1, 127));
+    const auto before = state.snapshot();
+    midi.handleMidiEvent(cc(121, 0));
+    EXPECT_EQ(midi.currentNote(), 60);
+    EXPECT_EQ(generator.note, 60);
+    EXPECT_EQ(generator.stops, 0);
+    for (int i = 0; i < cs01::parameterCount; ++i) {
+        const auto id = static_cast<Param>(i);
+        const bool performance =
+            id == Param::PitchBend || id == Param::ModDepth || id == Param::BreathInput;
+        EXPECT_FLOAT_EQ(state.get(id), performance ? 0.f : before[i]);
+    }
+    midi.handleMidiEvent(off(60));
+    EXPECT_EQ(generator.stops, 1);
+    midi.handleMidiEvent(on(72));
+    midi.handleMidiEvent(cc(64, 127));
+    midi.handleMidiEvent(off(72));
+    midi.handleMidiEvent(cc(121, 0));
+    EXPECT_EQ(generator.stops, 2);
+    EXPECT_TRUE(midi.getActiveNotes().none());
+}
+
+TEST_F(MidiBehaviorTest, PanicAndPrepareClearPedalAndSustainedNotes) {
+    RecordingGenerator generator;
+    midi.setSoundGenerator(&generator);
+    for (bool prepare : {false, true}) {
+        midi.handleMidiEvent(on(72));
+        midi.handleMidiEvent(cc(64, 127));
+        midi.handleMidiEvent(off(72));
+        if (prepare)
+            midi.prepare(48000);
+        else
+            midi.handleMidiEvent(cc(120, 0));
+        EXPECT_TRUE(midi.getActiveNotes().none());
+        EXPECT_FALSE(generator.lastTail);
+        midi.handleMidiEvent(on(60));
+        midi.handleMidiEvent(off(60));
+        EXPECT_TRUE(midi.getActiveNotes().none());
+        EXPECT_TRUE(generator.lastTail);
+    }
 }
 
 TEST_F(MidiBehaviorTest, VelocityIsPassedOnFirstNoteButDoesNotChangeRealSynthAudio) {

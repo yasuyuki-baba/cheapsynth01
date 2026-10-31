@@ -209,7 +209,7 @@ TEST(VcaGateTest, GateCorrectionLeavesEgComponentAndOpenGateArithmeticIntact) {
     for (float input : {-.9f, -.1f, .1f, .9f}) {
         for (float envelope : {0.f, .3f, 1.f}) {
             for (float depth : {0.f, .3f, 1.f}) {
-                // Frozen pre-gate gain/saturation expression from the JUCE baseline.
+                // Frozen pre-gate gain/saturation expression.
                 float voltage = (1.f - depth) + envelope * depth;
                 voltage *= (1.f - .4f) + .7f * .4f;
                 float expected = input * (voltage * .8f);
@@ -586,9 +586,25 @@ TEST(EGTimingTest, AssumedATaperMatchesCircuitAndRoundTrips) {
     EXPECT_NEAR(EGTiming::timeConstant(0), .00396, 1e-12);
     EXPECT_NEAR(EGTiming::timeConstant(.5), .44396, 1e-12);
     EXPECT_NEAR(EGTiming::timeConstant(1), 4.40396, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(0, EGTiming::minimumDecayTau), .00858, 1e-12);
+    EXPECT_NEAR(EGTiming::timeConstant(1, EGTiming::minimumDecayTau), 4.40396, 1e-12);
     for (auto id : {Param::Attack, Param::Decay, Param::Release})
         for (int i = 0; i <= 1000; ++i) {
             const float position = i / 1000.f;
             EXPECT_NEAR(cs01::toNormalized(id, cs01::fromNormalized(id, position)), position, 1e-6);
         }
+}
+
+TEST(EGTimingTest, DecayFloorChangeHasBoundedNormalizedAutomationShift) {
+    for (int i = 0; i <= 1000; ++i) {
+        const float position = i / 1000.f;
+        const double taper = (std::pow(81., double(position)) - 1) / 80.;
+        const double previous = .00396 + 4.4 * taper;
+        const double expectedShift = .00462 * (1 - taper);
+        const float current = cs01::fromNormalized(Param::Decay, position);
+        EXPECT_NEAR(current - previous, expectedShift, 1e-6);
+        EXPECT_NEAR(cs01::fromNormalized(Param::Attack, position), previous, 1e-6);
+        EXPECT_NEAR(cs01::fromNormalized(Param::Release, position), previous, 1e-6);
+    }
+    EXPECT_NEAR(cs01::fromNormalized(Param::Decay, .5f), .448118, 1e-7);
 }

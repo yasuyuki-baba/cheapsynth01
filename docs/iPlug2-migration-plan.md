@@ -32,9 +32,8 @@ Record platform, product format, host/device versions, source revision and resul
 when performing these checks. Compilation and ZIP checks alone do not establish
 runtime readiness.
 
-## Compatibility scope
+## Product scope
 
 Plugin identities, parameter index order, preset locations and XML preset support
-are retained. Loading old JUCE DAW projects, automation or binary state is outside
-scope. Hardware research provenance remains documented under `docs/hardware/`.
-Earlier implementation archives and migration ledgers are available in Git history.
+are documented in [the architecture notes](iPlug2-migration.md).
+Hardware research provenance remains documented under `docs/hardware/`.

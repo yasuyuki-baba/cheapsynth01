@@ -461,6 +461,112 @@ TEST(EngineTimelineTest, BreathMidiLiveMuteOpenAndReturnRecoverWithinOnePercent)
         EXPECT_NEAR(returned / referenceReturn, 1, .01);
     }
 }
+TEST(EngineTimelineTest, SustainPedalKeepsAudioUntilItsQueuedReleaseBoundary) {
+    for (double rate : {44100., 48000., 96000.})
+        for (int filter : {0, 1})
+            for (int feet : {2, 4})
+                for (int releaseController : {64, 121}) {
+                    SCOPED_TRACE(rate);
+                    SCOPED_TRACE(filter);
+                    SCOPED_TRACE(feet);
+                    SCOPED_TRACE(releaseController);
+                    cs01::ParameterState actualState, expectedState;
+                    for (auto* state : {&actualState, &expectedState}) {
+                        patch(*state);
+                        state->set(Param::FilterType, filter);
+                        state->set(Param::Feet, feet);
+                        state->set(Param::ModDepth, 0);
+                    }
+                    SynthEngine actual(actualState), expected(expectedState);
+                    actual.prepare(rate);
+                    expected.prepare(rate);
+                    cs01::MidiQueue actualQueue, expectedQueue;
+                    actualQueue.add(0, {0x90, 60, 127});
+                    expectedQueue.add(0, {0x90, 60, 127});
+                    actualQueue.add(8, {0xb0, 64, 127});
+                    actualQueue.add(17, {0x80, 60, 0});
+                    const auto sustained = block(actual, actualQueue, 4096);
+                    EXPECT_EQ(sustained, block(expected, expectedQueue, 4096));
+                    EXPECT_GT(energy(sustained), 1e-5);
+                    EXPECT_TRUE(actual.externalNotes().none());
+                    EXPECT_EQ(actual.currentNote(), 60);
+                    actualQueue.add(23, {0xb0, static_cast<uint8_t>(releaseController), 0});
+                    expectedQueue.add(23, {0x80, 60, 0});
+                    const int tailFrames = static_cast<int>(rate * (25600. / 48000.));
+                    const auto released = block(actual, actualQueue, tailFrames);
+                    EXPECT_EQ(released, block(expected, expectedQueue, tailFrames));
+                    EXPECT_EQ(actual.currentNote(), 0);
+                    EXPECT_LT(energy(block(actual, actualQueue, 64)), 64 * 1e-12);
+                }
+}
+
+TEST(EngineTimelineTest, MixedBreathSourcesPreserveBothFilterAndAmplifierAudioRoutes) {
+    for (int filter : {0, 1}) {
+        cs01::ParameterState actualState, expectedState;
+        for (auto* state : {&actualState, &expectedState}) {
+            patch(*state);
+            state->set(Param::FilterType, filter);
+            state->set(Param::Cutoff, 500);
+            state->set(Param::ModDepth, 0);
+            state->set(Param::BreathVcf, 1);
+            state->set(Param::BreathVca, 1);
+        }
+        SynthEngine actual(actualState), expected(expectedState);
+        actual.prepare(48000);
+        expected.prepare(48000);
+        for (auto* engine : {&actual, &expected}) {
+            engine->handleMidi({0x90, 72, 127});
+            engine->handleMidi({0xb0, 2, 100});
+            engine->handleMidi({0xb0, 34, 64});
+        }
+        actual.handleMidi(cs01::MidiMessage::channelPressure(1, 20));
+        for (int i = 0; i < 4096; ++i) {
+            if (i == 1024)
+                actual.handleMidi(cs01::MidiMessage::channelPressure(1, 0));
+            if (i == 2048)
+                for (auto* engine : {&actual, &expected})
+                    engine->handleMidi({0xb0, 34, 127});
+            EXPECT_FLOAT_EQ(actual.renderSample(), expected.renderSample());
+        }
+        actual.handleMidi(cs01::MidiMessage::channelPressure(1, 127));
+        expected.handleMidi(cs01::MidiMessage::channelPressure(1, 127));
+        actual.handleMidi({0xb0, 2, 0});
+        actual.handleMidi({0xb0, 34, 0});
+        for (int i = 0; i < 4096; ++i)
+            EXPECT_FLOAT_EQ(actual.renderSample(), expected.renderSample());
+    }
+}
+
+TEST(EngineTimelineTest, RemovedPanelControllersDoNotChangeQueuedAudio) {
+    constexpr std::array removed{9,  14, 15, 16, 70, 71, 72, 73, 74,
+                                 75, 76, 79, 82, 85, 88, 89, 90, 91};
+    for (int filter : {0, 1})
+        for (int feet : {2, 4}) {
+            cs01::ParameterState actualState, expectedState;
+            for (auto* state : {&actualState, &expectedState}) {
+                patch(*state);
+                state->set(Param::FilterType, filter);
+                state->set(Param::Feet, feet);
+            }
+            SynthEngine actual(actualState), expected(expectedState);
+            actual.prepare(48000);
+            expected.prepare(48000);
+            cs01::MidiQueue actualQueue, expectedQueue;
+            actualQueue.add(0, {0x90, 60, 127});
+            expectedQueue.add(0, {0x90, 60, 127});
+            for (size_t i = 0; i < removed.size(); ++i) {
+                actualQueue.add(static_cast<int>(17 + i * 11),
+                                {0xb0, static_cast<uint8_t>(removed[i]), 127});
+                actualQueue.add(static_cast<int>(513 + i * 11),
+                                {0xb0, static_cast<uint8_t>(removed[i]), 0});
+            }
+            EXPECT_EQ(block(actual, actualQueue, 1024), block(expected, expectedQueue, 1024));
+            EXPECT_EQ(actualState.snapshot(), expectedState.snapshot());
+            EXPECT_EQ(actualState.takeMidiChanges(), 0u);
+            EXPECT_EQ(actual.currentNote(), 60);
+        }
+}
+
 TEST(EngineTimelineTest, Observation_WholeOutputRetainsHighNoteFundamentalAfterFirConversion) {
     for (double rate : {44100., 48000., 96000.})
         for (int waveform : {1, 2}) {

@@ -378,9 +378,24 @@ TEST_F(PresetBehaviorTest, SessionRestorePreservesEditedMarkerRelativeToSavedPat
 
 TEST_F(PresetBehaviorTest, ImportMarksCurrentSoundAsEdited) {
     ASSERT_TRUE(manager.setCurrentProgram(0));
+    const auto identicalXml = manager.getStateInformation();
+    ASSERT_TRUE(manager.loadPresetFromXml(identicalXml));
+    EXPECT_TRUE(manager.isCurrentProgramModified());
+    ASSERT_TRUE(manager.setCurrentProgram(0));
     ASSERT_TRUE(manager.loadPresetFromXml(
         "<Parameters><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>"));
     EXPECT_TRUE(manager.isCurrentProgramModified());
+}
+
+TEST_F(PresetBehaviorTest, HostProgramSelectionWithoutAudioCallbackUpdatesParametersCleanly) {
+    cs01::HostProgramBank bank(manager.preparePrograms());
+    ASSERT_TRUE(bank.request(1));
+    EXPECT_EQ(bank.applyPending(state), 1);
+    const auto selection = bank.selection();
+    ASSERT_NE(selection.program, nullptr);
+    EXPECT_FALSE(selection.pending);
+    EXPECT_TRUE(manager.selectPreparedProgram(*selection.program));
+    EXPECT_FALSE(manager.isCurrentProgramModified());
 }
 
 TEST_F(PresetBehaviorTest, SavedPatchAndSessionRecordPluginVersionAndLoadLegacyXml) {
@@ -450,6 +465,61 @@ TEST_F(PresetBehaviorTest, LegacyCompatibilityDoesNotAcceptOtherMalformedValues)
         SCOPED_TRACE(xml);
         EXPECT_FALSE(manager.loadPresetFromXml(xml));
         EXPECT_EQ(state.snapshot(), before);
+    }
+}
+
+TEST_F(PresetBehaviorTest, OldDecayFilesAndSessionsClampOnlyBelowNewFloorAndRoundTrip) {
+    for (const char* schema : {"", " schema=\"1\""})
+        for (const char* seconds : {"0.00396", "0.006", "0.008579", "0.00858", "0.1", "4.40396"}) {
+            SCOPED_TRACE(schema);
+            SCOPED_TRACE(seconds);
+            const float expected = std::max(std::stof(seconds), .00858f);
+            const auto xml = std::string("<Parameters") + schema + "><PARAM id=\"DECAY\" value=\"" +
+                             seconds + "\"/><PARAM id=\"CUTOFF\" value=\"2345\"/></Parameters>";
+            std::filesystem::create_directories(directory);
+            const auto file = directory / "OldDecay.xml";
+            {
+                std::ofstream output(file);
+                ASSERT_TRUE(output.is_open());
+                output << xml;
+            }
+            ASSERT_TRUE(manager.loadPresetFile(file));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+            EXPECT_FLOAT_EQ(state.get(Param::Cutoff), 2345);
+            ASSERT_TRUE(manager.saveCurrentStateAsPreset("MigratedDecay"));
+            state.set(Param::Decay, 1);
+            ASSERT_TRUE(manager.loadPresetFile(directory / "MigratedDecay.xml"));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+
+            ASSERT_TRUE(manager.setStateInformation(xml));
+            EXPECT_FLOAT_EQ(state.get(Param::Decay), expected);
+            const auto snapshot = state.snapshot();
+            const auto saved = manager.getStateInformation();
+            cs01::ParameterState restoredState;
+            ProgramManager restored(restoredState);
+            restored.setUserDirectory(directory);
+            ASSERT_TRUE(restored.setStateInformation(saved));
+            EXPECT_EQ(restoredState.snapshot(), snapshot);
+            ASSERT_TRUE(manager.setStateInformation(restored.getStateInformation()));
+            EXPECT_EQ(state.snapshot(), snapshot);
+        }
+}
+
+TEST_F(PresetBehaviorTest, SchemaOneDecayMigrationRejectsInvalidValuesAtomically) {
+    state.set(Param::Decay, .1f);
+    const auto snapshot = state.snapshot();
+    const auto serial = state.stateResetSerial();
+    const auto selected = manager.currentProgramIdentity();
+    for (const char* seconds : {"-1", "0", "0.003959", "4.404", "nan", "inf", "bad"}) {
+        SCOPED_TRACE(seconds);
+        const auto xml =
+            std::string("<Parameters schema=\"1\"><PARAM id=\"CUTOFF\" value=\"2345\"/>") +
+            "<PARAM id=\"DECAY\" value=\"" + seconds + "\"/></Parameters>";
+        EXPECT_FALSE(manager.loadPresetFromXml(xml));
+        EXPECT_FALSE(manager.setStateInformation(xml));
+        EXPECT_EQ(state.snapshot(), snapshot);
+        EXPECT_EQ(state.stateResetSerial(), serial);
+        EXPECT_EQ(manager.currentProgramIdentity().filename, selected.filename);
     }
 }
 
@@ -728,12 +798,13 @@ TEST_F(PresetBehaviorTest, SessionRestoresSelectedProgramAndWaveWhileKeepingPerf
 TEST_F(PresetBehaviorTest, SessionSavedImmediatelyAfterMidiEditIncludesItsNewValue) {
     SynthEngine engine(state);
     engine.prepare(48000);
-    engine.handleMidi({0xb0, 73, 100});
-    const float changed = state.get(Param::Attack);
+    engine.handleMidi({0xb0, 7, 100});
+    const float changed = state.get(Param::Volume);
+    EXPECT_NEAR(changed, 12800 / 16383.f, 1e-6);
     const auto saved = manager.getStateInformation();
-    state.set(Param::Attack, .001f);
+    state.set(Param::Volume, .1f);
     ASSERT_TRUE(manager.setStateInformation(saved));
-    EXPECT_FLOAT_EQ(state.get(Param::Attack), changed);
+    EXPECT_FLOAT_EQ(state.get(Param::Volume), changed);
 }
 TEST_F(PresetBehaviorTest, SessionRestoresAllRoutesAndResetSerialWithoutSerializingHeldNotes) {
     for (int filter : {0, 1})

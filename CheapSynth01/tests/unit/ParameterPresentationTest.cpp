@@ -35,7 +35,7 @@ TEST(ParameterPresentationTest, EveryHostParameterKeepsCoreNormalizedAutomation)
             const double core = d.integer ? std::round(plain) : plain;
             const double expected =
                 cs01::isEnvelopeTime(id)
-                    ? EGTiming::position(core)
+                    ? EGTiming::position(core, cs01::minimumEnvelopeTau(id))
                     : std::pow((core - d.minimum) / (double(d.maximum) - d.minimum),
                                double(d.skew));
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, core)), expected, 1.e-6);
@@ -66,7 +66,8 @@ TEST(ParameterPresentationTest, EnvelopeHostTaperMatchesCoreAtEveryPanelPosition
         for (int i = 0; i <= 1000; ++i) {
             const double position = i / 1000.;
             const double seconds = cs01::fromHostValue(id, parameter.FromNormalized(position));
-            EXPECT_NEAR(seconds, EGTiming::timeConstant(position), 1e-6);
+            EXPECT_NEAR(seconds, EGTiming::timeConstant(position, cs01::minimumEnvelopeTau(id)),
+                        1e-6);
             EXPECT_NEAR(cs01::toNormalized(id, float(seconds)), position, 1e-6);
             EXPECT_NEAR(parameter.ToNormalized(cs01::toHostValue(id, seconds)), position, 1e-6);
         }
@@ -87,4 +88,17 @@ TEST(ParameterPresentationTest, OversamplingLabelsAndDefaultMatchPanelChoices) {
         EXPECT_STREQ(displayed.Get(), labels[stage]);
         EXPECT_DOUBLE_EQ(parameter.StringToValue(labels[stage]), stage);
     }
+}
+
+TEST(ParameterPresentationTest, DecayAutomationFloorChangeIsExplicitAtHostBoundary) {
+    iplug::IParam parameter;
+    cs01::initializeHostParameter(parameter, cs01::Param::Decay);
+    for (double position : {0., .1, .5, 1.}) {
+        const double taper = (std::pow(81., position) - 1) / 80.;
+        const double oldSeconds = .00396 + 4.4 * taper;
+        const double shift = .00462 * (1 - taper);
+        EXPECT_NEAR(cs01::fromHostValue(cs01::Param::Decay, parameter.FromNormalized(position)),
+                    oldSeconds + shift, 1e-6);
+    }
+    EXPECT_NEAR(parameter.StringToValue("3.96"), 8.58, 1e-6);
 }

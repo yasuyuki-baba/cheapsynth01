@@ -7,7 +7,8 @@
 ToneGenerator::ToneGenerator(cs01::ParameterState& parameters) : parameters(parameters) {}
 
 void ToneGenerator::prepare(double rate) {
-    sampleRate = internalSampleRate = static_cast<float>(rate);
+    sampleRate = static_cast<float>(rate);
+    gateSampleRate = sampleRate;
     pwmLfo.prepare(rate);
     pwmLfo.initialise([](double x) { return std::asin(std::sin(x)) * (2.0 / std::numbers::pi); });
     reset();
@@ -17,36 +18,20 @@ void ToneGenerator::setSampleRate(double rate) {
     const double ratio = rate / sampleRate;
     samplesPerStep = std::max(1, static_cast<int>(std::lround(samplesPerStep * ratio)));
     stepCounter = static_cast<int>(std::lround(stepCounter * ratio));
-    tailOffDuration =
-        static_cast<int>(std::lround(std::max(0, tailOffDuration - tailOffCounter) * ratio));
-    tailOffCounter = 0;
-    sampleRate = internalSampleRate = static_cast<float>(rate);
+    sampleRate = static_cast<float>(rate);
+    rescaleGateSampleRate(sampleRate);
     pwmLfo.setSampleRate(rate);
 }
 
 // MIDI note handling
 void ToneGenerator::startNote(int midiNoteNumber, float velocity, int pitchBendValue) {
-    lastNote = midiNoteNumber;
-    tailOff = false;
-    currentNoteNumber = midiNoteNumber;
+    beginNoteGate(midiNoteNumber, pitchBendValue);
     setNote(midiNoteNumber, false);  // isLegato = false
     setPitchBend(pitchBendValue);
-    noteOn = true;
 }
 
 void ToneGenerator::stopNote(bool allowReleaseTail) {
-    noteOn = false;
-    currentNoteNumber = 0;
-
-    if (allowReleaseTail) {
-        tailOff = true;
-        // Get release time from parameter (convert to samples)
-        float releaseSecs = parameters.get(ParameterIds::release);
-        tailOffDuration = static_cast<int>(releaseSecs * sampleRate);
-        tailOffCounter = 0;
-    } else {
-        tailOff = false;
-    }
+    endNoteGate(allowReleaseTail, parameters.get(ParameterIds::release), sampleRate);
 }
 
 void ToneGenerator::changeNote(int midiNoteNumber) {
@@ -73,36 +58,6 @@ void ToneGenerator::setPitchBend(int pitchBendValue) {
     pitchBendSemitones = bendOffset;
 }
 
-bool ToneGenerator::isActive() const {
-    return noteOn || (tailOff && tailOffCounter < tailOffDuration);
-}
-
-ISoundGenerator::PlaybackState ToneGenerator::getPlaybackState() const {
-    return {noteOn, lastNote, lastPitchBend,
-            tailOff
-                ? std::max(0, tailOffDuration - tailOffCounter) / static_cast<double>(sampleRate)
-                : 0.0};
-}
-
-void ToneGenerator::restorePlaybackState(const PlaybackState& state) {
-    stopNote(false);
-    if (!state.held && state.releaseSecondsRemaining <= 0.0)
-        return;
-    startNote(state.note, 1.0f, state.pitchBend);
-    if (!state.held) {
-        noteOn = false;
-        tailOff = true;
-        tailOffCounter = 0;
-        tailOffDuration =
-            static_cast<int>(std::llround(state.releaseSecondsRemaining * sampleRate));
-        currentNoteNumber = 0;
-    }
-}
-
-int ToneGenerator::currentNote() const {
-    return currentNoteNumber;
-}
-
 // Audio processing methods
 float ToneGenerator::renderSample() {
     if (!isActive())
@@ -111,8 +66,7 @@ float ToneGenerator::renderSample() {
 }
 float ToneGenerator::renderContinuousSample() {
     const float output = getNextSample();
-    if (tailOff && ++tailOffCounter >= tailOffDuration)
-        tailOff = false;
+    advanceTailOff();
     return output;
 }
 
@@ -130,11 +84,7 @@ void ToneGenerator::updateBlockRateParameters() {
     float pwmSpeed = parameters.get(ParameterIds::pwmSpeed);
     pwmLfo.setFrequency(pwmSpeed);
 
-    currentModDepth = parameters.get(ParameterIds::modDepth);
-
     // Cache pitch-related parameters to avoid per-sample parameter access
-    // MIDI (including queued panel gestures) applies bend once via setPitchBend.
-    pitchBendOffset = 0.0f;
     pitchOffset = parameters.get(ParameterIds::pitch);
 
     // Update waveform strategy based on current waveform
@@ -148,20 +98,13 @@ void ToneGenerator::reset() {
     samplesPerStep = 0;
     stepCounter = 0;
     phase = 0.0f;
-    leakyIntegratorState = 0.0f;
-    dcBlockerState = 0.0f;
 
     // Reset base square wave state
     waveformModel.reset();
     pwmLfo.reset();
     pwmLfo.setFrequency(parameters.get(ParameterIds::pwmSpeed), true);
 
-    // Reset note state
-    noteOn = false;
-    tailOff = false;
-    tailOffCounter = 0;
-    tailOffDuration = 0;
-    currentNoteNumber = 0;
+    resetNoteGateState();
 }
 
 void ToneGenerator::setNote(int midiNoteNumber, bool isLegato) {
@@ -242,7 +185,6 @@ float ToneGenerator::getNextSample() {
 
     // Add continuous pitch modulations (smooth, continuous changes)
     finalPitch += pitchBendSemitones;  // Pitch bend wheel (continuous)
-    finalPitch += pitchBendOffset;     // Pitch bend offset (continuous)
     finalPitch += pitchOffset;         // Fine pitch adjustment (continuous)
     finalPitch += lfoValue;            // LFO pitch modulation (continuous)
 
@@ -278,23 +220,9 @@ void ToneGenerator::setPitchBendSemitones(float bendInSemitones) {
 }
 
 float ToneGenerator::generateMasterSquareWave(float finalPitch) {
-    return waveformModel.generateMasterSquareWave(finalPitch, internalSampleRate, phase,
-                                                  phaseIncrement);
+    return waveformModel.generateMasterSquareWave(finalPitch, sampleRate, phase, phaseIncrement);
 }
 
 float ToneGenerator::generateVcoSampleFromMaster(float masterSquare) {
-    return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement, internalSampleRate,
-                                          pwmLfo);
-}
-
-// The production engine's EG owns the release clock, including live edits.
-void ToneGenerator::setReleaseSamplesRemaining(int samples) {
-    if (!tailOff)
-        return;
-    tailOffCounter = 0;
-    tailOffDuration = std::max(0, samples);
-    if (samples <= 0) {
-        tailOff = false;
-        noteOn = false;
-    }
+    return waveformModel.generateWaveform(masterSquare, phase, phaseIncrement, sampleRate, pwmLfo);
 }
