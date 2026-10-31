@@ -24,6 +24,8 @@ void MidiProcessor::prepare(double) {
 }
 void MidiProcessor::reset() {
     activeNotes.reset();
+    heldNotes.reset();
+    sustainPedalDown = false;
     if (soundGenerator != nullptr)
         soundGenerator->stopNote(false);
     if (egProcessor != nullptr)
@@ -34,13 +36,9 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
     if (midiMessage.isAllSoundOff()) {
         reset();
     } else if (midiMessage.isAllNotesOff()) {
-        if (activeNotes.any()) {
-            activeNotes.reset();
-            if (soundGenerator != nullptr)
-                soundGenerator->stopNote(true);
-            if (egProcessor != nullptr)
-                egProcessor->releaseEnvelope();
-        }
+        heldNotes.reset();
+        if (!sustainPedalDown)
+            releaseUnheldNotes();
     } else if (midiMessage.isNoteOn()) {
         handleNoteOn(midiMessage);
     } else if (midiMessage.isNoteOff()) {
@@ -57,6 +55,7 @@ void MidiProcessor::handleMidiEvent(const cs01::MidiMessage& midiMessage) {
 
 void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
     bool wasEmpty = activeNotes.none();
+    heldNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
     activeNotes.set(static_cast<size_t>(midiMessage.getNoteNumber()));
 
     int highestNote = currentNote();
@@ -78,23 +77,33 @@ void MidiProcessor::handleNoteOn(const cs01::MidiMessage& midiMessage) {
 
 void MidiProcessor::handleNoteOff(const cs01::MidiMessage& midiMessage) {
     // An unmatched key release must not restart an already running release.
-    if (!activeNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
+    if (!heldNotes.test(static_cast<size_t>(midiMessage.getNoteNumber())))
         return;
-    activeNotes.reset(static_cast<size_t>(midiMessage.getNoteNumber()));
+    heldNotes.reset(static_cast<size_t>(midiMessage.getNoteNumber()));
+    if (!sustainPedalDown)
+        releaseUnheldNotes();
+}
 
-    if (soundGenerator != nullptr) {
-        if (activeNotes.none()) {
-            // Always set allowReleaseTail = true to make sound fade gradually
+void MidiProcessor::setSustainPedal(bool down) {
+    if (sustainPedalDown == down)
+        return;
+    sustainPedalDown = down;
+    if (!down)
+        releaseUnheldNotes();
+}
+
+void MidiProcessor::releaseUnheldNotes() {
+    const auto previous = activeNotes;
+    activeNotes &= heldNotes;
+    if (activeNotes == previous)
+        return;
+    if (activeNotes.none()) {
+        if (soundGenerator != nullptr)
             soundGenerator->stopNote(true);
-
-            // Start EG release only when all notes are off
-            if (egProcessor != nullptr) {
-                egProcessor->releaseEnvelope();
-            }
-        } else {
-            int highestNote = currentNote();
-            soundGenerator->changeNote(highestNote);
-        }
+        if (egProcessor != nullptr)
+            egProcessor->releaseEnvelope();
+    } else if (soundGenerator != nullptr) {
+        soundGenerator->changeNote(currentNote());
     }
 }
 
@@ -112,10 +121,8 @@ void MidiProcessor::handlePitchBend(const cs01::MidiMessage& midiMessage) {
 }
 
 void MidiProcessor::handleChannelPressure(const cs01::MidiMessage& midiMessage) {
-    const int value = midiMessage.getChannelPressureValue();
-    breathMSB = value;
-    breathLSB = 0;
-    updateParameter(Control::Breath, value / 127.0f);
+    channelPressure = midiMessage.getChannelPressureValue();
+    updateBreathParameter();
 }
 
 void MidiProcessor::updateModulationParameter() {
@@ -127,7 +134,7 @@ void MidiProcessor::updateModulationParameter() {
 void MidiProcessor::updateBreathParameter() {
     int value14bit = (breathMSB << 7) | breathLSB;
     float normalizedValue = value14bit / 16383.0f;
-    updateParameter(Control::Breath, normalizedValue);
+    updateParameter(Control::Breath, std::max(normalizedValue, channelPressure / 127.f));
 }
 
 void MidiProcessor::updateVolumeParameter() {
@@ -150,9 +157,15 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
         // Reset performance controls, not the patch, volume or held keys.
         modulationMSB = modulationLSB = 0;
         breathMSB = breathLSB = 0;
+        channelPressure = 0;
         updateModulationParameter();
         updateBreathParameter();
         handlePitchBend(cs01::MidiMessage::pitchBend(midiMessage.getChannel(), 8192));
+        setSustainPedal(false);
+        return;
+    }
+    if (controller == 64) {
+        setSustainPedal(value >= 64);
         return;
     }
 

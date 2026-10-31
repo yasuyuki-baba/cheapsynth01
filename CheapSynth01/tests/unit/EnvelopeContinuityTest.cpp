@@ -594,3 +594,17 @@ TEST(EGTimingTest, AssumedATaperMatchesCircuitAndRoundTrips) {
             EXPECT_NEAR(cs01::toNormalized(id, cs01::fromNormalized(id, position)), position, 1e-6);
         }
 }
+
+TEST(EGTimingTest, DecayFloorChangeHasBoundedNormalizedAutomationShift) {
+    for (int i = 0; i <= 1000; ++i) {
+        const float position = i / 1000.f;
+        const double taper = (std::pow(81., double(position)) - 1) / 80.;
+        const double previous = .00396 + 4.4 * taper;
+        const double expectedShift = .00462 * (1 - taper);
+        const float current = cs01::fromNormalized(Param::Decay, position);
+        EXPECT_NEAR(current - previous, expectedShift, 1e-6);
+        EXPECT_NEAR(cs01::fromNormalized(Param::Attack, position), previous, 1e-6);
+        EXPECT_NEAR(cs01::fromNormalized(Param::Release, position), previous, 1e-6);
+    }
+    EXPECT_NEAR(cs01::fromNormalized(Param::Decay, .5f), .448118, 1e-7);
+}

@@ -91,7 +91,7 @@ TEST(SignalPathTest, BehavioralModelsMatchFrozenArithmeticIncludingSafetyExactly
                               : i == 20 ? std::numeric_limits<float>::infinity()
                               : i == 30 ? std::numeric_limits<float>::max()
                                         : stimulus(i);
-                // Both references are frozen from 1cbbdd7, independent of production classes.
+                // Independent arithmetic references include the intentional 0b342641 sound edit.
                 modern.setCutoffFrequency(cutoff);
                 beforeModern.setCutoffFrequency(cutoff);
                 modern.setResonance(resonance);
@@ -706,4 +706,185 @@ TEST(SignalPathTest, BothFilterModelsGenerateEvenHarmonicsUnderDrivenInput) {
     }
     EXPECT_GT(amplitude(origOut, rate, 2 * hz), 1e-3);
     EXPECT_GT(amplitude(modOut, rate, 2 * hz), 1e-3);
+}
+
+namespace {
+struct CutoffModulationHarness : IFilter {
+    using IFilter::IFilter;
+    using IFilter::nextModulatedCutoff;
+    using IFilter::prepareCutoffModulation;
+};
+}  // namespace
+
+TEST(SignalPathTest, VcfDepthLinearRampHasExactDurationSlopeAndRetargeting) {
+    for (double rate : {44100., 48000., 96000., 192000., 384000.}) {
+        SCOPED_TRACE(rate);
+        cs01::ParameterState state;
+        state.set(Param::Cutoff, 500);
+        state.set(Param::ModDepth, 0);
+        state.set(Param::BreathInput, 0);
+        state.set(Param::VcfEgDepth, 0);
+        CutoffModulationHarness modulation(state);
+        modulation.prepareCutoffModulation(rate);
+        const int duration = static_cast<int>(rate * .005);
+        const auto depth = [&] {
+            return std::log2(modulation.nextModulatedCutoff(1, 0) / 500.) / 3.;
+        };
+        for (float target : {1.f, 0.f}) {
+            state.set(Param::VcfEgDepth, target);
+            for (int i = 1; i <= duration; ++i) {
+                const double progress = double(i) / duration;
+                EXPECT_NEAR(depth(), target == 1 ? progress : 1 - progress, 2e-5);
+            }
+            EXPECT_DOUBLE_EQ(depth(), target);
+        }
+        state.set(Param::VcfEgDepth, 1);
+        double current = 0;
+        for (int i = 0; i < duration / 2; ++i)
+            current = depth();
+        state.set(Param::VcfEgDepth, 0);
+        for (int i = 1; i <= duration; ++i)
+            EXPECT_NEAR(depth(), current * (1 - double(i) / duration), 2e-5);
+        EXPECT_DOUBLE_EQ(depth(), 0);
+        state.set(Param::VcfEgDepth, 1);
+        modulation.prepareCutoffModulation(rate);
+        EXPECT_DOUBLE_EQ(depth(), 1);
+    }
+}
+
+namespace {
+struct FilterSpectrum {
+    double dc, rms, h1, h2, h3;
+};
+FilterSpectrum measureFilterSpectrum(const std::vector<float>& output, double rate, double hz) {
+    double dc = 0;
+    for (double value : output)
+        dc += value;
+    return {dc / output.size(), std::sqrt(power(output) / output.size()),
+            amplitude(output, rate, hz), amplitude(output, rate, 2 * hz),
+            amplitude(output, rate, 3 * hz)};
+}
+std::vector<float> renderFilterSpectrum(bool modern, double rate, double hz, float inputLevel,
+                                        float resonance) {
+    IG02610BehavioralModel original;
+    IG05630BehavioralModel updated;
+    original.prepare(rate);
+    updated.prepare(rate);
+    updated.setCutoffFrequency(12000);
+    updated.setResonance(resonance);
+    std::vector<float> output;
+    output.reserve(static_cast<size_t>(rate));
+    for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
+        const float input = static_cast<float>(inputLevel * std::sin(tau * hz * i / rate));
+        const float value =
+            modern ? updated.processSample(input) : original.processSample(input, 12000, resonance);
+        if (i >= static_cast<int>(rate))
+            output.push_back(value);
+    }
+    return output;
+}
+}  // namespace
+
+TEST(SignalPathTest, FilterSpectrumMeasurementMatchesKnownSignal) {
+    std::vector<float> output;
+    for (int i = 0; i < 48000; ++i) {
+        const double phase = tau * 500 * i / 48000;
+        output.push_back(static_cast<float>(.02 + .5 * std::sin(phase) + .1 * std::cos(2 * phase) +
+                                            .05 * std::sin(3 * phase)));
+    }
+    const auto measured = measureFilterSpectrum(output, 48000, 500);
+    EXPECT_NEAR(measured.dc, .02, 1e-8);
+    EXPECT_NEAR(measured.rms, std::sqrt(.0004 + (.25 + .01 + .0025) / 2), 1e-8);
+    EXPECT_NEAR(measured.h1, .5, 1e-8);
+    EXPECT_NEAR(measured.h2, .1, 1e-8);
+    EXPECT_NEAR(measured.h3, .05, 1e-8);
+}
+
+TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
+    // Captured at ff9245a: raw IC models, no VCA DC removal or engine oversampling.
+    struct Baseline {
+        bool modern;
+        double rate, hz;
+        float inputLevel, resonance;
+        FilterSpectrum spectrum;
+        double probe;
+    };
+    const Baseline baselines[]{
+        {false, 44100, 500, .6f, .8f, {.0115299, .261777, .368879, .0128233, .0230996}, .00326019},
+        {true, 44100, 500, .6f, .8f, {.00944631, .246188, .347218, .0113608, .0184045}, .00218251},
+        {false, 48000, 500, .6f, .8f, {.0115256, .261805, .368916, .0128327, .0231248}, .00327261},
+        {true, 48000, 500, .6f, .8f, {.00944343, .246182, .34721, .011362, .0184008}, .00218173},
+        {false, 96000, 500, .6f, .8f, {.0115279, .261906, .369056, .0128477, .0231881}, .0032922},
+        {true, 96000, 500, .6f, .8f, {.00944046, .246094, .347093, .0113385, .0182988}, .00213779},
+        {false, 48000, 100, .01f, 0, {0, .00314274, .0044445, 0, 8.94737e-9}, 3.47827e-11},
+        {true, 48000, 100, .01f, 0, {0, .00707036, .009999, 0, 3.33299e-7}, 9.08337e-11},
+        {false,
+         48000,
+         5000,
+         .6f,
+         0,
+         {.00230044, .192971, .271859, .00342861, .0233192},
+         2.37219e-5},
+        {true, 48000, 5000, .6f, 0, {.0170318, .300985, .424672, .0136926, .00809005}, 1.57799e-7},
+        {false,
+         48000,
+         10000,
+         .6f,
+         0,
+         {.00739138, .243506, .344144, .00121785, .00524165},
+         .00524165},
+        {true,
+         48000,
+         10000,
+         .6f,
+         0,
+         {.0170631, .284316, .401232, 7.46432e-5, .00121464},
+         .00121464}};
+    for (const auto& baseline : baselines) {
+        SCOPED_TRACE(baseline.modern);
+        SCOPED_TRACE(baseline.rate);
+        SCOPED_TRACE(baseline.hz);
+        const auto output = renderFilterSpectrum(baseline.modern, baseline.rate, baseline.hz,
+                                                 baseline.inputLevel, baseline.resonance);
+        const auto measured = measureFilterSpectrum(output, baseline.rate, baseline.hz);
+        const auto check = [](double actual, double expected) {
+            EXPECT_NEAR(actual, expected, std::max(1e-9, std::abs(expected) * 5e-4));
+        };
+        check(measured.dc, baseline.spectrum.dc);
+        check(measured.rms, baseline.spectrum.rms);
+        check(measured.h1, baseline.spectrum.h1);
+        check(measured.h2, baseline.spectrum.h2);
+        check(measured.h3, baseline.spectrum.h3);
+        const int harmonic = baseline.hz >= 10000 ? 3 : 5;
+        const double wrapped = std::fmod(harmonic * baseline.hz, baseline.rate);
+        check(amplitude(output, baseline.rate, std::min(wrapped, baseline.rate - wrapped)),
+              baseline.probe);
+    }
+}
+
+TEST(SignalPathTest, Observation_FilterSpectrumAndFoldedBins) {
+    for (double rate : {44100., 48000., 96000.})
+        for (bool modern : {false, true})
+            for (double hz : {100., 500., 5000., 10000.})
+                for (float resonance : {0.f, .8f}) {
+                    const float inputLevel = hz == 100 ? .01f : .6f;
+                    const auto output =
+                        renderFilterSpectrum(modern, rate, hz, inputLevel, resonance);
+                    for (float value : output) {
+                        ASSERT_TRUE(std::isfinite(value));
+                        ASSERT_LE(std::abs(value), 1.5f);
+                    }
+                    const auto measured = measureFilterSpectrum(output, rate, hz);
+                    ASSERT_GT(measured.h1, 0);
+                    const int harmonic = hz >= 10000 ? 3 : 5;
+                    const double wrapped = std::fmod(harmonic * hz, rate);
+                    const double bin = std::min(wrapped, rate - wrapped);
+                    const double probe = amplitude(output, rate, bin);
+                    std::cout << "VCF spectrum: modern=" << modern << ", fs=" << rate
+                              << ", hz=" << hz << ", input=" << inputLevel
+                              << ", resonance=" << resonance << ", dc=" << measured.dc
+                              << ", rms=" << measured.rms << ", h1=" << measured.h1
+                              << ", h2=" << measured.h2 << ", h3=" << measured.h3
+                              << ", probeHz=" << bin << ", probe=" << probe << '\n';
+                }
 }
