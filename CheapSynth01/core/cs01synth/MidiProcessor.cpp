@@ -7,15 +7,9 @@
 MidiProcessor::MidiProcessor(cs01::ParameterState& p) : parameters(p) {}
 MidiProcessor::~MidiProcessor() = default;
 void MidiProcessor::updateParameter(Control control, float normalizedValue) {
-    constexpr std::array ids{
-        ParameterIds::pitchBend,  ParameterIds::modDepth,   ParameterIds::breathInput,
-        ParameterIds::volume,     ParameterIds::glissando,  ParameterIds::sustain,
-        ParameterIds::resonance,  ParameterIds::attack,     ParameterIds::cutoff,
-        ParameterIds::decay,      ParameterIds::lfoSpeed,   ParameterIds::release,
-        ParameterIds::vcaEgDepth, ParameterIds::waveType,   ParameterIds::feet,
-        ParameterIds::pitch,      ParameterIds::vcfEgDepth, ParameterIds::pwmSpeed,
-        ParameterIds::lfoTarget,  ParameterIds::breathVcf,  ParameterIds::breathVca,
-        ParameterIds::filterType};
+    constexpr std::array ids{ParameterIds::pitchBend, ParameterIds::modDepth,
+                             ParameterIds::breathInput, ParameterIds::volume,
+                             ParameterIds::glissando};
     parameters.setNormalized(ids[static_cast<size_t>(control)], normalizedValue, true);
 }
 
@@ -196,38 +190,5 @@ void MidiProcessor::handleControllerMessage(const cs01::MidiMessage& midiMessage
     } else if (controller == 39) {  // CC #39: Volume LSB
         volumeLSB = value;
         updateVolumeParameter();
-    }
-    // 7bit CC processing
-    else {
-        struct SevenBitCcMapping {
-            int cc;
-            Control control;
-        };
-        constexpr std::array<SevenBitCcMapping, 18> kSevenBitMappings{{
-            {9, Control::VcaEgDepth},
-            {14, Control::WaveType},
-            {15, Control::Feet},
-            {16, Control::Pitch},
-            {70, Control::Sustain},
-            {71, Control::Resonance},
-            {72, Control::Release},
-            {73, Control::Attack},
-            {74, Control::Cutoff},
-            {75, Control::Decay},
-            {76, Control::LfoSpeed},
-            {79, Control::Release},
-            {82, Control::VcfEgDepth},
-            {85, Control::PwmSpeed},
-            {88, Control::LfoTarget},
-            {89, Control::BreathVcf},
-            {90, Control::BreathVca},
-            {91, Control::FilterType},
-        }};
-        for (const auto& mapping : kSevenBitMappings) {
-            if (mapping.cc == controller) {
-                updateParameter(mapping.control, value / 127.0f);
-                break;
-            }
-        }
     }
 }

@@ -537,6 +537,36 @@ TEST(EngineTimelineTest, MixedBreathSourcesPreserveBothFilterAndAmplifierAudioRo
     }
 }
 
+TEST(EngineTimelineTest, RemovedPanelControllersDoNotChangeQueuedAudio) {
+    constexpr std::array removed{9,  14, 15, 16, 70, 71, 72, 73, 74,
+                                 75, 76, 79, 82, 85, 88, 89, 90, 91};
+    for (int filter : {0, 1})
+        for (int feet : {2, 4}) {
+            cs01::ParameterState actualState, expectedState;
+            for (auto* state : {&actualState, &expectedState}) {
+                patch(*state);
+                state->set(Param::FilterType, filter);
+                state->set(Param::Feet, feet);
+            }
+            SynthEngine actual(actualState), expected(expectedState);
+            actual.prepare(48000);
+            expected.prepare(48000);
+            cs01::MidiQueue actualQueue, expectedQueue;
+            actualQueue.add(0, {0x90, 60, 127});
+            expectedQueue.add(0, {0x90, 60, 127});
+            for (size_t i = 0; i < removed.size(); ++i) {
+                actualQueue.add(static_cast<int>(17 + i * 11),
+                                {0xb0, static_cast<uint8_t>(removed[i]), 127});
+                actualQueue.add(static_cast<int>(513 + i * 11),
+                                {0xb0, static_cast<uint8_t>(removed[i]), 0});
+            }
+            EXPECT_EQ(block(actual, actualQueue, 1024), block(expected, expectedQueue, 1024));
+            EXPECT_EQ(actualState.snapshot(), expectedState.snapshot());
+            EXPECT_EQ(actualState.takeMidiChanges(), 0u);
+            EXPECT_EQ(actual.currentNote(), 60);
+        }
+}
+
 TEST(EngineTimelineTest, Observation_WholeOutputRetainsHighNoteFundamentalAfterFirConversion) {
     for (double rate : {44100., 48000., 96000.})
         for (int waveform : {1, 2}) {

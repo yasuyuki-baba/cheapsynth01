@@ -48,31 +48,7 @@ class MidiProcessor {
     }
 
    private:
-    enum class Control {
-        PitchBend,
-        Modulation,
-        Breath,
-        Volume,
-        Glissando,
-        Sustain,
-        Resonance,
-        Attack,
-        Cutoff,
-        Decay,
-        LfoSpeed,
-        Release,
-        VcaEgDepth,
-        WaveType,
-        Feet,
-        Pitch,
-        VcfEgDepth,
-        PwmSpeed,
-        LfoTarget,
-        BreathVcf,
-        BreathVca,
-        FilterType,
-        Count
-    };
+    enum class Control { PitchBend, Modulation, Breath, Volume, Glissando, Count };
     cs01::ParameterState& parameters;
     void updateParameter(Control control, float normalizedValue);
 

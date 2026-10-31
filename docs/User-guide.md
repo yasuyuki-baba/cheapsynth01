@@ -23,6 +23,12 @@ still-held key, or starts the normal release when no keys remain.
 Stopping DAW transport alone does not stop
 a held note. See [MIDI assignments and panic messages](MIDI-Implementation.md).
 
+Direct MIDI control is limited to playing and performance expression. Change
+sound-design parameters such as Cutoff, Resonance, EG times, waveform and filter
+model using the UI or DAW automation. Use DAW-side mapping to assign external
+knobs; panel parameters have no fixed CC assignments. The standalone application
+uses the same MIDI scope and has no MIDI Learn.
+
 ## Keyboard and Controls
 
 Enable **KEYBOARD + MONITOR** to display the keyboard, output scope and

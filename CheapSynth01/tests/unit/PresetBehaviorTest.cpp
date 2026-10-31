@@ -798,12 +798,13 @@ TEST_F(PresetBehaviorTest, SessionRestoresSelectedProgramAndWaveWhileKeepingPerf
 TEST_F(PresetBehaviorTest, SessionSavedImmediatelyAfterMidiEditIncludesItsNewValue) {
     SynthEngine engine(state);
     engine.prepare(48000);
-    engine.handleMidi({0xb0, 73, 100});
-    const float changed = state.get(Param::Attack);
+    engine.handleMidi({0xb0, 7, 100});
+    const float changed = state.get(Param::Volume);
+    EXPECT_NEAR(changed, 12800 / 16383.f, 1e-6);
     const auto saved = manager.getStateInformation();
-    state.set(Param::Attack, .001f);
+    state.set(Param::Volume, .1f);
     ASSERT_TRUE(manager.setStateInformation(saved));
-    EXPECT_FLOAT_EQ(state.get(Param::Attack), changed);
+    EXPECT_FLOAT_EQ(state.get(Param::Volume), changed);
 }
 TEST_F(PresetBehaviorTest, SessionRestoresAllRoutesAndResetSerialWithoutSerializingHeldNotes) {
     for (int filter : {0, 1})

@@ -26,24 +26,7 @@
 | 2/34 | Breath Control | 14-bit | 0-16383 | MSB/LSB; maximum with Channel Pressure |
 | 5/37 | Glissando | 14-bit | 0-16383 | Portamento Time MSB/LSB; discrete pitch steps |
 | 7/39 | Volume | 14-bit | 0-16383 | MSB/LSB |
-| 9 | VCA EG Depth | 7-bit | 0-127 | |
-| 14 | Wave Type | 7-bit | 0-127 | Stepped (Triangle / Sawtooth / Square / Pulse / PWM) |
-| 15 | Feet | 7-bit | 0-127 | Stepped (32' / 16' / 8' / 4' / WN) |
-| 16 | Fine Pitch | 7-bit | 0-127 | -1 to +1 semitone |
 | 64 | Sustain Pedal | Switch | 0-127 | 0-63 off, 64-127 on; retains released notes |
-| 70 | Sustain Level | 7-bit | 0-127 | |
-| 71 | Resonance | 7-bit | 0-127 | |
-| 72 / 79 | Release | 7-bit | 0-127 | Both CC72 (Sound Controller 3) and CC79 supported |
-| 73 | Attack | 7-bit | 0-127 | |
-| 74 | Cutoff | 7-bit | 0-127 | |
-| 75 | Decay | 7-bit | 0-127 | |
-| 76 | LFO Speed | 7-bit | 0-127 | |
-| 82 | VCF EG Depth | 7-bit | 0-127 | |
-| 85 | PWM Speed | 7-bit | 0-127 | |
-| 88 | LFO Target | 7-bit | 0-127 | Stepped (VCO / VCF) |
-| 89 | Breath VCF | 7-bit | 0-127 | |
-| 90 | Breath VCA | 7-bit | 0-127 | |
-| 91 | Filter Type | 7-bit | 0-127 | Stepped (Original / Modern) |
 | 120 | All Sound Off | — | — | Immediately stops generators/EG and clears residual output state |
 | 121 | Reset All Controllers | — | — | Centers bend, clears modulation/breath/pressure caches, lifts sustain; preserves physically held notes, volume and patch |
 | 123 | All Notes Off | — | — | Releases held keys; honors sustain, otherwise starts normal release |
@@ -53,7 +36,16 @@
 - Monophonic voice management (highest note priority)
 - 14-bit CC uses MSB/LSB pair for high precision control
 - All parameters update in real-time
-- Panel CC assignments are fixed. CC91 normally means Effect 1 (reverb) send in general-purpose MIDI data; here it selects Filter Type. Filter these messages upstream when playing such files to avoid unintended model changes.
+- Direct MIDI control is limited to performance inputs and controller reset/panic. Sound-design controls are exposed through the UI and host automation; use DAW-side mapping for external knobs. The standalone application has the same MIDI scope and does not provide MIDI Learn.
+- All CCs not listed above are ignored. In particular, CC88 and CC91 do not change LFO Target or Filter Type.
+
+## Compatibility change
+
+The former panel mappings for CC9, 14, 15, 16, 70, 71, 72, 73, 74, 75, 76, 79,
+82, 85, 88, 89, 90 and 91 have been removed. Older MIDI clips or controllers using
+these assignments no longer change sound parameters. Recreate those operations
+with host automation or DAW-side mapping when needed. Parameter IDs, UI controls,
+preset/session values and host automation mappings are unchanged.
 
 ## Panic and lifecycle behavior
 - Channel messages currently control the single shared monophonic voice; there is no per-channel voice allocation.
