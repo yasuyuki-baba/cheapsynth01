@@ -16,8 +16,11 @@ saved by the standalone host for the next launch.
 
 All MIDI channels feed the same voice. When several notes are held, the highest
 note sounds; overlapping notes retain the envelope gate. Releasing the highest
-note returns to the highest remaining note. Velocity does not change volume,
-and the sustain pedal is unsupported. Stopping DAW transport alone does not stop
+note returns to the highest remaining note. Velocity does not change volume.
+The sustain pedal (CC64) retains released notes and their envelope gate. Highest-note
+priority includes pedal-retained notes. Lifting the pedal returns to the highest
+still-held key, or starts the normal release when no keys remain.
+Stopping DAW transport alone does not stop
 a held note. See [MIDI assignments and panic messages](MIDI-Implementation.md).
 
 ## Keyboard and Controls

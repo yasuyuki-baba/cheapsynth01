@@ -14,9 +14,9 @@ T frozenMap(T value, T low, T high) {
     return low + value * (high - low);
 }
 
-// Captured from repository commit 1cbbdd7 (before this refactor).
-// Frozen production DSP before the naming/stage refactor. Test oracle only.
-// Keep arithmetic unchanged; do not update this alongside production DSP.
+// Arithmetic oracle captured at 1cbbdd7 and amended for the intentional
+// nonlinear sound change at 0b342641; not a pristine pre-change sound reference.
+// Keep arithmetic unchanged. Fixed spectral baselines live in SignalPathTest.
 
 // IG02610-inspired behavioral model. The TPT state-variable topology and
 // nonlinear feedback are numerical/behavioral choices, not an IC reconstruction.

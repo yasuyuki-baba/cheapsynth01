@@ -9,7 +9,8 @@ with a physical Yamaha instrument.
 ## Signal path
 
 [SynthEngine](../CheapSynth01/core/SynthEngine.cpp) owns LFO, EG, VCO, both VCF models, VCA
-and the output converter. Each host frame advances four internal samples:
+and the output converter. Each host frame advances the selected oversampling
+factor's internal samples (four by default):
 LFO/EG → VCO → selected VCF → VCA → FIR output converter. MIDI events are
 applied before their host frame. The selected LFO route targets pitch or filter;
 EG independently feeds both filter and amplifier modulation.
@@ -77,8 +78,13 @@ The resonance feedback uses a fourth-power mapping with a conservative maximum
 to avoid modeled self-oscillation. The CS-01II drawing identifies IG05630, but
 its internal topology and physical resonance behavior are unresolved.
 
-Both wrappers smooth VCF EG depth over 5 ms and apply parameter/modulation routing and shared empirical coupling
-stages. The filter models are product sound choices. Related PS-series evidence
+Both wrappers smooth VCF EG depth with a linear ramp over
+`floor(internalSampleRate * 0.005)` samples, not a one-pole exponential smoother.
+Retargeting starts a new ramp from the current value. Filter `reset()` preserves
+the modulation ramp; `prepare()` initializes it to the current parameter value.
+A preset's new depth becomes a ramp target on the next processed sample unless
+the processor is re-prepared. The filter models are product sound choices.
+Related PS-series evidence
 and secondary reverse-engineering interpretations are catalogued in
 [the source catalog](hardware/Source-catalog.md); related parts do not establish
 CS-01 component values or internal topology.
@@ -102,6 +108,23 @@ signal-path equations, MIDI boundaries, source/release timelines, live edits,
 finite output, allocation-free portable paths, state and presets. The small
 `CheapSynth01/tests/reference/` fixtures support current regression assertions.
 Observational measurements describe their build and conditions.
+
+`SignalPathTest.FilterSpectrumMatchesFixedProductSoundBaseline` stores independent
+numeric baselines captured at ff9245a for both raw IC models: DC, RMS, fundamental,
+second/third projections and selected folded bins. A 12 kHz cutoff, one-second
+settling period and one-second integer-Hz measurement window define the stimulus.
+The baseline covers driven 500 Hz at 44.1/48/96 kHz and 100 Hz small-signal plus
+5/10 kHz driven inputs at 48 kHz, with 0.05% relative / 1e-9 absolute tolerances.
+Do not regenerate these constants merely to make a DSP edit pass: intentional
+sound changes need an explained baseline revision and before/after measurements.
+
+`Observation_FilterSpectrumAndFoldedBins` expands the same measurement to all
+three rates and two resonance settings. A projection above Nyquist is a folded
+component, not an independent physical harmonic. Selected bins are alias probes,
+not total alias power or THD. These tests isolate the raw nonlinear models without
+the engine's oversampling or VCA high-pass/DC removal; raw DC is not final-output
+DC, and raw folded-bin levels do not establish plugin-output alias audibility.
+Neither these baselines nor the arithmetic references prove hardware fidelity.
 
 Native host/editor/device validation remains listed in
 [the validation status](iPlug2-migration-plan.md). Passing core tests does not
