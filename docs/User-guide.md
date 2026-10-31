@@ -3,8 +3,8 @@
 CheapSynth01 plays one note at a time. Launch the standalone application or load
 VST3/CLAP (Windows/macOS) or AUv2 (macOS) on an instrument track in your DAW.
 For building the current products, see [CONTRIBUTING.md](../CONTRIBUTING.md).
-Native host, editor and device verification for the iPlug2 migration is still
-pending; see [migration status](iPlug2-migration-plan.md).
+Native host, editor and device verification is still
+pending; see [native validation status](iPlug2-migration-plan.md).
 
 ## Audio and MIDI Setup
 
@@ -77,7 +77,7 @@ Use **OVERSAMPLING** at the bottom right of the panel to select **OFF (1x), 2x,
 4x, 8x or 16x**. The default is **4x**. The same selection applies to playback
 and export, so exporting does not automatically change the sound. Higher factors
 can reduce aliasing but use more CPU. The selection is saved with the project
-and does not change when loading or saving a sound preset. Older projects without
+and does not change when loading or saving a sound preset. Projects without
 this setting restore at 4x. All factors, including OFF, retain 16 host samples
 of reported latency. Changing factors preserves held notes and envelope timing;
 the filter state settles through a short transition.
@@ -132,11 +132,11 @@ controls. See [host presets and state](iPlug2-host-integration.md).
 | DAW session save/restore | Stored and restored | Stored and restored | Omitted; current values retained | Not stored; restoration clears held notes |
 
 Breath sensitivity is a sound control; Breath Input is a live performance value.
-Saved XML uses `schema="1"`; XML without a schema remains supported as legacy
-format. Unsupported or malformed schema values are rejected before changing any
+Saved XML uses `schema="1"`; XML without a schema is also supported.
+Unsupported or malformed schema values are rejected before changing any
 state. Missing saved controls restore their initialization defaults rather than
-values from the previous sound. In particular, legacy factory presets restore
-bend ranges to 12 semitones up and 0 down. Preset loading still retains Volume,
+values from the previous sound. Missing bend ranges default to
+12 semitones up and 0 down. Preset loading retains Volume,
 Oversampling and live performance values; session restoration retains only live
 performance values and defaults missing Volume and Oversampling to 0.7 and 4x.
 
@@ -162,17 +162,15 @@ tags are free text; they do not change the sound.
 
 Every new user preset receives a UUID v4 ID. **Save As** copies the descriptive
 metadata and assigns a new ID; overwrite and rename retain the existing ID.
-Legacy user files without an ID receive one on their first save. Factory XML
+User files without an ID receive one on their first save. Factory XML
 contains fixed IDs, which must remain unchanged when a factory file is renamed.
 Session restoration looks up a unique ID before the filename, so renaming a
 file retains its identity. IDs are opaque strings, not paths. If duplicate IDs
 exist (for example after copying a file outside the app), a matching filename is
-required; an ambiguous ID never selects an arbitrary copy. Old sessions without
-IDs still use filenames or the legacy program index.
+required; an ambiguous ID never selects an arbitrary copy. Sessions without
+IDs use filenames or the saved program index.
 
-MIDI Program Change messages are ignored. Current XML presets remain supported,
-but JUCE-era DAW projects, automation and binary state are outside the migration
-scope. See [migration notes](iPlug2-migration.md).
+MIDI Program Change messages are ignored.
 
 ## If There Is No Sound
 
@@ -189,7 +187,7 @@ selecting a sound does not move those performance controls.
 ## Host Parameter Interaction
 
 Parameters have VCO, VCF, VCA, EG, LFO and Performance groups for hosts that display
-parameter groups. Their IDs and order remain unchanged. Attack, Decay and Release
+parameter groups. Their IDs and order are fixed. Attack, Decay and Release
 are displayed and entered in milliseconds; Glissando uses milliseconds per
 semitone. The DSP and XML preset/session values remain in seconds. EG times are RC time
 constants, with an assumed 10% midpoint A taper. Decay and Release settle after

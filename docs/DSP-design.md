@@ -93,18 +93,16 @@ recorded components from those approximations. EG depth is smoothed over 5 ms.
 
 The output converter uses a 129-tap Blackman-windowed linear-phase FIR at 4x,
 with cutoff at 90% of host Nyquist. Its delay is 16 host samples, reported to
-the host. No fixed envelope offset is added. This converter differs from the
-previous JUCE IIR converter; identical old audio or phase response is not promised.
+the host. No fixed envelope offset is added.
 
 ## Verification
 
 [Active tests](../CheapSynth01/tests/README.md) cover numerical model references, independent
 signal-path equations, MIDI boundaries, source/release timelines, live edits,
 finite output, allocation-free portable paths, state and presets. The small
-`CheapSynth01/tests/reference/` fixtures support current regression assertions without a
-JUCE dependency. Observational measurements describe their build and conditions.
+`CheapSynth01/tests/reference/` fixtures support current regression assertions.
+Observational measurements describe their build and conditions.
 
 Native host/editor/device validation remains listed in
 [the validation status](iPlug2-migration-plan.md). Passing core tests does not
 establish SDK callback behavior, DAW compatibility or hardware calibration.
-Historical implementations and measurement records remain available in Git.

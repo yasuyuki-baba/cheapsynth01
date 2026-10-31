@@ -1,7 +1,6 @@
 # EG RC timing in iPlug2
 
-The former arbitrary 1 ms–2 s mapping cut the zero-sustain Clavinet and Synth Bass
-sounds off too quickly. Attack, Decay and Release now store an RC time constant
+Attack, Decay and Release store an RC time constant
 in seconds. DSP, native host automation, editor controls and MIDI share this mapping.
 
 Assume a generic A taper with 10% of the 2 MΩ resistance at half travel:
@@ -26,13 +25,11 @@ Time edits preserve level, target and threshold; retriggers retain residual char
 A zero-level release still clocks the independent VCA note gate. The host tail
 covers the maximum release, approximately 40.56 s, plus output latency.
 
-The six manual factory presets retain their panel positions. Clavinet's Decay
+The six manual factory presets use their documented panel positions. Clavinet's Decay
 position 0.2 gives tau ≈81.4 ms (settling ≈750 ms); Synth Bass's position 0.3
-gives tau ≈154.5 ms (settling ≈1.42 s). Default retains its 100 ms tau values.
-Parameter IDs and ordering are unchanged. Existing XML values retain seconds,
-but their new interpretation as tau changes envelope shape and duration. Values
-outside the new range are clamped. Existing normalized automation changes with
-the new taper; no automatic legacy conversion is provided.
+gives tau ≈154.5 ms (settling ≈1.42 s). Default uses 100 ms tau values.
+XML envelope values represent tau in seconds. Values outside the parameter
+range are clamped. Normalized automation uses the same A-taper mapping.
 
 Verification covers analytical branch durations at five internal sample rates,
 midpoint/endpoints and inverse mapping, live edits/retriggers, independent note

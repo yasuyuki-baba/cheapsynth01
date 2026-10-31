@@ -3,10 +3,8 @@
 #define PLUG_MFR "Yasuyuki Baba"
 #define PLUG_VERSION_HEX 0x00000400
 #define PLUG_VERSION_STR "0.4.0"
-// Retain the identifiers used by the JUCE release.
 #define PLUG_UNIQUE_ID 'CS01'
 #define PLUG_MFR_ID 'BABA'
-// JUCE_VST3_CAN_REPLACE_VST2 was disabled in the previous build.
 #define VST3_PROCESSOR_UID 0xABCDEF01, 0x9182FAEB, PLUG_MFR_ID, PLUG_UNIQUE_ID
 #define VST3_CONTROLLER_UID 0xABCDEF01, 0x1234ABCD, PLUG_MFR_ID, PLUG_UNIQUE_ID
 #define PLUG_URL_STR "https://github.com/yasuyuki-baba/cheapsynth01"

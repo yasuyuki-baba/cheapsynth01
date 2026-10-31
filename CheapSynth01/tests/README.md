@@ -1,7 +1,7 @@
 # Regression tests
 
 The active Google Test suite exercises the framework-independent C++ core.
-Supported test environments are Windows and macOS; no JUCE or audio device is required.
+Supported test environments are Windows and macOS; no audio device is required.
 
 ```sh
 cmake -S . -B build-core -DBUILD_PLUGINS=OFF -DBUILD_TESTING=ON
@@ -21,8 +21,7 @@ Coverage includes MIDI note priority, controller reset and panic, 14-bit CCs,
 source switching during held/releasing notes, event offsets and block partition
 independence, re-preparation, sample-rate/filter/waveform safety, allocation-free
 core rendering, FIR delay/gain/rejection, XML factory/user/session state and
-truncated XML rejection. The two independent filter model suites retain
-their original numerical assertions.
+truncated XML rejection. Two independent filter model suites check numerical behavior.
 
 Native editor interaction, DAW automation, plugin scanning, AU validation and
 host latency compensation still need testing on Windows/macOS.
@@ -40,8 +39,6 @@ editor and device checks.
 free-running source continuity and release/source switching. Preset assertions
 cover same-name overwrite, failed replacement and missing-selected-file fallback.
 `unit/PluginIdentityTest.cpp` guards plugin IDs and parameter index order.
-Compatibility with old JUCE DAW projects, automation and binary state is outside
-scope; XML presets remain supported.
 
 Host-selection core assertions cover latest-valid requests, repeated selection,
 cached user sound, malformed request chunks, pending-session identity, held-note
@@ -76,7 +73,7 @@ opt-in signing command preparation.
 Native compilation and source-archive offline rebuild run in CI. Actual plugin
 loading, DAW/device and interactive UI verification are deferred.
 
-`unit/MidiBehaviorTest.cpp` replaces historical MIDI assertions with an independent
+`unit/MidiBehaviorTest.cpp` uses an independent
 recording generator, a std::set oracle for all 128 keys and actual core audio for
 velocity invariance across all waveforms. It covers every controller's production
 range and fine/coarse pair, CC121 patch preservation, CC120/123 and held EG gates.
@@ -101,8 +98,7 @@ checks render an eight-step sixteenth-note pattern and verify retriggering and s
 Breath Lead checks cover audible output at zero breath and response to a live CC2
 change during a held note.
 Selection and rename preserve edited sound without reloading the preset file.
-Seven filter-model regressions and three separate observations were diffed
-against the frozen main reference; counts and numerical tolerances are retained.
+Seven filter-model regressions check numerical behavior, with three separate observations.
 Observations characterize this build and are not native-host performance gates.
 
 ## Signal-path and timeline checks
@@ -119,7 +115,7 @@ processing; they do not intercept arbitrary SDK malloc or locks.
 spectrum/onset measurements. `unit/OnsetObservationTest.cpp` always renders and
 checks repeated notes/stage transients. Set `CHEAPSYNTH_ONSET_OUTPUT` to an output
 directory to export five mono PCM24 WAVs (48kHz) and five stage CSVs; filenames
-start with `iplug2-` so old comparison exports remain separate. For example:
+start with `iplug2-`. For example:
 
 ```sh
 CHEAPSYNTH_ONSET_OUTPUT=/tmp/cheapsynth-onsets ./run_tests.sh --gtest_filter='OnsetObservationTest.*'
