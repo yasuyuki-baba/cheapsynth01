@@ -1,6 +1,6 @@
 #pragma once
 #include "PluginAPI.h"
-// iPlug2 generates a format-specific bundle ID; retain JUCE's shared macOS ID.
+// iPlug2 generates a format-specific bundle ID; use a shared macOS ID.
 #ifdef OS_MAC
 #undef BUNDLE_ID
 #define BUNDLE_ID "org.github.yasuyukibaba.cheapsynth01"

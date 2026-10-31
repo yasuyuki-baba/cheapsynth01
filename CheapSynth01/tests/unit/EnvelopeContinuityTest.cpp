@@ -209,7 +209,7 @@ TEST(VcaGateTest, GateCorrectionLeavesEgComponentAndOpenGateArithmeticIntact) {
     for (float input : {-.9f, -.1f, .1f, .9f}) {
         for (float envelope : {0.f, .3f, 1.f}) {
             for (float depth : {0.f, .3f, 1.f}) {
-                // Frozen pre-gate gain/saturation expression from the JUCE baseline.
+                // Frozen pre-gate gain/saturation expression.
                 float voltage = (1.f - depth) + envelope * depth;
                 voltage *= (1.f - .4f) + .7f * .4f;
                 float expected = input * (voltage * .8f);

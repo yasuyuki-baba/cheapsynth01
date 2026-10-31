@@ -4,8 +4,7 @@ CheapSynth01 uses iPlug2 on Windows/macOS. Start with the user guide for playing
 and presets, or the development guide for building and testing.
 
 Product documentation lives directly in `docs/`; hardware evidence and technical
-background live in `hardware/`. Earlier implementations, migration ledgers and
-superseded documents are available in Git history.
+background live in `hardware/`.
 
 ## Playing and Presets
 
@@ -33,10 +32,10 @@ superseded documents are available in Git history.
 - [Release archives](iPlug2-release-packaging.md): distribution files, offline
   source rebuild, signing preparation and notarization
 
-## Compatibility and Native Validation
+## Product Specifications and Native Validation
 
 - [0.4.0 release notes](release-notes-0.4.0.md)
-- [Migration notes](iPlug2-migration.md)
+- [Architecture notes](iPlug2-migration.md)
 - [Native validation status](iPlug2-migration-plan.md)
 
 Actual plugin/DAW, native editor and device verification remains pending.

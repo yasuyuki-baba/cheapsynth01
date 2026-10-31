@@ -6,7 +6,7 @@
 #include <string_view>
 
 // Keep the agreed plugin identities and the iPlug2 parameter index manifest
-// stable while changing project layout. Old JUCE automation is out of scope.
+// stable while changing project layout.
 TEST(CompatibilityTest, PluginIdentityAndParameterOrderRemainStable) {
     EXPECT_EQ(std::string_view(PLUG_NAME), "CheapSynth01");
     EXPECT_EQ(static_cast<uint32_t>(PLUG_UNIQUE_ID), 0x43533031u);

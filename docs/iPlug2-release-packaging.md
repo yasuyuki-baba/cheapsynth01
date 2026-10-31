@@ -16,8 +16,7 @@ Before publishing:
    controls, standalone devices and 16-sample latency compensation.
 3. Prepare signed/notarized products when distributing signed builds, and verify
    the resulting archives as described below.
-4. Review the [0.4.0 release notes](release-notes-0.4.0.md), especially old-session
-   incompatibility and changed envelope timing. Update validation status when
+4. Review the [0.4.0 release notes](release-notes-0.4.0.md). Update validation status when
    actual runtime and signing results are available.
 5. Create and push `v0.4.0` at the verified release revision. **Pushing a tag
    triggers CI to publish a GitHub Release automatically** after its checks pass.
@@ -100,4 +99,4 @@ staple build-native/out/CheapSynth01.app`, validate the ticket, then recreate an
 verify the archive so its manifest includes the stapled contents. These commands
 are release hooks, not evidence of a completed signed/notarized release. Validate
 real products and installation before publishing a release; those runtime checks
-are currently deferred. No credentials or release tags are created by this migration.
+are currently deferred. These hooks do not create credentials or release tags.

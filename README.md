@@ -10,6 +10,8 @@ CheapSynth01 is an iPlug2-based software emulation of an early 1980s compact
 monophonic synthesizer. It combines circuit-informed modeling with provisional
 DSP approximations where hardware characteristics remain unresolved.
 
+![CheapSynth01 synthesizer panel](docs/images/cheapsynth01.png)
+
 ## Features
 
 - Five tonal waveforms: Triangle, Sawtooth, Square, Pulse and PWM, plus white noise
@@ -36,7 +38,7 @@ DSP approximations where hardware characteristics remain unresolved.
 | CLAP | Yes | Yes |
 | AUv2 | — | Yes |
 
-Development and CI target Windows and macOS. Linux and LV2 are no longer supported.
+Development and CI target Windows and macOS. Linux and LV2 are not supported.
 
 ## Usage
 
@@ -117,8 +119,8 @@ CMake presets, standalone-only builds and device settings. The project follows
 
 The [test guide](CheapSynth01/tests/README.md) describes DSP, MIDI, presets, concurrency,
 SDK-interface and archive checks. Core tests can run without building a plugin.
-Actual native plugin, editor and device verification is still pending for this
-migration; see [migration status](docs/iPlug2-migration-plan.md).
+Actual native plugin, editor and device verification is still pending;
+see [native validation status](docs/iPlug2-migration-plan.md).
 
 ## Documentation and Circuit Evidence
 
@@ -135,22 +137,16 @@ and hardware investigation material.
 
 Regression tests verify software behavior, not calibration against original
 hardware. Current DSP design and modeling limits are described in
-[the DSP design guide](docs/DSP-design.md). Earlier implementations and records
-are available in Git history.
+[the DSP design guide](docs/DSP-design.md).
 
-## 0.4.0 Migration
+## Product Specifications
 
-See the [0.4.0 release notes](docs/release-notes-0.4.0.md) for changes and upgrade
-considerations.
+See the [0.4.0 release notes](docs/release-notes-0.4.0.md) for product features
+and validation status.
 
-CheapSynth01 0.4.0 uses each format's native parameter IDs and current XML state.
-Loading DAW projects, automation or binary state from earlier versions is outside the migration
-scope. Plugin identities and the macOS bundle ID remain unchanged. XML presets can
-still be imported and exported.
-
-The FIR converter's high-frequency response and phase differ from the previous
-IIR converter, so identical audio output is not promised. See the
-[migration notes](docs/iPlug2-migration.md) for the current architecture and scope.
+CheapSynth01 uses each format's native parameter IDs and XML state.
+XML presets can be imported and exported. See the
+[architecture notes](docs/iPlug2-migration.md) for implementation details.
 
 ## License
 
