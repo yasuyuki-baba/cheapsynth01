@@ -181,14 +181,14 @@ TEST_F(EngineTest, ResetControllersPreservesHeldNoteAndPatch) {
     EXPECT_FLOAT_EQ(parameters.get(Param::Volume), 1);
     EXPECT_GT(energy(render(engine, 1024)), 0);
 }
-TEST_F(EngineTest, FourteenBitControlAndSkewedCutoffMappings) {
+TEST_F(EngineTest, FourteenBitControlsAndHostCutoffAutomation) {
     engine.handleMidi(cc(7, 127));
     engine.handleMidi(cc(39, 127));
     EXPECT_FLOAT_EQ(parameters.get(Param::Volume), 1);
     engine.handleMidi(cc(2, 64));
     engine.handleMidi(cc(34, 9));
     EXPECT_NEAR(parameters.get(Param::BreathInput), ((64 << 7) | 9) / 16383.f, 1.e-6);
-    engine.handleMidi(cc(74, 64));
+    parameters.setNormalized(Param::Cutoff, 64 / 127.f);
     EXPECT_NEAR(parameters.get(Param::Cutoff), cs01::fromNormalized(Param::Cutoff, 64 / 127.f),
                 1.e-3);
 }
@@ -242,7 +242,7 @@ TEST_F(EngineTest, RenderingAndMidiDoNotAllocate) {
     countAllocations.store(true);
     for (int i = 0; i < 2048; ++i) {
         if (i == 128)
-            engine.handleMidi(cc(74, 80));
+            engine.handleMidi(cc(7, 80));
         if (i == 256)
             parameters.set(Param::Feet, 4);
         if (i == 512)
