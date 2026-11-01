@@ -38,7 +38,7 @@ DSP approximations where hardware characteristics remain unresolved.
 | CLAP | Yes | Yes |
 | AUv2 | — | Yes |
 
-Development and CI target Windows and macOS. Linux and LV2 are not supported.
+Development and CI target Windows and macOS.
 
 ## Usage
 
