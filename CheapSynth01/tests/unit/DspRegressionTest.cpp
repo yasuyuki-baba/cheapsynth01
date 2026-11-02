@@ -4,6 +4,7 @@
 #include "cs01synth/VCFCouplingStages.h"
 #include "cs01synth/LFOProcessor.h"
 #include "cs01synth/ModernVCFProcessor.h"
+#include "cs01synth/OriginalVCFProcessor.h"
 #include "cs01synth/NoiseGenerator.h"
 #include "cs01synth/ToneGenerator.h"
 #include "cs01synth/CS01IIVCFCircuit.h"
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <complex>
 #include <limits>
 #include <numbers>
 #include <vector>
@@ -107,13 +109,172 @@ double modernGain(double rate, double frequency, float resonance, float envelope
     return std::sqrt(energy / 8192) / (.1 / std::sqrt(2.));
 }
 }  // namespace
+TEST(OriginalFilterRegressionTest, SmallSignalMatchesIndependentUnitDcTwoPoleTransfer) {
+    for (double rate : {44100., 48000., 192000.})
+        for (float resonance : {0.f, .2f, .45f, .7f, 1.f})
+            for (double hz : {50., 250., 500., 1000., 2000., 4000.}) {
+                SCOPED_TRACE(rate);
+                SCOPED_TRACE(resonance);
+                SCOPED_TRACE(hz);
+                IG02610BehavioralModel filter;
+                filter.prepare(rate);
+                double sine = 0, cosine = 0;
+                for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
+                    const double phase = 2 * std::numbers::pi * hz * i / rate;
+                    const double output = filter.processSample(
+                        static_cast<float>(.0001 * std::sin(phase)), 1000, resonance);
+                    ASSERT_TRUE(std::isfinite(output));
+                    if (i >= rate) {
+                        sine += output * std::sin(phase);
+                        cosine += output * std::cos(phase);
+                    }
+                }
+                const double position = std::clamp(
+                    (double(resonance) - double(.2f)) / (double(.7f) - double(.2f)), 0.0, 1.0);
+                const double damping = 2 + position * (.625 - 2);
+                const std::complex<double> p{0, std::tan(std::numbers::pi * hz / rate) /
+                                                    std::tan(std::numbers::pi * 1000 / rate)};
+                const double expected = 1 / std::abs(p * p + damping * p + 1.);
+                const double measured = 2 * std::hypot(sine, cosine) / rate / .0001;
+                EXPECT_NEAR(measured, expected, expected * 2e-5 + 1e-9);
+            }
+}
+TEST(OriginalFilterRegressionTest, BothResonanceStatesHaveSameDcGainAndInputLimiting) {
+    for (double rate : {44100., 48000., 192000.})
+        for (float resonance : {.2f, .7f})
+            for (float input : {.001f, .1f, -.4f}) {
+                IG02610BehavioralModel filter;
+                filter.prepare(rate);
+                float output = 0;
+                for (int i = 0; i < static_cast<int>(rate); ++i)
+                    output = filter.processSample(input, 1000, resonance);
+                const double shaped =
+                    input - std::min(0., double(input) + double(.2f)) * double(.35f);
+                EXPECT_NEAR(output, std::tanh(2 * shaped) / 2, 2e-8);
+            }
+}
+TEST(OriginalFilterRegressionTest, LowIsMonotonicAndHighHasModerateResonance) {
+    const auto measure = [](double frequency, float resonance) {
+        IG02610BehavioralModel filter;
+        filter.prepare(48000);
+        double energy = 0;
+        for (int i = 0; i < 96000; ++i) {
+            const float value = filter.processSample(
+                static_cast<float>(.0001 * std::sin(2 * std::numbers::pi * frequency * i / 48000)),
+                1000, resonance);
+            if (i >= 48000)
+                energy += double(value) * value;
+        }
+        return std::sqrt(energy / 48000) / (.0001 / std::sqrt(2.));
+    };
+    double previous = 1;
+    for (double hz : {50., 100., 250., 500., 1000., 2000., 4000.}) {
+        const double current = measure(hz, .2f);
+        EXPECT_LT(current, previous);
+        previous = current;
+    }
+    const double peakHz =
+        48000 / std::numbers::pi *
+        std::atan(std::tan(std::numbers::pi * 1000 / 48000) * std::sqrt(1 - 1 / (2 * 1.6 * 1.6)));
+    EXPECT_NEAR(20 * std::log10(measure(peakHz, .7f)), 4.528, .01);
+    EXPECT_NEAR(measure(1000, .2f), .5, 1e-5);
+    EXPECT_NEAR(measure(1000, .7f), 1.6, 1e-5);
+}
+TEST(OriginalFilterRegressionTest, PanelThresholdRetainsExactlyTwoStates) {
+    for (bool high : {false, true}) {
+        cs01::ParameterState state;
+        state.set(Param::Cutoff, 1000);
+        state.set(Param::Resonance, high ? 1 : 0);
+        OriginalVCFProcessor filter(state);
+        filter.prepare(48000);
+        CS01VCFCircuit reference;
+        reference.prepare(48000);
+        reference.setCutoffFrequency(1000);
+        reference.setResonance(high ? .7f : .2f);
+        const std::array lowValues{0.f, .2f, .4999f};
+        const std::array highValues{.5f, .7f, 1.f};
+        for (int i = 0; i < 8192; ++i) {
+            state.set(Param::Resonance, (high ? highValues : lowValues)[i % 3]);
+            const float input = .3f * std::sin(i * .13f);
+            EXPECT_FLOAT_EQ(filter.processSample(input, 0, 0), reference.processSample(0, input));
+        }
+    }
+}
+TEST(OriginalFilterRegressionTest, DrivenModulationResetAndDecayRemainBounded) {
+    for (double rate : {44100., 48000., 192000., 768000.}) {
+        IG02610BehavioralModel filter;
+        filter.prepare(rate);
+        for (int i = 0; i < static_cast<int>(rate / 4); ++i) {
+            const float output = filter.processSample(4 * std::sin(i * .1f), i % 2 ? 20000.f : 20.f,
+                                                      (i / 127) % 2 ? .7f : .2f);
+            ASSERT_TRUE(std::isfinite(output));
+            ASSERT_LE(std::abs(output), 1.5f);
+        }
+        filter.reset();
+        for (int i = 0; i < 1024; ++i)
+            EXPECT_EQ(filter.processSample(0, 1000, .7f), 0);
+        filter.processSample(.5f, 450, .7f);
+        float output = 0;
+        for (int i = 0; i < static_cast<int>(rate); ++i)
+            output = filter.processSample(0, 450, .7f);
+        EXPECT_LT(std::abs(output), 1e-12);
+    }
+}
 TEST(ModernFilterRegressionTest, FourPoleResponseAndFiniteResonance) {
     for (double rate : {44100., 48000., 96000.}) {
         SCOPED_TRACE(rate);
-        EXPECT_NEAR(modernGain(rate, 100, 0), 1, .02);
-        EXPECT_NEAR(modernGain(rate, 1000, 0), 1 / std::sqrt(2.), .02);
-        EXPECT_LT(modernGain(rate, 4000, 0) / modernGain(rate, 2000, 0), .075);
+        EXPECT_NEAR(modernGain(rate, 100, 0), .98, .02);
+        EXPECT_NEAR(modernGain(rate, 1000, 0), 1 / (82. / 15 - 2), .01);
+        EXPECT_LT(modernGain(rate, 8000, 0) / modernGain(rate, 4000, 0), .08);
         EXPECT_GT(modernGain(rate, 1000, 1), modernGain(rate, 1000, 0));
+    }
+}
+TEST(ModernFilterRegressionTest, SmallSignalMatchesIndependentFourIntegratorTransfer) {
+    for (double rate : {44100., 48000., 192000.})
+        for (float resonance : {0.f, .25f, .5f, .75f, 1.f})
+            for (double hz : {50., 250., 500., 1000., 2000., 4000.}) {
+                SCOPED_TRACE(rate);
+                SCOPED_TRACE(resonance);
+                SCOPED_TRACE(hz);
+                IG05630BehavioralModel filter;
+                filter.prepare(rate);
+                filter.setCutoffFrequency(1000);
+                filter.setResonance(resonance);
+                double sine = 0, cosine = 0;
+                for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
+                    const double phase = 2 * std::numbers::pi * hz * i / rate;
+                    const double output =
+                        filter.processSample(static_cast<float>(.0001 * std::sin(phase)));
+                    ASSERT_TRUE(std::isfinite(output));
+                    if (i >= rate) {
+                        sine += output * std::sin(phase);
+                        cosine += output * std::cos(phase);
+                    }
+                }
+                // Bilinear frequency substitution, independent of the state update.
+                const std::complex<double> p{0, std::tan(std::numbers::pi * hz / rate) /
+                                                    std::tan(std::numbers::pi * 1000 / rate)};
+                const auto denominator = std::pow(p, 4) + (82. / 22) * std::pow(p, 3) +
+                                         (82. / 15) * p * p + (82. / 22) * p + 1. + 3.2 * resonance;
+                const double expected = 1 / std::abs(denominator);
+                const double measured = 2 * std::hypot(sine, cosine) / rate / .0001;
+                EXPECT_NEAR(measured, expected, expected * 2e-5 + 1e-9);
+            }
+}
+TEST(ModernFilterRegressionTest, ContinuousResonanceReducesDcWithProvisionalLinearLaw) {
+    double previous = 1;
+    for (float resonance : {0.f, .25f, .5f, .75f, 1.f}) {
+        IG05630BehavioralModel filter;
+        filter.prepare(48000);
+        filter.setCutoffFrequency(1000);
+        filter.setResonance(resonance);
+        float output = 0;
+        for (int i = 0; i < 48000; ++i)
+            output = filter.processSample(.001f);
+        const double expected = std::tanh(double(.001f) * 2) / 2 / (1 + 3.2 * resonance);
+        EXPECT_NEAR(output, expected, 1e-10);
+        EXPECT_LT(output, previous);
+        previous = output;
     }
 }
 TEST(ModernFilterRegressionTest, EgLfoAndBreathDepthAreIndependentAndRaiseCutoff) {
@@ -158,6 +319,28 @@ TEST(ModernFilterRegressionTest, NonFiniteInputCannotPoisonFollowingSamples) {
         EXPECT_TRUE(std::isfinite(circuit.processSample(0, value)));
         for (int i = 0; i < 256; ++i)
             ASSERT_TRUE(std::isfinite(circuit.processSample(0, .1f)));
+    }
+}
+TEST(ModernFilterRegressionTest, ExtremeModulationSettlesBackToSilence) {
+    for (double rate : {44100., 48000., 192000., 768000.}) {
+        SCOPED_TRACE(rate);
+        IG05630BehavioralModel filter;
+        filter.prepare(rate);
+        for (int i = 0; i < 100000; ++i) {
+            filter.setCutoffFrequency(i & 1 ? 20.f : static_cast<float>(rate * .45));
+            filter.setResonance(static_cast<float>(i % 17) / 16);
+            ASSERT_TRUE(std::isfinite(filter.processSample(4.f * std::sin(i * .19f))));
+        }
+        filter.setCutoffFrequency(1000);
+        filter.setResonance(1);
+        double lateEnergy = 0;
+        for (int i = 0; i < static_cast<int>(rate); ++i) {
+            const float output = filter.processSample(0);
+            ASSERT_TRUE(std::isfinite(output));
+            if (i >= rate * .75)
+                lateEnergy += double(output) * output;
+        }
+        EXPECT_LT(std::sqrt(lateEnergy / (rate * .25)), 1e-5);
     }
 }
 TEST(NoiseRegressionTest, ReleaseDeadlineAndImmediateStopAtEveryRate) {

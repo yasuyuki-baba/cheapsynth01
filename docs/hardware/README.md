@@ -17,6 +17,7 @@ Use [the DSP design guide](../DSP-design.md) for current software models and
 - [EG model audit](EG-model-audit.md): circuit transcription and conditional equations
 - [Glissando circuit audit](Glissando-circuit-audit.md): wiring evidence and control hypotheses
 - [Low-frequency circuit audit](Low-frequency-circuit-audit.md): coupling stages and empirical approximations
+- [IG05630 external-network investigation](Circuit-evidence-status.md#ig05630-external-network-investigation-2026-11-02): corrected CS-01II connections, conditional equations and reference-plugin comparison
 - [TC7476BP investigation](TC7476BP-online-investigation.md): logic-device evidence and source limitations
 
 The conditional EG equation checks are maintained in

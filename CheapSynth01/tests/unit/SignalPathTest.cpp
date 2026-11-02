@@ -73,16 +73,11 @@ std::vector<float> original(float egDepth, float eg, float modDepth, float lfo,
 }
 }  // namespace
 
-TEST(SignalPathTest, BehavioralModelsMatchFrozenArithmeticIncludingSafetyExactly) {
+TEST(SignalPathTest, OriginalResetIsDeterministicIncludingSafety) {
     for (double rate : {44100., 48000., 96000., 192000.}) {
         IG02610BehavioralModel original;
-        BeforeIG02610 beforeOriginal;
-        IG05630BehavioralModel modern;
-        BeforeIG05630 beforeModern;
         original.prepare(rate);
-        beforeOriginal.prepare(rate);
-        modern.prepare(rate);
-        beforeModern.prepare(rate);
+        std::vector<float> first;
         for (int pass = 0; pass < 2; ++pass) {
             for (int i = 0; i < 8192; ++i) {
                 float cutoff = 20.f + static_cast<float>(i * 37 % 19980);
@@ -91,24 +86,33 @@ TEST(SignalPathTest, BehavioralModelsMatchFrozenArithmeticIncludingSafetyExactly
                               : i == 20 ? std::numeric_limits<float>::infinity()
                               : i == 30 ? std::numeric_limits<float>::max()
                                         : stimulus(i);
-                // Independent arithmetic references include the intentional 0b342641 sound edit.
-                modern.setCutoffFrequency(cutoff);
-                beforeModern.setCutoffFrequency(cutoff);
-                modern.setResonance(resonance);
-                beforeModern.setResonance(resonance);
-                EXPECT_EQ(std::bit_cast<uint32_t>(modern.processSample(input)),
-                          std::bit_cast<uint32_t>(beforeModern.processSample(input)))
-                    << i;
-                EXPECT_EQ(
-                    std::bit_cast<uint32_t>(original.processSample(input, cutoff, resonance)),
-                    std::bit_cast<uint32_t>(beforeOriginal.processSample(input, cutoff, resonance)))
-                    << i;
+                const float output = original.processSample(input, cutoff, resonance);
+                ASSERT_TRUE(std::isfinite(output));
+                EXPECT_LE(std::abs(output), 1.5f);
+                if (pass == 0)
+                    first.push_back(output);
+                else
+                    EXPECT_EQ(std::bit_cast<uint32_t>(output), std::bit_cast<uint32_t>(first[i]));
             }
             original.reset();
-            beforeOriginal.reset();
-            modern.reset();
-            beforeModern.reset();
         }
+    }
+}
+TEST(SignalPathTest, OriginalReplacementIntentionallyRemovesHistoricalDcLoss) {
+    for (float resonance : {.2f, .7f}) {
+        IG02610BehavioralModel original;
+        BeforeIG02610 historical;
+        original.prepare(48000);
+        historical.prepare(48000);
+        float current = 0, before = 0;
+        for (int i = 0; i < 48000; ++i) {
+            current = original.processSample(.0001f, 1000, resonance);
+            before = historical.processSample(.0001f, 1000, resonance);
+        }
+        EXPECT_NEAR(current / .0001, 1, 1e-6);
+        const double damping = double(1.25f) + resonance * (double(.12f) - double(1.25f));
+        EXPECT_NEAR(before / .0001, 1 / (1 + damping), 1e-6);
+        EXPECT_GT(current, before * 1.4);
     }
 }
 TEST(SignalPathTest, OriginalBreathDepthIndependenceAndControlDirection) {
@@ -308,10 +312,10 @@ TEST(SignalPathTest, FirInternalRateSignalRetainsFundamentalAndRejectsFoldedTone
             }
 }
 
-TEST(SignalPathTest, ModernWrapperMatchesFrozenCircuitArithmeticAndReset) {
+TEST(SignalPathTest, ModernWrapperMatchesRawModelAndReset) {
     for (double rate : {44100., 48000., 96000., 192000.}) {
         CS01IIVCFCircuit actual;
-        BeforeIG05630 before;
+        IG05630BehavioralModel before;
         actual.prepare(rate);
         before.prepare(rate);
         for (int pass = 0; pass < 2; ++pass) {
@@ -329,6 +333,20 @@ TEST(SignalPathTest, ModernWrapperMatchesFrozenCircuitArithmeticAndReset) {
             before.reset();
         }
     }
+}
+TEST(SignalPathTest, ModernReplacementIntentionallyChangesHistoricalResponse) {
+    IG05630BehavioralModel modern;
+    BeforeIG05630 historical;
+    modern.prepare(48000);
+    historical.prepare(48000);
+    modern.setCutoffFrequency(1000);
+    historical.setCutoffFrequency(1000);
+    const double currentGain = gain(48000, 1000, [&](float x) { return modern.processSample(x); });
+    const double historicalGain =
+        gain(48000, 1000, [&](float x) { return historical.processSample(x); });
+    EXPECT_NEAR(historicalGain, 1 / std::sqrt(2.), .002);
+    EXPECT_NEAR(currentGain, 1 / (82. / 15 - 2), .002);
+    EXPECT_LT(currentGain / historicalGain, .45);
 }
 TEST(SignalPathTest, Observation_OriginalFilterResponseAcrossLevelPeakAndLeakageRanges) {
     const auto measure = [](double rate, float cutoff, bool high, double level, double hz,
@@ -805,7 +823,8 @@ TEST(SignalPathTest, FilterSpectrumMeasurementMatchesKnownSignal) {
 }
 
 TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
-    // Captured at ff9245a: raw IC models, no VCA DC removal or engine oversampling.
+    // Intentional 2026-11-02 Original damping and Modern multi-feedback replacements.
+    // Raw IC models, no VCA DC removal or engine oversampling.
     struct Baseline {
         bool modern;
         double rate, hz;
@@ -814,36 +833,30 @@ TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
         double probe;
     };
     const Baseline baselines[]{
-        {false, 44100, 500, .6f, .8f, {.0115299, .261777, .368879, .0128233, .0230996}, .00326019},
-        {true, 44100, 500, .6f, .8f, {.00944631, .246188, .347218, .0113608, .0184045}, .00218251},
-        {false, 48000, 500, .6f, .8f, {.0115256, .261805, .368916, .0128327, .0231248}, .00327261},
-        {true, 48000, 500, .6f, .8f, {.00944343, .246182, .34721, .011362, .0184008}, .00218173},
-        {false, 96000, 500, .6f, .8f, {.0115279, .261906, .369056, .0128477, .0231881}, .0032922},
-        {true, 96000, 500, .6f, .8f, {.00944046, .246094, .347093, .0113385, .0182988}, .00213779},
-        {false, 48000, 100, .01f, 0, {0, .00314274, .0044445, 0, 8.94737e-9}, 3.47827e-11},
-        {true, 48000, 100, .01f, 0, {0, .00707036, .009999, 0, 3.33299e-7}, 9.08337e-11},
-        {false,
+        {false, 44100, 500, .6f, .8f, {.0169967, .302758, .425059, .0145943, .0417345}, .00878003},
+        {true, 44100, 500, .6f, .8f, {.00477436, .0850613, .11942, .00410244, .0117423}, .00247809},
+        {false, 48000, 500, .6f, .8f, {.0169951, .302788, .425098, .0146026, .04177}, .00880316},
+        {true,
          48000,
-         5000,
+         500,
          .6f,
-         0,
-         {.00230044, .192971, .271859, .00342861, .0233192},
-         2.37219e-5},
-        {true, 48000, 5000, .6f, 0, {.0170318, .300985, .424672, .0136926, .00809005}, 1.57799e-7},
-        {false,
-         48000,
-         10000,
-         .6f,
-         0,
-         {.00739138, .243506, .344144, .00121785, .00524165},
-         .00524165},
+         .8f,
+         {.00477391, .0850718, .119433, .00410511, .0117545},
+         .00248604},
+        {false, 96000, 500, .6f, .8f, {.0169987, .302917, .425263, .0146195, .0419122}, .00888146},
+        {true, 96000, 500, .6f, .8f, {.00477491, .0851165, .11949, .00411136, .0118045}, .00251461},
+        {false, 48000, 100, .01f, 0, {0, .00707006, .00999857, 0, 3.33191e-7}, 4.26812e-11},
+        {true, 48000, 100, .01f, 0, {0, .00706991, .00999837, 0, 3.33096e-7}, 3.66193e-11},
+        {false, 48000, 5000, .6f, 0, {.0170318, .270055, .380827, .00912147, .0127738}, 3.65055e-5},
+        {true, 48000, 5000, .6f, 0, {.0170318, .254436, .358929, .00655509, .00444678}, 1.55288e-7},
+        {false, 48000, 10000, .6f, 0, {.0170631, .18993, .267285, .00097006, .0060453}, .0060453},
         {true,
          48000,
          10000,
          .6f,
          0,
-         {.0170631, .284316, .401232, 7.46432e-5, .00121464},
-         .00121464}};
+         {.0170631, .137038, .192082, 6.71795e-5, .000947669},
+         .000947669}};
     for (const auto& baseline : baselines) {
         SCOPED_TRACE(baseline.modern);
         SCOPED_TRACE(baseline.rate);

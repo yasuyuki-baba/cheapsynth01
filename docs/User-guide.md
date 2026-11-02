@@ -47,6 +47,23 @@ the control to reset. A temporary bubble shows the value and unit during slider
 and knob adjustment. Pitch bend range number boxes support typed editing.
 Filter tabs **I** and **II** select Original and Modern; both use the label **RES**.
 
+Modern now uses a provisional four-integrator, multi-feedback model instead
+of the former Butterworth cascade. Existing Modern presets and saved sessions
+therefore sound different at the same parameter values.
+Resonance grows continuously and also reduces bass level. For Modern, Cutoff
+sets the integrators' natural-frequency scale: at zero resonance the -3 dB
+point is approximately half that value. This is an experimental sound model,
+not a calibrated reproduction of the hardware.
+
+Original now also uses a provisional replacement: Low is non-resonant, while
+High has a moderate resonance peak. Additional lowpass-state feedback has been
+removed, so both settings have the same small-signal DC gain before input
+limiting. Existing Original presets and saved sessions can change in level,
+timbre and peak frequency. There is no automatic volume/cutoff compensation or
+legacy mode; saved parameter values and preset files are unchanged. Cutoff sets
+the two-pole natural-frequency scale, not the High peak frequency. Both filter
+replacements are experimental sound choices, not verified hardware calibration.
+
 The defaults below are parameter initialization values. **Default** restores the
 initial sound controls; factory sounds and saved sessions can set other values.
 Depths and levels use normalized values from 0 to 1.

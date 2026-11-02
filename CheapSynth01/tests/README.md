@@ -129,7 +129,8 @@ Observations characterize this build and are not native-host performance gates.
 
 ## Signal-path and timeline checks
 
-`unit/SignalPathTest.cpp` includes frozen model bit references, VCA analytical
+`unit/SignalPathTest.cpp` includes historical Original DC/Modern response comparisons,
+current filter reset/wrapper checks, VCA analytical
 transfer/precision, Original modulation independence, FIR folded-bin controls and
 settled response observations. `unit/EngineTimelineTest.cpp` checks explicit
 connected routes, source/release/glissando timelines, MIDI boundaries/overflow,
@@ -144,6 +145,14 @@ oversampled rates. Fixed spectrum constants are separate from the amended
 baseline-update policy in [DSP design](../../docs/DSP-design.md).
 Known-signal controls validate DC/RMS/harmonic measurements. The extended
 observation prints raw-filter folded-bin probes, not total alias power.
+The provisional Modern replacement additionally checks an independent
+four-integrator polynomial using the bilinear frequency substitution across
+44.1/48/192 kHz, linear resonance/DC loss, and post-modulation recovery through
+768 kHz. Original's provisional replacement checks an independent unit-DC
+two-pole transfer at 44.1/48/192 kHz, monotonic Low / moderate High, equal DC
+gain, exact panel threshold selection and driven modulation/reset/decay through
+768 kHz. Both filters' fixed spectrum values were intentionally revised for
+these sound changes; the historical arithmetic fixtures are unchanged.
 Queue/engine tests compare pedal-retained audio against physically held audio,
 then compare pedal-off/CC121 at an in-block offset against an ordinary Note Off,
 including both filter models, tone/noise and 44.1/48/96 kHz. Mixed breath inputs
