@@ -14,9 +14,18 @@ cmake --build build-core --config Debug --parallel 2
 ctest --test-dir build-core -C Debug --output-on-failure
 ```
 
-## Desktop products (Windows/macOS)
+## Desktop products
 
-Initialize iPlug2 and its SDKs with Git Bash on Windows or bash on macOS:
+All native platforms use the same iPlug2 submodule from
+[`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
+`dad63b32c0eb9bfee1a01b79404bac2e550795f3`. It includes experimental Linux
+support and local fixes based on
+[iPlug2/iPlug2#1336](https://github.com/iPlug2/iPlug2/pull/1336).
+No compatibility patch or separate Linux checkout is required.
+The commit is fixed by the parent repository, not a moving fork branch.
+
+Initialize iPlug2 and its pinned plugin SDKs with Git Bash on Windows or bash
+on macOS/Linux. Linux also needs the system prerequisites listed below.
 
 ```sh
 bash scripts/setup-iplug2.sh
@@ -26,14 +35,29 @@ ctest --test-dir build-native -C Release --output-on-failure
 ```
 
 Windows requires Visual Studio with C++ desktop tools and Windows SDK; macOS
-requires Xcode command-line tools. The deployment target is macOS 10.15 or
+native products require full Xcode, including `ibtool` for the APP menu resource.
+The Command Line Tools alone are sufficient for core tests, not the APP build.
+If the active developer directory points to Command Line Tools, set
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in the build environment
+to select an installed Xcode without changing the system-wide selection.
+The deployment target is macOS 10.15 or
 newer because user preset/state paths use `std::filesystem`. Add `-DSTANDALONE_ONLY=ON` for an APP-only
 build. `-DIPLUG2_UNIVERSAL=ON` builds Intel/Apple Silicon binaries on macOS.
 Products go into `build-native/out`. Installation is disabled by default; set
 `IPLUG_DEPLOY_PLUGINS=ON` only when you intend to install them.
 
 Supported products are APP, VST3 and CLAP on both platforms, plus AUv2 on macOS.
-Development and CI testing target Windows and macOS.
+CI testing targets Windows and macOS. Switching to this fork also updates the
+SDK on those platforms; revalidate all three platforms before treating the
+shared SDK revision as release-ready.
+
+The shared-submodule migration was checked on macOS on 2026-11-03: APP, VST3,
+CLAP and AUv2 built with the pinned fork, all 274 regression-labelled CTest
+entries passed, and all 15 release-archive/signing-preparation contract tests
+passed. Repeated setup left the submodule clean at the same commit.
+Windows and Linux have not been rerun for this migration; the Linux results
+below are historical, not a substitute for that validation. Native DAW/device
+and interactive editor checks remain separate.
 
 ## Linux (experimental)
 
@@ -46,22 +70,14 @@ cmake --build --preset linux-core
 ctest --preset linux-core
 ```
 
-Native products require an X11-capable iPlug2 checkout. The pinned submodule does
-not provide this backend. The patch baseline is upstream PR #1336,
-commit `03d3c1af13d3456b09df1e94800dc48546f3aaef`, with the included
-`patches/iplug2-linux-pr1336.patch`. The patch reproduces the tracked tree of
-`yasuyuki-baba/iPlug2` commit `dad63b32c0eb9bfee1a01b79404bac2e550795f3`
-(`fix/linux-pr1336-app-build`), including its merged upstream changes. It includes
+The shared pinned submodule provides the X11 backend. It includes
 APP build and startup fixes, editor resizing, idle/host lifecycle synchronization,
 clipboard and dialog handling, resource isolation, path validation, and Linux
-regression tests. The latest update keeps APP and REAPER UI dispatch on the owning
+regression tests. The pinned revision keeps APP and REAPER UI dispatch on the owning
 main loop, defers callback-triggered teardown, adds scaled pointer coordinates and
 XIM UTF-8/Compose input, and validates X11 parents through XCB. It also requires
 explicit Linux OSC polling and rejects unsupported Linux WebView configurations.
-It supersedes the earlier APP-focused compatibility patch.
-Do not apply it to another iPlug2 revision without reviewing the differences.
-The regular `scripts/setup-iplug2.sh` still initializes the pinned Windows/macOS
-submodule, not this external Linux checkout.
+The earlier compatibility patch has been removed in favor of the pinned fork.
 
 For Ubuntu 24.04, install the native development prerequisites:
 
@@ -75,35 +91,21 @@ sudo apt-get install build-essential cmake ninja-build git curl pkg-config pytho
 From the CheapSynth01 repository root, in bash:
 
 ```sh
-git clone --no-checkout https://github.com/iPlug2/iPlug2.git ../iPlug2-linux
-git -C ../iPlug2-linux fetch origin pull/1336/head
-git -C ../iPlug2-linux checkout --detach 03d3c1af13d3456b09df1e94800dc48546f3aaef
-git -C ../iPlug2-linux apply "$PWD/patches/iplug2-linux-pr1336.patch"
-pushd ../iPlug2-linux/Dependencies/IPlug
-bash download-vst3-sdk.sh
-bash download-clap-sdks.sh
-popd
-cmake --preset linux-native -DIPLUG2_DIR="$(realpath ../iPlug2-linux)"
+bash scripts/setup-iplug2.sh
+cmake --preset linux-native
 cmake --build --preset linux-native
 ctest --preset linux-native
 ```
 
-If using an existing checkout of `yasuyuki-baba/iPlug2` at
-`dad63b32c0eb9bfee1a01b79404bac2e550795f3`, skip patch application and pass that
-checkout as `IPLUG2_DIR` instead. For example, with the sibling local checkout:
-
-```sh
-cmake --preset linux-native -DIPLUG2_DIR="$(realpath ../iPlug2)"
-cmake --build --preset linux-native
-ctest --preset linux-native
-```
-
-The external checkout still needs the VST3 and matching CLAP SDKs described above.
-The Windows/macOS submodule and `scripts/setup-iplug2.sh` are unchanged.
+The setup script synchronizes the submodule URL, checks out the pinned revision,
+and fetches fixed VST3/CLAP SDK revisions. It rejects a populated plugin SDK at
+a different revision rather than silently replacing it. When switching branches
+with different submodule pins, rerun setup and use a clean build directory.
+For an existing build that previously set `IPLUG2_DIR` to an external checkout,
+reconfigure it with `-DIPLUG2_DIR="$PWD/iPlug2"` or use a fresh build directory.
 
 Products are written to `build-linux-native/out`, with deployment disabled. The
-`linux-standalone` configure/build/test presets build APP only; pass the same
-external `IPLUG2_DIR` when configuring them. `Xvfb` and `xauth` enable the X11
+`linux-standalone` configure/build/test presets build APP only. `Xvfb` and `xauth` enable the X11
 keyboard-focus and standalone-startup regression tests; without `xvfb-run` those
 tests are not registered. The startup test builds and launches the actual APP.
 GTK3 is an iPlug2/SWELL dependency; the synth does not call GTK directly.
@@ -123,6 +125,12 @@ initialization retain the SDK's existing settings-recovery behavior. User
 presets use `$XDG_DATA_HOME/CheapSynth01/UserPresets`, falling back to
 `~/.local/share/CheapSynth01/UserPresets` if `XDG_DATA_HOME` is unset, empty or
 relative.
+
+### Historical Linux validation
+
+The following runs predate the unified submodule setup and used external
+checkouts or the former compatibility patch. They document their tested SDK
+trees, not a fresh validation of the current application and setup on Linux.
 
 Local validation used Ubuntu 24.04 ARM64, GCC 13.3, Xvfb and Mesa llvmpipe:
 APP/VST3/CLAP builds, APP drawing, preset switching, fader changes, keyboard
@@ -167,8 +175,8 @@ compile errors; using the matching pinned revisions resolved them.
 
 The initial validation also reproduced SIGSEGV (exit 139) when the configuration
 parent did not exist: settings initialization failed, but APP startup continued
-with no audio driver. The compatibility patch now fixes this by creating missing
-ancestors, checking initialization, and rejecting uninitialized audio-device
+with no audio driver. The fixes now included in the pinned fork create missing
+ancestors, check initialization, and reject uninitialized audio-device
 access. Its SWELL INI writer propagates open, buffered-write, close and rename
 errors instead of reporting successful saves; failed writes leave existing
 settings intact and invalidate the in-memory cache.
@@ -180,8 +188,7 @@ paths, unavailable configuration bases, reopen/settings restoration, directory
 and file-write failures, and invalid audio drivers. Successful startup cases use
 `--no-io`; failure cases also exercise ordinary device-enabled startup. The
 existing keyboard-focus test still passes. APP/VST3/CLAP builds and patch
-application against the exact SDK baseline were also checked. Apply the updated
-patch to the clean baseline, not over an older version of the patch.
+application against the exact SDK baseline were also checked.
 
 WSL2 also lacked `/dev/snd/seq`; APP logged ALSA
 sequencer initialization errors but continued running with PC-keyboard audio.
