@@ -1,24 +1,22 @@
 #pragma once
 
+#include <array>
+
 // CS-01II / IG05630-inspired behavioral hypothesis.
-// Four poles, continuous resonant feedback, and bounded nonlinear stages are
-// model choices based on the supplied report, not an internal IC reconstruction.
+// The matched-loading coefficients and resonance law are provisional;
+// this is not a reconstruction of the IC's unknown Vin/VQ circuitry.
 class IG05630BehavioralModel {
    public:
     struct EmpiricalParameters {
-        // Butterworth-aligned section Q values; used as the zero-resonance target.
-        static constexpr float firstSectionQ = 0.5411961f;
-        static constexpr float secondSectionQ = 1.3065630f;
+        // Conditional external-summer model with equal input-node conductance.
+        static constexpr double oddStateFeedback = 82.0 / 22.0;
+        static constexpr double evenStateFeedback = 82.0 / 15.0;
         // Provisional normalized saturation and resonance ranges. Not calibrated.
         static constexpr float inputDrive = 2.0f;
         static constexpr float negativeKneeThreshold = 0.2f;
         static constexpr float negativeClipAmount = 0.35f;
-        static constexpr float feedbackDrive = 1.0f;
-        // Provisional feedback map kept below the model's self-oscillation
-        // threshold. Non-oscillating behavior is a conservative hypothesis,
-        // not a verified property of the hardware.
-        static constexpr float maximumFeedbackGain = 1.2f;
-        static constexpr float resonanceCurve = 4.0f;
+        // Linear feedback remains below b - 2 = 3.4667 in this assumed model.
+        static constexpr double maximumFeedbackGain = 3.2;
         static constexpr float maximumOutput = 1.5f;
     };
 
@@ -29,19 +27,8 @@ class IG05630BehavioralModel {
     float processSample(float sample);
 
    private:
-    struct StateVariableLowpass {
-        float integrator1 = 0.0f;
-        float integrator2 = 0.0f;
-
-        float processSample(float input, float g, float damping);
-        void reset();
-    };
-
     double sampleRate = 44100.0;
     float cutoff = 1000.0f;
-    float resonance = 0.0f;
-    float resonanceFeedbackGain = 0.0f;
-    float feedbackOutput = 0.0f;
-    StateVariableLowpass firstSection;
-    StateVariableLowpass secondSection;
+    double resonanceFeedbackGain = 0.0;
+    std::array<double, 4> integrators{};
 };

@@ -3,32 +3,13 @@
 #include <algorithm>
 #include <cmath>
 
-float IG05630BehavioralModel::StateVariableLowpass::processSample(float input, float g,
-                                                                  float damping) {
-    // TPT SVF with coupled trapezoidal integrators.
-    const float normalization = 1.0f / (1.0f + damping * g + g * g);
-    const float highpass = normalization * (input - integrator1 * (g + damping) - integrator2);
-    const float bandpass = highpass * g + integrator1;
-    integrator1 = highpass * g + bandpass;
-    const float lowpass = bandpass * g + integrator2;
-    integrator2 = bandpass * g + lowpass;
-    return lowpass;
-}
-
-void IG05630BehavioralModel::StateVariableLowpass::reset() {
-    integrator1 = 0.0f;
-    integrator2 = 0.0f;
-}
-
 void IG05630BehavioralModel::prepare(double newSampleRate) {
     sampleRate = std::max(1.0, newSampleRate);
     reset();
 }
 
 void IG05630BehavioralModel::reset() {
-    feedbackOutput = 0.0f;
-    firstSection.reset();
-    secondSection.reset();
+    integrators.fill(0.0);
 }
 
 void IG05630BehavioralModel::setCutoffFrequency(float frequency) {
@@ -37,42 +18,44 @@ void IG05630BehavioralModel::setCutoffFrequency(float frequency) {
 }
 
 void IG05630BehavioralModel::setResonance(float amount) {
-    resonance = std::isfinite(amount) ? std::clamp(amount, 0.0f, 1.0f) : 0.0f;
-    // The fourth-power map is an explicit behavioral hypothesis that makes the
-    // resonance control gradual. Maximum gain is limited to avoid self-oscillation.
-    resonanceFeedbackGain = EmpiricalParameters::maximumFeedbackGain *
-                            std::pow(resonance, EmpiricalParameters::resonanceCurve);
+    const float resonance = std::isfinite(amount) ? std::clamp(amount, 0.0f, 1.0f) : 0.0f;
+    resonanceFeedbackGain =
+        EmpiricalParameters::maximumFeedbackGain * static_cast<double>(resonance);
 }
 
 float IG05630BehavioralModel::processSample(float sample) {
     if (!std::isfinite(sample))
         sample = 0.0f;
 
-    constexpr float pi = 3.14159265358979323846f;
-    const float g = std::tan(pi * cutoff / static_cast<float>(sampleRate));
-    const float firstDamping = 1.0f / EmpiricalParameters::firstSectionQ;
-    const float secondDamping = 1.0f / EmpiricalParameters::secondSectionQ;
+    constexpr double pi = 3.14159265358979323846;
+    const double g = std::tan(pi * cutoff / sampleRate);
+    constexpr double a = EmpiricalParameters::oddStateFeedback;
+    constexpr double b = EmpiricalParameters::evenStateFeedback;
+    const double c = 1.0 + resonanceFeedbackGain;
+    const double excessNegative =
+        std::min(0.0, static_cast<double>(sample) + EmpiricalParameters::negativeKneeThreshold);
+    const double driven = sample - excessNegative * EmpiricalParameters::negativeClipAmount;
+    const double input =
+        std::tanh(driven * EmpiricalParameters::inputDrive) / EmpiricalParameters::inputDrive;
 
-    // The one-sample feedback state keeps this behavioral loop deterministic.
-    // This is an explicit-delay TPT cascade, not a ZDF solution of an IC loop.
-    const float feedback =
-        resonanceFeedbackGain * std::tanh(feedbackOutput * EmpiricalParameters::feedbackDrive);
-    const float driven = sample - feedback;
-    const float excessNegative =
-        std::min(0.0f, driven + EmpiricalParameters::negativeKneeThreshold);
-    const float asymmetricDriven =
-        driven - excessNegative * EmpiricalParameters::negativeClipAmount;
-    const float integratorInput = std::tanh(asymmetricDriven * EmpiricalParameters::inputDrive) /
-                                  EmpiricalParameters::inputDrive;
+    // Solve all four trapezoidal integrators and their weighted feedback together.
+    const double t1 = integrators[0];
+    const double t2 = g * t1 + integrators[1];
+    const double t3 = g * t2 + integrators[2];
+    const double t4 = g * t3 + integrators[3];
+    double state =
+        (input - a * t1 - b * t2 - a * t3 - c * t4) / (1.0 + g * (a + g * (b + g * (a + g * c))));
+    for (double& memory : integrators) {
+        const double output = g * state + memory;
+        memory = 2.0 * output - memory;
+        state = output;
+    }
 
-    const float firstOutput = firstSection.processSample(integratorInput, g, firstDamping);
-    const float output = secondSection.processSample(firstOutput, g, secondDamping);
-    feedbackOutput = output;
-
-    if (!std::isfinite(output)) {
+    if (!std::isfinite(state)) {
         reset();
         return 0.0f;
     }
-    return std::clamp(output, -EmpiricalParameters::maximumOutput,
-                      EmpiricalParameters::maximumOutput);
+    return static_cast<float>(std::clamp(state,
+                                         -static_cast<double>(EmpiricalParameters::maximumOutput),
+                                         static_cast<double>(EmpiricalParameters::maximumOutput)));
 }

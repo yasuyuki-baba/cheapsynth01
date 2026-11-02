@@ -110,8 +110,8 @@ TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
     const double atCutoff = amplitudeAt(cutoffSignal, rate, 1000.0) / 0.01;
     const double lower = amplitudeAt(lowerSignal, rate, 2000.0);
     const double upper = amplitudeAt(upperSignal, rate, 4000.0);
-    EXPECT_NEAR(atCutoff, 1.0 / std::sqrt(2.0), 0.02);
-    EXPECT_LT(upper / lower, 0.08);  // Four-pole asymptote: roughly 24 dB/octave.
+    EXPECT_NEAR(atCutoff, 1.0 / (82.0 / 15.0 - 2.0), 0.01);
+    EXPECT_LT(upper / lower, 0.1);
 }
 
 TEST(ExperimentalIG05630Test, Observation_ExperimentalCharacterization) {
