@@ -25,14 +25,10 @@ class OriginalVCFProcessor : public IFilter {
 
     // Resonance calculation function
     float calculateResonance(float resonanceParam) {
-        // For original filter, use threshold to binarize the value
-        // Treat as High Resonance if value is 0.5 or higher
         if (resonanceParam >= 0.5f) {
-            // High resonance setting - CS01VCFCircuit has max resonance of 0.8f
-            return 0.7f;
+            return IG02610BehavioralModel::EmpiricalParameters::highResonance;
         } else {
-            // Low resonance setting
-            return 0.2f;
+            return IG02610BehavioralModel::EmpiricalParameters::lowResonance;
         }
     }
 };

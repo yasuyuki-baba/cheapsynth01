@@ -4,19 +4,19 @@
 
 #include <cmath>
 
-// IG02610-inspired behavioral model. The TPT state-variable topology and
-// nonlinear feedback are numerical/behavioral choices, not an IC reconstruction.
+// Provisional IG02610-inspired model; topology, Q and input limiting are
+// behavioral choices, not a reconstruction of the IC.
 class IG02610BehavioralModel {
    public:
     struct EmpiricalParameters {
-        // Provisional damping map; replace with measured resonance response.
-        static constexpr float minimumDamping = 0.12f;
-        static constexpr float maximumDamping = 1.25f;
+        static constexpr float lowResonance = 0.2f;
+        static constexpr float highResonance = 0.7f;
+        static constexpr double lowQ = 0.5;
+        static constexpr double highQ = 1.6;
         // Provisional normalized drives; neither is calibrated to an IC.
         // Negative-knee soft compression models pre-VCF asymmetric clipping
         // (preserving linear small-signal response for |u| <= 0.2 while generating
         // even harmonics on driven VCO waveforms).
-        static constexpr float feedbackDrive = 1.0f;
         static constexpr float integratorInputDrive = 2.0f;
         static constexpr float negativeKneeThreshold = 0.2f;
         static constexpr float negativeClipAmount = 0.35f;
@@ -35,22 +35,25 @@ class IG02610BehavioralModel {
         if (!std::isfinite(input))
             input = 0.0f;
         const double boundedCutoff =
-            std::clamp(static_cast<double>(cutoffHz), 20.0, sampleRate * 0.45);
+            std::clamp(std::isfinite(cutoffHz) ? static_cast<double>(cutoffHz) : 1000.0, 20.0,
+                       sampleRate * 0.45);
         const double g = std::tan(std::numbers::pi_v<double> * boundedCutoff / sampleRate);
-        const double damping = EmpiricalParameters::maximumDamping +
-                               static_cast<double>(std::clamp(resonance, 0.f, 1.f)) *
-                                   (static_cast<double>(EmpiricalParameters::minimumDamping) -
-                                    static_cast<double>(EmpiricalParameters::maximumDamping));
+        const double position =
+            std::clamp(((std::isfinite(resonance) ? static_cast<double>(resonance)
+                                                  : EmpiricalParameters::lowResonance) -
+                        EmpiricalParameters::lowResonance) /
+                           (static_cast<double>(EmpiricalParameters::highResonance) -
+                            EmpiricalParameters::lowResonance),
+                       0.0, 1.0);
+        const double damping =
+            1.0 / EmpiricalParameters::lowQ +
+            position * (1.0 / EmpiricalParameters::highQ - 1.0 / EmpiricalParameters::lowQ);
 
-        // Behavioral hypothesis based on a two-integrator SVF with asymmetric soft
-        // limiting around the summing/integrator input and resonant feedback.
-        // These placements do not claim to reproduce the IC's internal circuit.
-        const double feedback = damping * std::tanh(ic2eq * EmpiricalParameters::feedbackDrive);
-        const double driven = static_cast<double>(input) - feedback;
         const double excessNegative =
-            std::min(0.0, driven + static_cast<double>(EmpiricalParameters::negativeKneeThreshold));
+            std::min(0.0, static_cast<double>(input) +
+                              static_cast<double>(EmpiricalParameters::negativeKneeThreshold));
         const double asymmetricDriven =
-            driven - excessNegative * static_cast<double>(EmpiricalParameters::negativeClipAmount);
+            input - excessNegative * static_cast<double>(EmpiricalParameters::negativeClipAmount);
         const double integratorInput =
             std::tanh(asymmetricDriven * EmpiricalParameters::integratorInputDrive) /
             EmpiricalParameters::integratorInputDrive;
@@ -59,9 +62,12 @@ class IG02610BehavioralModel {
         ic1eq = 2.0 * v1 - ic1eq;
         ic2eq = 2.0 * v2 - ic2eq;
 
-        const double output = std::isfinite(v2) ? v2 : 0.0;
+        if (!std::isfinite(v2)) {
+            reset();
+            return 0.0f;
+        }
         return static_cast<float>(
-            std::clamp(output, -static_cast<double>(EmpiricalParameters::maximumOutput),
+            std::clamp(v2, -static_cast<double>(EmpiricalParameters::maximumOutput),
                        static_cast<double>(EmpiricalParameters::maximumOutput)));
     }
 
