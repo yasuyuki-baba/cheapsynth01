@@ -34,7 +34,7 @@ background live in `hardware/`.
 
 ## Product Specifications and Native Validation
 
-- [0.4.0 release notes](release-notes-0.4.0.md)
+- [0.5.0 release notes](release-notes-0.5.0.md)
 - [Architecture notes](iPlug2-migration.md)
 - [Native validation status](iPlug2-migration-plan.md)
 
