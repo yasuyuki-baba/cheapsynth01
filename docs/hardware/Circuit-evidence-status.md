@@ -49,11 +49,15 @@ and software thresholds, not measured potentiometer or IC behavior. Retriggers r
 
 ## IG02610 external-network investigation, 2026-11-02
 
-The user-supplied CS-01 drawing is the working source for nominal capacitor
-values: C1 / pin 3 through 22 nF and C1' / pin 5 through 2 nF join the K0 / C2
-node, which has 22 nF to ground. Do not substitute the secondary redraw's
-two equal 22 nF branches. The resonance switch shorts the 10 kohm KN-to-K0
-branch; the supplied crop does not label which contact state is High.
+The nominal capacitor values are C1 / pin 3 through 22 nF and C1' / pin 5
+through 2 nF to the K0 common line, plus a separate C2 / pin 6 node with 22 nF
+to ground and 10 Mohm to -9B. The earlier attribution of C2 to the K0 common
+node was incorrect: direct reinspection on 2026-11-04 finds no junction dot at
+the crossing. Do not substitute the secondary redraw's two equal 22 nF branches.
+The resonance switch shorts the 10 kohm KN-to-K0 branch; the supplied crop does
+not label which contact state is High. See the [external-network review](VCF-external-network-review.md)
+for the corrected connections, IN/C3 and Q-adjust branches, and unresolved
+CS01II LP-to-Vin path.
 These unequal external branches do not establish an 11:1 audio-pole ratio.
 Unknown IC port transfers and loading prevent a unique audio-filter/Q law.
 

@@ -51,3 +51,10 @@ See [external-circuit closeout](External-circuit-closeout.md) for completed
 analysis, reproducible verification and its circuit-analysis limits. Audit completion is not hardware-model completion.
 
 For current production stage ownership and terminology, see [DSP responsibility boundaries](../DSP-design.md#signal-path).
+
+## Yamaha guide update
+
+The [new guide review](Yamaha-IC-guide-review.md) records IG02600's documented
+functional blocks and the subsequent control-policy/IC separation. Its numerical
+gain, bias, saturation and terminal-loading characteristics remain unresolved.
+The related IG00156 VCF diagram does not establish target-VCF internals.

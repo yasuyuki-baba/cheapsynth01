@@ -1,3 +1,4 @@
+#include "cs01synth/VCFCircuitSettings.h"
 #include "dsp/Primitives.h"
 
 #include "cs01synth/CS01IIVCFCircuit.h"
@@ -43,13 +44,87 @@ double amplitudeAt(const std::vector<float>& signal, double sampleRate, double f
 }
 }  // namespace
 
+TEST(ExperimentalIG05630Test, CircuitSelfOscillatesWithoutAudioAndDecaysBelowThreshold) {
+    for (double rate : {44100.0, 48000.0, 192000.0}) {
+        for (float cutoff : {100.f, 1000.f, 10000.f}) {
+            SCOPED_TRACE(rate);
+            SCOPED_TRACE(cutoff);
+            CS01IIVCFCircuit filter;
+            filter.prepare(rate);
+            filter.setCutoffFrequency(cutoff);
+            filter.setResonance(1);
+            double power = 0;
+            double peak = 0;
+            for (int i = 0; i < static_cast<int>(4 * rate); ++i) {
+                const float output = filter.processSample(0, 0);
+                ASSERT_TRUE(std::isfinite(output));
+                if (i >= 3 * rate) {
+                    power += double(output) * output;
+                    peak = std::max(peak, double(std::abs(output)));
+                }
+            }
+            EXPECT_GT(std::sqrt(power / rate), .08);
+            EXPECT_LT(std::sqrt(power / rate), .15);
+            EXPECT_LT(peak, .2);  // Well below the IC's 1.5 output guard.
+            filter.setResonance(.5f);
+            double tail = 0;
+            for (int i = 0; i < static_cast<int>(rate); ++i) {
+                const float output = filter.processSample(0, 0);
+                if (i >= rate / 2)
+                    tail += double(output) * output;
+            }
+            EXPECT_LT(std::sqrt(tail / (rate / 2)), 1e-6);
+        }
+    }
+}
+
+TEST(ExperimentalIG05630Test, SelfOscillationResetAndSilentSubthresholdAreDeterministic) {
+    CS01IIVCFCircuit filter;
+    filter.prepare(48000);
+    filter.setCutoffFrequency(1000);
+    filter.setResonance(.9f);
+    double tail = 0;
+    for (int i = 0; i < 96000; ++i) {
+        const float value = filter.processSample(0, 0);
+        if (i >= 48000)
+            tail += double(value) * value;
+    }
+    EXPECT_LT(tail, 1e-12);
+    filter.setResonance(1);
+    std::vector<float> reference;
+    for (int pass = 0; pass < 2; ++pass) {
+        filter.reset();
+        for (int i = 0; i < 48000; ++i) {
+            const float value = filter.processSample(0, 0);
+            if (!pass)
+                reference.push_back(value);
+            else
+                EXPECT_EQ(value, reference[i]);
+        }
+    }
+}
+
+TEST(ExperimentalIG05630Test, SlowSilentResonanceSweepStartsOscillation) {
+    CS01IIVCFCircuit filter;
+    filter.prepare(48000);
+    filter.setCutoffFrequency(1000);
+    double power = 0;
+    for (int i = 0; i < 144000; ++i) {
+        filter.setResonance(i < 48000 ? .8f + .2f * i / 48000 : 1.f);
+        const float value = filter.processSample(0, 0);
+        if (i >= 96000)
+            power += double(value) * value;
+    }
+    EXPECT_GT(std::sqrt(power / 48000), .08);
+}
+
 TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
     for (double hostRate : {44100.0, 48000.0, 96000.0}) {
-        IG05630BehavioralModel filter;
+        IG05630BehavioralModel filter{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
         filter.prepare(hostRate * 4.0);
         for (int i = 0; i < 100000; ++i) {
             filter.setCutoffFrequency((i & 1) ? 20.0f : 20000.0f);
-            filter.setResonance((i % 17) / 16.0f);
+            filter.setFeedback(cs01::ModernVCFCircuitSettings::feedback((i % 17) / 16.0f));
             const float input = 4.0f * std::sin(i * 0.19f);
             const float output = filter.processSample(input);
             ASSERT_TRUE(std::isfinite(output));
@@ -59,10 +134,10 @@ TEST(ExperimentalIG05630Test, RemainsFiniteAndBoundedUnderFastModulation) {
 }
 
 TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
-    IG05630BehavioralModel filter;
+    IG05630BehavioralModel filter{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     filter.prepare(192000.0);
     filter.setCutoffFrequency(1000.0f);
-    filter.setResonance(1.0f);
+    filter.setFeedback(cs01::ModernVCFCircuitSettings::feedback(1.0f));
 
     double latePower = 0.0;
     constexpr int sampleCount = 192000;
@@ -80,14 +155,15 @@ TEST(ExperimentalIG05630Test, ResonanceDecaysAfterAnImpulse) {
 TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
     constexpr int sampleCount = 8192;
     std::vector<float> whole(sampleCount), partitioned(sampleCount);
-    IG05630BehavioralModel a, b;
+    IG05630BehavioralModel a{cs01::ModernVCFCircuitSettings::feedback(0.0f)},
+        b{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < sampleCount; ++i) {
         const float cutoff = 80.0f + (i % 2000) * 10.0f;
         const float input = 0.4f * std::sin(i * 0.11f);
         a.setCutoffFrequency(cutoff);
-        a.setResonance(0.8f);
+        a.setFeedback(cs01::ModernVCFCircuitSettings::feedback(0.8f));
         whole[i] = a.processSample(input);
     }
     for (int block = 0; block < sampleCount; block += 53) {
@@ -95,7 +171,7 @@ TEST(ExperimentalIG05630Test, RenderingIsDeterministicAcrossBlockPartitions) {
             const float cutoff = 80.0f + (i % 2000) * 10.0f;
             const float input = 0.4f * std::sin(i * 0.11f);
             b.setCutoffFrequency(cutoff);
-            b.setResonance(0.8f);
+            b.setFeedback(cs01::ModernVCFCircuitSettings::feedback(0.8f));
             partitioned[i] = b.processSample(input);
         }
     }
@@ -110,7 +186,7 @@ TEST(ExperimentalIG05630Test, ZeroResonanceHasFourPoleLowpassResponse) {
     const double atCutoff = amplitudeAt(cutoffSignal, rate, 1000.0) / 0.01;
     const double lower = amplitudeAt(lowerSignal, rate, 2000.0);
     const double upper = amplitudeAt(upperSignal, rate, 4000.0);
-    EXPECT_NEAR(atCutoff, 1.0 / (82.0 / 15.0 - 2.0), 0.01);
+    EXPECT_NEAR(atCutoff, .455, 0.01);
     EXPECT_LT(upper / lower, 0.1);
 }
 

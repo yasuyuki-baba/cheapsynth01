@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cs01synth/IG05630BehavioralModel.h"
+#include "cs01synth/VCFCircuitSettings.h"
 
 // Circuit boundary for Modern, analogous to CS01VCFCircuit in Original.
 // External coupling is currently unity: no uncalibrated stages are added.
@@ -13,6 +14,6 @@ class CS01IIVCFCircuit {
     float processSample(int channel, float sample);
 
    private:
-    IG05630BehavioralModel model;
+    IG05630BehavioralModel model{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     float maximumCutoff = 20000.0f;
 };

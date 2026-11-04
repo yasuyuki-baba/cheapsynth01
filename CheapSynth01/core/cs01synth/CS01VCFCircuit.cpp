@@ -1,33 +1,19 @@
 #include "cs01synth/CS01VCFCircuit.h"
 
-CS01VCFCircuit::CS01VCFCircuit()
-    : cutoff(1000.0f),
-      resonance(0.1f),
-      sampleRate(0.0f)  // Unset state, will be set by prepare()
-{
+CS01VCFCircuit::CS01VCFCircuit() : cutoff(1000.0f), resonance(0.1f) {
     reset();
 }
 
-CS01VCFCircuit::CS01VCFCircuit(double sampleRate)
-    : cutoff(1000.0f), resonance(0.1f), sampleRate(static_cast<float>(sampleRate)) {
-    reset();
+CS01VCFCircuit::CS01VCFCircuit(double sampleRate) : CS01VCFCircuit() {
+    prepare(sampleRate);
 }
 
 void CS01VCFCircuit::reset() {
     model.reset();
-
-    // Reset input and output stages
-    inputCoupling.reset();
-    outputCoupling.reset();
 }
 
-void CS01VCFCircuit::prepare(double newSampleRate) {
-    sampleRate = static_cast<float>(newSampleRate);
-    model.prepare(newSampleRate);
-
-    // Prepare input and output stages
-    inputCoupling.prepare(newSampleRate);
-    outputCoupling.prepare(newSampleRate);
+void CS01VCFCircuit::prepare(double sampleRate) {
+    model.prepare(sampleRate);
 }
 
 void CS01VCFCircuit::setCutoffFrequency(float newCutoff) {
@@ -43,13 +29,9 @@ float CS01VCFCircuit::processSample(int channel, float sample) {
         reset();
         return 0.0f;
     }
-    const float coupledInput = inputCoupling.processSample(sample);
-    const float filtered = model.processSample(coupledInput, cutoff, resonance);
-    const float output = outputCoupling.processSample(filtered);
-    if (!std::isfinite(coupledInput) || !std::isfinite(filtered) || !std::isfinite(output)) {
-        reset();
-        return 0.0f;
-    }
+    model.setCutoffFrequency(cutoff);
+    model.setFeedback(cs01::OriginalVCFCircuitSettings::feedback(resonance));
+    const float output = model.processSample(sample);
     return output;
 }
 

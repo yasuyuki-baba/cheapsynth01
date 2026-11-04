@@ -16,11 +16,13 @@ void CS01IIVCFCircuit::reset() {
 void CS01IIVCFCircuit::setCutoffFrequency(float frequency) {
     if (!std::isfinite(frequency))
         frequency = 1000.0f;
-    model.setCutoffFrequency(std::clamp(frequency, 20.0f, maximumCutoff));
+    model.setCutoffFrequency(cs01::ModernVCFCircuitSettings::internalCutoff(
+        std::clamp(frequency, 20.0f, maximumCutoff), maximumCutoff));
 }
 
 void CS01IIVCFCircuit::setResonance(float resonance) {
-    model.setResonance(resonance);
+    model.setFeedback(cs01::ModernVCFCircuitSettings::playingFeedback(resonance),
+                      cs01::ModernVCFCircuitSettings::feedbackLimiting(resonance));
 }
 
 float CS01IIVCFCircuit::processSample(int channel, float sample) {

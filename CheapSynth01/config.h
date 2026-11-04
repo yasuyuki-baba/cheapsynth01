@@ -1,8 +1,8 @@
 #pragma once
 #define PLUG_NAME "CheapSynth01"
 #define PLUG_MFR "Yasuyuki Baba"
-#define PLUG_VERSION_HEX 0x00000500
-#define PLUG_VERSION_STR "0.5.0"
+#define PLUG_VERSION_HEX 0x00000501
+#define PLUG_VERSION_STR "0.5.1"
 #define PLUG_UNIQUE_ID 'CS01'
 #define PLUG_MFR_ID 'BABA'
 #define VST3_PROCESSOR_UID 0xABCDEF01, 0x9182FAEB, PLUG_MFR_ID, PLUG_UNIQUE_ID

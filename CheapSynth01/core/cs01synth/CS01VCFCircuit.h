@@ -3,10 +3,11 @@
 #include "dsp/Primitives.h"
 
 #include "cs01synth/IG02610BehavioralModel.h"
-#include "cs01synth/VCFCouplingStages.h"
+#include "cs01synth/VCFCircuitSettings.h"
 
 //==============================================================================
-// CS-01 VCF signal path: IG02610-inspired behavioral core plus external coupling.
+// CS-01 VCF signal path: IG02610-inspired core and external feedback network.
+// External input/output coupling is unity, as in CS01IIVCFCircuit.
 // Includes uncalibrated approximations; not a complete component-level reconstruction.
 class CS01VCFCircuit {
    public:
@@ -29,9 +30,6 @@ class CS01VCFCircuit {
                       float baseResonance);
 
    private:
-    float cutoff, resonance, sampleRate;
-    IG02610BehavioralModel model;
-
-    EmpiricalVCFInputCoupling inputCoupling;
-    EmpiricalVCFOutputCoupling outputCoupling;
+    float cutoff, resonance;
+    IG02610BehavioralModel model{cs01::OriginalVCFCircuitSettings::feedback(0.1f)};
 };

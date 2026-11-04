@@ -25,10 +25,6 @@ class OriginalVCFProcessor : public IFilter {
 
     // Resonance calculation function
     float calculateResonance(float resonanceParam) {
-        if (resonanceParam >= 0.5f) {
-            return IG02610BehavioralModel::EmpiricalParameters::highResonance;
-        } else {
-            return IG02610BehavioralModel::EmpiricalParameters::lowResonance;
-        }
+        return cs01::OriginalVCFCircuitSettings::panelResonance(resonanceParam);
     }
 };

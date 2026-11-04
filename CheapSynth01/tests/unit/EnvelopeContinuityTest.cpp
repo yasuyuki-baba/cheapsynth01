@@ -1,3 +1,4 @@
+#include "cs01synth/VCAControlCircuit.h"
 #include "cs01synth/EGProcessor.h"
 #include "SynthEngine.h"
 #include "cs01synth/IG02600BehavioralModel.h"
@@ -218,13 +219,29 @@ TEST(VcaGateTest, GateCorrectionLeavesEgComponentAndOpenGateArithmeticIntact) {
                     expected = (expected > 0 ? 1.f : -1.f) * (.7f + excess / (1.f + excess * .5f));
                 }
                 EXPECT_EQ(std::bit_cast<uint32_t>(
-                              model.processSample(input, envelope, depth, .7f, .4f, .8f, 1)),
+                              model.processSample(input, cs01::VCAControlCircuit::controlLevel(
+                                                             envelope, depth, .7f, .4f, .8f, 1))),
                           std::bit_cast<uint32_t>(expected));
             }
-            EXPECT_FLOAT_EQ(model.processSample(input, envelope, 1, .7f, .4f, .8f, 0),
-                            model.processSample(input, envelope, 1, .7f, .4f, .8f, 1));
+            EXPECT_FLOAT_EQ(model.processSample(input, cs01::VCAControlCircuit::controlLevel(
+                                                           envelope, 1, .7f, .4f, .8f, 0)),
+                            model.processSample(input, cs01::VCAControlCircuit::controlLevel(
+                                                           envelope, 1, .7f, .4f, .8f, 1)));
         }
-        EXPECT_FLOAT_EQ(model.processSample(input, 0, 0, 0, 0, 1, 0), 0);
+        EXPECT_FLOAT_EQ(
+            model.processSample(input, cs01::VCAControlCircuit::controlLevel(0, 0, 0, 0, 1, 0)), 0);
+    }
+}
+
+TEST(VcaGateTest, IcReferenceAndOutputStageAreIndependentOfInstrumentControls) {
+    IG02600BehavioralModel nominal;
+    IG02600BehavioralModel halfReference{{.5f, 1.f}};
+    IG02600BehavioralModel halfOutput{{1.f, .5f}};
+    for (float input : {-.1f, .1f}) {
+        EXPECT_FLOAT_EQ(nominal.processSample(input, 0), 0);
+        EXPECT_FLOAT_EQ(halfReference.processSample(input, .8f), nominal.processSample(input, .4f));
+        EXPECT_FLOAT_EQ(halfOutput.processSample(input, .8f),
+                        nominal.processSample(input, .8f) * .5f);
     }
 }
 

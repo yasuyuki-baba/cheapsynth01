@@ -24,7 +24,7 @@ class VCAProcessor {
     //==============================================================================
     cs01::ParameterState& parameters;
 
-    // Input stage high-pass filter (82K resistor and 1/50 capacitor)
+    // Empirical input high-pass; not derived from 82K and 1/50 markings.
     cs01::Biquad inputHighPass;
 
     // Simple DC blocking filter

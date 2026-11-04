@@ -54,6 +54,7 @@ add_library(CheapSynth01Core STATIC
     cs01synth/IG02600BehavioralModel.cpp
     cs01synth/CS01VCFCircuit.cpp
     cs01synth/CS01IIVCFCircuit.cpp
+    cs01synth/IG02610BehavioralModel.cpp
     cs01synth/IG05630BehavioralModel.cpp
 )
 set_target_properties(CheapSynth01Core PROPERTIES POSITION_INDEPENDENT_CODE ON)

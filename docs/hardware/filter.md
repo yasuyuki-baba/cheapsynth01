@@ -8,6 +8,17 @@ material and community interpretation without exact model/page identifiers.
 The claims and their limits are preserved below as unverified interpretations.
 Optional source provenance is recorded in [the source catalog](Source-catalog.md).
 
+## Newly inspected guide evidence
+
+The user-supplied Yamaha IC Guide book, PDF page 37 / printed 2-5, directly
+shows an IG00156 summing stage, two variable-gm/integrator stages, HP/BP/LP
+outputs and internal cutoff/Q-control blocks. PDF page 38 identifies the
+application as CS-5. This establishes a documented two-integrator VCF example,
+not the internal structure or electrical limits of IG02610/IG05630. The earlier
+unverified topology statement below is superseded to that limited extent;
+its other numerical claims remain unverified. See the
+[guide review](Yamaha-IC-guide-review.md).
+
 ## Unverified claims retained from the earlier summary
 
 | Subject | Recorded claim | Evidence limit |

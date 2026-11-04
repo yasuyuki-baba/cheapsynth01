@@ -2,15 +2,9 @@
 
 #include <cmath>
 
-float IG02600BehavioralModel::processSample(float input, float egValue, float egDepth,
-                                            float breathInput, float breathDepth, float volumeGain,
-                                            float noteGate) const {
-    // Uncalibrated control composition retained from the existing implementation.
-    float controlVoltage = (1.0f - egDepth) + (egValue * egDepth);
-    if (noteGate != 1.0f)
-        controlVoltage += (1.0f - egDepth) * (noteGate - 1.0f);
-    controlVoltage *= (1.0f - breathDepth) + (breathInput * breathDepth);
-    float output = input * (controlVoltage * volumeGain);
+float IG02600BehavioralModel::processSample(float input, float controlLevel) const {
+    // Linear control-to-gain is provisional; the guide supplies no measured law.
+    float output = input * (controlLevel * point.referenceGain);
 
     // Empirical saturation; threshold and curve are not established IC specifications.
     if (std::abs(output) > EmpiricalParameters::saturationThreshold) {
@@ -19,5 +13,7 @@ float IG02600BehavioralModel::processSample(float input, float egValue, float eg
         output = sign * (EmpiricalParameters::saturationThreshold +
                          excess / (1.0f + excess * EmpiricalParameters::saturationCurve));
     }
-    return output;
+    // Provisional unity transfer for the internal output stage. The guide's
+    // Ein/Out/Bias blocks do not specify a calibrated headroom or follower drop.
+    return output * point.outputStageGain;
 }

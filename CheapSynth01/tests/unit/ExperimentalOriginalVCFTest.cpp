@@ -1,3 +1,5 @@
+#include "../reference/VCFModelProbe.h"
+#include "cs01synth/VCFCircuitSettings.h"
 #include "cs01synth/IG02610BehavioralModel.h"
 #include "cs01synth/CS01VCFCircuit.h"
 
@@ -43,12 +45,13 @@ double projectedAmplitude(const std::vector<float>& audio, double sampleRate, do
 
 TEST(ExperimentalOriginalVCFTest, RemainsFiniteAndBoundedDuringFastModulation) {
     for (const double rate : {44100.0, 48000.0, 96000.0}) {
-        IG02610BehavioralModel filter;
+        IG02610BehavioralModel filter{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
         filter.prepare(rate * 4.0);  // Match the project's 4x internal filter rate.
         for (int i = 0; i < 200000; ++i) {
             const float cutoff = (i & 1) ? 20.0f : 20000.0f;
             const float input = 4.0f * std::sin(static_cast<float>(i) * 0.17f);
-            const float output = filter.processSample(input, cutoff, 1.0f);
+            const float output = cs01::test::processOriginalSample(
+                filter, input, cutoff, cs01::OriginalVCFCircuitSettings::damping(1.0f));
             ASSERT_TRUE(std::isfinite(output));
             EXPECT_LE(std::abs(output), IG02610BehavioralModel::EmpiricalParameters::maximumOutput);
         }
@@ -58,19 +61,22 @@ TEST(ExperimentalOriginalVCFTest, RemainsFiniteAndBoundedDuringFastModulation) {
 TEST(ExperimentalOriginalVCFTest, RenderingIsDeterministicAndBlockPartitionIndependent) {
     constexpr int count = 4096;
     std::vector<float> whole(count), split(count);
-    IG02610BehavioralModel a, b;
+    IG02610BehavioralModel a{cs01::OriginalVCFCircuitSettings::feedback(0.2f)},
+        b{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
     a.prepare(192000.0);
     b.prepare(192000.0);
     for (int i = 0; i < count; ++i) {
         const float input = std::sin(i * 0.071f);
         const float cutoff = 100.0f + static_cast<float>(i % 1200) * 12.0f;
-        whole[i] = a.processSample(input, cutoff, 0.8f);
+        whole[i] = cs01::test::processOriginalSample(
+            a, input, cutoff, cs01::OriginalVCFCircuitSettings::damping(0.8f));
     }
     for (int block = 0; block < count; block += 37) {
         for (int i = block; i < std::min(block + 37, count); ++i) {
             const float input = std::sin(i * 0.071f);
             const float cutoff = 100.0f + static_cast<float>(i % 1200) * 12.0f;
-            split[i] = b.processSample(input, cutoff, 0.8f);
+            split[i] = cs01::test::processOriginalSample(
+                b, input, cutoff, cs01::OriginalVCFCircuitSettings::damping(0.8f));
         }
     }
     EXPECT_EQ(whole, split);

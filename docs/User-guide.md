@@ -47,13 +47,14 @@ the control to reset. A temporary bubble shows the value and unit during slider
 and knob adjustment. Pitch bend range number boxes support typed editing.
 Filter tabs **I** and **II** select Original and Modern; both use the label **RES**.
 
-Modern now uses a provisional four-integrator, multi-feedback model instead
-of the former Butterworth cascade. Existing Modern presets and saved sessions
-therefore sound different at the same parameter values.
-Resonance grows continuously and also reduces bass level. For Modern, Cutoff
-sets the integrators' natural-frequency scale: at zero resonance the -3 dB
-point is approximately half that value. This is an experimental sound model,
-not a calibrated reproduction of the hardware.
+Modern uses a provisional four-integrator, multi-feedback model with continuous
+resonance. Its stable range preserves low-frequency gain. Above about 97%
+resonance it can sustain a tone without oscillator input; lowering resonance
+lets it decay. The onset and amplitude are musical approximations. At low
+resonance, its rolloff is aligned with Original Low for easier comparison at
+the same Cutoff setting; its high-frequency slope remains steeper. These are
+musical approximations, not measured hardware behavior. Existing Modern presets
+and saved sessions sound different at the same parameter values.
 
 Original now also uses a provisional replacement: Low is non-resonant, while
 High has a moderate resonance peak. Additional lowpass-state feedback has been

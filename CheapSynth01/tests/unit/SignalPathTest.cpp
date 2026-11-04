@@ -1,3 +1,5 @@
+#include "../reference/VCFModelProbe.h"
+#include "cs01synth/VCFCircuitSettings.h"
 #include "cs01synth/OriginalVCFProcessor.h"
 #include "cs01synth/ModernVCFProcessor.h"
 #include "cs01synth/VCAProcessor.h"
@@ -73,9 +75,34 @@ std::vector<float> original(float egDepth, float eg, float modDepth, float lfo,
 }
 }  // namespace
 
+TEST(SignalPathTest, BothIcModelsSupportTheSameControlAndLifecycleApi) {
+    // A single caller exercises both IC models without model-specific setters.
+    const auto check = [](auto& model, const auto& network) {
+        model.prepare(48000);
+        model.setCutoffFrequency(2000);
+        model.setFeedback(network);
+        std::vector<float> reference;
+        for (int i = 0; i < 2048; ++i)
+            reference.push_back(model.processSample(stimulus(i)));
+        for (bool prepareAgain : {false, true}) {
+            if (prepareAgain)
+                model.prepare(48000);
+            else
+                model.reset();
+            // Reset/prepare clear history while retaining the control settings.
+            for (int i = 0; i < 2048; ++i)
+                EXPECT_FLOAT_EQ(model.processSample(stimulus(i)), reference[i]);
+        }
+    };
+    IG02610BehavioralModel original{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
+    IG05630BehavioralModel modern{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
+    check(original, cs01::OriginalVCFCircuitSettings::feedback(0.8f));
+    check(modern, cs01::ModernVCFCircuitSettings::feedback(0.8f));
+}
+
 TEST(SignalPathTest, OriginalResetIsDeterministicIncludingSafety) {
     for (double rate : {44100., 48000., 96000., 192000.}) {
-        IG02610BehavioralModel original;
+        IG02610BehavioralModel original{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
         original.prepare(rate);
         std::vector<float> first;
         for (int pass = 0; pass < 2; ++pass) {
@@ -86,7 +113,8 @@ TEST(SignalPathTest, OriginalResetIsDeterministicIncludingSafety) {
                               : i == 20 ? std::numeric_limits<float>::infinity()
                               : i == 30 ? std::numeric_limits<float>::max()
                                         : stimulus(i);
-                const float output = original.processSample(input, cutoff, resonance);
+                const float output = cs01::test::processOriginalSample(
+                    original, input, cutoff, cs01::OriginalVCFCircuitSettings::damping(resonance));
                 ASSERT_TRUE(std::isfinite(output));
                 EXPECT_LE(std::abs(output), 1.5f);
                 if (pass == 0)
@@ -100,13 +128,14 @@ TEST(SignalPathTest, OriginalResetIsDeterministicIncludingSafety) {
 }
 TEST(SignalPathTest, OriginalReplacementIntentionallyRemovesHistoricalDcLoss) {
     for (float resonance : {.2f, .7f}) {
-        IG02610BehavioralModel original;
+        IG02610BehavioralModel original{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
         BeforeIG02610 historical;
         original.prepare(48000);
         historical.prepare(48000);
         float current = 0, before = 0;
         for (int i = 0; i < 48000; ++i) {
-            current = original.processSample(.0001f, 1000, resonance);
+            current = cs01::test::processOriginalSample(
+                original, .0001f, 1000, cs01::OriginalVCFCircuitSettings::damping(resonance));
             before = historical.processSample(.0001f, 1000, resonance);
         }
         EXPECT_NEAR(current / .0001, 1, 1e-6);
@@ -315,7 +344,7 @@ TEST(SignalPathTest, FirInternalRateSignalRetainsFundamentalAndRejectsFoldedTone
 TEST(SignalPathTest, ModernWrapperMatchesRawModelAndReset) {
     for (double rate : {44100., 48000., 96000., 192000.}) {
         CS01IIVCFCircuit actual;
-        IG05630BehavioralModel before;
+        IG05630BehavioralModel before{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
         actual.prepare(rate);
         before.prepare(rate);
         for (int pass = 0; pass < 2; ++pass) {
@@ -323,9 +352,12 @@ TEST(SignalPathTest, ModernWrapperMatchesRawModelAndReset) {
                 float cutoff = 20.f + static_cast<float>(i * 37 % 19980);
                 float resonance = static_cast<float>(i % 11) / 10;
                 actual.setCutoffFrequency(cutoff);
-                before.setCutoffFrequency(std::min(cutoff, static_cast<float>(rate * .49)));
+                before.setCutoffFrequency(cs01::ModernVCFCircuitSettings::internalCutoff(
+                    std::min(cutoff, static_cast<float>(rate * .49)),
+                    std::min(20000.f, static_cast<float>(rate * .49))));
                 actual.setResonance(resonance);
-                before.setResonance(resonance);
+                before.setFeedback(cs01::ModernVCFCircuitSettings::playingFeedback(resonance),
+                                   cs01::ModernVCFCircuitSettings::feedbackLimiting(resonance));
                 EXPECT_EQ(std::bit_cast<uint32_t>(actual.processSample(0, stimulus(i))),
                           std::bit_cast<uint32_t>(before.processSample(stimulus(i))));
             }
@@ -335,7 +367,7 @@ TEST(SignalPathTest, ModernWrapperMatchesRawModelAndReset) {
     }
 }
 TEST(SignalPathTest, ModernReplacementIntentionallyChangesHistoricalResponse) {
-    IG05630BehavioralModel modern;
+    IG05630BehavioralModel modern{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     BeforeIG05630 historical;
     modern.prepare(48000);
     historical.prepare(48000);
@@ -706,16 +738,17 @@ TEST(SignalPathTest, ModernFilterLiveDepthPreservesSmoothingAcrossPartitions) {
 TEST(SignalPathTest, BothFilterModelsGenerateEvenHarmonicsUnderDrivenInput) {
     constexpr double rate = 48000.0;
     constexpr double hz = 500.0;
-    IG02610BehavioralModel original;
-    IG05630BehavioralModel modern;
+    IG02610BehavioralModel original{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
+    IG05630BehavioralModel modern{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     original.prepare(rate);
     modern.prepare(rate);
     modern.setCutoffFrequency(4000.0f);
-    modern.setResonance(0.4f);
+    modern.setFeedback(cs01::ModernVCFCircuitSettings::feedback(0.4f));
     std::vector<float> origOut, modOut;
     for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
         const float x = static_cast<float>(0.6 * std::sin(tau * hz * i / rate));
-        const float yOrig = original.processSample(x, 4000.0f, 0.4f);
+        const float yOrig = cs01::test::processOriginalSample(
+            original, x, 4000.0f, cs01::OriginalVCFCircuitSettings::damping(0.4f));
         const float yMod = modern.processSample(x);
         if (i >= static_cast<int>(rate)) {
             origOut.push_back(yOrig);
@@ -788,18 +821,20 @@ FilterSpectrum measureFilterSpectrum(const std::vector<float>& output, double ra
 }
 std::vector<float> renderFilterSpectrum(bool modern, double rate, double hz, float inputLevel,
                                         float resonance) {
-    IG02610BehavioralModel original;
-    IG05630BehavioralModel updated;
+    IG02610BehavioralModel original{cs01::OriginalVCFCircuitSettings::feedback(0.2f)};
+    IG05630BehavioralModel updated{cs01::ModernVCFCircuitSettings::feedback(0.0f)};
     original.prepare(rate);
     updated.prepare(rate);
     updated.setCutoffFrequency(12000);
-    updated.setResonance(resonance);
+    updated.setFeedback(cs01::ModernVCFCircuitSettings::feedback(resonance));
     std::vector<float> output;
     output.reserve(static_cast<size_t>(rate));
     for (int i = 0; i < static_cast<int>(2 * rate); ++i) {
         const float input = static_cast<float>(inputLevel * std::sin(tau * hz * i / rate));
-        const float value =
-            modern ? updated.processSample(input) : original.processSample(input, 12000, resonance);
+        const float value = modern ? updated.processSample(input)
+                                   : cs01::test::processOriginalSample(
+                                         original, input, 12000,
+                                         cs01::OriginalVCFCircuitSettings::damping(resonance));
         if (i >= static_cast<int>(rate))
             output.push_back(value);
     }
@@ -823,7 +858,8 @@ TEST(SignalPathTest, FilterSpectrumMeasurementMatchesKnownSignal) {
 }
 
 TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
-    // Intentional 2026-11-02 Original damping and Modern multi-feedback replacements.
+    // Original: 2026-11-02 replacement. Modern resonant rows: intentional
+    // 2026-11-04 unity-bass musical tuning, checked against transfer/DC targets.
     // Raw IC models, no VCA DC removal or engine oversampling.
     struct Baseline {
         bool modern;
@@ -834,17 +870,29 @@ TEST(SignalPathTest, FilterSpectrumMatchesFixedProductSoundBaseline) {
     };
     const Baseline baselines[]{
         {false, 44100, 500, .6f, .8f, {.0169967, .302758, .425059, .0145943, .0417345}, .00878003},
-        {true, 44100, 500, .6f, .8f, {.00477436, .0850613, .11942, .00410244, .0117423}, .00247809},
+        {true,
+         44100,
+         500,
+         .6f,
+         .8f,
+         {.0169967171, .30307252, .425460354, .014649863, .0420974242},
+         .00900273133},
         {false, 48000, 500, .6f, .8f, {.0169951, .302788, .425098, .0146026, .04177}, .00880316},
         {true,
          48000,
          500,
          .6f,
          .8f,
-         {.00477391, .0850718, .119433, .00410511, .0117545},
-         .00248604},
+         {.0169951368, .303139296, .425545241, .0146646251, .0421755326},
+         .00905293882},
         {false, 96000, 500, .6f, .8f, {.0169987, .302917, .425263, .0146195, .0419122}, .00888146},
-        {true, 96000, 500, .6f, .8f, {.00477491, .0851165, .11949, .00411136, .0118045}, .00251461},
+        {true,
+         96000,
+         500,
+         .6f,
+         .8f,
+         {.0169986667, .303429417, .425915801, .0147101739, .0425080368},
+         .00925370949},
         {false, 48000, 100, .01f, 0, {0, .00707006, .00999857, 0, 3.33191e-7}, 4.26812e-11},
         {true, 48000, 100, .01f, 0, {0, .00706991, .00999837, 0, 3.33096e-7}, 3.66193e-11},
         {false, 48000, 5000, .6f, 0, {.0170318, .270055, .380827, .00912147, .0127738}, 3.65055e-5},

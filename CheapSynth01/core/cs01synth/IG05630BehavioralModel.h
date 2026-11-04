@@ -1,34 +1,26 @@
 #pragma once
 
-#include <array>
+#include "cs01synth/VCFBehavioralCore.h"
 
-// CS-01II / IG05630-inspired behavioral hypothesis.
-// The matched-loading coefficients and resonance law are provisional;
-// this is not a reconstruction of the IC's unknown Vin/VQ circuitry.
-class IG05630BehavioralModel {
+namespace cs01 {
+// IC-local nonlinear hypotheses, not measured voltages or a reconstructed IC.
+// Separate types deliberately allow either IC's approximation to evolve alone.
+struct IG05630Parameters {
+    static constexpr float inputDrive = 2.0f;
+    static constexpr float negativeKneeThreshold = 0.2f;
+    static constexpr float negativeClipAmount = 0.35f;
+    // Provisional internal feedback saturation scale, normalized audio units.
+    static constexpr double feedbackLimit = 0.25;
+    static constexpr double feedbackNoise = 1e-10;
+    static constexpr float maximumOutput = 1.5f;
+};
+}  // namespace cs01
+
+// Provisional 4-stage model. Effective feedback belongs to the circuit model;
+// the IG00156 guide is related-part evidence, not this IC's internal schematic.
+class IG05630BehavioralModel : public cs01::VCFBehavioralCore<4, cs01::IG05630Parameters> {
+    using Base = cs01::VCFBehavioralCore<4, cs01::IG05630Parameters>;
+
    public:
-    struct EmpiricalParameters {
-        // Conditional external-summer model with equal input-node conductance.
-        static constexpr double oddStateFeedback = 82.0 / 22.0;
-        static constexpr double evenStateFeedback = 82.0 / 15.0;
-        // Provisional normalized saturation and resonance ranges. Not calibrated.
-        static constexpr float inputDrive = 2.0f;
-        static constexpr float negativeKneeThreshold = 0.2f;
-        static constexpr float negativeClipAmount = 0.35f;
-        // Linear feedback remains below b - 2 = 3.4667 in this assumed model.
-        static constexpr double maximumFeedbackGain = 3.2;
-        static constexpr float maximumOutput = 1.5f;
-    };
-
-    void prepare(double sampleRate);
-    void reset();
-    void setCutoffFrequency(float frequency);
-    void setResonance(float resonance);
-    float processSample(float sample);
-
-   private:
-    double sampleRate = 44100.0;
-    float cutoff = 1000.0f;
-    double resonanceFeedbackGain = 0.0;
-    std::array<double, 4> integrators{};
+    using Base::Base;
 };

@@ -66,13 +66,70 @@ unresolved transistor details separately.
 
 ## Filter models
 
+The [current decision summary](VCF-model-summary.md) records evidence, musical
+choices and the common IC implementation.
+
+The code separates three responsibilities:
+
+- `OriginalVCFProcessor` / `ModernVCFProcessor` apply panel controls and shared
+  EG/LFO/breath cutoff modulation.
+- `CS01VCFCircuit` / `CS01IIVCFCircuit` own each instrument's external-network
+  assumptions. `VCFCircuitSettings.h` records Original's two resonance anchors,
+  provisional Q values and control-to-damping mapping, plus Modern's conditional
+  resistor-network coefficients and provisional control-to-feedback mapping.
+- `IG02610BehavioralModel` / `IG05630BehavioralModel` solve the assumed
+  internal stage dynamics and input/output nonlinearities. Both receive the complete
+  external feedback coefficient array. Neither embeds panel assignments, board
+  resistor ratios or rules for which integrator outputs are fed back.
+
+Both models expose the same API shape: construction with a complete `Feedback`
+array, `prepare`, `reset`, `setCutoffFrequency`, `setFeedback(const Feedback&)`
+and single-input `processSample`. The array has two entries for Original and
+four for Modern. There is no scalar with different model-specific meanings and
+no implicit board network in either IC constructor.
+
+`VCFCircuitSettings.h` assembles the complete networks, including the fixed
+connections as well as the adjustable resonance branch:
+
+| Circuit | Internal stages | External state-feedback weights |
+| --- | --- | --- |
+| Original | 2 | `{damping, 1}`; damping is derived from the resonance control |
+| Modern | 4 | `{a/t, b/t^2, a/t^3, 1}`; `t=(1+2.25*r)^(1/4)`, with musical DC/frequency normalization |
+
+The IC models pass these arrays unchanged to `VCFIntegratorCore<Stages>`.
+The core handles sample rate, double-precision cutoff, state storage and
+simultaneous trapezoidal integration. It has no board values or saturation
+assumptions. Keeping the solve simultaneous avoids introducing an artificial
+sample delay into feedback that crosses the IC/circuit boundary.
+
+Both IC classes instantiate `VCFBehavioralCore<Stages, Parameters>`; `.cpp`
+files explicitly instantiate their profiles. The shared processing order is:
+input validation, IC-configured soft limiting, integration, recovery and output
+limiting. `VCFNonlinearInput.h` shares the asymmetric soft-limiting arithmetic;
+each IC model retains its own parameters and chooses where to apply it. Equal
+parameter values describe current hypotheses, not proven identical ICs.
+
+This is a software responsibility boundary, not an identified IC schematic.
+The Modern feedback network is still solved simultaneously with its internal
+integrators; separating its coefficients does not introduce a sample delay.
+Existing coefficients and audio behavior are preserved.
+
+Both VCF circuit wrappers now use unity external input/output coupling.
+Original's former empirical second-order 20 Hz input high-pass and first-order
+8 Hz output high-pass have been removed. Their values and orders were not
+established by the recorded circuit components. This intentionally changes
+Original's low-frequency level, phase and potentially its nonlinear input response;
+there is no compatibility compensation. Modern's path is unchanged.
+This omission is not a claim that the physical instruments have no coupling loss.
+See the [low-frequency audit](hardware/Low-frequency-circuit-audit.md).
+
 Original VCF wraps [IG02610BehavioralModel](../CheapSynth01/core/cs01synth/IG02610BehavioralModel.h),
 a provisional two-integrator TPT lowpass with asymmetric nonlinear input limiting.
-LOW/HIGH controls retain the internal anchors 0.2/0.7, now selecting Q=0.5/1.6.
+LOW/HIGH controls retain circuit-level anchors 0.2/0.7, selecting Q=0.5/1.6.
 The small-signal denominator is `p^2 + p/Q + 1`, with
 `p = j*tan(pi*f/fs)/tan(pi*cutoff/fs)`. Both settings have unit DC gain before
 input limiting; the extra nonlinear lowpass-state subtraction is removed.
-Intermediate direct model controls interpolate damping between the anchors,
+The circuit-level resonance control interpolates damping between the anchors,
 clamped outside them; the panel still selects exactly two states at 0.5.
 These Q values are provisional sound choices, not derived component values.
 The external
@@ -91,26 +148,47 @@ times it at low cutoff/sample-rate ratios. Low is monotonic; High's small-signal
 peak is about +4.53 dB above DC. Removing the former feedback changes absolute
 gain, distortion and frequency alignment; it is not a sound-preserving refactor.
 
-Modern VCF wraps [IG05630BehavioralModel](../CheapSynth01/core/cs01synth/IG05630BehavioralModel.cpp),
-a provisional four-integrator, multi-feedback lowpass. Its normalized denominator
-is `p^4 + (82/22)*p^3 + (82/15)*p^2 + (82/22)*p + 1 + k`, with
-`k = 3.2 * resonance`. The matched-loading coefficients and linear control law
-are hypotheses, not a reconstruction of the unknown Vin/VQ circuitry.
-All trapezoidal integrators and linear state feedback are solved simultaneously.
-Empirical asymmetric input limiting precedes the loop; output is bounded.
-The former Butterworth sections, fourth-power mapping and delayed nonlinear
-feedback are intentionally replaced. Maximum feedback is below this assumed
-linear model's oscillation threshold, not a verified hardware limit.
+The current Modern playable range extends the stable reference curve into
+self-oscillation above approximately 0.967 resonance. Its last-state feedback
+is smoothly saturated inside the loop and solved implicitly by the shared core.
+Original keeps zero nonlinear feedback. See the
+[self-oscillation extension](hardware/VCF-musical-model.md#modern-self-oscillation-extension)
+for the actual control curve, startup excitation and test conditions. The
++11.93 dB formula below describes the retained stable raw-model reference,
+not the maximum playable resonance.
 
-The [2026-11-02 IG05630 investigation](hardware/Circuit-evidence-status.md#ig05630-external-network-investigation-2026-11-02)
-transcribes the external state-tap network and derives a conditional
-four-integrator response and records the implementation assumptions. The
-provisional replacement changes existing Modern sounds, including saved
-patches and sessions; parameter IDs and values are unchanged.
-There is no legacy Modern mode. At zero resonance, the -3 dB point is about
-0.49164 times the cutoff control's natural-frequency scale, rather than the
-former Butterworth -3 dB alignment. External-plugin comparisons remain local
-under ignored `references/`, not shared hardware evidence.
+Modern VCF wraps [IG05630BehavioralModel](../CheapSynth01/core/cs01synth/IG05630BehavioralModel.cpp),
+a provisional four-integrator, multi-feedback lowpass. The current musical
+approximation retains `a=82/22` and `b=82/15` as starting response-shape weights,
+not a complete resistor-network reconstruction. Its denominator is:
+
+```text
+t = (1 + 2.25 * resonance)^(1/4)
+H(p) = 1 / (p^4 + (a/t)*p^3 + (b/t^2)*p^2 + (a/t^3)*p + 1)
+```
+
+Normalizing the constant term to one keeps DC gain at unity. Relative to the
+previous `1+k` polynomial, the fourth-root frequency normalization also keeps
+resonance from substantially shifting its band upward. This is a musical
+control law, not a derivation of Vin/VQ. At maximum resonance the small-signal
+peak is approximately +11.93 dB; the former model had a -12.46 dB passband and
+approximately +26.77 dB peak relative to that passband. Driven signals still
+undergo IC-local input shaping and output limiting.
+
+The circuit wrapper multiplies the requested cutoff by 1.3091, subject to its
+existing upper limits. This aligns zero-resonance rolloff with Original Low
+(0.6436 / 0.4916). At low cutoff/sample-rate ratios both zero-resonance -3 dB
+points are approximately 0.644 times the panel value. This alignment is a
+product choice, not equal calibrated control currents in the two instruments.
+Near the sample-rate/20 kHz clamps, exact alignment is not promised.
+
+All integrator states and feedback are solved simultaneously; no additional
+state, feedback delay, matrix solver or empirical coupling filter is added.
+The [musical-model note](hardware/VCF-musical-model.md) records targets and
+comparison conditions. The earlier [circuit investigation](hardware/Circuit-evidence-status.md#ig05630-external-network-investigation-2026-11-02)
+remains useful for wiring evidence and limits, not current tuning coefficients.
+Existing Modern presets and sessions change sound; parameter IDs and values
+are unchanged and there is no legacy mode.
 
 Both wrappers smooth VCF EG depth with a linear ramp over
 `floor(internalSampleRate * 0.005)` samples, not a one-pole exponential smoother.
@@ -125,11 +203,33 @@ CS-01 component values or internal topology.
 
 ## VCA and output conversion
 
-[VCAProcessor](../CheapSynth01/core/cs01synth/VCAProcessor.cpp) combines envelope depth,
-breath control, volume and the independent note gate. Its coupling filters,
-Tr7 asymmetry/treble emphasis and 15 kHz rolloff include empirical behavior;
-[the low-frequency audit](hardware/Low-frequency-circuit-audit.md) distinguishes
-recorded components from those approximations. EG depth is smoothed over 5 ms.
+[VCAProcessor](../CheapSynth01/core/cs01synth/VCAProcessor.cpp) owns the instrument
+control policy and external signal path. `VCAControlCircuit::controlLevel` combines
+EG depth, the independent note gate, breath sensitivity and the panel-volume
+mapping into one normalized control quantity. EG depth retains its 5 ms smoothing.
+`IG02600BehavioralModel` now receives only audio and this control quantity.
+
+The user-supplied Yamaha IC Guide book (PDF p137 / printed 8-3) documents IG02600
+control/reference, Bias and output blocks, including an emitter-follower input.
+The IC model exposes a provisional `OperatingPoint`: reference/bias gain scale
+and internal output-stage gain both default to one. Its control-to-gain law is
+provisionally linear, and the existing empirical saturation curve is retained.
+These normalized scales are not physical Bias/Ein voltages; the guide does not
+specify transfer curves, headroom or follower voltage drops. Changing them is
+an explicit model hypothesis, not a calibrated hardware adjustment. See the
+[guide review](hardware/Yamaha-IC-guide-review.md).
+
+Default operating-point values preserve the previous output, including the order
+of control multiplication before saturation. The internal output stage is distinct
+from the existing external Tr7 approximation. Coupling filters, Tr7 asymmetry/
+treble emphasis and 15 kHz rolloff remain empirical; the
+[low-frequency audit](hardware/Low-frequency-circuit-audit.md) records their limits.
+
+The related IG00156 diagram documents an internal Q-control block, but is not a
+block diagram of the target VCF ICs. The VCF's current feedback arrays remain an
+effective software representation of the combined response, not evidence that
+all physical resonance circuitry resides outside those ICs. No new VCF transfer
+or electrical range is inferred from the related part.
 
 The output converter uses a 129-tap Blackman-windowed linear-phase FIR at 4x,
 with cutoff at 90% of host Nyquist. Its delay is 16 host samples, reported to
@@ -153,17 +253,19 @@ Both sets of values were intentionally revised on 2026-11-02 after independent
 transfer/DC tests passed. Original's unit-DC two-pole replacement changes the
 48 kHz small-signal 100 Hz fundamental from 0.00444450 to 0.00999857, and the
 driven 500 Hz, resonance-0.8 fundamental from 0.368916 to 0.425098.
-Modern's multi-feedback replacement changes the 48 kHz driven 500 Hz,
-resonance-0.8 fundamental from 0.347210 to 0.119433; the zero-resonance
-5 kHz fundamental changes from 0.424672 to 0.358929. This reflects the new
-low-band loss, earlier rolloff and upstream-only nonlinear placement, not a
-numerical refactor. Both frozen historical arithmetic fixtures remain unchanged.
+The earlier Modern replacement's driven 500 Hz, resonance-0.8 fundamental at
+48 kHz was 0.119433. The 2026-11-04 musical normalization raises it to 0.425545;
+DC changes from 0.00477391 to 0.01699514. Only the three resonant Modern baseline
+rows were revised for this tuning, after independent response/DC checks; raw
+zero-resonance rows and Original rows are unchanged. The 1.3091 cutoff mapping
+is circuit-level and is checked separately. Both frozen historical arithmetic
+fixtures remain unchanged.
 The absolute floor (-160 dBFS amplitude) accommodates platform math differences
 in the raw models' float samples. A historical Windows/macOS folded-bin
 difference of about 1.74e-9 remains a tolerance-policy test: it still rejects
 loss or a 10% change of that historical 1.58e-7 component and a 0.1% change of
-a normal-level component. The replacement filter baselines have been checked
-locally on macOS, not newly measured on Windows.
+a normal-level component. The 2026-11-04 resonant baseline revision was measured in this Linux workspace;
+native Windows/macOS checks have not been rerun for this revision.
 Do not regenerate these constants merely to make a DSP edit pass: intentional
 sound changes need an explained baseline revision and before/after measurements.
 

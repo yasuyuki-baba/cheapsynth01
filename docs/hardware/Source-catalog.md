@@ -40,6 +40,12 @@ equations are now preserved in the
 This updates that source's inspection status, not the availability of the
 other historical originals.
 
+On 2026-11-04, two user-supplied partial VCF drawings (CS01 first, CS01II
+second) were inspected directly. Their original files are not present in this
+checkout and no revision/page identity was supplied. The
+[external-network review](VCF-external-network-review.md) records corrected
+CS01 connectivity and outstanding external-network omissions.
+
 ## Manuals and schematics
 
 | Source | Recorded acquisition lead or filename | Cited pages / region | Local original and project analysis |
@@ -49,6 +55,17 @@ other historical originals.
 | Yamaha CS-01II service drawing | User-supplied partial circuit image inspected 2026-11-02; an enlarged VCF excerpt is also in the secondary article below. No complete source PDF or revision identity recorded. | IC2 / IG05630 and selected external connections; page not recorded. | Complete original absent. [IG05630 connection transcription and conditional model](Circuit-evidence-status.md#ig05630-external-network-investigation-2026-11-02); [production model](../DSP-design.md#filter-models). |
 | Yamaha PS-1 / PS-2 / PS-3 service manual | [Recorded manual URL](https://www.manualslib.com/manual/4155002/Yamaha-Portasound-Ps-1.html). | GE2 description, model-specific block diagrams and overall circuit diagrams; page numbers not recorded. | Absent. [Related-model evidence](../DSP-design.md#filter-models). Related instruments, not proof of CS-01 topology. |
 | Yamaha PS-30 service manual | [Solo generator page](https://www.manualslib.com/manual/4397023/Yamaha-Ps-30.html?page=14), [electronic components page](https://www.manualslib.com/manual/4397023/Yamaha-Ps-30.html?page=24). | Viewer pages 14 and 24; printed-page mapping not recorded. | Absent. [Related-model evidence](../DSP-design.md#filter-models): identifies IG02612, not IG02610. |
+
+## User-supplied Yamaha IC Guide book (2026-11-04)
+
+`yamahaicguidebook_text.pdf` (164 PDF pages) is now available locally under
+ignored `references/manuals/`. SHA256:
+`e45fd7d90f18fedcfa12a68d7d48755a6bfda490a68992d070ed3b1d26e0d66e`.
+PDF pages 37–38 cover IG00156 and a CS-5 application; pages 137–138 cover
+IG02600 and an SK10 application. Those pages were inspected visually as well
+as through OCR. No IG02610/IG05630/YM10150 entry was found in text/index searches.
+See the [guide review](Yamaha-IC-guide-review.md) for applicability and limits.
+This updates local availability for this guide, not for the older source files.
 
 ## Datasheets and secondary interpretations
 

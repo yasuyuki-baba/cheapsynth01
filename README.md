@@ -141,7 +141,7 @@ hardware. Current DSP design and modeling limits are described in
 
 ## Product Specifications
 
-See the [0.5.0 release notes](docs/release-notes-0.5.0.md) for product features
+See the [0.5.1 release notes](docs/release-notes-0.5.1.md) for product features
 and validation status.
 
 CheapSynth01 uses each format's native parameter IDs and XML state.

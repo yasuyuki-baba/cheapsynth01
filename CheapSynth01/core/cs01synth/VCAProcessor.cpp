@@ -1,4 +1,5 @@
 #include "cs01synth/VCAProcessor.h"
+#include "cs01synth/VCAControlCircuit.h"
 
 #include <cmath>
 
@@ -50,10 +51,11 @@ float VCAProcessor::processSample(float audio, float eg, float noteGate) {
     egDepthControl.setTargetValue(parameters.get(ParameterIds::vcaEgDepth));
     audio = inputHighPass.processSample(audio);
     audio = dcBlocker.processSample(audio);
-    audio = vcaModel.processSample(audio, eg, egDepthControl.getNextValue(),
-                                   parameters.get(ParameterIds::breathInput),
-                                   parameters.get(ParameterIds::breathVca),
-                                   std::pow(parameters.get(ParameterIds::volume), 2.5f), noteGate);
+    const float control = cs01::VCAControlCircuit::controlLevel(
+        eg, egDepthControl.getNextValue(), parameters.get(ParameterIds::breathInput),
+        parameters.get(ParameterIds::breathVca),
+        std::pow(parameters.get(ParameterIds::volume), 2.5f), noteGate);
+    audio = vcaModel.processSample(audio, control);
     const float output = highFreqRolloff.processSample(
         outputCoupling.processSample(tr7Buffer.processSample(bufferCoupling.processSample(audio))));
     if (!std::isfinite(output)) {
