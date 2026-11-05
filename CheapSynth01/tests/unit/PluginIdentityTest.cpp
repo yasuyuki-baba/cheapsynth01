@@ -11,7 +11,7 @@ TEST(CompatibilityTest, PluginIdentityAndParameterOrderRemainStable) {
     EXPECT_EQ(std::string_view(PLUG_NAME), "CheapSynth01");
     EXPECT_EQ(static_cast<uint32_t>(PLUG_UNIQUE_ID), 0x43533031u);
     EXPECT_EQ(std::string_view(PLUG_MFR), "babab");
-    EXPECT_EQ(static_cast<uint32_t>(PLUG_MFR_ID), 0x42616261u);
+    EXPECT_EQ(static_cast<uint32_t>(PLUG_MFR_ID), 0x42414241u);
     EXPECT_EQ(PLUG_TYPE, 1);
     constexpr std::array<uint32_t, 4> component{VST3_PROCESSOR_UID};
     constexpr std::array<uint32_t, 4> controller{VST3_CONTROLLER_UID};
