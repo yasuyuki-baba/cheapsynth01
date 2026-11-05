@@ -1,12 +1,13 @@
 #pragma once
 #define PLUG_NAME "CheapSynth01"
-#define PLUG_MFR "Yasuyuki Baba"
+#define PLUG_MFR "babab"
 #define PLUG_VERSION_HEX 0x00000501
 #define PLUG_VERSION_STR "0.5.1"
 #define PLUG_UNIQUE_ID 'CS01'
-#define PLUG_MFR_ID 'BABA'
-#define VST3_PROCESSOR_UID 0xABCDEF01, 0x9182FAEB, PLUG_MFR_ID, PLUG_UNIQUE_ID
-#define VST3_CONTROLLER_UID 0xABCDEF01, 0x1234ABCD, PLUG_MFR_ID, PLUG_UNIQUE_ID
+#define PLUG_MFR_ID 'Baba'
+// Preserve existing VST3 identities independently of the AU manufacturer code.
+#define VST3_PROCESSOR_UID 0xABCDEF01, 0x9182FAEB, 0x42414241, PLUG_UNIQUE_ID
+#define VST3_CONTROLLER_UID 0xABCDEF01, 0x1234ABCD, 0x42414241, PLUG_UNIQUE_ID
 #define PLUG_URL_STR "https://github.com/yasuyuki-baba/cheapsynth01"
 #define PLUG_EMAIL_STR ""
 #define PLUG_COPYRIGHT_STR "Copyright Yasuyuki Baba"

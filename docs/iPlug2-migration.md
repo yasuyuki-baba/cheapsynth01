@@ -80,7 +80,10 @@ No fixed envelope offset is added: all stages share the internal clock.
   performance controls. Notes are not serialized.
 - The state reader accepts current XML payloads. It validates
   the entire XML before committing parameter updates.
-- Plugin identifiers are: AU `aumu/CS01/BABA`, CLAP
+- Manufacturer display name is `babab` across AU, VST3 and CLAP.
+  The AU manufacturer code changed from `BABA` to `Baba`; hosts treat this as
+  a different AU identity. Existing VST3 UIDs and the CLAP ID are preserved.
+- Plugin identifiers are: AU `aumu/CS01/Baba`, CLAP
   `com.yasuyukibaba.cheapsynth01`, and macOS bundle ID
   `org.github.yasuyukibaba.cheapsynth01`. VST3 uses component
   UID `ABCDEF019182FAEB4241424143533031` and controller UID
