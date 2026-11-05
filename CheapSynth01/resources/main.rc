@@ -210,7 +210,7 @@ BEGIN
             VALUE "FileDescription", "CheapSynth01"
             VALUE "InternalName", "CheapSynth01"
             VALUE "ProductName", "CheapSynth01"
-            VALUE "CompanyName", "yasuyukibaba"
+            VALUE "CompanyName", "babab"
             VALUE "LegalCopyright", "Copyright Yasuyuki Baba"
             VALUE "LegalTrademarks", "VST is a trademark of Steinberg Media Technologies GmbH, Audio Unit is a trademark of Apple, Inc."
         END

@@ -10,9 +10,9 @@
 			<key>factoryFunction</key>
 			<string>CheapSynth01_Factory</string>
 			<key>manufacturer</key>
-			<string>BABA</string>
+			<string>Baba</string>
 			<key>name</key>
-			<string>yasuyukibaba: CheapSynth01</string>
+			<string>babab: CheapSynth01</string>
 			<key>sandboxSafe</key>
 			<true/>
 			<key>subtype</key>
