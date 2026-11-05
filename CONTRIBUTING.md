@@ -3,7 +3,7 @@
 CheapSynth01 uses C++20 and iPlug2. The audio engine is a separate static library;
 it can be developed and tested without building a plugin.
 
-## Core tests (Windows/macOS)
+## Core tests (Windows/macOS/Linux)
 
 Requires CMake 3.25+, a C++20 compiler, and Git. CMake fetches the pinned TinyXML2
 10.0.0 and Google Test 1.14.0 dependencies on first configuration.
@@ -14,9 +14,18 @@ cmake --build build-core --config Debug --parallel 2
 ctest --test-dir build-core -C Debug --output-on-failure
 ```
 
-## Desktop products (Windows/macOS)
+## Desktop products
 
-Initialize iPlug2 and its SDKs with Git Bash on Windows or bash on macOS:
+All native platforms use the same iPlug2 submodule from
+[`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
+`dad63b32c0eb9bfee1a01b79404bac2e550795f3`. It includes experimental Linux
+support and local fixes based on
+[iPlug2/iPlug2#1336](https://github.com/iPlug2/iPlug2/pull/1336).
+No compatibility patch or separate Linux checkout is required.
+The commit is fixed by the parent repository, not a moving fork branch.
+
+Initialize iPlug2 and its pinned plugin SDKs with Git Bash on Windows or bash
+on macOS/Linux. Linux also needs the system prerequisites listed below.
 
 ```sh
 bash scripts/setup-iplug2.sh
@@ -26,14 +35,202 @@ ctest --test-dir build-native -C Release --output-on-failure
 ```
 
 Windows requires Visual Studio with C++ desktop tools and Windows SDK; macOS
-requires Xcode command-line tools. The deployment target is macOS 10.15 or
+native products require full Xcode, including `ibtool` for the APP menu resource.
+The Command Line Tools alone are sufficient for core tests, not the APP build.
+If the active developer directory points to Command Line Tools, set
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in the build environment
+to select an installed Xcode without changing the system-wide selection.
+The deployment target is macOS 10.15 or
 newer because user preset/state paths use `std::filesystem`. Add `-DSTANDALONE_ONLY=ON` for an APP-only
 build. `-DIPLUG2_UNIVERSAL=ON` builds Intel/Apple Silicon binaries on macOS.
 Products go into `build-native/out`. Installation is disabled by default; set
 `IPLUG_DEPLOY_PLUGINS=ON` only when you intend to install them.
 
 Supported products are APP, VST3 and CLAP on both platforms, plus AUv2 on macOS.
-Development and CI testing target Windows and macOS.
+CI testing targets Windows and macOS. Switching to this fork also updates the
+SDK on those platforms; revalidate all three platforms before treating the
+shared SDK revision as release-ready.
+
+The shared-submodule migration was checked on macOS on 2026-11-03: APP, VST3,
+CLAP and AUv2 built with the pinned fork, all 274 regression-labelled CTest
+entries passed, and all 15 release-archive/signing-preparation contract tests
+passed. Repeated setup left the submodule clean at the same commit.
+Windows and Linux have not been rerun for this migration; the Linux results
+below are historical, not a substitute for that validation. Native DAW/device
+and interactive editor checks remain separate.
+
+## Linux (experimental)
+
+The Linux presets use Ninja and default to Release. Core-only builds do not need
+iPlug2 or a display:
+
+```sh
+cmake --preset linux-core
+cmake --build --preset linux-core
+ctest --preset linux-core
+```
+
+The shared pinned submodule provides the X11 backend. It includes
+APP build and startup fixes, editor resizing, idle/host lifecycle synchronization,
+clipboard and dialog handling, resource isolation, path validation, and Linux
+regression tests. The pinned revision keeps APP and REAPER UI dispatch on the owning
+main loop, defers callback-triggered teardown, adds scaled pointer coordinates and
+XIM UTF-8/Compose input, and validates X11 parents through XCB. It also requires
+explicit Linux OSC polling and rejects unsupported Linux WebView configurations.
+The earlier compatibility patch has been removed in favor of the pinned fork.
+
+For Ubuntu 24.04, install the native development prerequisites:
+
+```sh
+sudo apt-get install build-essential cmake ninja-build git curl pkg-config python3 \
+  libfreetype-dev libfontconfig-dev libx11-dev libx11-xcb-dev libxcb1-dev libxi-dev libxext-dev \
+  libxrender-dev libxrandr-dev libxfixes-dev libxcursor-dev libgl-dev \
+  libgtk-3-dev libasound2-dev libjack-jackd2-dev libpulse-dev xvfb xauth
+```
+
+From the CheapSynth01 repository root, in bash:
+
+```sh
+bash scripts/setup-iplug2.sh
+cmake --preset linux-native
+cmake --build --preset linux-native
+ctest --preset linux-native
+```
+
+The setup script synchronizes the submodule URL, checks out the pinned revision,
+and fetches fixed VST3/CLAP SDK revisions. It rejects a populated plugin SDK at
+a different revision rather than silently replacing it. When switching branches
+with different submodule pins, rerun setup and use a clean build directory.
+For an existing build that previously set `IPLUG2_DIR` to an external checkout,
+reconfigure it with `-DIPLUG2_DIR="$PWD/iPlug2"` or use a fresh build directory.
+
+Products are written to `build-linux-native/out`, with deployment disabled. The
+`linux-standalone` configure/build/test presets build APP only. `Xvfb` and `xauth` enable the X11
+keyboard-focus and standalone-startup regression tests; without `xvfb-run` those
+tests are not registered. The startup test builds and launches the actual APP.
+GTK3 is an iPlug2/SWELL dependency; the synth does not call GTK directly.
+
+Launch `build-linux-native/out/CheapSynth01` in an X11 desktop session for audio
+and MIDI device setup. Adding `--no-io` disables audio/MIDI device I/O and is
+useful for GUI-only smoke tests; it does not verify audio output. Keep the
+accompanying resources directory with the executable/plugin products. User
+audio/MIDI settings use `$XDG_CONFIG_HOME/cheapsynth01/settings.ini`, falling back
+to `$HOME/.config/cheapsynth01/settings.ini` if `XDG_CONFIG_HOME` is unset, empty
+or relative. Missing ancestors are created with private permissions (0700,
+subject to the process umask); existing directory permissions are preserved.
+An absolute configuration base is required. Directory or settings-write failures
+are reported to stderr and terminate startup with exit code 1, before audio or
+editor initialization. Audio-device selection failures after successful host
+initialization retain the SDK's existing settings-recovery behavior. User
+presets use `$XDG_DATA_HOME/CheapSynth01/UserPresets`, falling back to
+`~/.local/share/CheapSynth01/UserPresets` if `XDG_DATA_HOME` is unset, empty or
+relative.
+
+### Historical Linux validation
+
+The following runs predate the unified submodule setup and used external
+checkouts or the former compatibility patch. They document their tested SDK
+trees, not a fresh validation of the current application and setup on Linux.
+
+Local validation used Ubuntu 24.04 ARM64, GCC 13.3, Xvfb and Mesa llvmpipe:
+APP/VST3/CLAP builds, APP drawing, preset switching, fader changes, keyboard
+expansion/collapse, PC-key highlighting, XML Save As, and normal exit/reopen.
+The native suite has 255 CTest entries (including the Xvfb focus test); three
+existing `SignalPathTest` numeric-reference comparisons fail on this setup:
+
+- `BehavioralModelsMatchFrozenArithmeticIncludingSafetyExactly`
+- `OriginalCombinedModulationMatchesIndependentSemitoneCutoff`
+- `ModernWrapperMatchesFrozenCircuitArithmeticAndReset`
+
+All three also fail on the unmodified CheapSynth01 commit
+`8517b92aca28dccdd6aa3cc8ef7db12185403c5e` in the same ARM64 Release environment.
+Do not suppress these failures or treat that ARM64 suite as fully passing.
+That run did not validate real audio devices, DAW-hosted VST3/CLAP, x86_64, HiDPI
+or native Wayland. Linux packages are not produced by the release workflow yet.
+
+Additional validation on 2026-10-20 used commit `4aa40d0`, Ubuntu 24.04.4 x86_64
+under WSL2/WSLg, GCC 13.3 and Release builds with the patched iPlug2 baseline above.
+The VST3 SDK was `v3.8.0_build_66`; CLAP SDK and helpers used the revisions pinned
+in `scripts/setup-iplug2.sh`. Mixing older CLAP headers with current helpers caused
+compile errors; using the matching pinned revisions resolved them.
+
+- Core suite: all 241 CTest entries passed.
+- Native suite: all 255 entries passed, including the Xvfb keyboard-focus test,
+  parameter presentation and VST3 SDK boundary cases. The three ARM64 numerical
+  failures listed above did not reproduce in this x86_64 environment.
+- APP, VST3 and CLAP built successfully, with no missing shared libraries.
+  WSLg window creation was checked. Automated Xvfb smoke checks verified nonblank
+  drawing, next-preset display changes, keyboard expansion/collapse (400/640
+  pixels), PC-key press/release highlighting and normal exit/reopen, both with
+  `--no-io` and with device I/O enabled.
+- APP audio was captured from a dedicated PulseAudio null sink through the ALSA
+  default device at 44.1 kHz, with a 512-frame application buffer. PC-key notes
+  produced a captured peak of approximately 0.0662, with no nonfinite samples.
+  This verifies the software audio path, not physical playback or latency.
+- The actual VST3 binary loaded and exposed its factory/class metadata.
+  A minimal local CLAP host loaded the actual binary, activated stereo processing
+  at 48 kHz/256 frames, and verified initial silence, finite identical left/right
+  output after MIDI note-on (peak approximately 0.2030), and silence after note-off.
+  These are smoke checks, not DAW-hosted plugin/editor validation.
+
+The initial validation also reproduced SIGSEGV (exit 139) when the configuration
+parent did not exist: settings initialization failed, but APP startup continued
+with no audio driver. The fixes now included in the pinned fork create missing
+ancestors, check initialization, and reject uninitialized audio-device
+access. Its SWELL INI writer propagates open, buffered-write, close and rename
+errors instead of reporting successful saves; failed writes leave existing
+settings intact and invalidate the in-memory cache.
+
+The fix was verified with 16 executable-level Xvfb startup cases, registered as
+one additional CTest entry (256 total native entries). They cover absent parents,
+private/new versus preserved/existing permissions, unset/empty/relative XDG
+paths, unavailable configuration bases, reopen/settings restoration, directory
+and file-write failures, and invalid audio drivers. Successful startup cases use
+`--no-io`; failure cases also exercise ordinary device-enabled startup. The
+existing keyboard-focus test still passes. APP/VST3/CLAP builds and patch
+application against the exact SDK baseline were also checked.
+
+WSL2 also lacked `/dev/snd/seq`; APP logged ALSA
+sequencer initialization errors but continued running with PC-keyboard audio.
+Physical audio/MIDI devices, real DAW hosting, HiDPI and native Wayland remain
+unverified.
+
+Validation on 2026-10-22 with iPlug2 commit `d12749072` used Ubuntu 24.04.4
+x86_64 and a Release build. Applying the regenerated patch to the baseline
+reproduced that commit's complete tracked Git tree exactly. APP, VST3 and CLAP
+built successfully against the local SDK checkout, and all 256 native CTest
+entries passed, including the Xvfb startup and keyboard-focus regressions.
+The iPlug2 Linux regression suite also passed all 56 entries, covering APP,
+VST3/CLAP host lifecycle and failure paths, dialogs, clipboard, timers, SDK
+detection, and COPY/SYMLINK deployment with resource isolation.
+
+Additional smoke tests loaded the actual CheapSynth01 VST3 and CLAP products
+into iPlug2's minimal test hosts: all eight VST3 modes and eleven CLAP modes
+passed. The temporary host probes only adjusted editor-size detection for the
+400-pixel-high synth UI and the VST3 gesture position to its LFO speed fader.
+Checks included rendering, repeated editor open/close, native close/reopen,
+VST3 parameter gestures, host-loop switching, callback fallbacks, and injected
+initialization failures. These are Xvfb/software-rendering checks, not real DAW
+validation. This run did not repeat audio capture or physical device testing.
+
+Validation on 2026-10-31 updated the patch to iPlug2 commit `dad63b32`.
+Applying it with `git apply --index` to a clean baseline checkout reproduced the
+target commit's complete tracked Git tree exactly. Native validation used an
+isolated patched checkout on Ubuntu 24.04.5 ARM64 with GCC 13.3 and Release builds.
+APP, VST3 and CLAP built successfully; 278 of 281 CheapSynth01 CTest entries passed,
+including the Xvfb startup and keyboard-focus tests. Three strict DSP arithmetic
+comparisons in `SignalPathTest` failed and reproduced with `BUILD_PLUGINS=OFF`,
+without any iPlug2 dependency; they are not caused by this SDK patch update.
+
+All 50 selected iPlug2 Linux regressions passed, covering APP UI-thread dispatch
+and callback teardown, VST3 lifecycle, REAPER embedding, scaled coordinates,
+XIM/Compose input, XCB parent validation, dialogs, clipboard, timers, OSC polling
+and WebView configuration rejection. The full SDK test build is blocked by the
+upstream `Tests/Linux/WebView/FailedEditor.h` reference to `iplug::MakeConfig`;
+CLAP host regressions depending on that fixture were excluded, and deployment
+fixtures were not rerun. The patch retains the upstream tree without local fixes
+for this test-only build error. Real DAW, live IME and physical device validation
+remain pending.
 
 ## Standalone audio and MIDI settings
 

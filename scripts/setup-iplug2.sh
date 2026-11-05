@@ -2,6 +2,7 @@
 # Fetch SDKs for the pinned iPlug2 checkout. No plugin installation occurs here.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+git submodule sync -- iPlug2
 git submodule update --init iPlug2
 sdk_dir="$PWD/iPlug2/Dependencies/IPlug"
 fetch_sdk() {

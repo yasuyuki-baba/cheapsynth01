@@ -16,6 +16,37 @@
       "name": "base"
     },
     {
+      "name": "linux",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-core",
+      "inherits": "linux",
+      "cacheVariables": { "BUILD_PLUGINS": "OFF" }
+    },
+    {
+      "name": "linux-native",
+      "inherits": "linux",
+      "cacheVariables": {
+        "BUILD_PLUGINS": "ON",
+        "IGRAPHICS_BACKEND": "NANOVG",
+        "IGRAPHICS_RENDERER": "GL3"
+      }
+    },
+    {
+      "name": "linux-standalone",
+      "inherits": "linux-native",
+      "cacheVariables": { "STANDALONE_ONLY": "ON" }
+    },
+    {
       "name": "mac",
       "hidden": true,
       "inherits": "base",
@@ -83,6 +114,21 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "linux-core",
+      "configurePreset": "linux-core",
+      "jobs": 4
+    },
+    {
+      "name": "linux-native",
+      "configurePreset": "linux-native",
+      "jobs": 4
+    },
+    {
+      "name": "linux-standalone",
+      "configurePreset": "linux-standalone",
+      "jobs": 4
+    },
     {
       "name": "mac-core-debug",
       "configurePreset": "mac-core",
@@ -157,6 +203,21 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "linux-core",
+      "configurePreset": "linux-core",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "linux-native",
+      "configurePreset": "linux-native",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "linux-standalone",
+      "configurePreset": "linux-standalone",
+      "output": { "outputOnFailure": true }
+    },
     {
       "name": "mac-core-debug",
       "configurePreset": "mac-core",
