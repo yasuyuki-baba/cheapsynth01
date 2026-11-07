@@ -83,6 +83,37 @@ If Windows reports that a downloaded file is blocked, right-click it, open
 downloaded ZIP before extracting it. Managed computers may enforce policies
 that do not allow unsigned products.
 
+## Linux (experimental)
+
+The Linux ZIP is built for x86_64 on Ubuntu 24.04 with X11 and OpenGL. Other
+distributions and native Wayland sessions have not been validated. Install the
+runtime libraries on Ubuntu 24.04 if they are not already present:
+
+```sh
+sudo apt-get install libgtk-3-0t64 libfreetype6 libfontconfig1 libx11-6 \
+  libx11-xcb1 libxcb1 libxi6 libxext6 libxrender1 libxrandr2 libxfixes3 \
+  libxcursor1 libgl1 libgl1-mesa-dri libasound2t64 libjack-jackd2-0 libpulse0
+```
+
+Extract the Linux ZIP with a tool that preserves Unix permissions, such as
+`unzip`. Copy the products from `out/` to these user-level locations:
+
+| Product in `out/` | Destination folder |
+| --- | --- |
+| `CheapSynth01.vst3` (entire folder) | `~/.vst3/` |
+| `CheapSynth01.clap` and `CheapSynth01.clap.resources` | `~/.clap/` |
+| `CheapSynth01` and `CheapSynth01.resources` | A folder you own, for example `~/Applications/CheapSynth01/` |
+
+Create the destination folders if needed. Keep each `.resources` directory next
+to its matching binary; it contains the UI font. Keep the complete VST3 bundle,
+including its `Contents/Resources` directory. If the standalone executable lost
+its execute permission during extraction, restore it with `chmod +x CheapSynth01`
+in its installation folder, then launch it with `./CheapSynth01` in an X11 session.
+
+The standalone Preferences dialog selects audio and MIDI devices. CI checks
+startup and keyboard focus using a virtual X server; it does not establish real
+DAW, physical audio/MIDI device or native Wayland compatibility.
+
 ## Load the plugin in your DAW
 
 1. Restart the DAW after installation.

@@ -41,11 +41,12 @@ DSP approximations where hardware characteristics remain unresolved.
 All platforms use the pinned `yasuyuki-baba/iPlug2` fork. Linux requires X11 and
 NanoVG/GL3; no separate SDK checkout or compatibility patch is needed. See
 [Linux build instructions and validation limits](CONTRIBUTING.md#linux-experimental).
-CI and release packages still target Windows and macOS. LV2 is not supported.
+CI builds and tests Windows, macOS and Ubuntu 24.04 x86_64. Releases include
+packages for all three platforms. Linux support remains experimental; LV2 is not supported.
 
 ## Usage
 
-See [INSTALL.md](INSTALL.md) for Windows/macOS installation, unsigned-build
+See [INSTALL.md](INSTALL.md) for Windows/macOS/Linux installation, unsigned-build
 instructions and DAW plugin scanning.
 
 Launch the standalone application or load the appropriate plugin on an instrument
@@ -144,7 +145,7 @@ hardware. Current DSP design and modeling limits are described in
 
 ## Product Specifications
 
-See the [0.5.1 release notes](docs/release-notes-0.5.1.md) for product features
+See the [0.5.2 release notes](docs/release-notes-0.5.2.md) for product features
 and validation status.
 
 CheapSynth01 uses each format's native parameter IDs and XML state.
