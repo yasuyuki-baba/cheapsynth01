@@ -31,14 +31,17 @@ DSP approximations where hardware characteristics remain unresolved.
 
 ## Supported Platforms and Formats
 
-| Product | Windows | macOS |
-| --- | --- | --- |
-| Standalone application | Yes | Yes |
-| VST3 | Yes | Yes |
-| CLAP | Yes | Yes |
-| AUv2 | — | Yes |
+| Product | Windows | macOS | Linux (experimental) |
+| --- | --- | --- | --- |
+| Standalone application | Yes | Yes | Yes |
+| VST3 | Yes | Yes | Build verified |
+| CLAP | Yes | Yes | Build verified |
+| AUv2 | — | Yes | No |
 
-Development and CI target Windows and macOS.
+All platforms use the pinned `yasuyuki-baba/iPlug2` fork. Linux requires X11 and
+NanoVG/GL3; no separate SDK checkout or compatibility patch is needed. See
+[Linux build instructions and validation limits](CONTRIBUTING.md#linux-experimental).
+CI and release packages still target Windows and macOS. LV2 is not supported.
 
 ## Usage
 

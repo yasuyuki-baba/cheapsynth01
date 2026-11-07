@@ -5,6 +5,7 @@
 #include "IPlugPaths.h"
 #include <limits>
 #include <cstring>
+#include <cstdlib>
 using namespace iplug;
 namespace {
 std::filesystem::path userPresetDirectory() {
@@ -17,6 +18,13 @@ std::filesystem::path userPresetDirectory() {
     const char* roaming = std::getenv("APPDATA");
     if (roaming && *roaming)
         return cs01::utf8Path(roaming) / "CheapSynth01" / "UserPresets";
+#elif defined OS_LINUX
+    const char* data = std::getenv("XDG_DATA_HOME");
+    if (data && *data && cs01::utf8Path(data).is_absolute())
+        return cs01::utf8Path(data) / "CheapSynth01" / "UserPresets";
+    const char* home = std::getenv("HOME");
+    if (home && *home)
+        return cs01::utf8Path(home) / ".local" / "share" / "CheapSynth01" / "UserPresets";
 #endif
     return {};
 }
