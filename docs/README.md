@@ -1,6 +1,6 @@
 # Documentation
 
-CheapSynth01 uses iPlug2 on Windows/macOS. Start with the user guide for playing
+CheapSynth01 uses iPlug2 on Windows/macOS/Linux. Start with the user guide for playing
 and presets, or the development guide for building and testing.
 
 Product documentation lives directly in `docs/`; hardware evidence and technical
@@ -17,7 +17,7 @@ background live in `hardware/`.
 
 ## Development and Current Architecture
 
-- [Build instructions](../CONTRIBUTING.md): Windows/macOS prerequisites, CMake
+- [Build instructions](../CONTRIBUTING.md): Windows/macOS/Linux prerequisites, CMake
   commands and presets, standalone-only builds and project layout
 - [DSP design and modeling limits](DSP-design.md): stage ownership, envelope,
   filter hypotheses and verification
@@ -34,6 +34,7 @@ background live in `hardware/`.
 
 ## Product Specifications and Native Validation
 
+- [0.5.2 release notes](release-notes-0.5.2.md)
 - [0.5.1 release notes](release-notes-0.5.1.md)
 - [Architecture notes](iPlug2-migration.md)
 - [Native validation status](iPlug2-migration-plan.md)
