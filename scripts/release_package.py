@@ -223,7 +223,20 @@ def verify(path, commit, expected_version, platform):
         else:
             required |= {'notices/iPlug2/LICENSE.txt', 'notices/Roboto/LICENSE-Apache-2.0.txt',
                          'notices/tinyxml2/LICENSE.txt', 'notices/googletest/LICENSE'}
-            suffixes = ('.vst3/', '.clap', '.exe') if platform == 'Windows' else ('.vst3/', '.clap/', '.component/', '.app/')
+            if platform == 'Linux':
+                required |= {'out/CheapSynth01', 'out/CheapSynth01.clap',
+                             'out/CheapSynth01.resources/ttf/Roboto-Regular.ttf',
+                             'out/CheapSynth01.clap.resources/ttf/Roboto-Regular.ttf',
+                             'out/CheapSynth01.vst3/Contents/Resources/ttf/Roboto-Regular.ttf'}
+                if not any(re.fullmatch(r'out/CheapSynth01\.vst3/Contents/[^/]+-linux/CheapSynth01\.so', name)
+                           for name in names):
+                    raise ValueError('Missing product: Linux VST3 shared library')
+                app = info['files'].get('out/CheapSynth01')
+                if app and (not stat.S_ISREG(app['mode']) or not app['mode'] & 0o111):
+                    raise ValueError('Linux standalone must be a regular executable')
+                suffixes = ()
+            else:
+                suffixes = ('.vst3/', '.clap', '.exe') if platform == 'Windows' else ('.vst3/', '.clap/', '.component/', '.app/')
             for suffix in suffixes:
                 if not any(name.startswith('out/') and (suffix in name if suffix.endswith('/') else name.endswith(suffix)) for name in names):
                     raise ValueError(f'Missing product: {suffix}')
@@ -238,12 +251,12 @@ def main():
     create = sub.add_parser('create')
     create.add_argument('--root', type=Path, default=Path(__file__).resolve().parent.parent)
     create.add_argument('--build', type=Path, required=True)
-    create.add_argument('--platform', choices=['Windows', 'macOS', 'source'], required=True)
+    create.add_argument('--platform', choices=['Windows', 'macOS', 'Linux', 'source'], required=True)
     create.add_argument('--output', type=Path, required=True)
     check = sub.add_parser('verify')
     check.add_argument('--commit', required=True)
     check.add_argument('--version', required=True)
-    check.add_argument('--platform', choices=['Windows', 'macOS', 'source'], required=True)
+    check.add_argument('--platform', choices=['Windows', 'macOS', 'Linux', 'source'], required=True)
     check.add_argument('archive', type=Path)
     args = parser.parse_args()
     try:

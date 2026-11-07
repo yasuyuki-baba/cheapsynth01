@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 import warnings
@@ -122,6 +123,69 @@ class ArchiveContractTest(unittest.TestCase):
         self.write()
         with self.assertRaisesRegex(ValueError, 'Missing product'):
             pkg.verify(self.path, COMMIT, VERSION, 'Windows')
+
+
+class LinuxArchiveTest(unittest.TestCase):
+    write = ArchiveContractTest.write
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / 'linux.zip'
+        names = ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'notices/iPlug2/LICENSE.txt',
+                 'notices/Roboto/LICENSE-Apache-2.0.txt', 'notices/tinyxml2/LICENSE.txt',
+                 'notices/googletest/LICENSE', 'out/CheapSynth01.clap',
+                 'out/CheapSynth01.vst3/Contents/x86_64-linux/CheapSynth01.so',
+                 'out/CheapSynth01.resources/ttf/Roboto-Regular.ttf',
+                 'out/CheapSynth01.clap.resources/ttf/Roboto-Regular.ttf',
+                 'out/CheapSynth01.vst3/Contents/Resources/ttf/Roboto-Regular.ttf']
+        self.data = {name: (b'fixture payload', REGULAR) for name in names}
+        self.data['out/CheapSynth01'] = (b'ELF fixture', stat.S_IFREG | 0o755)
+
+    def check(self):
+        self.info = {'schema': 1, 'product': 'CheapSynth01', 'version': VERSION,
+                     'source_commit': COMMIT, 'platform': 'Linux',
+                     'files': {name: {'sha256': hashlib.sha256(data).hexdigest(), 'mode': mode}
+                               for name, (data, mode) in self.data.items()}}
+        self.write()
+        return pkg.verify(self.path, COMMIT, VERSION, 'Linux')
+
+    def test_complete_linux_archive_and_executable_mode(self):
+        info = self.check()
+        self.assertEqual(info['files']['out/CheapSynth01']['mode'], stat.S_IFREG | 0o755)
+        with zipfile.ZipFile(self.path) as archive:
+            self.assertEqual(archive.getinfo('out/CheapSynth01').external_attr >> 16,
+                             stat.S_IFREG | 0o755)
+        result = subprocess.run([sys.executable, str(MODULE), 'verify', '--commit', COMMIT,
+                                 '--version', VERSION, '--platform', 'Linux', str(self.path)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_each_product_and_resource_is_required(self):
+        for name in tuple(self.data):
+            if not name.startswith('out/'):
+                continue
+            with self.subTest(name=name):
+                value = self.data.pop(name)
+                with self.assertRaisesRegex(ValueError, 'Missing product|Missing required'):
+                    self.check()
+                self.data[name] = value
+
+    def test_nonexecutable_standalone_rejected_even_with_matching_manifest(self):
+        self.data['out/CheapSynth01'] = (b'ELF fixture', REGULAR)
+        with self.assertRaisesRegex(ValueError, 'regular executable'):
+            self.check()
+
+    def test_arm64_vst3_bundle_is_accepted(self):
+        binary = self.data.pop('out/CheapSynth01.vst3/Contents/x86_64-linux/CheapSynth01.so')
+        self.data['out/CheapSynth01.vst3/Contents/aarch64-linux/CheapSynth01.so'] = binary
+        self.check()
+
+    def test_macos_vst3_bundle_cannot_substitute_for_linux_binary(self):
+        binary = self.data.pop('out/CheapSynth01.vst3/Contents/x86_64-linux/CheapSynth01.so')
+        self.data['out/CheapSynth01.vst3/Contents/MacOS/CheapSynth01'] = binary
+        with self.assertRaisesRegex(ValueError, 'Linux VST3 shared library'):
+            self.check()
 
 
 class RestoredNoticeTest(unittest.TestCase):

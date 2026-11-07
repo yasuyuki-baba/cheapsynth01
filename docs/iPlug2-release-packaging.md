@@ -10,7 +10,7 @@ version or source commit differs from the tag checkout.
 Before publishing:
 
 1. Merge the release preparation changes and require successful lint, core,
-   native Windows/macOS and source-package CI for the final revision.
+   native Windows/macOS/Linux and source-package CI for the final revision.
 2. Complete and record the pending [native runtime and installation checks](iPlug2-migration-plan.md#remaining-runtime-checks),
    including scanning/loading, automation, current state save/reload, editor
    controls, standalone devices and 16-sample latency compensation.
@@ -27,12 +27,13 @@ Before publishing:
 
 `scripts/release_package.py` packages built artifacts without installing or loading
 plugins. Native products support Windows (APP/VST3/CLAP) and macOS
-(APP/VST3/AUv2/CLAP). The iPlug2 submodule and fetched SDK/dependency sources must
-match their recorded commits. Commit tracked project changes before packaging.
+(APP/VST3/AUv2/CLAP), plus experimental Linux (APP/VST3/CLAP). The iPlug2
+submodule and fetched SDK/dependency sources must match their recorded commits. Commit tracked project changes before packaging.
 The setup script's restored SDK placeholder notices are verified against iPlug2.
 
 ```
 python scripts/release_package.py create --build build-native --platform macOS --output release-packages/cheapsynth01-macOS.zip
+python scripts/release_package.py create --build build-native --platform Linux --output release-packages/cheapsynth01-Linux.zip
 python scripts/release_package.py create --build build-native --platform source --output release-packages/cheapsynth01-source.zip
 python scripts/release_package.py verify --commit FULL_COMMIT_SHA --version 0.5.1 --platform source release-packages/cheapsynth01-source.zip
 ```
@@ -55,11 +56,21 @@ cmake --build build-offline --parallel 2
 ctest --test-dir build-offline --output-on-failure
 ```
 
-For native compilation on Windows/macOS, use BUILD_PLUGINS=ON and the corresponding
+For native compilation on Windows/macOS/Linux, use BUILD_PLUGINS=ON and the corresponding
 platform generator. CI independently rebuilds/tests the extracted core and SDK
 interface tests with FetchContent disconnected, verifies native archives, and
 checks every release ZIP against the tag version and checkout SHA before producing
 SHA256SUMS.txt. Archive checks run on ordinary branch/PR builds as well as tags.
+
+Linux CI runs on Ubuntu 24.04 x86_64, installing the X11, GTK3, OpenGL and audio
+development packages listed in CONTRIBUTING.md. Xvfb and Mesa software rendering
+allow the keyboard-focus and APP startup tests to run without a physical display.
+Native archives are created and verified on every PR/branch build; tag builds
+also upload them for release verification and publication. Linux archives include
+the standalone executable, flat CLAP binary, VST3 bundle and their adjacent resource
+directories. Keep those resource directories beside the corresponding binaries
+when installing, and preserve the standalone executable bit when extracting the ZIP.
+This CI does not establish physical audio/MIDI or real DAW compatibility.
 
 Windows Git text attributes can report the restored CLAP SDK placeholder notices
 as modified. Only the named SDK README/readme placeholders may differ in LF/CRLF
