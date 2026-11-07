@@ -2,6 +2,7 @@ include(FetchContent)
 set(tinyxml2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(tinyxml2 GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git GIT_TAG 10.0.0 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(tinyxml2)
+set_target_properties(tinyxml2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set(PRESET_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/FactoryPresets.h")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/BuildVersion.h" CONTENT [=[
