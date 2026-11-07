@@ -18,7 +18,7 @@ ctest --test-dir build-core -C Debug --output-on-failure
 
 All native platforms use the same iPlug2 submodule from
 [`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
-`eb16026c177c53e8ab0ea3b1a90b6a3bd5c20d5e` from
+`9979d442dd393b546c8fe5d9210f4c121ee8a3c8` from
 [`fix/linux-pr1336-app-build`](https://github.com/yasuyuki-baba/iPlug2/tree/fix/linux-pr1336-app-build).
 It includes experimental Linux
 support and local fixes based on
