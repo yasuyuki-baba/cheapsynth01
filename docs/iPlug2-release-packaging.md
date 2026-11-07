@@ -65,8 +65,8 @@ SHA256SUMS.txt. Archive checks run on ordinary branch/PR builds as well as tags.
 Linux CI runs on Ubuntu 24.04 x86_64, installing the X11, GTK3, OpenGL and audio
 development packages listed in CONTRIBUTING.md. Xvfb and Mesa software rendering
 allow the keyboard-focus and APP startup tests to run without a physical display.
-Native archives are created and verified on every PR/branch build; tag builds
-also upload them for release verification and publication. Linux archives include
+Native archives are created, verified and uploaded on every PR/branch build;
+tag builds also collect them for release verification and publication. Linux archives include
 the standalone executable, flat CLAP binary, VST3 bundle and their adjacent resource
 directories. Keep those resource directories beside the corresponding binaries
 when installing, and preserve the standalone executable bit when extracting the ZIP.

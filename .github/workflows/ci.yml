@@ -86,7 +86,6 @@ jobs:
       - name: Package and verify native products without loading plugins
         run: python scripts/release_package.py create --build build-native --platform "${RUNNER_OS}" --output "release-packages/cheapsynth01-${RUNNER_OS}.zip"
       - name: Upload release package
-        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v7
         with:
           name: cheapsynth01-${{ runner.os }}-packages
@@ -149,7 +148,7 @@ jobs:
             python scripts/release_package.py verify --commit "$GITHUB_SHA" --version "$version" --platform "$platform" "release-packages/cheapsynth01-${platform}.zip"
           done
           cd release-packages
-          shasum -a 256 *.zip > SHA256SUMS.txt
+          shasum -a 256 ./*.zip > SHA256SUMS.txt
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
