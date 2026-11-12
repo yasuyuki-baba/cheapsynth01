@@ -18,11 +18,11 @@ ctest --test-dir build-core -C Debug --output-on-failure
 
 All native platforms use the same iPlug2 submodule from
 [`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
-`9979d442dd393b546c8fe5d9210f4c121ee8a3c8` from
-[`fix/linux-pr1336-app-build`](https://github.com/yasuyuki-baba/iPlug2/tree/fix/linux-pr1336-app-build).
-It includes experimental Linux
-support and local fixes based on
-[iPlug2/iPlug2#1336](https://github.com/iPlug2/iPlug2/pull/1336).
+`15297433f27c0a4217b6aa9188b9808f049cb461` from
+[`feature/linux-support-2`](https://github.com/yasuyuki-baba/iPlug2/tree/feature/linux-support-2).
+It includes experimental Linux support and host regression coverage,
+plus optional WebKitGTK WebView and Skia GL3 support. CheapSynth01 continues
+to use NanoVG/GL3 on Linux.
 No compatibility patch or separate Linux checkout is required.
 The commit is fixed by the parent repository, not a moving fork branch.
 
@@ -48,8 +48,8 @@ build. `-DIPLUG2_UNIVERSAL=ON` builds Intel/Apple Silicon binaries on macOS.
 Products go into `build-native/out`. Installation is disabled by default; set
 `IPLUG_DEPLOY_PLUGINS=ON` only when you intend to install them.
 
-Supported products are APP, VST3 and CLAP on both platforms, plus AUv2 on macOS.
-CI testing targets Windows and macOS. Switching to this fork also updates the
+Supported products are APP, VST3 and CLAP on Windows, macOS and Linux, plus
+AUv2 on macOS. CI testing targets all three platforms. Switching to this fork also updates the
 SDK on those platforms; revalidate all three platforms before treating the
 shared SDK revision as release-ready.
 
@@ -78,7 +78,8 @@ clipboard and dialog handling, resource isolation, path validation, and Linux
 regression tests. The pinned revision keeps APP and REAPER UI dispatch on the owning
 main loop, defers callback-triggered teardown, adds scaled pointer coordinates and
 XIM UTF-8/Compose input, and validates X11 parents through XCB. It also requires
-explicit Linux OSC polling and rejects unsupported Linux WebView configurations.
+explicit Linux OSC polling. Optional WebKitGTK WebView and Skia dependencies
+are not required by the CheapSynth01 Linux presets.
 The earlier compatibility patch has been removed in favor of the pinned fork.
 
 For Ubuntu 24.04, install the native development prerequisites:
