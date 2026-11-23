@@ -280,14 +280,15 @@ TEST_F(LinuxStartupTest, TemporaryFileWriteFailureIsNotReportedAsSuccess) {
     EXPECT_FALSE(fs::exists(settings(base)));
 }
 
-TEST_F(LinuxStartupTest, BufferedWriteFailurePreservesExistingSettings) {
+TEST_F(LinuxStartupTest, PreexistingTemporarySymlinkPreservesExistingSettings) {
     const auto base = root / "config";
     fs::create_directories(base / "cheapsynth01");
     const std::string original = "[audio]\ndriver=0\n";
     std::ofstream(settings(base)) << original;
     fs::create_symlink("/dev/full", base / "cheapsynth01" / ".settings.ini.new");
     start(base.string(), false);
-    expectFailure("No space left on device");
+    expectFailure("Cannot save settings");
+    EXPECT_TRUE(fs::is_symlink(base / "cheapsynth01" / ".settings.ini.new"));
     EXPECT_EQ(readFile(settings(base)), original);
 }
 

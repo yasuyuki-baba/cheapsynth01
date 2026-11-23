@@ -354,6 +354,15 @@ keyboard/monitor hidden and preserves the display scale.
 CI runs the fork's real Cocoa-view regression executable on macOS as well as
 geometry policy unit tests. This does not replace testing the CheapSynth01 AU
 in a real host: check parent resizing, display-scale changes, keyboard/monitor
-open/close, editor close/reopen and Retina/non-Retina moves. The upstream-based
-SDK still lacks the earlier fork's Linux settings-write error handling; the
-known Linux startup-test failures remain a separate migration blocker.
+open/close, editor close/reopen and Retina/non-Retina moves.
+
+## Linux standalone settings preparation
+
+The Linux standalone adds an application-owned preparation step before the SDK
+main function. It validates the settings directory and audio-driver selection,
+completes missing settings with Linux defaults and atomically saves them with
+checked open/write/flush/close/rename operations. Complete values keep the SDK's
+initial default-writing pass from needing to change them. Unknown sections and
+comments are preserved, and a pre-existing temporary symlink is rejected.
+This does not change SDK source or its later Preferences persistence behavior.
+The SDK submodule remains exactly the integration2 commit listed above.

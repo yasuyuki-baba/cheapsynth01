@@ -33,6 +33,14 @@ gtest_discover_tests(CheapSynth01Tests DISCOVERY_TIMEOUT 30)
 set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/TestLabels.cmake")
 
 if(BUILD_PLUGINS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Threads REQUIRED)
+    add_executable(CheapSynth01LinuxSettingsTests unit/LinuxSettingsTest.cpp
+        ../LinuxSettings.cpp "${IPLUG2_DIR}/WDL/swell/swell-ini.cpp")
+    target_include_directories(CheapSynth01LinuxSettingsTests PRIVATE
+        "${PROJECT_SOURCE_DIR}/CheapSynth01" "${IPLUG2_DIR}/WDL/swell")
+    target_link_libraries(CheapSynth01LinuxSettingsTests PRIVATE GTest::gtest_main Threads::Threads)
+    gtest_discover_tests(CheapSynth01LinuxSettingsTests DISCOVERY_TIMEOUT 30
+        PROPERTIES LABELS "regression;integration;linux;settings")
     find_package(X11 REQUIRED)
     find_program(XVFB_RUN_EXECUTABLE xvfb-run)
     if(XVFB_RUN_EXECUTABLE)
