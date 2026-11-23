@@ -69,6 +69,12 @@ jobs:
             exit 1
           fi
           tail -25 build-native/test-output.log
+      - name: Test Cocoa AU resize notifications
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S iPlug2/Tests/IGraphicsMacResize -B build-au-resize -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build-au-resize --target IGraphicsMacResize --parallel 2
+          ctest --test-dir build-au-resize --output-on-failure
       - name: Upload native test results
         if: always()
         uses: actions/upload-artifact@v7

@@ -35,6 +35,9 @@ class CheapSynth01 final : public cs01::PluginAPI {
 #if IPLUG_EDITOR
     void OnUIOpen() override;
     void OnUIClose() override;
+#if defined AU_API
+    void OnParentWindowResize(int width, int height) override;
+#endif
 #endif
    private:
     CheapSynth01(const iplug::InstanceInfo& info, std::vector<PreparedProgram> catalogue);
@@ -83,6 +86,9 @@ class CheapSynth01 final : public cs01::PluginAPI {
     void releaseEditorNotes();
     void updateKeyboardInput();
     void OnParamChangeUI(int index, iplug::EParamSource source) override;
+#if defined AU_API
+    bool resizingFromHost = false;
+#endif
     cs01::EditorSession editorSession;
     WDL_String dialogFile, dialogPath;
 #endif
