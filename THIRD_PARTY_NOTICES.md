@@ -1,8 +1,7 @@
 # Third-party notices
 
 - **iPlug2**: pinned Git submodule `iPlug2`, using
-  [yasuyuki-baba/iPlug2](https://github.com/yasuyuki-baba/iPlug2), a fork of
-  [iPlug2/iPlug2](https://github.com/iPlug2/iPlug2), with experimental Linux fixes;
+  [iPlug2/iPlug2](https://github.com/iPlug2/iPlug2), including its Linux backend;
   [zlib-like license](iPlug2/LICENSE.txt). The platform resource templates
   under `CheapSynth01/resources/` are adapted from its IPlugControls example; names, IDs and
   version metadata have been changed. Original copyright: the iPlug2 developers.

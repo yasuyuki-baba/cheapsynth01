@@ -38,7 +38,7 @@ DSP approximations where hardware characteristics remain unresolved.
 | CLAP | Yes | Yes | Build verified |
 | AUv2 | — | Yes | No |
 
-All platforms use the pinned `yasuyuki-baba/iPlug2` fork. Linux requires X11 and
+All platforms use a pinned revision of the upstream `iPlug2/iPlug2` repository. Linux requires X11 and
 NanoVG/GL3; no separate SDK checkout or compatibility patch is needed. See
 [Linux build instructions and validation limits](CONTRIBUTING.md#linux-experimental).
 CI builds and tests Windows, macOS and Ubuntu 24.04 x86_64. Releases include
