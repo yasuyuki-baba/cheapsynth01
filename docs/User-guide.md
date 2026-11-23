@@ -230,7 +230,11 @@ Native editor and DAW interaction verification remains pending.
 Open **Menu** in the header to select **Display scale** from 75% to 200%. The
 current preset scale is checked; the submenu title also shows the current scale
 when adjusted by dragging the editor corner. Changing scale keeps the keyboard
-and monitor open or closed. This setting affects the editor only.
+and monitor open or closed. In AUv2 hosts that resize the editor container,
+the editor scales uniformly to fit it while keeping the current panel layout,
+within the same 75–200% range. A container with a different aspect ratio may
+leave unused space. Reopening the editor keeps the display scale and starts
+with the keyboard/monitor closed. This setting affects the editor only.
 
 The menu also opens the user guide, project website and issue tracker in your
 browser. **About CheapSynth01** shows the product version and active format

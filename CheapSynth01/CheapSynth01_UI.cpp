@@ -1,4 +1,5 @@
 #include "CheapSynth01.h"
+#include "interaction/EditorGeometry.h"
 #include "Utf8Path.h"
 #if IPLUG_EDITOR
 #include "ui/PanelControls.h"
@@ -29,7 +30,7 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     // Native menus also support the preset menu's Windows column breaks.
     g->EnableMouseOver(true);
     g->EnableTooltips(true);
-    g->SetScaleConstraints(.75f, 2.f);
+    g->SetScaleConstraints(minimumEditorScale, maximumEditorScale);
     g->AttachCornerResizer(EUIResizerMode::Scale, false);
     g->AttachBubbleControl(new IBubbleControl(text(12), handle, dim));
     const auto style = DEFAULT_STYLE.WithDrawShadows(false)
@@ -326,10 +327,32 @@ void CheapSynth01::layoutEditor(IGraphics* g) {
     updateProgramLabel();
     updateFilterControls();
 }
+#if defined AU_API
+void CheapSynth01::OnParentWindowResize(int width, int height) {
+    auto* graphics = GetUI();
+    if (!graphics || resizingFromHost)
+        return;
+    const auto scale = cs01::ui::fitEditorScale(width, height, PLUG_WIDTH, graphics->Height(),
+                                                graphics->GetPlatformWindowScale());
+    if (!scale)
+        return;
+    // Keep the current compact/expanded canvas and avoid asking the host to
+    // resize in response to its own notification. The guard also covers hosts
+    // which synchronously echo the fitted view size.
+    resizingFromHost = true;
+    graphics->Resize(PLUG_WIDTH, graphics->Height(), *scale, false);
+    resizingFromHost = false;
+}
+#endif
+
 void CheapSynth01::OnUIOpen() {
     // An idle refresh may have been consumed while the editor was closed.
     // The SDK base resends every current parameter to the new controls.
     cs01::PluginAPI::OnUIOpen();
+    // layoutEditor starts with the monitor hidden on every open. Preserve the
+    // user's scale, but discard an expanded height cached by the SDK on close.
+    if (auto* graphics = GetUI())
+        graphics->Resize(PLUG_WIDTH, PLUG_HEIGHT, graphics->GetDrawScale());
     releaseEditorNotes();
     programs.refreshUserPresets();
     updateProgramLabel();

@@ -18,10 +18,10 @@ ctest --test-dir build-core -C Debug --output-on-failure
 
 All native platforms use the same iPlug2 submodule from
 [`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
-`15297433f27c0a4217b6aa9188b9808f049cb461` from
-[`feature/linux-support-2`](https://github.com/yasuyuki-baba/iPlug2/tree/feature/linux-support-2).
-It includes experimental Linux support and host regression coverage,
-plus optional WebKitGTK WebView and Skia GL3 support. CheapSynth01 continues
+`6aeed770bbc7ef43122b5d4eea229ba06e67e1d0` from
+[`integration2`](https://github.com/yasuyuki-baba/iPlug2/tree/integration2).
+It includes upstream Linux support plus the AUv2 Cocoa host-resize notification
+fix and its close-observer cleanup. CheapSynth01 continues
 to use NanoVG/GL3 on Linux.
 No compatibility patch or separate Linux checkout is required.
 The commit is fixed by the parent repository, not a moving fork branch.
@@ -340,3 +340,20 @@ To debug the standalone application, build `mac-native-debug` or
 configuration. These configurations use the native presets' `build-*/out`
 products. For standalone-only presets or a custom build directory, adjust the
 launch configuration's `program` path to that build's output.
+
+## AUv2 host resizing
+
+The integration2 SDK forwards Cocoa parent/view size changes to the editor.
+CheapSynth01 fits its current 1240 by 400 (compact) or 1240 by 640 (expanded)
+canvas uniformly inside the host's dimensions, using the same 75–200% scale
+limits as the display-scale menu and corner resizer. Host changes do not alter
+the logical control coordinates or request another host resize. Other formats
+retain their existing SDK host-resize handling. Reopening starts with the
+keyboard/monitor hidden and preserves the display scale.
+
+CI runs the fork's real Cocoa-view regression executable on macOS as well as
+geometry policy unit tests. This does not replace testing the CheapSynth01 AU
+in a real host: check parent resizing, display-scale changes, keyboard/monitor
+open/close, editor close/reopen and Retina/non-Retina moves. The upstream-based
+SDK still lacks the earlier fork's Linux settings-write error handling; the
+known Linux startup-test failures remain a separate migration blocker.
