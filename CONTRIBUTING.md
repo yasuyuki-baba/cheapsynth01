@@ -18,12 +18,10 @@ ctest --test-dir build-core -C Debug --output-on-failure
 
 All native platforms use the same iPlug2 submodule from
 [`yasuyuki-baba/iPlug2`](https://github.com/yasuyuki-baba/iPlug2), pinned to
-`613bf11513ebebbc27873cf22db213eb5c7a0b46` from
-[`fix/linux-app-startup-errors`](https://github.com/yasuyuki-baba/iPlug2/tree/fix/linux-app-startup-errors),
-based on `integration2`.
+`6aeed770bbc7ef43122b5d4eea229ba06e67e1d0` from
+[`integration2`](https://github.com/yasuyuki-baba/iPlug2/tree/integration2).
 It includes upstream Linux support plus the AUv2 Cocoa host-resize notification
-fix and its close-observer cleanup, plus settings-write failure propagation
-and invalid Linux audio-driver rejection. CheapSynth01 continues
+fix and its close-observer cleanup. CheapSynth01 continues
 to use NanoVG/GL3 on Linux.
 No compatibility patch or separate Linux checkout is required.
 The commit is fixed by the parent repository, not a moving fork branch.
@@ -356,6 +354,6 @@ keyboard/monitor hidden and preserves the display scale.
 CI runs the fork's real Cocoa-view regression executable on macOS as well as
 geometry policy unit tests. This does not replace testing the CheapSynth01 AU
 in a real host: check parent resizing, display-scale changes, keyboard/monitor
-open/close, editor close/reopen and Retina/non-Retina moves. The pinned fork restores Linux settings-write error handling and rejects
-unknown audio-driver IDs before backend initialization. Linux CI also runs
-the display-free INI persistence regression and the actual APP startup cases.
+open/close, editor close/reopen and Retina/non-Retina moves. The upstream-based
+SDK still lacks the earlier fork's Linux settings-write error handling; the
+known Linux startup-test failures remain a separate migration blocker.

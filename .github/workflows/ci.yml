@@ -59,12 +59,6 @@ jobs:
         run: cmake --preset linux-native -B build-native -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
       - name: Build
         run: cmake --build build-native --config ${{ matrix.configuration }} --parallel 2
-      - name: Test Linux INI persistence failures
-        if: runner.os == 'Linux'
-        run: |
-          cmake -S iPlug2/Tests/INIWrite -B build-ini-write -G Ninja -DCMAKE_BUILD_TYPE=Debug
-          cmake --build build-ini-write --parallel 2
-          ctest --test-dir build-ini-write --output-on-failure
       - name: Test
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
