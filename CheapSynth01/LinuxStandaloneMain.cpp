@@ -17,7 +17,9 @@ extern "C" int __wrap_main(int argc, char** argv) {
         cs01::prepareLinuxSettings(std::getenv("XDG_CONFIG_HOME"), std::getenv("HOME"), BUNDLE_NAME,
                                    noIO);
     } catch (const std::exception& error) {
-        std::fprintf(stderr, "%s\n", error.what());
+        std::fprintf(stderr,
+                     "%s\nStandalone initialization failed; audio and editor startup cancelled\n",
+                     error.what());
         return EXIT_FAILURE;
     }
     return __real_main(argc, argv);
